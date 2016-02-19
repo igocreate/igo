@@ -1,0 +1,47 @@
+{
+  "name": "igo",
+  "version": "0.0.1",
+  "description": "nodejs web framework based on expressjs",
+  "main": "igo.js",
+  "scripts": {
+    "test": "mocha",
+    "jshint": "jshint src/**/*.js"
+  },
+  "keywords": [
+    "igocreate",
+    "web",
+    "expressjs"
+  ],
+  "author": "@_arnaud_m",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^1.5.2",
+    "body-parser": "^1.15.0",
+    "compression": "^1.6.1",
+    "consolidate": "^0.14.0",
+    "continuation-local-storage": "^3.1.6",
+    "cookie-parser": "^1.4.1",
+    "cookie-session": "^2.0.0-alpha.1",
+    "dotenv": "^2.0.0",
+    "dustjs-helpers": "^1.7.3",
+    "dustjs-linkedin": "^2.7.2",
+    "express": "^4.13.3",
+    "express-validator": "^2.19.1",
+    "flash": "^1.1.0",
+    "hiredis": "^0.4.1",
+    "i18next": "^2.1.0",
+    "i18next-express-middleware": "^0.2.0",
+    "i18next-node-fs-backend": "0.0.6",
+    "lodash": "^4.3.0",
+    "moment": "^2.11.2",
+    "mysql": "^2.10.2",
+    "redis": "^2.4.2",
+    "require-dir": "^0.3.0",
+    "serve-static": "^1.10.2",
+    "winston": "^2.1.1"
+  },
+  "devDependencies": {
+    "jshint": "^2.9.1",
+    "nodemon": "^1.8.1"
+  }
+}
