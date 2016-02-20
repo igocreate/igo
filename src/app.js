@@ -6,7 +6,6 @@ var winston           = require('winston');
 
 var cons              = require('consolidate');
 var dust              = require('dustjs-linkedin');
-var helpers           = require('./dust/helpers');
 var i18next           = require('i18next');
 var i18nMiddleware    = require('i18next-express-middleware');
 var i18nFsBackend     = require('i18next-node-fs-backend');
@@ -17,23 +16,31 @@ var bodyParser        = require('body-parser');
 var expressValidator  = require('express-validator');
 
 var config            = require('./config');
+var helpers           = require('./connect/helpers');
+var multipart         = require('./connect/multipart');
+var flash             = require('./connect/flash');
+var errorHandler      = require('./connect/errorhandler');
 var routes            = require('./routes');
-var errorHandler      = require('./errorhandler');
-var flash             = require('./flash');
 
 //
 var app = module.exports.app = express();
+
+var services = {
+  redis:  require('./cache'),
+  mysql:  require('./db/db'),
+  mailer: require('./mailer'),
+};
+
+//
+module.exports.init = function(name, service) {
+  services[name] = service;
+};
 
 //
 module.exports.run = function() {
 
   config.init();
-
-  var services = {
-    redis:  require('./cache'),
-    mysql:  require('./db/db'),
-    mailer: require('./mailer'),
-  };
+  
   _.forEach(services, function(service, key) {
     service.init(config[key]);
   });
@@ -58,6 +65,8 @@ module.exports.run = function() {
   app.use(flash);
 
   app.use(bodyParser.urlencoded({ extended: true }));
+  app.use(multipart);
+
   app.use(expressValidator());
 
   app.use(i18nMiddleware.handle(i18next));
