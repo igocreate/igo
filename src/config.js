@@ -17,6 +17,7 @@ module.exports.init = function() {
   config.env            = process.env.NODE_ENV || 'dev';
   config.httpport       = process.env.HTTP_PORT || 3000;
 
+  config.signedCookiesSecret = 'abcdefghijklmnopqrstuvwxyz';
   config.cookieSessionConfig = {
     name: 'app',
     keys: [
@@ -26,7 +27,7 @@ module.exports.init = function() {
     ]
   };
 
-  config.i18nMiddleware = {
+  config.i18n = {
     lngs: ['en', 'fr'],
     fallbackLng: 'en',
     backend: {
@@ -39,15 +40,20 @@ module.exports.init = function() {
     },
   };
 
-  config.nodemailer = {
-    host: '',
-    port: 465,
-    secure: true,
-    auth: {
-      user: '',
-      pass: ''
+  config.mailer = {
+    transport: {
+      host: null,
+      port: 465,
+      secure: true,
+      auth: {
+        user: null,
+        pass: null
+      },
+      subaccount: null
     },
-    subaccount: ''
+    support: {
+      email: null
+    }
   };
 
   config.mysql = {
@@ -80,8 +86,8 @@ module.exports.init = function() {
 
   // load app config
   var configFiles = [
-    '/app/config/config',
-    '/app/config/' + config.env
+    '/app/config',
+    // '/app/config/' + config.env
   ];
   configFiles.forEach(function(file) {
     try {

@@ -6,6 +6,10 @@ var dustHelpers = require('dustjs-helpers');
 
 
 module.exports = function(req, res, next) {
+
+  res.locals.lang    = req.locale;
+  res.locals.session = req.session;
+
   res.locals.t = function(chunk, context, bodies, params) {
     var key         = dust.helpers.tap(params.key, chunk, context);
     var translation = req.t(key);
@@ -39,13 +43,12 @@ dust.helpers.removenl = function(chunk, context, bodies, params) {
 
 //
 dust.helpers.dateformat = function(chunk, context, bodies, params) {
-  var format, lang, m, val;
-  val = dust.helpers.tap(params.date, chunk, context);
+  var val = dust.helpers.tap(params.date, chunk, context);
   if (!val) return chunk;
 
-  lang = dust.helpers.tap(params.lang, chunk, context);
-  moment.lang(lang);
-  m = moment(new Date(val));
+  var locale = dust.helpers.tap(params.lang, chunk, context);
+  moment.locale(locale);
+  var m = moment(new Date(val));
   if (m !== null && m.isValid()) {
     if (params.format === 'calendar') {
       chunk.write(m.calendar());
