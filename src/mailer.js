@@ -9,8 +9,14 @@ var transport = null, options = null;
 
 //
 module.exports.init = function(opts) {
-  options     = opts || {};
-  transport   = nodemailer.createTransport(options.transport);
+  options         = opts || {};
+  options.subject = options.subject || function(email, data) {
+    return 'emails.' + email + '.subject';
+  };
+  options.template = options.template || function(email, data) {
+    return './views/emails/' + email + '.dust';
+  };
+  transport       = nodemailer.createTransport(options.transport);
 };
 
 //
@@ -24,15 +30,15 @@ module.exports.send = function(email, data) {
     return;
   }
 
-  data.to = options.to || data.to;
-
+  data.to       = options.to || data.to;
   data.lang     = data.lang || data.to.lang || 'en';
   data.lng      = data.lang;
   data.urlbase  = options.urlbase;
-  data.subject  = data.subject || i18next.t('mailsubject.' + email, data);
+  data.subject  = data.subject || i18next.t(options.subject(email, data), data);
   data.views    = './views';
 
-  var template  = './views/email/' + data.lang + '/' + email + '.dust';
+  console.dir(data.lang);
+  var template  = options.template(email, data);
   cons.dust(template, data, function(err, rendered) {
 
     if (err || !rendered) {

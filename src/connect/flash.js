@@ -8,6 +8,6 @@ module.exports = function(req, res, next) {
   }
   req.flash = function(key, value) {
     req.session.flash[key] = value;
-  }
+  };
   next();
 };
