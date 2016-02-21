@@ -1,6 +1,6 @@
 {
   "name": "igo",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "homepage": "https://github.com/arnaudm/igo",
   "description": "nodejs web framework based on expressjs",
   "main": "igo.js",

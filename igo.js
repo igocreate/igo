@@ -6,6 +6,6 @@ module.exports = {
   config: require('./src/config'),
   db:     require('./src/db/db'),
   mailer: require('./src/mailer'),
-  Model:  require('./src/db/model'),
+  Model:  require('./src/db/Model'),
   test:   function() { require('./src/test/init'); },
 };
