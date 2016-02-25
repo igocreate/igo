@@ -23,7 +23,7 @@ var errorHandler      = require('./connect/errorhandler');
 var routes            = require('./routes');
 
 //
-var app = module.exports.app = express();
+var app = module.exports = express();
 
 var services = {
   redis:  require('./cache'),
@@ -40,7 +40,7 @@ module.exports.init = function(name, service) {
 module.exports.run = function() {
 
   config.init();
-  
+
   _.forEach(services, function(service, key) {
     service.init(config[key]);
   });
