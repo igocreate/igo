@@ -2,7 +2,7 @@
 
 process.env.NODE_ENV = 'test';
 
-var db      = require('../db');
+var db      = require('../db/db');
 var cache   = require('../cache');
 var config  = require('../config');
 
