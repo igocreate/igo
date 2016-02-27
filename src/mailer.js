@@ -37,7 +37,6 @@ module.exports.send = function(email, data) {
   data.subject  = data.subject || i18next.t(options.subject(email, data), data);
   data.views    = './views';
 
-  console.dir(data.lang);
   var template  = options.template(email, data);
   cons.dust(template, data, function(err, rendered) {
 

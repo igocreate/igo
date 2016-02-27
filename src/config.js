@@ -53,7 +53,8 @@ module.exports.init = function() {
     },
     support: {
       email: null
-    }
+    },
+    defaultfrom: ''
   };
 
   config.mysql = {
