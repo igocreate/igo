@@ -46,8 +46,11 @@ dust.helpers.dateformat = function(chunk, context, bodies, params) {
   var val = dust.helpers.tap(params.date, chunk, context);
   if (!val) return chunk;
 
-  var locale = dust.helpers.tap(params.lang, chunk, context);
-  moment.locale(locale);
+  if (params.lang) {
+    var locale = dust.helpers.tap(params.lang, chunk, context);
+    moment.locale(locale);
+  }
+
   var m = moment(new Date(val));
   if (m !== null && m.isValid()) {
     if (params.format === 'calendar') {

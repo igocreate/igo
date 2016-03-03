@@ -6,6 +6,8 @@
 
 var redis       = require('redis');
 var winston     = require('winston');
+var _           = require('lodash');
+var moment      = require('moment');
 
 var options     = null;
 var redisclient = null;
@@ -56,13 +58,9 @@ module.exports.get = function(namespace, id, callback) {
         if (value !== undefined) {
           // found obj in redis
           var obj = JSON.parse(value);
-          [
-            'date', 'creation', 'publication', 'datelimit', 'birthdate'
-          ].forEach(function(attr) {
-            if (obj && obj.id && obj[attr] && typeof obj[attr] === 'string') {
-              obj[attr] = new Date(obj[attr]);
-            }
-          });
+          //
+          deserializeDates(obj);
+          //
           callback(null, obj);
         } else {
           callback();
@@ -111,4 +109,18 @@ module.exports.del = function(namespace, id, callback) {
 module.exports.flushall = function(callback) {
   redisclient.flushall(callback);
   winston.info('Cache flush');
+};
+
+
+var deserializeDates = function(obj) {
+  var re = /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z)/;
+  _.forIn(obj, function(value, key) {
+    if (typeof value === 'string' && value.match(re)) {
+      var date = moment(value, moment.ISO_8601).toDate();
+      obj[key] = date;
+    } else if (typeof value === 'object') {
+      obj[key] = deserializeDates(value);
+    }
+  });
+  return obj;
 };
