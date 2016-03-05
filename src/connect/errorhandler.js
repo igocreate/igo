@@ -6,6 +6,21 @@ var winston = require('winston');
 var config  = require('../config');
 var mailer  = require('../mailer');
 
+var formatMessage = function(req, err) {
+  var url     = req.protocol + '://' + req.hostname + req.url;
+
+  var message = '<h1>' + req.url + '</h1>';
+  message = message + '<pre>' + err.stack + '</pre>';
+
+  var details = [
+    '<td>url</td><td>' + url + '</td>',
+    '<td>session</td><td>' + JSON.stringify(req.session) + '</td>',
+    '<td>referer</td><td>' + req.get('Referer') + '</td>'
+  ];
+  message = message + '<table><tr>' + details.join('</tr><tr>') + '</tr></table>';
+  return message;
+};
+
 // log and show error
 var handle = function(req, res) {
   return function(err) {
@@ -23,7 +38,7 @@ var handle = function(req, res) {
       mailer.send('notif', {
         to: config.errorsemail,
         subject: 'Crash: ' + config.appname,
-        message: '<h1>' + req.url + '</h1><pre>' + err.stack + '</pre>'
+        message: formatMessage(req, err)
       })
     }
   };
