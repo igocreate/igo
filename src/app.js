@@ -29,6 +29,7 @@ var services = {
   redis:  require('./cache'),
   mysql:  require('./db/db'),
   mailer: require('./mailer'),
+  cls:    require('./cls'),
 };
 
 //

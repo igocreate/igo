@@ -51,7 +51,7 @@ dust.helpers.dateformat = function(chunk, context, bodies, params) {
     moment.locale(locale);
   }
 
-  var m = moment(new Date(val));
+  var m = moment(val);
   if (m !== null && m.isValid()) {
     if (params.format === 'calendar') {
       chunk.write(m.calendar());

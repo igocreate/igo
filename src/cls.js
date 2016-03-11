@@ -18,7 +18,6 @@ module.exports.middleware = function(req, res, next) {
   namespace.bindEmitter(req);
   namespace.bindEmitter(res);
   namespace.run(function() {
-    namespace.set('hello', 'World');
     try {
       next();
     } catch (err) {

@@ -6,6 +6,8 @@ var util    = require('util');
 var async   = require('async');
 var winston = require('winston');
 
+var cls     = require('../cls');
+
 var pool    = null;
 var options = null;
 
@@ -14,6 +16,17 @@ module.exports.init = function(opts) {
   pool    = mysql.createPool(options);
 };
 
+//
+var getConnection = function(callback) {
+  // if connection is in local storage
+  var connection   = cls.getNamespace().get('connection');
+  if (connection) {
+    return callback(null, connection, true);
+  }
+  pool.getConnection(callback);
+};
+
+//
 module.exports.query = function(sql, params, callback, opts) {
   var runquery;
   params  = params  || [];
@@ -25,7 +38,7 @@ module.exports.query = function(sql, params, callback, opts) {
   }
 
   runquery = function() {
-    pool.getConnection(function(err, connection) {
+    getConnection(function(err, connection, keep) {
       if (err) {
         if (!opts.silent) {
           winston.error(err);
@@ -45,7 +58,9 @@ module.exports.query = function(sql, params, callback, opts) {
         if (callback) {
           callback(err, rows);
         }
-        connection.release();
+        if (!keep) {
+          connection.release();
+        }
       });
     });
   };
@@ -65,8 +80,9 @@ module.exports.query = function(sql, params, callback, opts) {
   }
 };
 
-
+//
 module.exports.queryOne = function(sql, params, callback) {
+  // console.log('db.queryOne will be deprecated.');
   params = params || [];
   if (typeof params === 'function') {
     callback = params;
@@ -80,6 +96,63 @@ module.exports.queryOne = function(sql, params, callback) {
     }
   });
 };
+
+//
+module.exports.beginTransaction = function(callback) {
+  getConnection(function(err, connection) {
+    if (err) {
+      winston.error(err);
+      return callback(err, connection);
+    }
+    connection.beginTransaction(function(err) {
+      if (err) {
+        winston.error(err);
+      } else {
+        cls.getNamespace().set('connection', connection);
+      }
+      callback(err, connection);
+    });
+  });
+};
+
+//
+module.exports.commitTransaction = function(callback) {
+  getConnection(function(err, connection) {
+    if (err) {
+      winston.error(err);
+      return callback(err, connection);
+    }
+    connection.commit(function(err) {
+      if (err) {
+        winston.error(err);
+      } else {
+        connection.release();
+        cls.getNamespace().set('connection', null);
+      }
+      callback(err);
+    });
+  });
+};
+
+//
+module.exports.rollbackTransaction = function(callback) {
+  getConnection(function(err, connection) {
+    if (err) {
+      winston.error(err);
+      return callback(err, connection);
+    }
+    connection.rollback(function(err) {
+      if (err) {
+        winston.error(err);
+      } else {
+        connection.release();
+        cls.getNamespace().set('connection', null);
+      }
+      callback(err);
+    });
+  });
+};
+
 
 //
 module.exports.initmigrations = function(callback) {
