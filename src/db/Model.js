@@ -23,12 +23,17 @@ var Model = function(model, schema) {
       });
     };
 
+    // update method
+    instance.reload = function(callback) {
+      model.find(this.id, callback);
+    };
+
     return instance;
   };
 
   // find by id
   model.find = function(where, callback) {
-    if (_.isString(where)) {
+    if (_.isString(where) || _.isNumber(where)) {
       where = { id: where };
     }
     new Sql(Instance).from(schema.table).where(where).first(callback);
