@@ -14,7 +14,7 @@ var Model = function(model, schema) {
 
     instance.init && instance.init();
 
-    // update method
+    // update
     instance.update = function(values, callback) {
       var _this = this;
       _.assign(_this, values);
@@ -23,9 +23,14 @@ var Model = function(model, schema) {
       });
     };
 
-    // update method
+    // reload
     instance.reload = function(callback) {
       model.find(this.id, callback);
+    };
+
+    // destroy
+    instance.destroy = function(callback) {
+      new Sql(Instance).delete(schema.table).where({ id: instance.id }).execute(callback);
     };
 
     return instance;
@@ -63,6 +68,17 @@ var Model = function(model, schema) {
   // destroy all
   model.destroyAll = function(callback) {
     return new Sql(Instance).delete(schema.table).execute(callback);
+  }
+
+  // includes
+  model.includes = function(includes) {
+    var association = _.find(schema.associations, function(association) {
+      return association[0] === includes;
+    });
+    if (!association) {
+      throw new Error('Missing association \'' + includes + '\' on \'' + schema.table + '\' schema.');
+    }
+    return new Sql(Instance).from(schema.table).includes(association);
   }
 
   return model;

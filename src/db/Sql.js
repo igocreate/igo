@@ -1,13 +1,18 @@
 'use strict';
 
-var db  = require('./db');
-var _   = require('lodash');
+var async   = require('async');
+var _       = require('lodash');
+var winston = require('winston');
+
+var db      = require('./db');
+
 
 //
 var Sql = function(Instance) {
   this.query = {
     verb: 'select',
-    where: []
+    where: [],
+    includes: []
   };
 
   // INSERT
@@ -66,23 +71,49 @@ var Sql = function(Instance) {
     return this;
   };
 
+  // includes
+  this.includes = function(includes) {
+    this.query.includes.push(includes);
+    return this;
+  }
+
   //
   this.execute = function(callback) {
-    var self  = this;
-    var query = this.toSQL();
+    var _this = this;
+    var query = _this.toSQL();
     db.query(query.sql, query.params, function(err, rows) {
       if (err) {
         winston.error(err);
         return callback(err);
       }
-      if (rows && rows.length && self.query.limit === 1) {
-        rows = new Instance(rows[0]);
-      } else if (self.query.verb === 'select') {
-        rows = rows.map(function(row) {
-          return new Instance(row);
+
+      async.eachSeries(_this.query.includes, function(includes, callback) {
+        var attr        = includes[0];
+        var Obj         = includes[1];
+        var column      = includes[2] || attr + '_id';
+        var ref_column  = includes[3] || 'id';
+        var ids         = _.map(rows, column);
+
+        var where = {};
+        where[ref_column] = ids;
+        Obj.where(where).list(function(err, objs) {
+          var objsByKey = _.keyBy(objs, ref_column);
+          rows.forEach(function(row) {
+            row[attr] = objsByKey[row[column]];
+          });
+          callback();
         });
-      }
-      callback(err, rows);
+      }, function() {
+        //
+        if (rows && rows.length && _this.query.limit === 1) {
+          rows = new Instance(rows[0]);
+        } else if (_this.query.verb === 'select') {
+          rows = rows.map(function(row) {
+            return new Instance(row);
+          });
+        }
+        callback(err, rows);
+      });
     });
   };
 
@@ -131,6 +162,9 @@ var Sql = function(Instance) {
         _.forEach(where, function(value, key) {
           if (value === null) {
             sqlwhere.push('`' + key + '` IS NULL ');
+          } else if (_.isArray(value)) {
+            sqlwhere.push('`' + key + '` IN (?) ');
+            params.push(value);
           } else {
             sqlwhere.push('`' + key + '`=? ');
             params.push(value);
