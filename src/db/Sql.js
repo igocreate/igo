@@ -4,124 +4,9 @@ var async   = require('async');
 var _       = require('lodash');
 var winston = require('winston');
 
-var db      = require('./db');
-
 
 //
-var Sql = function(Instance) {
-  this.query = {
-    verb: 'select',
-    where: [],
-    includes: []
-  };
-
-  // INSERT
-  this.insert = function(table) {
-    this.query.verb   = 'insert';
-    this.query.table  = table;
-    return this;
-  };
-
-  // UPDATE
-  this.update = function(table) {
-    this.query.verb   = 'update';
-    this.query.table  = table;
-    return this;
-  };
-
-  // DELETE
-  this.delete = function(table) {
-    this.query.verb   = 'delete';
-    this.query.table  = table;
-    return this;
-  };
-
-  // FROM
-  this.from = function(table) {
-    this.query.table = table;
-    return this;
-  };
-
-  // WHERE
-  this.where = function(where, params) {
-    where = params ? [where, params] : where;
-    this.query.where.push(where);
-    return this;
-  };
-
-  // VALUES
-  this.values = function(values) {
-    this.query.values = _.pickBy(values, function(value) {
-      // skip instance functions
-      return typeof value !== 'function';
-    });
-    return this;
-  };
-
-  // FIRST
-  this.first = function(callback) {
-    this.query.limit = 1;
-    this.execute(callback);
-    return this;
-  };
-
-  // list
-  this.list = function(callback) {
-    this.execute(callback);
-    return this;
-  };
-
-  // includes
-  this.includes = function(includes) {
-    this.query.includes.push(includes);
-    return this;
-  }
-
-  //
-  this.execute = function(callback) {
-    var _this = this;
-    var query = _this.toSQL();
-    db.query(query.sql, query.params, function(err, rows) {
-      if (err) {
-        winston.error(err);
-        return callback(err);
-      }
-
-      async.eachSeries(_this.query.includes, function(includes, callback) {
-        var attr        = includes[0];
-        var Obj         = includes[1];
-        var column      = includes[2] || attr + '_id';
-        var ref_column  = includes[3] || 'id';
-        var ids         = _.map(rows, column);
-
-        var where = {};
-        where[ref_column] = ids;
-        Obj.where(where).list(function(err, objs) {
-          var objsByKey = _.keyBy(objs, ref_column);
-          rows.forEach(function(row) {
-            row[attr] = objsByKey[row[column]];
-          });
-          callback();
-        });
-      }, function() {
-        //
-        if (rows && rows.length && _this.query.limit === 1) {
-          rows = new Instance(rows[0]);
-        } else if (_this.query.verb === 'select') {
-          rows = rows.map(function(row) {
-            return new Instance(row);
-          });
-        }
-        callback(err, rows);
-      });
-    });
-  };
-
-  // generate SQL
-  this.toSQL = function() {
-    var params = [];
-    return this[this.query.verb + 'SQL']();
-  };
+var Sql = function(query) {
 
   // SELECT SQL
   this.selectSQL = function() {
@@ -130,15 +15,15 @@ var Sql = function(Instance) {
     var params = [];
 
     // from
-    sql += 'FROM `' + this.query.table + '` ';
+    sql += 'FROM `' + query.table + '` ';
 
     // where
     sql += this.whereSQL(params);
 
     // limit
-    if (this.query.limit) {
+    if (query.limit) {
       sql += 'LIMIT 0, ? ';
-      params.push(this.query.limit);
+      params.push(query.limit);
     }
 
     var ret = {
@@ -152,7 +37,7 @@ var Sql = function(Instance) {
   //
   this.whereSQL = function(params) {
     var sqlwhere = [];
-    _.forEach(this.query.where, function(where) {
+    _.forEach(query.where, function(where) {
       if (_.isArray(where)) {
         sqlwhere.push(where[0] + ' ');
         _.merge(params, _.toArray(where[1]));
@@ -182,11 +67,11 @@ var Sql = function(Instance) {
   this.insertSQL = function() {
 
     // insert into
-    var sql = 'INSERT INTO `' + this.query.table + '`';
+    var sql = 'INSERT INTO `' + query.table + '`';
 
     // columns
     var columns = [], values = [], params = [];
-    _.forEach(this.query.values, function(value, key) {
+    _.forEach(query.values, function(value, key) {
       columns.push('`' + key + '`');
       values.push('?');
       params.push(value);
@@ -207,11 +92,11 @@ var Sql = function(Instance) {
   this.updateSQL = function() {
 
     // update set
-    var sql = 'UPDATE `' + this.query.table + '` SET ';
+    var sql = 'UPDATE `' + query.table + '` SET ';
 
     // columns
     var columns = [], values = [], params = [];
-    _.forEach(this.query.values, function(value, key) {
+    _.forEach(query.values, function(value, key) {
       columns.push('`' + key + '`=?');
       params.push(value);
     });
@@ -231,7 +116,7 @@ var Sql = function(Instance) {
   this.deleteSQL = function() {
 
     // delete
-    var sql = 'DELETE FROM `' + this.query.table + '` ';
+    var sql = 'DELETE FROM `' + query.table + '` ';
 
     // columns
     var params = [];
