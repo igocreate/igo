@@ -22,9 +22,6 @@ module.exports.init = function(opts) {
 //
 module.exports.send = function(email, data) {
 
-  if (data && data.to === 'support') {
-    data.to = options.support;
-  }
   if (!data || !data.to || !data.to.email) {
     winston.warn('mailer.send: no email for recipient');
     return;
@@ -51,6 +48,7 @@ module.exports.send = function(email, data) {
       var mailOptions = {
         from:     options.defaultfrom,
         to:       data.to.fullname + ' <' + data.to.email + '>',
+        cc:       data.cc,
         subject:  data.subject,
         html:     rendered,
         headers:  headers
