@@ -119,17 +119,20 @@ var Query = function(Instance, schema) {
         var Obj         = includes[2];
         var column      = includes[3] || attr + '_id';
         var ref_column  = includes[4] || 'id';
-        var ids         = _.map(rows, column);
+        var ids         = _.chain(rows).map(column).uniq().value();
         var where = {};
         where[ref_column] = ids;
         Obj.where(where).list(function(err, objs) {
           var objsByKey = {};
           _.forEach(objs, function(obj) {
             var key = obj[ref_column];
-            objsByKey[key] = objsByKey[key] || [];
-            objsByKey[key].push(obj);
+            if (type === 'has_many') {
+              objsByKey[key] = objsByKey[key] || [];
+              objsByKey[key].push(obj);
+            } else {
+              objsByKey[key] = obj;
+            }
           });
-
           var defaultValue = (type === 'has_many' ? [] : null);
           rows.forEach(function(row) {
             row[attr] = objsByKey[row[column]] || defaultValue;
