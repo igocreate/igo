@@ -9,6 +9,8 @@ var winston     = require('winston');
 var _           = require('lodash');
 var moment      = require('moment');
 
+var cls         = require('./cls');
+
 var options     = null;
 var redisclient = null;
 
@@ -39,22 +41,22 @@ module.exports.redisclient = function() {
 module.exports.put = function(namespace, id, value, callback, ttl) {
   var k = namespace + '/' + id;
   var v = value ? JSON.stringify(value) : null;
-  redisclient.set(k, v, function(err) {
+  redisclient.set(k, v, cls.bind(function(err) {
     if (callback) {
       callback(null, value);
     }
     redisclient.expire(k, ttl || options.ttl);
-  });
+  }));
 };
 
 //
 module.exports.get = function(namespace, id, callback) {
 
   var k = namespace + '/' + id;
-  redisclient.exists(k, function(err, exists) {
+  redisclient.exists(k, cls.bind(function(err, exists) {
     if (exists) {
       // console.log('found '+k+ ' from redis cache');
-      redisclient.get(k, function(err, value) {
+      redisclient.get(k, cls.bind(function(err, value) {
         if (value !== undefined) {
           // found obj in redis
           var obj = JSON.parse(value);
@@ -65,11 +67,11 @@ module.exports.get = function(namespace, id, callback) {
         } else {
           callback();
         }
-      });
+      }));
     } else {
       callback('notfound');
     }
-  });
+  }));
 };
 
  // - returns object from cache if exists.
@@ -95,19 +97,19 @@ module.exports.getput = module.exports.fetch;
 
 //
 module.exports.info = function(callback) {
-  redisclient.info(callback);
+  redisclient.info(cls.bind(callback));
 };
 
 //
 module.exports.del = function(namespace, id, callback) {
   var k = namespace+'/'+id;
   // remove from redis
-  redisclient.del(k, callback);
+  redisclient.del(k, cls.bind(callback));
 };
 
 //
 module.exports.flushall = function(callback) {
-  redisclient.flushall(callback);
+  redisclient.flushall(cls.bind(callback));
   winston.info('Cache flush');
 };
 

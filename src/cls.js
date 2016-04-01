@@ -30,3 +30,12 @@ module.exports.middleware = function(req, res, next) {
 module.exports.getNamespace = function(name) {
   return cls.getNamespace(name || ns);
 };
+
+//
+module.exports.bind = function(callback) {
+  var namespace = module.exports.getNamespace();
+  if (namespace && callback) {
+    return namespace.bind(callback);
+  }
+  return callback;
+}

@@ -23,7 +23,7 @@ var getConnection = function(callback) {
   if (connection) {
     return callback(null, connection, true);
   }
-  pool.getConnection(callback);
+  pool.getConnection(cls.bind(callback));
 };
 
 //
@@ -45,7 +45,7 @@ module.exports.query = function(sql, params, callback, opts) {
         }
         return callback(err);
       }
-      connection.query(sql, params, function(err, rows) {
+      connection.query(sql, params, cls.bind(function(err, rows) {
         if (!opts.silent && (options.debugsql || err)) {
           winston.info('Db.query: ' + sql);
           if (params && params.length > 0) {
@@ -61,7 +61,7 @@ module.exports.query = function(sql, params, callback, opts) {
         if (!keep) {
           connection.release();
         }
-      });
+      }));
     });
   };
 
@@ -104,14 +104,14 @@ module.exports.beginTransaction = function(callback) {
       winston.error(err);
       return callback(err, connection);
     }
-    connection.beginTransaction(function(err) {
+    connection.beginTransaction(cls.bind(function(err) {
       if (err) {
         winston.error(err);
       } else {
         cls.getNamespace().set('connection', connection);
       }
       callback(err, connection);
-    });
+    }));
   });
 };
 
@@ -122,7 +122,7 @@ module.exports.commitTransaction = function(callback) {
       winston.error(err);
       return callback(err, connection);
     }
-    connection.commit(function(err) {
+    connection.commit(cls.bind(function(err) {
       if (err) {
         winston.error(err);
       } else {
@@ -130,7 +130,7 @@ module.exports.commitTransaction = function(callback) {
         cls.getNamespace().set('connection', null);
       }
       callback(err);
-    });
+    }));
   });
 };
 
@@ -141,7 +141,7 @@ module.exports.rollbackTransaction = function(callback) {
       winston.error(err);
       return callback(err, connection);
     }
-    connection.rollback(function(err) {
+    connection.rollback(cls.bind(function(err) {
       if (err) {
         winston.error(err);
       } else {
@@ -149,7 +149,7 @@ module.exports.rollbackTransaction = function(callback) {
         cls.getNamespace().set('connection', null);
       }
       callback(err);
-    });
+    }));
   });
 };
 
