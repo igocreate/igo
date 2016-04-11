@@ -36,6 +36,11 @@ var Model = function(model, schema) {
     return instance;
   };
 
+  // build new instance
+  model.build = function(args) {
+    return new Instance(args);
+  };
+
   // find by id
   model.find = function(where, callback) {
     new Query(Instance, schema).from(schema.table).find(where, callback);
