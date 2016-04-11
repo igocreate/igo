@@ -120,6 +120,9 @@ var Query = function(Instance, schema) {
         var column      = includes[3] || attr + '_id';
         var ref_column  = includes[4] || 'id';
         var ids         = _.chain(rows).map(column).uniq().value();
+        if (ids.length === 0) {
+          return callback();
+        }
         var where = {};
         where[ref_column] = ids;
         Obj.where(where).list(function(err, objs) {
