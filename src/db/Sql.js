@@ -40,7 +40,9 @@ var Sql = function(query) {
     _.forEach(query.where, function(where) {
       if (_.isArray(where)) {
         sqlwhere.push(where[0] + ' ');
-        _.merge(params, _.toArray(where[1]));
+        _.toArray(where[1]).forEach(function(param) {
+          params.push(param);
+        });
       } else if (_.isString(where)) {
         sqlwhere.push(where + ' ');
       } else {
