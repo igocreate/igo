@@ -6,9 +6,9 @@ var winston   = require('winston');
 var ns = null;
 
 // load config
-module.exports.init = function(options) {
-  options = options || {};
-  ns      = options.namespace || 'igo';
+module.exports.init = function(config) {
+  var options = config && config.cls || {};
+  ns          = options.namespace || 'igo';
   cls.createNamespace(ns);
 };
 

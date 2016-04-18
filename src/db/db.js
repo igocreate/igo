@@ -11,8 +11,8 @@ var cls     = require('../cls');
 var pool    = null;
 var options = null;
 
-module.exports.init = function(opts) {
-  options = opts;
+module.exports.init = function(config) {
+  options = config.mysql;
   pool    = mysql.createPool(options);
 };
 

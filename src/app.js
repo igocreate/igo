@@ -43,7 +43,7 @@ module.exports.run = function() {
   config.init();
 
   _.forEach(services, function(service, key) {
-    service.init(config[key]);
+    service.init(config);
   });
 
   i18next

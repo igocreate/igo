@@ -8,8 +8,8 @@ var winston     = require('winston');
 var transport = null, options = null;
 
 //
-module.exports.init = function(opts) {
-  options         = opts || {};
+module.exports.init = function(config) {
+  options         = config && config.mailer || {};
   options.subject = options.subject || function(email, data) {
     return 'emails.' + email + '.subject';
   };

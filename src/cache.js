@@ -15,8 +15,8 @@ var options     = null;
 var redisclient = null;
 
 //
-module.exports.init = function(opts) {
-  options     = opts;
+module.exports.init = function(config) {
+  options     = config.redis;
   options.ttl = options.ttl || 3600; // default ttl is 1 hour
 
   redisclient = redis.createClient(options.port, options.host, {
@@ -30,6 +30,10 @@ module.exports.init = function(opts) {
     console.error(err);
     winston.error("redisclient error " + err);
   });
+
+  if (config.env === 'dev') {
+    module.exports.flushall();
+  }
 };
 
 //
