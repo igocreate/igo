@@ -7,11 +7,12 @@ var async   = require('async');
 var winston = require('winston');
 
 var cls     = require('../cls');
+var config  = require('../config');
 
 var pool    = null;
 var options = null;
 
-module.exports.init = function(config) {
+module.exports.init = function() {
   options = config.mysql;
   pool    = mysql.createPool(options);
 };
