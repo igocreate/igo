@@ -20,6 +20,9 @@ var Sql = function(query) {
     // where
     sql += this.whereSQL(params);
 
+    // order by
+    sql += this.orderSQL();
+
     // limit
     if (query.limit) {
       sql += 'LIMIT 0, ? ';
@@ -129,6 +132,18 @@ var Sql = function(query) {
       params: params
     };
     return ret;
+  };
+
+  // ORDER BY SQL
+  this.orderSQL = function() {
+
+    if (!query.order.length) {
+      return '';
+    }
+
+    var sql = 'ORDER BY ' + query.order.join(', ');
+
+    return sql;
   };
 
 };

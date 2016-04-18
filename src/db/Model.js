@@ -67,6 +67,11 @@ var Model = function(model, schema) {
     return new Query(Instance, schema).from(schema.table).where(where, params);
   }
 
+  // filter
+  model.order = function(order) {
+    return new Query(Instance, schema).from(schema.table).order(order);
+  }
+
   // destroy all
   model.destroyAll = function(callback) {
     return new Query(Instance, schema).delete(schema.table).execute(callback);

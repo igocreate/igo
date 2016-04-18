@@ -14,6 +14,7 @@ var Query = function(Instance, schema) {
   this.query = {
     verb: 'select',
     where: [],
+    order: [],
     includes: []
   };
 
@@ -91,6 +92,12 @@ var Query = function(Instance, schema) {
       where = { id: where };
     }
     this.where(where).first(callback);
+  };
+
+  // order
+  this.order = function(order) {
+    this.query.order.push(order);
+    return this;
   };
 
   // generate SQL
