@@ -3,12 +3,19 @@
 var moment      = require('moment');
 var dust        = require('dustjs-linkedin');
 var dustHelpers = require('dustjs-helpers');
-
+var i18next     = require('i18next');
 
 module.exports = function(req, res, next) {
 
   res.locals.lang    = req.locale;
   res.locals.session = req.session;
+
+  req.changeLanguage = function(lang, callback) {
+    i18next.changeLanguage(lang, function(err, t) {
+      req.t = t;
+      callback();
+    });
+  };
 
   res.locals.t = function(chunk, context, bodies, params) {
     var key         = dust.helpers.tap(params.key, chunk, context);

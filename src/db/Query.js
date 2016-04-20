@@ -154,6 +154,8 @@ var Query = function(Instance, schema) {
         //
         if (rows && rows.length && _this.query.limit === 1) {
           rows = new Instance(rows[0]);
+        } else if (_this.query.limit === 1) {
+          rows = null;
         } else if (_this.query.verb === 'select') {
           rows = rows.map(function(row) {
             return new Instance(row);
