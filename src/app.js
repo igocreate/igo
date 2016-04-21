@@ -65,7 +65,9 @@ module.exports.run = function() {
   app.use(cookieSession(config.cookieSessionConfig));
   app.use(flash);
 
-  app.use(bodyParser.urlencoded({ extended: true }));
+  app.use(bodyParser.json());
+  app.use(bodyParser.urlencoded());
+  
   app.use(multipart);
 
   app.use(expressValidator());
