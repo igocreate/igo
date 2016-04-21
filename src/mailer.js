@@ -4,6 +4,8 @@ var nodemailer  = require('nodemailer');
 var cons        = require('consolidate');
 var i18next     = require('i18next');
 var winston     = require('winston');
+var dust        = require('dustjs-linkedin');
+var dustHelpers = require('dustjs-helpers');
 
 var transport = null, options = null;
 
@@ -33,6 +35,12 @@ module.exports.send = function(email, data) {
   data.urlbase  = options.urlbase;
   data.subject  = data.subject || i18next.t(options.subject(email, data), data);
   data.views    = './views';
+
+  data.t = function(chunk, context, bodies, params) {
+    var key         = dust.helpers.tap(params.key, chunk, context);
+    var translation = i18next.t(key, data);
+    return chunk.write(translation);
+  };
 
   var template  = options.template(email, data);
   cons.dust(template, data, function(err, rendered) {
