@@ -141,7 +141,7 @@ var Sql = function(query) {
       return '';
     }
 
-    var sql = 'ORDER BY ' + query.order.join(', ');
+    var sql = 'ORDER BY ' + query.order.join(', ') + ' ';
 
     return sql;
   };

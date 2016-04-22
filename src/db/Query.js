@@ -113,6 +113,7 @@ var Query = function(Instance, schema) {
     var _this = this;
 
     var query = _this.toSQL();
+    // console.dir(query);
 
     db.query(query.sql, query.params, function(err, rows) {
       if (err) {
