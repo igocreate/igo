@@ -54,10 +54,12 @@ var Query = function(Instance, schema) {
 
   // VALUES
   this.values = function(values) {
-    this.query.values = _.pickBy(values, function(value) {
+    values = _.pickBy(values, function(value) {
       // skip instance functions
       return typeof value !== 'function';
     });
+    // limit to schema columns
+    this.query.values = _.pick(values, schema.columns);
     return this;
   };
 
