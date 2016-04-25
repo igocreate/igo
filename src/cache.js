@@ -14,6 +14,8 @@ var cls         = require('./cls');
 var options     = null;
 var redisclient = null;
 
+var NULL_VALUE  = '__null__';
+
 //
 module.exports.init = function(config) {
   options     = config.redis;
@@ -43,6 +45,9 @@ module.exports.redisclient = function() {
 
 //
 module.exports.put = function(namespace, id, value, callback, ttl) {
+  if (value === null) {
+    value = NULL_VALUE;
+  }
   var k = namespace + '/' + id;
   var v = value ? JSON.stringify(value) : null;
   redisclient.set(k, v, cls.bind(function(err) {
@@ -62,6 +67,9 @@ module.exports.get = function(namespace, id, callback) {
       // console.log('found '+k+ ' from redis cache');
       redisclient.get(k, cls.bind(function(err, value) {
         if (value !== undefined) {
+          if (value === NULL_VALUE) {
+            return callback(null, null);
+          }
           // found obj in redis
           var obj = JSON.parse(value);
           //
