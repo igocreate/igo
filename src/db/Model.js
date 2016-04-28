@@ -42,8 +42,8 @@ var Model = function(model, schema) {
   };
 
   // find by id
-  model.find = function(where, callback) {
-    new Query(Instance, schema).from(schema.table).find(where, callback);
+  model.find = function(id, callback) {
+    new Query(Instance, schema).from(schema.table).find(id, callback);
   };
 
   // create

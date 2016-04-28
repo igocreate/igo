@@ -78,22 +78,31 @@ var Query = function(Instance, schema) {
 
   // includes
   this.includes = function(includes) {
-    var association = _.find(schema.associations, function(association) {
-      return association[1] === includes;
-    });
-    if (!association) {
-      throw new Error('Missing association \'' + includes + '\' on \'' + schema.table + '\' schema.');
-    }
-    this.query.includes.push(association);
+    var _this = this;
+    var pushInclude = function(include) {
+      var association = _.find(schema.associations, function(association) {
+        return association[1] === include;
+      });
+      if (!association) {
+        throw new Error('Missing association \'' + include + '\' on \'' + schema.table + '\' schema.');
+      }
+      _this.query.includes.push(association);
+    };
+    _.forEach(_.concat([], includes), pushInclude);
     return this;
   };
 
   // find
-  this.find = function(where, callback) {
-    if (_.isString(where) || _.isNumber(where)) {
-      where = { id: where };
+  this.find = function(id, callback) {
+    if (!id) {
+      return callback();
+    } else if (_.isString(id) || _.isNumber(id)) {
+      this.where({ id: id }).first(callback);
+    } else if (_.isArray(id)) {
+      this.where({ id: id }).list(callback);
+    } else {
+      return callback();
     }
-    this.where(where).first(callback);
   };
 
   // order
@@ -119,6 +128,7 @@ var Query = function(Instance, schema) {
 
     db.query(query.sql, query.params, function(err, rows) {
       if (err) {
+        console.log(err);
         winston.error(err);
         return callback(err);
       }
