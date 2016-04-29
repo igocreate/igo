@@ -38,7 +38,7 @@ module.exports.init = function(name, service) {
 };
 
 //
-module.exports.run = function() {
+module.exports.init = function() {
 
   config.init();
 
@@ -61,25 +61,35 @@ module.exports.run = function() {
   app.use(compression());
   app.use(express.static('public'));
 
-  app.use(cookieParser(config.signedCookiesSecret));
-  app.use(cookieSession(config.cookieSessionConfig));
-  app.use(flash);
-
-  app.use(bodyParser.json());
-  app.use(bodyParser.urlencoded({ extended: true }));
-
-  app.use(multipart);
+  if (config.env !== 'test') {
+    app.use(cookieParser(config.signedCookiesSecret));
+    app.use(cookieSession(config.cookieSessionConfig));
+    app.use(flash);
+    app.use(bodyParser.json());
+    app.use(bodyParser.urlencoded({ extended: true }));
+    app.use(multipart);
+  }
 
   app.use(expressValidator());
-
   app.use(i18nMiddleware.handle(i18next));
   app.use(helpers);
 
-  app.use(errorHandler.init(app));
+  if (config.env !== 'test') {
+    app.use(errorHandler.init(app));
+  }
 
   routes.init(app);
 
-  app.use(errorHandler.error);
+  if (config.env !== 'test') {
+    app.use(errorHandler.error);
+  }
+
+}
+
+//
+module.exports.run = function() {
+
+  module.exports.init();
 
   app.listen(config.httpport, function () {
     winston.info('Listening to port %s', config.httpport);
