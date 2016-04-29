@@ -70,13 +70,13 @@ var Query = function(Instance, schema) {
     return this;
   };
 
-  // list
+  // LIST
   this.list = function(callback) {
     this.execute(callback);
     return this;
   };
 
-  // includes
+  // INCLUDES
   this.includes = function(includes) {
     var _this = this;
     var pushInclude = function(include) {
@@ -92,7 +92,7 @@ var Query = function(Instance, schema) {
     return this;
   };
 
-  // find
+  // FIND
   this.find = function(id, callback) {
     if (!id) {
       return callback();
@@ -105,7 +105,7 @@ var Query = function(Instance, schema) {
     }
   };
 
-  // order
+  // ORDER BY
   this.order = function(order) {
     this.query.order.push(order);
     return this;

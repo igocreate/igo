@@ -72,6 +72,11 @@ var Model = function(model, schema) {
     return new Query(Instance, schema).from(schema.table).order(order);
   }
 
+  // destroy
+  model.destroy = function(id, callback) {
+    return new Query(Instance, schema).delete(schema.table).where({ id: id }).execute(callback);
+  }
+
   // destroy all
   model.destroyAll = function(callback) {
     return new Query(Instance, schema).delete(schema.table).execute(callback);
