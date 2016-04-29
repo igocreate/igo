@@ -41,18 +41,18 @@ module.exports.query = function(sql, params, callback, opts) {
   runquery = function() {
     getConnection(function(err, connection, keep) {
       if (err) {
-        if (!opts.silent) {
-          winston.error(err);
-        }
+        console.log(err);
+        winston.error(err);
         return callback(err);
       }
       connection.query(sql, params, cls.bind(function(err, rows) {
-        if (!opts.silent && (options.debugsql || err)) {
+        if (options.debugsql || err) {
           winston.info('Db.query: ' + sql);
           if (params && params.length > 0) {
             winston.info('With params: ' + params);
           }
           if (err) {
+            console.log(err);
             winston.error(err);
           }
         }
