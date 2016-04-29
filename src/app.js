@@ -17,7 +17,6 @@ var expressValidator  = require('express-validator');
 
 var config            = require('./config');
 var helpers           = require('./connect/helpers');
-var filters           = require('./connect/filters');
 var multipart         = require('./connect/multipart');
 var flash             = require('./connect/flash');
 var errorHandler      = require('./connect/errorhandler');
@@ -74,7 +73,6 @@ module.exports.init = function() {
   app.use(expressValidator());
   app.use(i18nMiddleware.handle(i18next));
   app.use(helpers);
-  app.use(filters);
 
   if (config.env !== 'test') {
     app.use(errorHandler.init(app));
