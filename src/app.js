@@ -38,7 +38,7 @@ module.exports.init = function(name, service) {
 };
 
 //
-module.exports.init = function() {
+module.exports.configure = function() {
 
   config.init();
 
@@ -89,7 +89,7 @@ module.exports.init = function() {
 //
 module.exports.run = function() {
 
-  module.exports.init();
+  module.exports.configure();
 
   app.listen(config.httpport, function () {
     winston.info('Listening to port %s', config.httpport);
