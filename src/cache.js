@@ -14,11 +14,10 @@ var cls         = require('./cls');
 var options     = null;
 var redisclient = null;
 
-var NULL_VALUE  = '__null__';
-
 //
 module.exports.init = function(config) {
-  options     = config.redis;
+  config      = config || {};
+  options     = config.redis || {};
   options.ttl = options.ttl || 3600; // default ttl is 1 hour
 
   redisclient = redis.createClient(options.port, options.host, {
@@ -33,7 +32,7 @@ module.exports.init = function(config) {
     winston.error("redisclient error " + err);
   });
 
-  if (config.env === 'dev') {
+  if (config.env !== 'production') {
     module.exports.flushall();
   }
 };
@@ -45,11 +44,9 @@ module.exports.redisclient = function() {
 
 //
 module.exports.put = function(namespace, id, value, callback, ttl) {
-  if (value === null) {
-    value = NULL_VALUE;
-  }
   var k = namespace + '/' + id;
-  var v = value ? JSON.stringify(value) : null;
+  var v = JSON.stringify({ v: value });
+
   redisclient.set(k, v, cls.bind(function(err) {
     if (callback) {
       callback(null, value);
@@ -62,27 +59,18 @@ module.exports.put = function(namespace, id, value, callback, ttl) {
 module.exports.get = function(namespace, id, callback) {
 
   var k = namespace + '/' + id;
-  redisclient.exists(k, cls.bind(function(err, exists) {
-    if (exists) {
-      // console.log('found '+k+ ' from redis cache');
-      redisclient.get(k, cls.bind(function(err, value) {
-        if (value !== undefined) {
-          if (value === NULL_VALUE) {
-            return callback(null, null);
-          }
-          // found obj in redis
-          var obj = JSON.parse(value);
-          //
-          deserializeDates(obj);
-          //
-          callback(null, obj);
-        } else {
-          callback();
-        }
-      }));
-    } else {
-      callback('notfound');
+  redisclient.get(k, cls.bind(function(err, value) {
+    if (!value) {
+      return callback('notfound');
     }
+    // found obj in redis
+    var obj = JSON.parse(value);
+    obj     = obj.v;
+    if (obj === null) {
+      return callback(null, null);
+    }
+    obj = deserializeDates(obj);
+    callback(null, obj);
   }));
 };
 
@@ -128,13 +116,12 @@ module.exports.flushall = function(callback) {
 
 var deserializeDates = function(obj) {
   var re = /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z)/;
-  _.forIn(obj, function(value, key) {
-    if (typeof value === 'string' && value.match(re)) {
-      var date = moment(value, moment.ISO_8601).toDate();
-      obj[key] = date;
-    } else if (typeof value === 'object') {
+  if (_.isString(obj) && obj.match(re)) {
+    return moment(obj, moment.ISO_8601).toDate();
+  } else if (_.isObject(obj) && _.keys(obj).length > 0) {
+    _.forIn(obj, function(value, key) {
       obj[key] = deserializeDates(value);
-    }
-  });
+    });
+  }
   return obj;
 };
