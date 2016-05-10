@@ -94,11 +94,13 @@ var Query = function(Instance, schema) {
 
   // FIND
   this.find = function(id, callback) {
-    if (!id) {
-      return callback();
-    } else if (_.isString(id) || _.isNumber(id)) {
+    if (id && (_.isString(id) || _.isNumber(id))) {
       this.where({ id: id }).first(callback);
-    } else if (_.isArray(id)) {
+    } else if (id && _.isArray(id)) {
+      id = _.compact(id);
+      if (_.isEmpty(id)) {
+        return callback();
+      }
       this.where({ id: id }).list(callback);
     } else {
       return callback();
@@ -139,7 +141,7 @@ var Query = function(Instance, schema) {
         var Obj         = includes[2];
         var column      = includes[3] || attr + '_id';
         var ref_column  = includes[4] || 'id';
-        var ids         = _.chain(rows).map(column).uniq().value();
+        var ids         = _.chain(rows).map(column).uniq().compact().value();
         if (ids.length === 0) {
           return callback();
         }
