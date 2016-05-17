@@ -6,6 +6,7 @@ module.exports = {
   config:   require('./src/config'),
   db:       require('./src/db/db'),
   i18next:  require('i18next'),
+  render:   require('consolidate').dust,
   mailer:   require('./src/mailer'),
   Model:    require('./src/db/Model')
 };
