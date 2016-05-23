@@ -82,6 +82,11 @@ module.exports.init = function() {
   if (config.env === 'test') {
     config.mysql.database = 'test';
     config.nodemailer     = null;
+    winston.add(winston.transports.File, {
+      filename: './logs/test.log',
+      colorize: true,
+      json: false
+    });
     winston.remove(winston.transports.Console);
   }
 
