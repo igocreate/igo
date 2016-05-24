@@ -98,7 +98,7 @@ var Query = function(Instance, schema) {
       this.where({ id: id }).first(callback);
     } else if (id && _.isArray(id)) {
       id = _.compact(id);
-      if (_.isEmpty(id)) {
+      if (id.length === 0) {
         return callback();
       }
       this.where({ id: id }).list(callback);

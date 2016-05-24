@@ -7,6 +7,17 @@ var Query = require('./Query');
 //
 var Model = function(model, schema) {
 
+  // init
+  if (!schema.primary) {
+    schema.primary = ['id'];
+  } else if (!_.isArray(schema.primary)) {
+    schema.primary = [ schema.primary ];
+  }
+
+  var primaryObject = function(instance) {
+    return _.pick(instance, schema.primary);
+  }
+
   var Instance = function(row) {
     var instance = new model();
 
@@ -18,7 +29,7 @@ var Model = function(model, schema) {
     instance.update = function(values, callback) {
       var _this = this;
       _.assign(_this, values);
-      new Query(Instance, schema).update(schema.table).values(values).where({ id: instance.id }).execute(function(err, result) {
+      new Query(Instance, schema).update(schema.table).values(values).where(primaryObject(instance)).execute(function(err, result) {
         callback(err, _this);
       });
     };
@@ -30,7 +41,7 @@ var Model = function(model, schema) {
 
     // destroy
     instance.destroy = function(callback) {
-      new Query(Instance, schema).delete(schema.table).where({ id: instance.id }).execute(callback);
+      new Query(Instance, schema).delete(schema.table).where(primaryObject(instance)).execute(callback);
     };
 
     return instance;
