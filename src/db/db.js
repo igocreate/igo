@@ -57,8 +57,7 @@ module.exports.query = function(sql, params, options, callback) {
             winston.info('With params: ' + params);
           }
           if (err && !options.silent) {
-            console.log('ERROR');
-            //console.log(err);
+            console.log(err);
             winston.error(err);
           }
         }
