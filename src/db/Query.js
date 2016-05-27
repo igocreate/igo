@@ -15,7 +15,8 @@ var Query = function(Instance, schema) {
     verb: 'select',
     where: [],
     order: [],
-    includes: []
+    includes: [],
+    options: {}
   };
 
   // INSERT
@@ -76,6 +77,12 @@ var Query = function(Instance, schema) {
     return this;
   };
 
+  // SILENT
+  this.silently = function(callback) {
+    this.execute(callback);
+    return this;
+  };
+
   // INCLUDES
   this.includes = function(includes) {
     var _this = this;
@@ -113,6 +120,12 @@ var Query = function(Instance, schema) {
     return this;
   };
 
+  // QUERY OPTIONS
+  this.options = function(options) {
+    _.merge(this.query.options, options);
+    return this;
+  }
+
   // generate SQL
   this.toSQL = function() {
     var params = [];
@@ -124,14 +137,13 @@ var Query = function(Instance, schema) {
   //
   this.execute = function(callback) {
     var _this = this;
+    var sqlQuery = _this.toSQL();
+    // console.dir(sqlQuery);
 
-    var query = _this.toSQL();
-    // console.dir(query);
-
-    db.query(query.sql, query.params, function(err, rows) {
+    db.query(sqlQuery.sql, sqlQuery.params, _this.query.options, function(err, rows) {
       if (err) {
-        console.log(err);
-        winston.error(err);
+        // console.log(err);
+        // winston.error(err);
         return callback(err);
       }
 

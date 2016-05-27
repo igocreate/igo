@@ -58,12 +58,18 @@ var Model = function(model, schema) {
   };
 
   // create
-  model.create = function(values, callback) {
+  model.create = function(values, options, callback) {
     if (_.isFunction(values)) {
       callback = values;
     }
+    if (_.isFunction(options)) {
+      callback = options;
+    }
     _.defaultsDeep(values, new Instance());
-    new Query(Instance, schema).insert(schema.table).values(values).execute(function(err, result) {
+    return new Query(Instance, schema).insert(schema.table).values(values).options(options).execute(function(err, result) {
+      if (err) {
+        return callback && callback(err, result);
+      }
       model.find(result && result.insertId, callback);
     });
   };

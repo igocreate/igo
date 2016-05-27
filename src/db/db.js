@@ -5,16 +5,15 @@ var fs      = require('fs');
 var util    = require('util');
 var async   = require('async');
 var winston = require('winston');
+var _       = require('lodash');
 
 var cls     = require('../cls');
 var config  = require('../config');
 
 var pool    = null;
-var options = null;
 
 module.exports.init = function() {
-  options = config.mysql;
-  pool    = mysql.createPool(options);
+  pool    = mysql.createPool(config.mysql);
 };
 
 //
@@ -28,14 +27,19 @@ var getConnection = function(callback) {
 };
 
 //
-module.exports.query = function(sql, params, callback, opts) {
+module.exports.query = function(sql, params, options, callback) {
   var runquery;
-  params  = params  || [];
-  opts    = opts    || [];
 
-  if (typeof params === 'function') {
-    callback = params;
-    params = [];
+  params  = params  || [];
+  options = options || {};
+  if (_.isFunction(params)) {
+    callback  = params;
+    params    = [];
+    options   = {};
+  }
+  if (_.isFunction(options)) {
+    callback  = options;
+    options   = {};
   }
 
   runquery = function() {
@@ -46,13 +50,15 @@ module.exports.query = function(sql, params, callback, opts) {
         return callback(err);
       }
       connection.query(sql, params, cls.bind(function(err, rows) {
-        if (options.debugsql || err) {
+
+        if (config.mysql.debugsql || (err && !options.silent)) {
           winston.info('Db.query: ' + sql);
           if (params && params.length > 0) {
             winston.info('With params: ' + params);
           }
-          if (err) {
-            console.log(err);
+          if (err && !options.silent) {
+            console.log('ERROR');
+            //console.log(err);
             winston.error(err);
           }
         }
@@ -70,7 +76,7 @@ module.exports.query = function(sql, params, callback, opts) {
     runquery();
   } else {
     winston.info('Db.query: Trying to reinitialize db connection pool');
-    module.exports.init(options, function(err) {
+    module.exports.init(config.mysql, function(err) {
       if (err) {
         winston.error(err);
         callback(err);
@@ -82,12 +88,18 @@ module.exports.query = function(sql, params, callback, opts) {
 };
 
 //
-module.exports.queryOne = function(sql, params, callback) {
+module.exports.queryOne = function(sql, params, options, callback) {
   // console.log('db.queryOne will be deprecated.');
-  params = params || [];
-  if (typeof params === 'function') {
-    callback = params;
-    params = [];
+  params  = params  || [];
+  options = options || {};
+  if (_.isFunction(params)) {
+    callback  = params;
+    params    = [];
+    options   = {};
+  }
+  if (_.isFunction(options)) {
+    callback  = options;
+    options   = {};
   }
   return module.exports.query(sql, params, function(err, results) {
     if (results && results.length > 0 && callback) {
@@ -181,7 +193,7 @@ module.exports.migrate = function(callback) {
       callback();
     } else if (line.match('\\;$')) {
       querybuf += line;
-      if (options.debugsql) {
+      if (config.mysql.debugsql) {
         winston.info(querybuf);
       }
       module.exports.query(querybuf, callback);
@@ -218,7 +230,7 @@ module.exports.migrate = function(callback) {
         });
       }, function(data, callback) {
         var lines = data.toString().split('\n');
-        if (options.debugsql) {
+        if (config.mysql.debugsql) {
           winston.info('Executing ' + file + ': ' + lines.length + ' lines to process');
         }
         async.eachSeries(lines, executeLine, function(err) {
