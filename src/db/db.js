@@ -75,14 +75,13 @@ module.exports.query = function(sql, params, options, callback) {
     runquery();
   } else {
     winston.info('Db.query: Trying to reinitialize db connection pool');
-    module.exports.init(config.mysql, function(err) {
-      if (err) {
-        winston.error(err);
-        callback(err);
-      } else {
-        runquery();
-      }
-    });
+    module.exports.init();
+    if (!pool) {
+      winston.error('could not create db connection pool');
+      callback('dberror: could not create db connection pool');
+    } else {
+      runquery();
+    }
   }
 };
 
