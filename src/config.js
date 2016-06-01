@@ -2,7 +2,7 @@
 
 var _           = require('lodash');
 var winston     = require('winston');
-// var papertrail  = require('winston-papertrail').Papertrail;
+var Papertrail  = require('winston-papertrail').Papertrail;
 
 require('dotenv').config({silent: true});
 
@@ -78,6 +78,13 @@ module.exports.init = function() {
   winston.add(winston.transports.Console, {
     timestamp: true
   });
+  if (process.env.PAPERTRAIL_HOST && config.env !== 'test') {
+    winston.add(Papertrail, {
+      host:     process.env.PAPERTRAIL_HOST,
+      port:     process.env.PAPERTRAIL_PORT,
+      colorize: true
+    });
+  }
 
   if (config.env === 'test') {
     config.mysql.database = 'test';
