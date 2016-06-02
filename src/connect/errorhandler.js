@@ -50,7 +50,12 @@ module.exports.init = function(app) {
     var appDomain = domain.create();
     appDomain.add(req);
     appDomain.add(res);
-    appDomain.on('error', handle(req, res));
+    appDomain.on('error', function(err) {
+      handle(req, res)(err);
+      setTimeout(function() {
+        process.exit(1);
+      }, 100);
+    });
     appDomain.run(next);
   };
 };
