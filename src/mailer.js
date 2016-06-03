@@ -24,13 +24,14 @@ module.exports.init = function(config) {
 //
 module.exports.send = function(email, data) {
 
-  if (!data || !data.to || !data.to.email) {
+  if (!data || !data.to) {
     winston.warn('mailer.send: no email for recipient');
     return;
   }
 
+  data.from     = data.from || options.defaultfrom;
   data.to       = options.to || data.to;
-  data.lang     = data.lang || data.to.lang || 'en';
+  data.lang     = data.lang || 'en';
   data.lng      = data.lang;
   data.urlbase  = options.urlbase;
   data.subject  = data.subject || i18next.t(options.subject(email, data), data);
@@ -42,23 +43,29 @@ module.exports.send = function(email, data) {
     return chunk.write(translation);
   };
 
-  var template  = options.template(email, data);
-  cons.dust(template, data, function(err, rendered) {
+  var renderBody = function(callback) {
+    if (data.body) {
+      return callback(null, data.body);
+    }
+    var template  = options.template(email, data);
+    cons.dust(template, data, callback);
+  };
 
-    if (err || !rendered) {
+  renderBody(function(err, html) {
+    if (err || !html) {
       winston.error('mailer.send: error - could not render template ' + template);
     } else {
-      winston.info('mailer.send: Sending mail ' + email + ' to ' + data.to.email + ' in ' + data.lang);
+      winston.info('mailer.send: Sending mail ' + email + ' to ' + data.to + ' in ' + data.lang);
       var headers = {};
       if (options.subaccount) {
         headers['X-MC-Subaccount'] = options.subaccount;
       }
       var mailOptions = {
-        from:     options.defaultfrom,
-        to:       data.to.fullname + ' <' + data.to.email + '>',
+        from:     data.from,
+        to:       data.to,
         cc:       data.cc,
         subject:  data.subject,
-        html:     rendered,
+        html:     html,
         headers:  headers
       };
       transport.sendMail(mailOptions, function(err, res) {

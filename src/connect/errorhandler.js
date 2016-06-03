@@ -34,11 +34,11 @@ var handle = function(req, res) {
       res.send('<h1>' + req.url + '</h1><pre>' + err.stack + '</pre>');
     }
 
-    if (config.errorsemail) {
-      mailer.send('notif', {
-        to: config.errorsemail,
-        subject: 'Crash: ' + config.appname,
-        message: formatMessage(req, err)
+    if (config.mailcrashto) {
+      mailer.send('crash', {
+        to:       config.mailcrashto,
+        subject:  [ config.appname, 'Crash:', err ].join(' '),
+        body:     formatMessage(req, err)
       })
     }
   };
