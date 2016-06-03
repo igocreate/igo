@@ -52,9 +52,7 @@ module.exports.init = function(app) {
     appDomain.add(res);
     appDomain.on('error', function(err) {
       handle(req, res)(err);
-      setTimeout(function() {
-        process.exit(1);
-      }, 100);
+      gracefullyShutdown(app);
     });
     appDomain.run(next);
   };
@@ -64,3 +62,24 @@ module.exports.init = function(app) {
 module.exports.error = function(err, req, res, next) {
   handle(req, res)(err);
 };
+
+
+// https://nodejs.org/api/domain.html
+var gracefullyShutdown = function(app) {
+
+  try {
+    // make sure we close down within N seconds
+    var killtimer = setTimeout(() => {
+      process.exit(1);
+    }, 3000);
+    // But don't keep the process open just for that!
+    killtimer.unref();
+
+    // stop taking new requests.
+    app.server.close();
+
+  } catch (err) {
+    // oh well, not much we can do at this point.
+    console.error('Error shutting down gracefully!', err.stack);
+  }
+}

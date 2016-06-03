@@ -62,6 +62,7 @@ module.exports.configure = function() {
   app.use(express.static('public'));
 
   if (config.env !== 'test') {
+    app.use(errorHandler.init(app));
     app.use(cookieParser(config.signedCookiesSecret));
     app.use(cookieSession(config.cookieSessionConfig));
     app.use(bodyParser.json());
@@ -73,10 +74,6 @@ module.exports.configure = function() {
   app.use(expressValidator());
   app.use(i18nMiddleware.handle(i18next));
   app.use(helpers);
-
-  if (config.env !== 'test') {
-    app.use(errorHandler.init(app));
-  }
 
   routes.init(app);
 
@@ -91,7 +88,7 @@ module.exports.run = function() {
 
   module.exports.configure();
 
-  app.listen(config.httpport, function () {
+  app.server = app.listen(config.httpport, function () {
     winston.info('Listening to port %s', config.httpport);
   });
 };
