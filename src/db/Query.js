@@ -71,6 +71,12 @@ var Query = function(Instance, schema) {
     return this;
   };
 
+  // LIMIT
+  this.limit = function(limit) {
+    this.query.limit = limit;
+    return this;
+  };
+
   // LIST
   this.list = function(callback) {
     this.execute(callback);
