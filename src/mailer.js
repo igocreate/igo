@@ -39,7 +39,7 @@ module.exports.send = function(email, data) {
 
   data.t = function(chunk, context, bodies, params) {
     var key         = dust.helpers.tap(params.key, chunk, context);
-    var translation = i18next.t(key, data);
+    var translation = i18next.t(key, params);
     return chunk.write(translation);
   };
 
