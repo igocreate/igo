@@ -1,5 +1,6 @@
 'use strict';
 
+var _           = require('lodash');
 var nodemailer  = require('nodemailer');
 var cons        = require('consolidate');
 var i18next     = require('i18next');
@@ -7,7 +8,7 @@ var winston     = require('winston');
 var dust        = require('dustjs-linkedin');
 var dustHelpers = require('dustjs-helpers');
 
-var transport = null, options = null;
+var transport   = null, options = null;
 
 //
 module.exports.init = function(config) {
@@ -39,21 +40,23 @@ module.exports.send = function(email, data) {
 
   data.t = function(chunk, context, bodies, params) {
     var key         = dust.helpers.tap(params.key, chunk, context);
-    var translation = i18next.t(key, params);
+    var translation = i18next.t(key, _.merge({ lng: data.lang }, params));
     return chunk.write(translation);
   };
+
+  var template  = options.template(email, data);
 
   var renderBody = function(callback) {
     if (data.body) {
       return callback(null, data.body);
     }
-    var template  = options.template(email, data);
     cons.dust(template, data, callback);
   };
 
   renderBody(function(err, html) {
     if (err || !html) {
       winston.error('mailer.send: error - could not render template ' + template);
+      winston.error(err);
     } else {
       winston.info('mailer.send: Sending mail ' + email + ' to ' + data.to + ' in ' + data.lang);
       var headers = {};
