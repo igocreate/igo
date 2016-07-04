@@ -13,14 +13,9 @@ The igo framework comes with :
 - cache API based on Redis
 - mailer system based on [nodemailer](https://github.com/nodemailer/nodemailer)
 
-For development, [igo-dev](https://github.com/arnaudm/igo-dev) offers :
+For development, [igo](https://github.com/arnaudm/igo) offers :
 - a few pre-configured [gulp](http://gulpjs.com/) tasks
-- a testing environment based on [mochajs](https://mochajs.org/)
-
-igo uses a lot of async, lodash.
-<br />
-igo does not use ES6 nor Promises.
-
+- a fully functional test environment based on [mochajs](https://mochajs.org/)
 
 ## Getting started
 Work in progress.
