@@ -30,7 +30,7 @@ var Sql = function(query) {
     }
 
     var ret = {
-      sql: sql,
+      sql: sql.trim(),
       params: params
     };
     // console.dir(ret);
@@ -43,9 +43,11 @@ var Sql = function(query) {
     _.forEach(query.where, function(where) {
       if (_.isArray(where)) {
         sqlwhere.push(where[0] + ' ');
-        _.toArray(where[1]).forEach(function(param) {
-          params.push(param);
-        });
+        if (_.isArray(where[1])) {
+          Array.prototype.push.apply(params, where[1]);
+        } else {
+          params.push(where[1]);
+        }
       } else if (_.isString(where)) {
         sqlwhere.push(where + ' ');
       } else {
@@ -137,7 +139,7 @@ var Sql = function(query) {
   // ORDER BY SQL
   this.orderSQL = function() {
 
-    if (!query.order.length) {
+    if (!query.order || !query.order.length) {
       return '';
     }
 
