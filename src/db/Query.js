@@ -1,6 +1,4 @@
 
-'use strict';
-
 var async   = require('async');
 var _       = require('lodash');
 var winston = require('winston');
@@ -12,6 +10,7 @@ var db      = require('./db');
 var Query = function(Instance, schema) {
 
   this.query = {
+    table: schema.table,
     verb: 'select',
     where: [],
     order: [],
@@ -66,7 +65,22 @@ var Query = function(Instance, schema) {
 
   // FIRST
   this.first = function(callback) {
+    var _this = this;
     this.query.limit = 1;
+    schema.primary.forEach(function(key) {
+      _this.query.order.push('`' + key + '`');
+    });
+    this.execute(callback);
+    return this;
+  };
+
+  // LAST
+  this.last = function(callback) {
+    var _this = this;
+    this.query.limit = 1;
+    schema.primary.forEach(function(key) {
+      _this.query.order.push('`' + key + '` DESC');
+    });
     this.execute(callback);
     return this;
   };
@@ -83,9 +97,13 @@ var Query = function(Instance, schema) {
     return this;
   };
 
-  // SILENT
-  this.silently = function(callback) {
-    this.execute(callback);
+  // COUNT
+  this.count = function(callback) {
+    this.query.verb   = 'count';
+    this.query.limit  = 1;
+    this.execute(function(err, row) {
+      callback(err, row && row.count);
+    });
     return this;
   };
 
@@ -137,6 +155,7 @@ var Query = function(Instance, schema) {
     var params = [];
     var sql = new Sql(this.query)[this.query.verb + 'SQL']();
     // console.log(sql);
+    this.query.generated = sql;
     return sql;
   };
 
@@ -185,7 +204,7 @@ var Query = function(Instance, schema) {
 
       }, function() {
         //
-        if (rows && rows.length && _this.query.limit === 1) {
+        if (rows && rows.length > 0 && _this.query.limit === 1) {
           rows = new Instance(rows[0]);
         } else if (_this.query.limit === 1) {
           rows = null;

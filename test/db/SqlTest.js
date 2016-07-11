@@ -39,6 +39,14 @@ describe('db.Sql', function() {
   });
 
   //
+  describe('countSQL', function() {
+    it('should return correct SQL', function() {
+      var selectSQL = new Sql(query).countSQL();
+      assert.equal('SELECT COUNT(0) as `count` FROM `books`', selectSQL.sql);
+    });
+  });
+
+  //
   describe('whereSQL', function() {
 
     it('should allow string as query param', function() {

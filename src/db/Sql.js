@@ -37,6 +37,26 @@ var Sql = function(query) {
     return ret;
   };
 
+  // COUNT SQL
+  this.countSQL = function() {
+    // select
+    var sql = 'SELECT COUNT(0) as `count` ';
+    var params = [];
+
+    // from
+    sql += 'FROM `' + query.table + '` ';
+
+    // where
+    sql += this.whereSQL(params);
+
+    var ret = {
+      sql: sql.trim(),
+      params: params
+    };
+    // console.dir(ret);
+    return ret;
+  };
+
   //
   this.whereSQL = function(params) {
     var sqlwhere = [];

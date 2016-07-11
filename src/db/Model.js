@@ -1,4 +1,4 @@
-'use strict';
+
 
 var _   = require('lodash');
 
@@ -54,7 +54,7 @@ var Model = function(model, schema) {
 
   // find by id
   model.find = function(id, callback) {
-    new Query(Instance, schema).from(schema.table).find(id, callback);
+    new Query(Instance, schema).find(id, callback);
   };
 
   // create
@@ -74,19 +74,29 @@ var Model = function(model, schema) {
     });
   };
 
+  // return first
+  model.first = function(callback) {
+    new Query(Instance, schema).first(callback);
+  };
+
+  // return last
+  model.last = function(callback) {
+    new Query(Instance, schema).last(callback);
+  };
+
   // return all
   model.all = function(callback) {
-    new Query(Instance, schema).from(schema.table).list(callback);
+    new Query(Instance, schema).list(callback);
   };
 
   // filter
   model.where = function(where, params) {
-    return new Query(Instance, schema).from(schema.table).where(where, params);
+    return new Query(Instance, schema).where(where, params);
   }
 
   // filter
   model.order = function(order) {
-    return new Query(Instance, schema).from(schema.table).order(order);
+    return new Query(Instance, schema).order(order);
   }
 
   // destroy
@@ -101,7 +111,7 @@ var Model = function(model, schema) {
 
   // includes
   model.includes = function(includes) {
-    return new Query(Instance, schema).from(schema.table).includes(includes);
+    return new Query(Instance, schema).includes(includes);
   }
 
   return model;

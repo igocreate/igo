@@ -19,7 +19,8 @@ module.exports.init = function() {
 //
 var getConnection = function(callback) {
   // if connection is in local storage
-  var connection   = cls.getNamespace().get('connection');
+  var namespace   = cls.getNamespace();
+  var connection  = namespace && namespace.get('connection');
   if (connection) {
     return callback(null, connection, true);
   }
@@ -180,9 +181,13 @@ module.exports.migrations = function(callback) {
 };
 
 //
-module.exports.migrate = function(callback) {
+module.exports.migrate = function(path, callback) {
   var executeFile, executeLine, path, querybuf;
-  path = './sql';
+  if (_.isFunction(path)) {
+    callback = path;
+    path = null;
+  }
+  path = path || './sql';
   querybuf = '';
   executeLine = function(line, callback) {
     line = line.replace('\r', '');
