@@ -10,7 +10,7 @@ var sass        = require('gulp-sass');
 var less        = require('gulp-less');
 var imagemin    = require('gulp-imagemin');
 var fingerprint = require('gulp-finger');
-var minifycss   = require('gulp-minify-css');
+var cleancss   = require('gulp-clean-css');
 var gulpUtil    = require('gulp-util');
 
 module.exports = function(gulp) {
@@ -30,20 +30,20 @@ module.exports = function(gulp) {
   });
 
 
-  // scss + minifycss
+  // scss + cleancss
   gulp.task('scss', function () {
     return gulp.src('./scss/styles.scss')
       .pipe(sass().on('error', gulpUtil.log))
-      .pipe(minifycss())
+      .pipe(cleancss())
       .pipe(fingerprint('./views/css.fingerprint'))
       .pipe(gulp.dest('./public'));
   });
 
-  // less + minifycss
+  // less + cleancss
   gulp.task('less', function () {
     return gulp.src('./less/styles.less')
       .pipe(less().on('error', gulpUtil.log))
-      .pipe(minifycss())
+      .pipe(cleancss())
       .pipe(fingerprint('./views/css.fingerprint'))
       .pipe(gulp.dest('./public'));
   });
