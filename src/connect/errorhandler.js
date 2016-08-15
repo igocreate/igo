@@ -22,26 +22,32 @@ var formatMessage = function(req, err) {
 };
 
 // log and show error
-var handle = function(req, res) {
-  return function(err) {
-    winston.error(req.method + ' ' + req.url + ' : ' + err);
-    winston.error(err.stack);
+var handle = function(err, req, res) {
 
-    if (config.env === 'production') {
-      res.status(500);
-      res.render('errors/500');
-    } else {
-      res.send('<h1>' + req.url + '</h1><pre>' + err.stack + '</pre>');
-    }
+  // uri error
+  if (err instanceof URIError) {
+    res.status(404);
+    res.render('errors/404');
+    return;
+  }
 
-    if (config.mailcrashto) {
-      mailer.send('crash', {
-        to:       config.mailcrashto,
-        subject:  [ config.appname, 'Crash:', err ].join(' '),
-        body:     formatMessage(req, err)
-      })
-    }
-  };
+  winston.error(req.method + ' ' + req.url + ' : ' + err);
+  winston.error(err.stack);
+
+  if (config.env === 'production') {
+    res.status(500);
+    res.render('errors/500');
+  } else {
+    res.send('<h1>' + req.url + '</h1><pre>' + err.stack + '</pre>');
+  }
+
+  if (config.mailcrashto) {
+    mailer.send('crash', {
+      to:       config.mailcrashto,
+      subject:  [ config.appname, 'Crash:', err ].join(' '),
+      body:     formatMessage(req, err)
+    })
+  }
 };
 
 // init domain for error handling
@@ -51,7 +57,7 @@ module.exports.init = function(app) {
     appDomain.add(req);
     appDomain.add(res);
     appDomain.on('error', function(err) {
-      handle(req, res)(err);
+      handle(err, req, res);
       gracefullyShutdown(app);
     });
     appDomain.run(next);
@@ -60,7 +66,7 @@ module.exports.init = function(app) {
 
 // handle express error
 module.exports.error = function(err, req, res, next) {
-  handle(req, res)(err);
+  handle(err, req, res);
 };
 
 
