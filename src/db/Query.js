@@ -15,7 +15,8 @@ var Query = function(Instance, schema) {
     where: [],
     order: [],
     includes: [],
-    options: {}
+    options: {},
+    scopes: [ 'default' ],
   };
 
   // INSERT
@@ -91,6 +92,18 @@ var Query = function(Instance, schema) {
     return this;
   };
 
+  // SCOPE
+  this.scope = function(scope) {    
+    this.query.scopes.push(scope);
+    return this;
+  };
+
+  // UNSCOPED
+  this.unscoped = function() {
+    this.query.scopes.length = 0;
+    return this;
+  };
+
   // LIST
   this.list = function(callback) {
     this.execute(callback);
@@ -106,6 +119,16 @@ var Query = function(Instance, schema) {
     });
     return this;
   };
+
+  // SCOPES
+  this.applyScopes = function() {
+    var _this = this;
+    this.query.scopes.forEach(function(scope) {
+      if (schema.scopes[scope]) {
+        schema.scopes[scope](_this);
+      }
+    });
+  }
 
   // INCLUDES
   this.includes = function(includes) {
@@ -162,8 +185,11 @@ var Query = function(Instance, schema) {
   //
   this.execute = function(callback) {
     var _this = this;
+
+    schema.scopes && _this.applyScopes();
+
     var sqlQuery = _this.toSQL();
-    // console.dir(sqlQuery);
+    //console.dir(sqlQuery);
 
     db.query(sqlQuery.sql, sqlQuery.params, _this.query.options, function(err, rows) {
       if (err) {

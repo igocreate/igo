@@ -29,19 +29,19 @@ var Model = function(model, schema) {
     instance.update = function(values, callback) {
       var _this = this;
       _.assign(_this, values);
-      new Query(Instance, schema).update(schema.table).values(values).where(primaryObject(instance)).execute(function(err, result) {
+      new Query(Instance, schema).unscoped().update(schema.table).values(values).where(primaryObject(instance)).execute(function(err, result) {
         callback(err, _this);
       });
     };
 
     // reload
     instance.reload = function(callback) {
-      model.find(this.id, callback);
+      model.unscoped().find(this.id, callback);
     };
 
     // destroy
     instance.destroy = function(callback) {
-      new Query(Instance, schema).delete(schema.table).where(primaryObject(instance)).execute(callback);
+      new Query(Instance, schema).unscoped().delete(schema.table).where(primaryObject(instance)).execute(callback);
     };
 
     return instance;
@@ -66,11 +66,11 @@ var Model = function(model, schema) {
       callback = options;
     }
     _.defaultsDeep(values, new Instance());
-    return new Query(Instance, schema).insert(schema.table).values(values).options(options).execute(function(err, result) {
+    return new Query(Instance, schema).unscoped().insert(schema.table).values(values).options(options).execute(function(err, result) {
       if (err) {
         return callback && callback(err, result);
       }
-      model.find(result && result.insertId, callback);
+      model.unscoped().find(result && result.insertId, callback);
     });
   };
 
@@ -94,24 +94,34 @@ var Model = function(model, schema) {
     return new Query(Instance, schema).where(where, params);
   }
 
-  // filter
+  // order
   model.order = function(order) {
     return new Query(Instance, schema).order(order);
   }
 
   // destroy
   model.destroy = function(id, callback) {
-    return new Query(Instance, schema).delete(schema.table).where({ id: id }).execute(callback);
+    return new Query(Instance, schema).unscoped().delete(schema.table).where({ id: id }).execute(callback);
   }
 
   // destroy all
   model.destroyAll = function(callback) {
-    return new Query(Instance, schema).delete(schema.table).execute(callback);
+    return new Query(Instance, schema).unscoped().delete(schema.table).execute(callback);
   }
 
   // includes
   model.includes = function(includes) {
     return new Query(Instance, schema).includes(includes);
+  }
+
+  //unscoped
+  model.unscoped = function() {
+    return new Query(Instance, schema).unscoped();
+  }
+
+  //scope
+  model.scope = function(scope) {
+    return new Query(Instance, schema).scope(scope);
   }
 
   return model;
