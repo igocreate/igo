@@ -14,9 +14,9 @@ var Query = function(Instance, schema) {
     verb: 'select',
     where: [],
     order: [],
-    includes: [],
+    includes: {},
     options: {},
-    scopes: [ 'default' ],
+    scopes: [ 'default' ]
   };
 
   // INSERT
@@ -93,7 +93,7 @@ var Query = function(Instance, schema) {
   };
 
   // SCOPE
-  this.scope = function(scope) {    
+  this.scope = function(scope) {
     this.query.scopes.push(scope);
     return this;
   };
@@ -134,13 +134,11 @@ var Query = function(Instance, schema) {
   this.includes = function(includes) {
     var _this = this;
     var pushInclude = function(include) {
-      var association = _.find(schema.associations, function(association) {
-        return association[1] === include;
-      });
-      if (!association) {
-        throw new Error('Missing association \'' + include + '\' on \'' + schema.table + '\' schema.');
+      if (_.isString(include)) {
+        _this.query.includes[include] = [];
+      } else if (_.isObject(include)) {
+        _.merge(_this.query.includes, include);
       }
-      _this.query.includes.push(association);
     };
     _.forEach(_.concat([], includes), pushInclude);
     return this;
@@ -195,22 +193,30 @@ var Query = function(Instance, schema) {
       if (err) {
         // console.log(err);
         // winston.error(err);
-        return callback(err);
+        return callback && callback(err);
       }
 
-      async.eachSeries(_this.query.includes, function(includes, callback) {
-        var type        = includes[0];
-        var attr        = includes[1];
-        var Obj         = includes[2];
-        var column      = includes[3] || attr + '_id';
-        var ref_column  = includes[4] || 'id';
+      async.eachSeries(_.keys(_this.query.includes), function(include, callback) {
+        var association = _.find(schema.associations, function(association) {
+          return association[1] === include;
+        });
+        if (!association) {
+          throw new Error('Missing association \'' + include + '\' on \'' + schema.table + '\' schema.');
+        }
+
+        var type        = association[0];
+        var attr        = association[1];
+        var Obj         = association[2];
+        var column      = association[3] || attr + '_id';
+        var ref_column  = association[4] || 'id';
         var ids         = _.chain(rows).map(column).uniq().compact().value();
         if (ids.length === 0) {
           return callback();
         }
         var where = {};
         where[ref_column] = ids;
-        Obj.where(where).list(function(err, objs) {
+        var subincludes = _this.query.includes[include];
+        var query = Obj.where(where).includes(subincludes).list(function(err, objs) {
           var objsByKey = {};
           _.forEach(objs, function(obj) {
             var key = obj[ref_column];
@@ -239,7 +245,7 @@ var Query = function(Instance, schema) {
             return new Instance(row);
           });
         }
-        callback(err, rows);
+        callback && callback(err, rows);
       });
     });
   };

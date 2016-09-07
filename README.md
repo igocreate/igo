@@ -19,3 +19,12 @@ For development, [igo](https://github.com/arnaudm/igo) offers :
 
 ## Getting started
 Work in progress.
+
+- npm install igo --save
+- create gulpfile.js
+- create ./app.js
+- create ./app/config.js
+- create ./app/routes.js
+- create ./app/controllers folder
+- create index controller + template file
+-
