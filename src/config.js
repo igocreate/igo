@@ -28,15 +28,18 @@ module.exports.init = function() {
   };
 
   config.i18n = {
-    lngs: ['en', 'fr'],
-    fallbackLng: 'en',
+    whitelist:            [ 'en', 'fr' ],
+    preload:              [ 'en', 'fr' ],
+    fallbackLng:          'en',
     backend: {
-      loadPath: 'locales/{{lng}}/{{ns}}.json',
+      loadPath:           'locales/{{lng}}/{{ns}}.json',
     },
     detection: {
-      order: ['querystring', 'path', 'session'],
-      lookupPath: 'lng',
-      lookupQuerystring: 'lng'
+      order:              [ 'querystring', 'path', 'cookie', 'header' ],
+      lookupPath:         'lang',
+      lookupQuerystring:  'lang',
+      lookupCookie:       'lang',
+      caches:             [ 'cookie' ]
     },
   };
 
