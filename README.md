@@ -20,7 +20,7 @@ Igo is a complete web development environment based on NodeJS, with :
 Igo can be installed globally (-g) to provide a simple CLI.
 
 ```sh
-$ npm install -g igo bower gulp-cli
+$ npm install -g igo bower gulp-cli mocha
 $ igo create myproject
 $ cd myproject
 $ npm install
