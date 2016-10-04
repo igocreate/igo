@@ -1,7 +1,12 @@
 
+'use strict';
 
 var fs      = require('fs');
+
+var _       = require('lodash');
 var fse     = require('fs-extra');
+var replace = require('replace');
+
 
 // igo create
 module.exports = function(argv) {
@@ -28,8 +33,23 @@ module.exports = function(argv) {
         console.error(err);
         process.exit(1);
       }
+
+      // replace in files
+      var replacements = {
+        '\{igo.version\}':    require('../package.json').version,
+        '\{project.name\}':   args[1]
+      }
+      _.forEach(replacements, function(replacement, regex) {
+        replace({
+          regex:        regex,
+          replacement:  replacement,
+          paths:        [ directory ],
+          exclude:      'node_modules',
+          recursive:    true,
+          silent:       true
+        });
+      });
       console.log('done!');
     });
-
   });
 };

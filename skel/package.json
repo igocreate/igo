@@ -1,5 +1,5 @@
 {
-  "name": "myproject",
+  "name": "{project.name}",
   "version": "0.0.1",
   "description": "",
   "main": "app.js",
@@ -9,6 +9,6 @@
   "author": "",
   "license": "",
   "dependencies": {
-    "igo": "2.0.0"
+    "igo": "{igo.version}"
   }
 }
