@@ -1,5 +1,6 @@
 'use strict';
 
+var _           = require('lodash');
 
 var nodemon     = require('gulp-nodemon');
 var jshint      = require('gulp-jshint');
@@ -10,19 +11,36 @@ var sass        = require('gulp-sass');
 var less        = require('gulp-less');
 var imagemin    = require('gulp-imagemin');
 var fingerprint = require('gulp-finger');
-var cleancss   = require('gulp-clean-css');
+var cleancss    = require('gulp-clean-css');
 var gulpUtil    = require('gulp-util');
 
-module.exports = function(gulp) {
+//
+var defaultOptions = {
+  uglify: {
+    src: [
+      './js/jquery*.js',
+      './js/bootstrap*.js',
+      './js/plugins/**/*.js',
+      './js/main.js',
+      './js/**/*.js'
+    ]
+  },
+  copy: {
+    './bower_components/font-awesome/fonts/*':            './public/fonts/',
+    './bower_components/bootstrap/dist/fonts/*':          './public/fonts',
+    './bower_components/jquery/dist/jquery.js':           './js',
+    './bower_components/bootstrap/dist/js/bootstrap.js':  './js',
+    './bower_components/bootstrap/less/**/*':             './less/bootstrap',
+  }
+};
+
+module.exports = function(gulp, options) {
+
+  options   = _.defaultsDeep(options, defaultOptions);
 
   // uglify
   gulp.task('uglify', function() {
-    return gulp.src([
-        './js/jquery-*.js',
-        './js/bootstrap.*.js',
-        './js/plugins/**/*.js',
-        './js/main.js',
-        './js/**/*.js' ])
+    return gulp.src(options.uglify.src)
       .pipe(concat('main.js'))
       .pipe(uglify({outSourceMaps: true}).on('error', gulpUtil.log))
       .pipe(fingerprint('./views/js.fingerprint'))
@@ -82,6 +100,12 @@ module.exports = function(gulp) {
 
   // dev: nodemon
   gulp.task('dev', function () {
+
+    // copy bower components files
+    _.forEach(options.copy, function(dest, src) {
+      // console.log('copy ' + src + ' to ' + dest);
+      gulp.src(src).pipe(gulp.dest(dest));
+    });
 
     // watch
     gulp.watch('./app/**/*.js',       ['jshint']);

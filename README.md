@@ -1,30 +1,28 @@
-# igo: a full-featured web framework
+# Igo: web dev environment
 
-Note: Work is In Progress.
+_Note: Work is In Progress._
 
 ## Presentation
 
-The igo framework comes with :
-- expressjs with pre-configured middlewares
-- [dustjs](http://www.dustjs.com/) as a template engine
-- a basic ORM for mysql
-- simple configuration management
-- a simple error handling system
-- cache API based on Redis
-- mailer system based on [nodemailer](https://github.com/nodemailer/nodemailer)
-
-For development, [igo](https://github.com/arnaudm/igo) offers :
-- a few pre-configured [gulp](http://gulpjs.com/) tasks
-- a fully functional test environment based on [mochajs](https://mochajs.org/)
+Igo is a complete web development environment based on NodeJS, with :
+- Pre-configured expressjs & middlewares
+- Templating system [dustjs](http://www.dustjs.com/) as a template engine
+- Basic ORM for MySQL
+- Configuration management
+- Error handling
+- Cache API based on Redis
+- Mailing system based on [nodemailer](https://github.com/nodemailer/nodemailer)
+- Pre-configured [gulp](http://gulpjs.com/) tasks for development
+- Test environment based on [mochajs](https://mochajs.org/)
 
 ## Getting started
-Work in progress.
 
-- npm install igo --save
-- create gulpfile.js
-- create ./app.js
-- create ./app/config.js
-- create ./app/routes.js
-- create ./app/controllers folder
-- create index controller + template file
--
+Igo can be installed globally (-g) to provide a simple CLI.
+
+- npm install -g igo bower gulp-cli
+- igo create myproject
+- cd myproject
+- npm install
+- bower install
+- gulp
+- open http://localhost:3000

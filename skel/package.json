@@ -1,0 +1,14 @@
+{
+  "name": "myproject",
+  "version": "0.0.1",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "",
+  "license": "",
+  "dependencies": {
+    "igo": "2.0.0"
+  }
+}
