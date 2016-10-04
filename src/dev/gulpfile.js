@@ -1,6 +1,8 @@
 'use strict';
 
 var _           = require('lodash');
+var async       = require('async');
+var runSequence = require('run-sequence');
 
 var nodemon     = require('gulp-nodemon');
 var jshint      = require('gulp-jshint');
@@ -36,7 +38,9 @@ var defaultOptions = {
 
 module.exports = function(gulp, options) {
 
-  options   = _.defaultsDeep(options, defaultOptions);
+  runSequence = runSequence.use(gulp);
+
+  options     = _.defaultsDeep(options, defaultOptions);
 
   // uglify
   gulp.task('uglify', function() {
@@ -91,10 +95,10 @@ module.exports = function(gulp, options) {
   });
 
   // copy files from bower_components
-  gulp.task('copy', function() {
-    _.forEach(options.copy, function(dest, src) {
-      gulp.src(src).pipe(gulp.dest(dest));
-    });
+  gulp.task('copy', function(callback) {
+    async.eachOfSeries(options.copy, function(dest, src, callback) {
+      gulp.src(src).pipe(gulp.dest(dest)).on('end', callback);
+    }, callback);
   });
 
   // dev: nodemon
@@ -117,6 +121,11 @@ module.exports = function(gulp, options) {
   });
 
   // default task
-  gulp.task('default', ['copy', 'less', 'uglify', 'jshint', 'dev']);
+  gulp.task('default', function(callback) {
+    // waiting for gulp 4
+    runSequence('copy',
+                ['less', 'uglify', 'jshint', 'dev'],
+                callback);
+  });
 
 };
