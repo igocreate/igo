@@ -14,22 +14,35 @@ var cls         = require('./cls');
 var options     = null;
 var redisclient = null;
 
-//
+var retryStrategy = function(params) {
+  if (params.error.code === 'ECONNREFUSED') {
+    winston.error('Redis connection refused on host ' + options.host + ':' + options.port);
+    return params.error;
+  }
+  winston.error('Redis error ' + params.error);
+  // retry in n seconds
+  return params.attempt * 1000;
+};
+
+
+// init cache module : create redis client
 module.exports.init = function(config) {
   config      = config || {};
   options     = config.redis || {};
-  options.ttl = options.ttl || 3600; // default ttl is 1 hour
 
-  redisclient = redis.createClient(options.port, options.host, {
-    no_ready_check: true
+  options     = _.defaultsDeep(options, {
+    ttl:  3600,  // default ttl is 1 hour
+    no_ready_check: true,
+    retry_strategy: retryStrategy
   });
+
+  redisclient = redis.createClient(options);
   if (options.password) {
     redisclient.auth(options.password);
   }
   redisclient.select(options.database || 0);
-  redisclient.on("error", function (err) {
-    console.error(err);
-    winston.error("redisclient error " + err);
+  redisclient.on('error', function (err) {
+    // winston.error('' + err);
   });
 
   if (config.env !== 'production') {
