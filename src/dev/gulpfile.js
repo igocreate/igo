@@ -90,22 +90,15 @@ module.exports = function(gulp, options) {
       .pipe(gulp.dest('./public'));
   });
 
-  // test: mocha
-  // gulp.task('test', function () {
-  //   return gulp.src('./test/**/*.js')
-  //     .pipe(mocha({
-  //       reporter: 'list'
-  //     }));
-  // });
-
-  // dev: nodemon
-  gulp.task('dev', function () {
-
-    // copy bower components files
+  // copy files from bower_components
+  gulp.task('copy', function() {
     _.forEach(options.copy, function(dest, src) {
-      // console.log('copy ' + src + ' to ' + dest);
       gulp.src(src).pipe(gulp.dest(dest));
     });
+  });
+
+  // dev: nodemon
+  gulp.task('dev', function() {
 
     // watch
     gulp.watch('./app/**/*.js',       ['jshint']);
@@ -123,8 +116,7 @@ module.exports = function(gulp, options) {
 
   });
 
-
   // default task
-  gulp.task('default', ['less', 'uglify', 'jshint', 'dev']);
+  gulp.task('default', ['copy', 'less', 'uglify', 'jshint', 'dev']);
 
 };
