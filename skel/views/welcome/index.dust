@@ -5,7 +5,7 @@
 
   <div class="container">
     <div class="jumbotron">
-      <h1>Igo running here!</h1>
+      <h1><i class="fa fa-thumbs-o-up"></i> Igo running here!</h1>
       <p>...</p>
       <p><a class="btn btn-primary btn-lg" href="https://github.com/arnaudm/igo" role="button">Learn more</a></p>
     </div>
