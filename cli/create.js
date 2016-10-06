@@ -35,9 +35,11 @@ module.exports = function(argv) {
       }
 
       // replace in files
+      var packagejson = require('../package.json');
       var replacements = {
-        '\{igo.version\}':    require('../package.json').version,
-        '\{project.name\}':   args[1]
+        '\{igo.version\}':      packagejson.version,
+        '\{igo-dev.version\}':  packagejson.devDependencies['igo-dev'],
+        '\{project.name\}':     args[1]
       }
       _.forEach(replacements, function(replacement, regex) {
         replace({

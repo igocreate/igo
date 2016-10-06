@@ -10,5 +10,8 @@
   "license": "",
   "dependencies": {
     "igo": "{igo.version}"
+  },
+  "devDependencies": {
+    "igo-dev": "{igo-dev.version}"
   }
 }
