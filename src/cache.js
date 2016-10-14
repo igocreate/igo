@@ -31,7 +31,7 @@ module.exports.init = function(config) {
   options     = config.redis || {};
 
   options     = _.defaultsDeep(options, {
-    ttl:  3600,  // default ttl is 1 hour
+    timeout:            null,  // no timeout by default
     no_ready_check: true,
     retry_strategy: retryStrategy
   });
@@ -56,7 +56,7 @@ module.exports.redisclient = function() {
 };
 
 //
-module.exports.put = function(namespace, id, value, callback, ttl) {
+module.exports.put = function(namespace, id, value, callback, timeout) {
   var k = namespace + '/' + id;
   var v = JSON.stringify({ v: value });
 
@@ -64,7 +64,10 @@ module.exports.put = function(namespace, id, value, callback, ttl) {
     if (callback) {
       callback(null, value);
     }
-    redisclient.expire(k, ttl || options.ttl);
+    timeout = timeout || options.timeout;
+    if (timeout) {
+      redisclient.expire(k, timeout);
+    }
   }));
 };
 
