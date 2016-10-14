@@ -5,5 +5,3 @@ bower_components
 .env
 .DS_Store
 *.log
-
-yarn.lock
