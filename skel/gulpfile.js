@@ -18,9 +18,7 @@ var options = {
     './bower_components/font-awesome/fonts/*':            './public/fonts/',
     './bower_components/bootstrap/dist/fonts/*':          './public/fonts',
     './bower_components/jquery/dist/jquery.js':           './js',
-    './bower_components/bootstrap/dist/js/bootstrap.js':  './js',
-    './bower_components/font-awesome/scss/*':             './scss/font-awesome',
-    './bower_components/bootstrap/scss/**/*':             './scss/bootstrap',
+    './bower_components/bootstrap/dist/js/bootstrap.js':  './js'
   }
 };
 
