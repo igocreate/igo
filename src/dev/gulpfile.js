@@ -10,7 +10,6 @@ var stylish     = require('jshint-stylish');
 var uglify      = require('gulp-uglify');
 var concat      = require('gulp-concat');
 var sass        = require('gulp-sass');
-var less        = require('gulp-less');
 var imagemin    = require('gulp-imagemin');
 var fingerprint = require('gulp-finger');
 var cleancss    = require('gulp-clean-css');
@@ -18,22 +17,25 @@ var gulpUtil    = require('gulp-util');
 
 //
 var defaultOptions = {
+  csspreprocessor: 'less',
   uglify: {
-    src: [
-      './js/jquery*.js',
-      './js/bootstrap*.js',
-      './js/plugins/**/*.js',
-      './js/main.js',
-      './js/**/*.js'
-    ]
+    src: [ './js/**/*.js' ]
   },
-  copy: {
-    './bower_components/font-awesome/fonts/*':            './public/fonts/',
-    './bower_components/bootstrap/dist/fonts/*':          './public/fonts',
-    './bower_components/jquery/dist/jquery.js':           './js',
-    './bower_components/bootstrap/dist/js/bootstrap.js':  './js',
-    './bower_components/font-awesome/less/*':             './less/font-awesome',
-    './bower_components/bootstrap/less/**/*':             './less/bootstrap',
+  jshint: {
+    src: ['./app.js', './app/**/*.js'],
+    options: {
+      node:       true,
+      camelcase:  false,
+      esversion:  6
+    }
+  },
+  imagemin: {
+    src: [
+      './public/**/*.png',
+      './public/**/*.jpg',
+      './public/**/*.jpeg',
+      './public/**/*.gif'
+    ]
   }
 };
 
@@ -41,9 +43,12 @@ module.exports = function(gulp, options) {
 
   runSequence = runSequence.use(gulp);
 
-  options     = _.defaultsDeep(options, defaultOptions);
+  options       = _.defaultsDeep(options, defaultOptions);
+  var css       = options.csspreprocessor;
+  options.css   = require('./css/' + css);
+  options.copy  = _.merge(options.copy, options.css.copy);
 
-  // uglify
+  // uglify: minifies frontend js
   gulp.task('uglify', function() {
     return gulp.src(options.uglify.src)
       .pipe(concat('main.js'))
@@ -52,52 +57,32 @@ module.exports = function(gulp, options) {
       .pipe(gulp.dest('./public'));
   });
 
-
-  // scss + cleancss
-  gulp.task('scss', function () {
-    return gulp.src('./scss/styles.scss')
-      .pipe(sass().on('error', gulpUtil.log))
-      .pipe(cleancss())
-      .pipe(fingerprint('./views/css.fingerprint'))
-      .pipe(gulp.dest('./public'));
+  // css : preprocessing + cleancss
+  gulp.task(css, function () {
+    return gulp.src(options.css.src)
+    .pipe(options.css.preprocessor())
+    .pipe(cleancss())
+    .pipe(fingerprint('./views/css.fingerprint'))
+    .pipe(gulp.dest('./public'));
   });
 
-  // less + cleancss
-  gulp.task('less', function () {
-    return gulp.src('./less/styles.less')
-      .pipe(less().on('error', gulpUtil.log))
-      .pipe(cleancss())
-      .pipe(fingerprint('./views/css.fingerprint'))
-      .pipe(gulp.dest('./public'));
-  });
-
-  // jshint
+  // jshint: verifies backend app js code
   gulp.task('jshint', function() {
-
-    var jshintOptions = {
-      node: true,
-      camelcase: false,
-      esversion: 6
-    };
-    return gulp.src(['./app.js', './app/**/*.js'])
-      .pipe(jshint(jshintOptions))
+    return gulp.src(options.jshint.src)
+      .pipe(jshint(options.jshint.options))
       .pipe(jshint.reporter(stylish));
   });
 
-  // imagemin
+  // imagemin: optimize images
   gulp.task('imagemin', function () {
-    return gulp.src([
-        './public/**/*.png',
-        './public/**/*.jpg',
-        './public/**/*.jpeg',
-        './public/**/*.gif' ])
+    return gulp.src(options.imagemin.src)
       .pipe(imagemin())
       .pipe(gulp.dest('./public'));
   });
 
-  // copy files from bower_components
+  // copy: copy files from bower_components
   gulp.task('copy', function(callback) {
-    async.eachOfSeries(options.copy, function(dest, src, callback) {
+    async.eachOfSeries(options.copy || {}, function(dest, src, callback) {
       gulp.src(src).pipe(gulp.dest(dest)).on('end', callback);
     }, callback);
   });
@@ -108,9 +93,7 @@ module.exports = function(gulp, options) {
     // watch
     gulp.watch('./app/**/*.js',       ['jshint']);
     gulp.watch('./js/**/*.js',        ['uglify']);
-    gulp.watch('./scss/**/*.scss',    ['scss']);
-    gulp.watch('./less/**/*.less',    ['less']);
-    // gulp.watch('./test/**/*.js',            ['test']);
+    gulp.watch(options.css.watch,     [css]);
 
     // nodemon
     nodemon({
@@ -125,7 +108,7 @@ module.exports = function(gulp, options) {
   gulp.task('default', function(callback) {
     // waiting for gulp 4
     runSequence('copy',
-                ['less', 'uglify', 'jshint', 'dev'],
+                [css, 'uglify', 'jshint', 'dev'],
                 callback);
   });
 

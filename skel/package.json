@@ -7,7 +7,7 @@
     "test": "mocha"
   },
   "author": "",
-  "license": "",
+  "license": "ISC",
   "dependencies": {
     "igo": "{igo.version}"
   },
