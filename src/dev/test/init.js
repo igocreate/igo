@@ -25,7 +25,7 @@ var reinitDatabase = function(callback) {
       config.mysql.database = database;
       db.init(config);
       db.migrate(function() {
-        console.log('test/Init: reinitialized database');
+        console.log('igo.dev: reinitialized test database');
         callback();
       });
     });
