@@ -1,6 +1,6 @@
 {
   "name": "igo",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "homepage": "https://github.com/arnaudm/igo",
   "description": "nodejs web framework based on expressjs",
   "main": "index.js",
@@ -23,7 +23,7 @@
   "author": "@_arnaud_m",
   "license": "ISC",
   "dependencies": {
-    "async": "2.1.1",
+    "async": "2.1.2",
     "body-parser": "1.15.2",
     "compression": "1.6.2",
     "consolidate": "0.14.1",
@@ -37,7 +37,7 @@
     "formidable": "1.0.17",
     "fs-extra": "0.30.0",
     "hiredis": "0.5.0",
-    "i18next": "3.4.3",
+    "i18next": "3.4.4",
     "i18next-express-middleware": "1.0.2",
     "i18next-node-fs-backend": "0.1.2",
     "lodash": "4.16.4",
