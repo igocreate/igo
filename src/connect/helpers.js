@@ -10,38 +10,24 @@ module.exports = function(req, res, next) {
   res.locals.lang    = req.locale;
   res.locals.session = req.session;
 
+  //
   res.locals.t = function(chunk, context, bodies, params) {
     var key         = dust.helpers.tap(params.key, chunk, context);
     var translation = req.t(key, params);
     return chunk.write(translation);
   };
+
   next();
 };
 
-//
-dust.helpers.nl2br = function(chunk, context, bodies, params) {
-  var val;
-  val = dust.helpers.tap(params.value, chunk, context);
-  if (val) {
-    val = val.replace(/\n/g, '<br/>');
-    chunk.write(val);
-  }
-  return chunk;
+// translate
+dust.helpers.t = function(chunk, context, bodies, params) {
+  var key         = dust.helpers.tap(params.key, chunk, context);
+  var translation = req.t(key, params);
+  return chunk.write(translation);
 };
 
-//
-dust.helpers.removenl = function(chunk, context, bodies, params) {
-  var val;
-  val = dust.helpers.tap(params.value, chunk, context);
-  if (val) {
-    val = val.replace(/\n/g, ' ');
-    val = val.replace(/\r/g, '');
-    chunk.write(val);
-  }
-  return chunk;
-};
-
-//
+// date formatting
 dust.helpers.dateformat = function(chunk, context, bodies, params) {
   var val = dust.helpers.tap(params.date, chunk, context);
   if (!val) return chunk;
@@ -62,14 +48,11 @@ dust.helpers.dateformat = function(chunk, context, bodies, params) {
   return chunk;
 };
 
-//
-dust.helpers.length = function(chunk, context, bodies, params) {
-  var arr;
-  arr = dust.helpers.tap(params.array, chunk, context);
-  if (arr) {
-    chunk.write(arr.length);
-  } else {
-    chunk.write('0');
-  }
-  return chunk;
-};
+
+// load custom helpers
+try {
+  var helpers = require(process.cwd() + '/app/helpers');
+  helpers.init(dust);
+} catch(err) {
+  // ignore
+}
