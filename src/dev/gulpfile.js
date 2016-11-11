@@ -14,6 +14,7 @@ var imagemin    = require('gulp-imagemin');
 var fingerprint = require('gulp-finger');
 var cleancss    = require('gulp-clean-css');
 var gulpUtil    = require('gulp-util');
+var livereload  = require('gulp-livereload');
 
 //
 var defaultOptions = {
@@ -87,19 +88,36 @@ module.exports = function(gulp, options) {
     }, callback);
   });
 
+  // livereload
+  gulp.task('livereload', function() {
+    gulp.src('./app.js')
+      .pipe(livereload());
+  });
+
   // dev: nodemon
   gulp.task('dev', function() {
+
+    livereload.listen();
 
     // watch
     gulp.watch('./app/**/*.js',       ['jshint']);
     gulp.watch('./js/**/*.js',        ['uglify']);
     gulp.watch(options.css.watch,     [css]);
+    gulp.watch([
+      './views/**/*.dust',
+      './public/main.js',
+      './public/styles.css'
+    ],   ['livereload']);
 
     // nodemon
     nodemon({
       script: './app.js',
       ext: 'js,json',
       ignore: ['node_modules/', 'public/', 'js/', 'scss/', 'less/']
+    }).on('restart', function() {
+      setTimeout(function() {
+        gulp.src('app.js').pipe(livereload());
+      }, 2000);
     });
 
   });
