@@ -8,17 +8,14 @@ var options = {
   csspreprocessor: 'sass',
   urglify: {
     src: [
-      './js/jquery*.js',
-      './js/bootstrap*.js',
       './js/plugins/**/*.js',
-      './js/main.js'
+      './js/main.js',
+      './js/**/*.js'
     ]
   },
   copy: {
     './bower_components/font-awesome/fonts/*':            './public/fonts/',
-    './bower_components/bootstrap/dist/fonts/*':          './public/fonts',
-    './bower_components/jquery/dist/jquery.js':           './js',
-    './bower_components/bootstrap/dist/js/bootstrap.js':  './js'
+    './bower_components/bootstrap/dist/fonts/*':          './public/fonts'
   }
 };
 
