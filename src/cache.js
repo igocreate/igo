@@ -64,9 +64,8 @@ module.exports.put = function(namespace, id, value, callback, timeout) {
     if (callback) {
       callback(null, value);
     }
-    timeout = timeout || options.timeout;
-    if (timeout) {
-      redisclient.expire(k, timeout);
+    if (timeout || options.timeout) {
+      redisclient.expire(k, timeout || options.timeout);
     }
   }));
 };
