@@ -153,9 +153,9 @@ var Query = function(Instance, schema) {
       if (id.length === 0) {
         return callback();
       }
-      this.where({ id: id }).list(callback);
+      this.where({ id: id }).first(callback);
     } else {
-      return callback();
+      this.where(id).first(callback);
     }
   };
 

@@ -30,7 +30,7 @@ var Model = function(model, schema) {
       var _this = this;
       _.assign(_this, values);
       new Query(Instance, schema).unscoped().update(schema.table).values(values).where(primaryObject(instance)).execute(function(err, result) {
-        callback(err, _this);
+        callback && callback(err, _this);
       });
     };
 
@@ -70,7 +70,10 @@ var Model = function(model, schema) {
       if (err) {
         return callback && callback(err, result);
       }
-      model.unscoped().find(result && result.insertId, callback);
+      if (result && result.insertId) {
+        return model.unscoped().find(result.insertId, callback);
+      }
+      model.unscoped().find(primaryObject(values), callback);
     });
   };
 
