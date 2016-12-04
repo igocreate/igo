@@ -1,23 +1,21 @@
-# Igo: web dev environment
-
-_Note: Work is In Progress._
+# Igo Web Framework
 
 ## Presentation
 
-Igo is a complete web development environment based on NodeJS, with :
-- Pre-configured expressjs & middlewares
-- Templating system [dustjs](http://www.dustjs.com/) as a template engine
+Igo is a complete web Framework for NodeJS, including :
+- Pre-configured ExpressJS + common middlewares
+- Templating system [dustjs](http://www.dustjs.com/)
 - Basic ORM for MySQL
 - Configuration management
 - Error handling
 - Cache API based on Redis
-- Mailing system based on [nodemailer](https://github.com/nodemailer/nodemailer)
-- Pre-configured [gulp](http://gulpjs.com/) tasks for development
-- Test environment based on [mochajs](https://mochajs.org/)
+- Mailing system based on [Nodemailer](https://github.com/nodemailer/nodemailer)
+- Pre-configured [GulpJS](http://gulpjs.com/) tasks for development
+- Test environment based on [MochaJS](https://mochajs.org/)
 
 ## Getting started
 
-Igo can be installed globally (-g) to provide a simple CLI.
+The easiest way to start with Igo is to install the igo module globally (-g), and to init an empty project.
 
 ```sh
 $ npm install -g igo bower gulp-cli mocha
@@ -28,3 +26,12 @@ $ bower install
 $ gulp
 $ open http://localhost:3000
 ```
+
+## Documentation
+### [Presentation](/docs/presentation.md)
+### [Models](/docs/models.md)
+### [Views](/docs/views.md)
+### [Controllers](/docs/controllers.md)
+### [Testing](/docs/testing.md)
+### [Assets](/docs/assets.md)
+### [Mailer](/docs/mailer.md)
