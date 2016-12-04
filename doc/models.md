@@ -1,4 +1,0 @@
-
-# Igo Models
-
-TODO
