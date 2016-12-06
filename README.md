@@ -3,35 +3,41 @@
 ## Presentation
 
 Igo is a complete web Framework for NodeJS, including :
-- Pre-configured ExpressJS + common middlewares
-- Templating system [dustjs](http://www.dustjs.com/)
+- Pre-configured ExpressJS and middlewares
+- [DustJS](http://www.dustjs.com/) as a template engine
 - Basic ORM for MySQL
-- Configuration management
+- Complete i18n support
 - Error handling
-- Cache API based on Redis
 - Mailing system based on [Nodemailer](https://github.com/nodemailer/nodemailer)
 - Pre-configured [GulpJS](http://gulpjs.com/) tasks for development
 - Test environment based on [MochaJS](https://mochajs.org/)
 
 ## Getting started
 
-The easiest way to start with Igo is to install the igo module globally (-g), and to init an empty project.
+Before using Igo, you need to install NodeJS (>=5.9.1) and a few modules:
+```sh
+$ npm install -g bower gulp-cli mocha
+```
+
+The easiest way to get started with Igo is to install the `igo` npm module globally (-g), and to run `igo create myproject` to create a new project.
 
 ```sh
-$ npm install -g igo bower gulp-cli mocha
-$ igo create myproject
-$ cd myproject
-$ npm install
-$ bower install
+$ npm install -g igo
+$ igo create myproject && cd myproject
+$ npm install && bower install
 $ gulp
-$ open http://localhost:3000
 ```
+
+Go to [localhost:3000](http://localhost:3000) and start coding.
 
 ## Documentation
 ### [Presentation](/docs/presentation.md)
 ### [Models](/docs/models.md)
 ### [Views](/docs/views.md)
 ### [Controllers](/docs/controllers.md)
-### [Testing](/docs/testing.md)
-### [Assets](/docs/assets.md)
-### [Mailer](/docs/mailer.md)
+### [Development](/docs/development.md)
+### [Test](/docs/test.md)
+### [Production](/docs/production.md)
+### Getting deeper
+#### [Assets](/docs/assets.md)
+#### [Mailer](/docs/mailer.md)
