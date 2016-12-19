@@ -49,7 +49,7 @@ require('igo').dev.setDefaultGulpTasks(gulp, options);
 
 ### Copy
 
-Can be used to copy fonts files from `/bower_components` to `/public` directory.
+Can be used to copy any files. For example, to copy fonts files from `/bower_components` to `/public` directory.
 
 Files to copy must be defined in the Gulp tasks options:
 ```js
