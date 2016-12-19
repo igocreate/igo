@@ -1,15 +1,15 @@
 
 # Igo Presentation
 
-Igo is a NodeJS framework for developing web applications.
+Igo is a Node.js framework for developing web applications.
 
 In a few seconds, it provides a working pre-configured development environment.
 
 ## Why, but why ?
 
-We love NodeJS, it's a fantastic and easy technology to build and run web applications.
+We love Node.js, it's a fantastic and easy technology to build and run web applications.
 After building a few projects, we found that it was very easy to duplicate the *technical* files:
-- the `app.js` for ExpressJS and its bunch of configured middlewares,
+- the `app.js` for Express and its bunch of configured middlewares,
 - the `Gulpfile.js`,
 - the MySQL configuration and connection,
 - the `package.json` dependencies,
@@ -24,7 +24,7 @@ That's how Igo was born. Now let's get into the docs.
 The MVC part of Igo is based on:
 - A very basic ORM for MySQL, inspired by [Rails ActiveRecord](http://guides.rubyonrails.org/active_record_basics.html)
 - [Dust](http://www.dustjs.com/), a powerful and performant template engine, maintained by LinkedIn
-- [Express](http://expressjs.com/), the most widely used NodeJS web framework
+- [Express](http://expressjs.com/), the most widely used Node.js web framework
 
 For detailed documentation, see [Models](/docs/models.md), [Views](/docs/views.md) and [Controllers](/docs/controllers.md).
 
