@@ -30,10 +30,10 @@ $ gulp
 
 Go to [localhost:3000](http://localhost:3000) and start coding.
 
-You can also run ```mocha```.
+Type ```mocha``` to run the unit tests.
 
 ## Documentation
-### [Presentation](/docs/presentation.md)
+### [Presentation](/docs/README.md)
 ### [Models](/docs/models.md)
 ### [Views](/docs/views.md)
 ### [Controllers](/docs/controllers.md)
