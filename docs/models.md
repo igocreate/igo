@@ -7,7 +7,7 @@ As you will notice, the syntax was very inspired by [Ruby on Rails Active Record
 ## DB Migrations
 
 All the SQL files should be placed in the `/sql` directory, and will be played in the alphabetical order.
-They must be named with this pattern: `YYYYMMDD-*.sql`.
+The SQL files names must follow this pattern: `YYYYMMDD-*.sql`.
 
 To run the migrations, use:
 ```js
@@ -47,9 +47,47 @@ module.exports = new Model(User, schema);
 The `schema` object defines the table name and the table structure, and how this model can be associated to other models.
 
 ### Associations
-TODO
 
-## ORM
+Add `associations` in the schema declaration.
+Use `has_many` for one-to-many relationships, and `belongs_to` for many-to-one relationships.
+
+```js
+const Project = require('./Project');
+const Country = require('./Country');
+const schema  = {
+  // ...
+  columns: [
+    'id',
+    'country_id',
+    // ...
+  ]
+  associations: [
+    // [ type, attribute name, association model, model key, foreign key ('id' if not specified)]
+    [ 'has_many',   'projects', Project, 'id', 'user_id'],
+    [ 'belongs_to', 'country',  Country, 'country_id' ],
+  ]
+};
+```
+
+### Scopes
+
+Scopes can be used to specify extra queries options.
+Scopes are added to the schema declaration.
+
+```js
+const schema  = {
+  // ...
+  scopes: {
+    default:    function(query) { query.order('`created_at` DESC'); },
+    validated:  function(query) { query.where({ validated: true }); }
+  }
+};
+```
+
+The particular `default` scope will be used on all queries.
+Use `.unscoped()` to not use the default scope.
+
+## ORM API
 
 ### Create
 
@@ -76,16 +114,84 @@ User.find(id, function(err, user) {
 
 ```js
 User.find(id, function(err, user) {
-
   user.update({
     first_name: 'Jim'
   }, function(err, user) {
     console.log('Hi ' + user.first_name);
   });
-
 });
 ```
 
 ### Delete
 
+To delete a specific object:
+
+```js
+User.destroy(id, function(err) {
+  // user was deleted
+});
+```
+
+```js
+User.find(id, function(err, user) {
+  user.destroy(function(err) (
+    // user was deleted
+  ));
+});
+```
+
+```js
+User.destroyAll(function(err) {
+  // All users were deleted
+});
+```
+
+```js
+User.where({first_name: 'Jim'}).destroy(function(err) {
+  // All users named Jim were deleted
+});
+```
+
 ### Search
+
+```js
+User.list(id, function(err, users) {
+  console.log('user was deleted.')
+});
+```
+
+#### Where
+
+```js
+User.where('`created_at` BETWEEN ? AND ?', [date1, date2]).list(function(err, users) {
+  console.dir(users);
+});
+```
+
+#### Limit
+
+```js
+User.limit(10).list(function(err, users) {
+  // first ten users
+  console.dir(users);
+});
+```
+
+#### Order
+
+```js
+User.order('`last_name` DESC').list(function(err, users) {
+  console.dir(users);
+});
+```
+
+### Associations loading
+
+Use `includes` to eager load the objects' Associations
+
+```js
+User.includes(['country', 'projects']).first(function(err, user) {
+  console.dir(user.country);
+  console.dir(user.projects);
+});
+```

@@ -30,6 +30,8 @@ $ gulp
 
 Go to [localhost:3000](http://localhost:3000) and start coding.
 
+You can also run ```mocha```.
+
 ## Documentation
 ### [Presentation](/docs/presentation.md)
 ### [Models](/docs/models.md)

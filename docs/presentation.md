@@ -22,31 +22,33 @@ That's how Igo was born. Now let's get into the docs.
 
 ## MVC
 The MVC part of Igo is based on:
-- A very basic ORM for MySQL, inspired by Rails ActiveRecord
-- DustJS, a powerful and performant template engine, maintained by LinkedIn
-- ExpressJS, the most widely used NodeJS web framework
+- A very basic ORM for MySQL, inspired by [Rails ActiveRecord](http://guides.rubyonrails.org/active_record_basics.html)
+- [Dust](http://www.dustjs.com/), a powerful and performant template engine, maintained by LinkedIn
+- [Express](http://expressjs.com/), the most widely used NodeJS web framework
 
 For detailed documentation, see [Models](/docs/models.md), [Views](/docs/views.md) and [Controllers](/docs/controllers.md).
 
 
 ## Development
-Igo development environment uses [GulpJS](http://gulpjs.com/) with these modules:
+Igo development environment uses [Gulp](http://gulpjs.com/) with these modules:
 - [Nodemon](https://nodemon.io/) to auto-refresh the server on code change
 - [JSHint](http://jshint.com/) to verify the quality of your backend Javascript code
 - [Bower](https://bower.io) to download and install frontend modules
 - [Less](http://lesscss.org/) or [Sass](http://sass-lang.com/) as a CSS preprocessor
-- [UglifyJS2](http://lisperator.net/uglifyjs/) to compress and minify your frontend Javascript code
+- [Uglify](http://lisperator.net/uglifyjs/) to compress and minify your frontend Javascript code
 - [Livereload](https://github.com/vohof/gulp-livereload) to refresh your browser automatically
 
 --> See the [Development](/docs/development.md) section to learn more.
 
+
 ## Test
-Igo is based on the [MochaJS](https://mochajs.org/) test framework, and offers more features:
+Igo is based on the [Mocha](https://mochajs.org/) test framework, and offers more features:
 - Testing controllers layer with [superagent](https://github.com/visionmedia/superagent)
 - Automatic test database reinitialization before first test
 - Test isolation: each test runs in a transaction that is rollbacked
 
-See the [Test](/docs/test.md) section to learn more.
+--> See the [Test](/docs/test.md) section to learn more.
+
 
 ## Production
 - Igo dev dependencies are packaged in a separate module [igo-dev](https://github.com/arnaudm/igo-dev)
@@ -54,4 +56,4 @@ See the [Test](/docs/test.md) section to learn more.
 - Runtime errors are caught and can be sent by email to the admin
 - Igo logger uses [winston](https://github.com/winstonjs/winston) so you can log where you like (eg: [papertrail](https://github.com/kenperkins/winston-papertrail))
 
-See the [Production](/docs/production.md) section to learn more.
+--> See the [Production](/docs/production.md) section to learn more.
