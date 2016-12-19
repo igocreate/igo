@@ -1,7 +1,7 @@
 
-# Igo Presentation
+# Documentation
 
-Igo is a Node.js framework for developing web applications.
+Igo is a Node.js web framework for developing web applications.
 
 In a few seconds, it provides a working pre-configured development environment.
 
@@ -26,11 +26,11 @@ The MVC part of Igo is based on:
 - [Dust](http://www.dustjs.com/), a powerful and performant template engine, maintained by LinkedIn
 - [Express](http://expressjs.com/), the most widely used Node.js web framework
 
-For detailed documentation, see [Models](/docs/models.md), [Views](/docs/views.md) and [Controllers](/docs/controllers.md).
+➡️ For detailed documentation, see [Models](/docs/models.md), [Views](/docs/views.md) and [Controllers](/docs/controllers.md).
 
 
 ## Development
-Igo development environment uses [Gulp](http://gulpjs.com/) with these modules:
+Igo uses [Gulp](http://gulpjs.com/) with these modules:
 - [Nodemon](https://nodemon.io/) to auto-refresh the server on code change
 - [JSHint](http://jshint.com/) to verify the quality of your backend Javascript code
 - [Bower](https://bower.io) to download and install frontend modules
@@ -38,16 +38,16 @@ Igo development environment uses [Gulp](http://gulpjs.com/) with these modules:
 - [Uglify](http://lisperator.net/uglifyjs/) to compress and minify your frontend Javascript code
 - [Livereload](https://github.com/vohof/gulp-livereload) to refresh your browser automatically
 
---> See the [Development](/docs/development.md) section to learn more.
+➡️ See the [Development](/docs/development.md) section to learn more.
 
 
 ## Test
-Igo is based on the [Mocha](https://mochajs.org/) test framework, and offers more features:
+Igo uses [Mocha](https://mochajs.org/) test framework, and offers more features:
 - Testing controllers layer with [superagent](https://github.com/visionmedia/superagent)
 - Automatic test database reinitialization before first test
 - Test isolation: each test runs in a transaction that is rollbacked
 
---> See the [Test](/docs/test.md) section to learn more.
+➡️ See the [Test](/docs/test.md) section to learn more.
 
 
 ## Production
@@ -56,4 +56,4 @@ Igo is based on the [Mocha](https://mochajs.org/) test framework, and offers mor
 - Runtime errors are caught and can be sent by email to the admin
 - Igo logger uses [winston](https://github.com/winstonjs/winston) so you can log where you like (eg: [papertrail](https://github.com/kenperkins/winston-papertrail))
 
---> See the [Production](/docs/production.md) section to learn more.
+➡️ See the [Production](/docs/production.md) section to learn more.
