@@ -25,7 +25,8 @@ var Sql = function(query) {
 
     // limit
     if (query.limit) {
-      sql += 'LIMIT 0, ? ';
+      sql += 'LIMIT ?, ? ';
+      params.push(query.offset || 0);
       params.push(query.limit);
     }
 

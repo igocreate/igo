@@ -20,7 +20,7 @@ describe('db.Query', function() {
   describe('first', function() {
     it('should return correct SQL', function() {
       var first = new Query(Book, schema).first();
-      var sql = 'SELECT * FROM `books` ORDER BY `id` LIMIT 0, ?';
+      var sql = 'SELECT * FROM `books` ORDER BY `id` LIMIT ?, ?';
       assert.equal(sql, first.query.generated.sql);
     });
   });

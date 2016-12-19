@@ -9,7 +9,6 @@ var jshint      = require('gulp-jshint');
 var stylish     = require('jshint-stylish');
 var uglify      = require('gulp-uglify');
 var concat      = require('gulp-concat');
-var sass        = require('gulp-sass');
 var imagemin    = require('gulp-imagemin');
 var fingerprint = require('gulp-finger');
 var cleancss    = require('gulp-clean-css');

@@ -11,12 +11,12 @@ var Query = function(Instance, schema) {
 
   this.query = {
     table: schema.table,
-    verb: 'select',
-    where: [],
-    order: [],
+    verb:     'select',
+    where:    [],
+    order:    [],
     includes: {},
-    options: {},
-    scopes: [ 'default' ]
+    options:  {},
+    scopes:   [ 'default' ]
   };
 
   // INSERT
@@ -34,7 +34,7 @@ var Query = function(Instance, schema) {
   };
 
   // DELETE
-  this.delete = function(table) {
+  this.delete = this.destroy = function(table) {
     this.query.verb   = 'delete';
     this.query.table  = table;
     return this;
@@ -87,8 +87,13 @@ var Query = function(Instance, schema) {
   };
 
   // LIMIT
-  this.limit = function(limit) {
-    this.query.limit = limit;
+  this.limit = function(offset, limit) {
+    if (limit === undefined) {
+      limit   = offset;
+      offset  = 0;
+    }
+    this.query.offset = 0;
+    this.query.limit  = limit;
     return this;
   };
 

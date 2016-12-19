@@ -88,13 +88,18 @@ var Model = function(model, schema) {
   };
 
   // return all
-  model.all = function(callback) {
+  model.list = model.all = function(callback) {
     new Query(Instance, schema).list(callback);
   };
 
   // filter
   model.where = function(where, params) {
     return new Query(Instance, schema).where(where, params);
+  }
+
+  // limit
+  model.limit = function(offset, limit) {
+    return new Query(Instance, schema).limit(offset, limit);
   }
 
   // order
