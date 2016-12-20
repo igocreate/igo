@@ -1,11 +1,11 @@
 
 # Documentation
 
-Igo is a Node.js web framework for developing web applications.
+Igo.js is a Node.js web framework for developing web applications.
 
 In a few seconds, it provides a working pre-configured development environment.
 
-## Why, but why ?
+## Why but why ?
 
 We love Node.js, it's a fantastic and easy technology to build and run web applications.
 After building a few projects, we found that it was very easy to duplicate the *technical* files:
@@ -16,9 +16,9 @@ After building a few projects, we found that it was very easy to duplicate the *
 - the init file for Mocha,
 - ...etc.
 
-After several months and more projects using the same configuration and the same technical stack, well, it appeared clearly that this configuration had to particular value, and should not to be duplicated over and over.
+After several months and more projects using the same configuration and the same technical stack, well, it appeared clearly that this configuration had no added value, and should not to be duplicated over and over.
 
-That's how Igo was born. Now let's get into the docs.
+That's how Igo.js was born.
 
 ## MVC
 The MVC part of Igo is based on:
