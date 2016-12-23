@@ -12,7 +12,7 @@ Igo is a complete web Framework for Node.js, including :
 - Pre-configured [Gulp](http://gulpjs.com/) tasks for development
 - Test environment based on [Mocha](https://mochajs.org/)
 
-## Getting started
+## 🚀 Getting started
 
 Before using Igo, you need to install Node.js (>=5.9.1) and a few modules:
 ```sh
@@ -32,14 +32,5 @@ Go to [localhost:3000](http://localhost:3000) and start coding.
 
 Type ```mocha``` to run the unit tests.
 
-## Documentation
-### [Presentation](/docs/README.md)
-### [Models](/docs/models.md)
-### [Views](/docs/views.md)
-### [Controllers](/docs/controllers.md)
-### [Development](/docs/development.md)
-### [Test](/docs/test.md)
-### [Production](/docs/production.md)
-### Getting deeper
-#### [Assets](/docs/assets.md)
-#### [Mailer](/docs/mailer.md)
+## 📖 Documentation
+Read the [full documentation here](/docs/README.md).
