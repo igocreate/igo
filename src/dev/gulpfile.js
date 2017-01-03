@@ -43,6 +43,13 @@ module.exports = function(gulp, options) {
 
   runSequence = runSequence.use(gulp);
 
+  // load uglify config from /js/config.json
+  try {
+    defaultOptions.uglify = require(process.cwd() + '/js/config.json');
+  } catch (err) {
+    // ignored
+  }
+
   options       = _.defaultsDeep(options, defaultOptions);
   var css       = options.csspreprocessor;
   options.css   = require('./css/' + css);
