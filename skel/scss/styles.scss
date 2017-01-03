@@ -3,11 +3,11 @@
 @import '../bower_components/bootstrap/scss/bootstrap.scss';
 @import '../bower_components/font-awesome/scss/font-awesome.scss';
 
+@import './welcome.scss';
+
 body {
   padding-top: 5rem;
-}
-
-.starter-template {
-  padding: 3rem 1.5rem;
-  text-align: center;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
