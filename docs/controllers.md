@@ -19,13 +19,37 @@ module.exports.init = function(app, controllers) {
 
 ## Middlewares configuration
 
+### Compression
+
+```js
+var compression       = require('compression');
+app.use(compression());
+```
+
 ### Static files
 
-Static files located in `/public` are directly served by `express.static()`.
+All files located in `/public` are served statically with `express.static()`.
 
-### Sessions
+```js
+app.use(express.static('public'));
+```
 
-Sessions data is crypted and stored in cookies with [cookie-session](https://github.com/expressjs/cookie-session).
+### Cookies and Sessions
+
+Cookies are signed with the [cookie-parser](https://github.com/expressjs/cookie-parser) module.
+
+Sessions are encoded, signed and stored in cookies with [cookie-session](https://github.com/expressjs/cookie-session).
+
+It is highly recommended configure your own secret keys in `/app/config.js`.
+
+```js
+config.signedCookiesSecret = 'abcdefghijklmnopqrstuvwxyz';
+config.cookieSessionConfig = {
+  name:   'app',
+  keys:   [ 'aaaaaaaaaaa' ]
+  maxAge: maxAge: 24 * 60 * 60 * 1000 // 24 hours
+};
+```
 
 ### Multipart data
 
@@ -35,7 +59,7 @@ Multipart data is parsed with [formidable](https://github.com/felixge/node-formi
 
 Request validation is made with [express-validator](https://github.com/ctavan/express-validator).
 
-### Flash scope
+### Flash Scope
 
 The Flash scope allows data to be stored in session during only 2 requests. Very useful when performing redirects.
 

@@ -35,7 +35,7 @@ module.exports.init = function() {
       loadPath:           'locales/{{lng}}/{{ns}}.json',
     },
     detection: {
-      order:              [ 'querystring', 'path', 'cookie', 'header' ],
+      order:              [ 'querystring', 'path', 'cookie' ],
       lookupPath:         'lang',
       lookupQuerystring:  'lang',
       lookupCookie:       'lang',
@@ -68,6 +68,7 @@ module.exports.init = function() {
     database : process.env.MYSQL_DATABASE || 'igo',
     debug    : false,
     connectionLimit : 5,
+    debugsql : false
   };
 
   config.redis = {

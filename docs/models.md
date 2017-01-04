@@ -4,6 +4,33 @@
 The Igo Model API for MySQL is the only part of Igo that is not just the integration of another module.
 As you will notice, the syntax was very inspired by [Ruby on Rails Active Record](http://guides.rubyonrails.org/active_record_basics.html).
 
+## MySQL Configuration
+
+This is the default MySQL configuration (`config.mysql`) defined by Igo:
+```
+config.mysql = {
+  host     : process.env.MYSQL_HOST     || 'localhost',
+  port     : process.env.MYSQL_PORT     || 3306,
+  user     : process.env.MYSQL_USERNAME || 'root',
+  password : process.env.MYSQL_PASSWORD || '',
+  database : process.env.MYSQL_DATABASE || 'igo',
+  debug    : false,     // mysql driver debug mode
+  connectionLimit : 5,
+  debugsql : false      // show sql logs
+};
+```
+
+This configuration object is directly transmitted to the [node.js driver for mysql](https://github.com/mysqljs/mysql) `mysql.createPool(config.mysql)` function.
+
+You can override this configuration in your `/app/config.js` file:
+```js
+if (config.env === 'dev') {
+  // show sql logs
+  config.mysql.debugsql = true;
+}
+```
+
+
 ## DB Migrations
 
 All the SQL files should be placed in the `/sql` directory, and will be played in the alphabetical order.

@@ -1,33 +1,57 @@
 
 # Documentation
 
-Igo.js is a Node.js web framework for developing web applications.
+Igo.js is a full-featured Node.js web framework for developing web applications.
 
 In a few seconds, it provides a working pre-configured development environment.
 
-## Why but why ?
+### Introduction
 
 We love Node.js, it's a fantastic and easy technology to build and run web applications.
-After building a few projects, we found that it was very easy to duplicate the *technical* files:
-- the `app.js` for Express and its bunch of configured middlewares,
-- the `Gulpfile.js`,
-- the MySQL configuration and connection,
-- the `package.json` dependencies,
-- the init file for Mocha,
+But after building a few projects, we found that it was a pain to duplicate these many *technical* files:
+- `app.js` for Express and its bunch of middlewares, plus the configuration for these middlewares,
+- `Gulpfile.js` to have a nice development environment,
+- MySQL, Redis, SMTP configurations and connections,
+- `package.json` with so many dependencies,
+- `Mocha` configuration and tools to write good tests,
 - ...etc.
 
-After several months and more projects using the same configuration and the same technical stack, well, it appeared clearly that this configuration had no added value, and should not to be duplicated over and over.
+After several months, and more projects duplicating the same configuration and the same technical stack, well, it appeared clearly that all this had very little added value.
 
 That's how Igo.js was born.
 
-## MVC
-The MVC part of Igo is based on:
-- A very basic ORM for MySQL, inspired by [Rails ActiveRecord](http://guides.rubyonrails.org/active_record_basics.html)
+### How it works
+Igo applications are standard Node.js applications, for which:
+- Igo includes about 40 common libraries (like Express, i18next, Gulp, etc), for development and for production.
+- Igo embeds a default configuration for your Express app, for Gulp, Mocha, ... and lets you add your own configuration.
+- Igo provides also some tools like a Mailer, an Error handler, a basic ORM...
+
+### Configuration
+The Igo configuration can be found in `/app/config.js` file.
+The configuration is initialized at startup, and can be retrieved through igo module:
+```js
+var config = require('igo').config`;
+```
+
+Some configuration parameters can be defined with environment variables. Igo uses [dotenv](https://github.com/motdotla/dotenv), so you can just add variables to a `/.env` file.
+
+```txt
+# development database
+MYSQL_DATABASE=mydatabase
+```
+## Framework
+
+### MVC
+Igo uses:
+- A basic custom ORM for MySQL, inspired by [Rails ActiveRecord](http://guides.rubyonrails.org/active_record_basics.html)
 - [Dust](http://www.dustjs.com/), a powerful and performant template engine, maintained by LinkedIn
 - [Express](http://expressjs.com/), the most widely used Node.js web framework
 
 🌀 For detailed documentation, see [Models](/docs/models.md), [Views](/docs/views.md) and [Controllers](/docs/controllers.md).
 
+### Extra Features
+
+- See Igo [Cache](/docs/cache.md)
 
 ## Development
 Igo uses [Gulp](http://gulpjs.com/) with these modules:
@@ -39,7 +63,6 @@ Igo uses [Gulp](http://gulpjs.com/) with these modules:
 - [Livereload](https://github.com/vohof/gulp-livereload) to refresh your browser automatically
 
 🌀 See the [Development](/docs/development.md) section to learn more.
-
 
 ## Test
 Igo uses [Mocha](https://mochajs.org/) test framework, and offers more features:

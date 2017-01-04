@@ -23,7 +23,7 @@ describe('igo.cache', function() {
         assert(value === 'hello');
         done();
       });
-    })
+    });
   });
 
   it('should store null values', function(done) {

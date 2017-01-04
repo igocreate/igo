@@ -31,7 +31,7 @@ module.exports.init = function(config) {
   options     = config.redis || {};
 
   options     = _.defaultsDeep(options, {
-    timeout:            null,  // no timeout by default
+    timeout:        null,  // no timeout by default
     no_ready_check: true,
     retry_strategy: retryStrategy
   });
@@ -129,9 +129,9 @@ module.exports.flushall = function(callback) {
 };
 
 
+const  DATE_REGEXP = /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z)/;
 var deserializeDates = function(obj) {
-  var re = /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z)/;
-  if (_.isString(obj) && obj.match(re)) {
+  if (_.isString(obj) && obj.match(DATE_REGEXP)) {
     return moment(obj, moment.ISO_8601).toDate();
   } else if (_.isObject(obj) && _.keys(obj).length > 0) {
     _.forIn(obj, function(value, key) {

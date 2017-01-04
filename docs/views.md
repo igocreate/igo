@@ -16,7 +16,29 @@ The Dust.js documentation can be found on http://www.dustjs.com/
 
 ## i18n
 
-Use the `{#t key="mykey" /}` syntax to insert internationalized wordings.
+Igo uses [i18next](http://i18next.com/), which is a great module so make sure that your read their [documentation](http://i18next.com/docs).
+Here is the default configuration:
+
+```js
+config.i18n = {
+  whitelist:            [ 'en', 'fr' ],
+  preload:              [ 'en', 'fr' ],
+  fallbackLng:          'en',
+  backend: {
+    loadPath:           'locales/{{lng}}/{{ns}}.json',
+  },
+  detection: {
+    order:              [ 'querystring', 'path', 'cookie' ],
+    lookupPath:         'lang',
+    lookupQuerystring:  'lang',
+    lookupCookie:       'lang',
+    caches:             [ 'cookie' ]
+  },
+};
+```
+
+**Usage:**
+Use the `{@t key="mykey" /}` syntax to insert internationalized wordings.
 
 Translations are defined in the `/locales/{LANG}/translation.json` files.
 
@@ -25,6 +47,7 @@ Translations are defined in the `/locales/{LANG}/translation.json` files.
   "mykey": "Hello World"
 }
 ```
+
 
 ## View helpers
 
