@@ -34,6 +34,6 @@ $ npm install && bower install
 $ gulp
 ```
 
-Go to [localhost:3000](http://localhost:3000) and start coding (and reading [the doc](/docs/README.md)).
+Go to [http://localhost:3000](http://localhost:3000) and start coding (and reading [the docs](/docs/README.md)).
 
 Type ```mocha``` to run tests.
