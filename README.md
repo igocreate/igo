@@ -1,6 +1,9 @@
 # Igo Web Framework
 
-## Presentation
+
+📖 Read the [full documentation here](/docs/README.md).
+
+## Short Presentation
 
 Igo is a complete web Framework for Node.js, including :
 - Pre-configured [Express](http://expressjs.com/) and middlewares
@@ -15,14 +18,14 @@ Igo is a complete web Framework for Node.js, including :
 
 **All remarks, suggestions, PRs are welcome! 💕**
 
-## 🚀 Getting started
+## 🚀 Getting Started (2 minutes)
 
-Before using Igo, you need to install Node.js (>=5.9.1) and a few modules:
+Before using Igo, you need to install Node.js (>=5.9.1), Bower, Gulp and Mocha.
 ```sh
 $ npm install -g bower gulp-cli mocha
 ```
 
-The easiest way to get started with Igo is to install the `igo` npm module globally (-g), and to run `igo create myproject` to create a new project.
+Then, the easiest way to get started with Igo is to create a new project via the `igo` CLI.
 
 ```sh
 $ npm install -g igo
@@ -34,6 +37,3 @@ $ gulp
 Go to [localhost:3000](http://localhost:3000) and start coding.
 
 Type ```mocha``` to run the unit tests.
-
-## 📖 Documentation
-Read the [full documentation here](/docs/README.md).
