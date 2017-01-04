@@ -5,7 +5,7 @@
 
 ## Short Presentation
 
-Igo is a complete web Framework for Node.js, including :
+Igo is a Web Framework for Node.js that comes with:
 - Pre-configured [Express](http://expressjs.com/) and middlewares
 - [Dust](http://www.dustjs.com/) as a template engine
 - Basic ORM for **MySQL**
