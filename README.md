@@ -22,16 +22,16 @@ Igo is a Web Framework for Node.js that comes with:
 
 Before using Igo, you need to install Node.js (>=5.9.1), Bower, Gulp and Mocha.
 ```sh
-$ npm install -g bower gulp-cli mocha
+npm install -g bower gulp-cli mocha
 ```
 
 Then, the easiest way to get started with Igo is to create a new project via the `igo` CLI.
 
 ```sh
-$ npm install -g igo
-$ igo create myproject && cd myproject
-$ npm install && bower install
-$ gulp
+npm install -g igo
+igo create myproject && cd myproject
+npm install && bower install
+gulp
 ```
 
 Go to [http://localhost:3000](http://localhost:3000) and start coding (and reading [the docs](/docs/README.md)).
