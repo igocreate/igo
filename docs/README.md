@@ -3,7 +3,9 @@
 
 Igo.js is a full-featured Node.js web framework for developing web applications.
 
-In a few seconds, it provides a working pre-configured development environment.
+Igo is not a Node.js boilerplate. It's more like a meta-framework since it leverages on several existing frameworks and libraries.
+
+In a few seconds it can give you a production-ready application and a 100% working development environment.
 
 ### Introduction
 
@@ -19,12 +21,6 @@ But after building a few projects, we found that it was a pain to duplicate thes
 After several months, and more projects duplicating the same configuration and the same technical stack, well, it appeared clearly that all this had very little added value.
 
 That's how Igo.js was born.
-
-### How it works
-Igo applications are standard Node.js applications, for which:
-- Igo includes about 40 common libraries (like Express, i18next, Gulp, etc), for development and for production.
-- Igo embeds a default configuration for your Express app, for Gulp, Mocha, ... and lets you add your own configuration.
-- Igo provides also some tools like a Mailer, an Error handler, a basic ORM...
 
 ### Configuration
 The Igo configuration can be found in `/app/config.js` file.
