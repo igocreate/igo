@@ -1,5 +1,6 @@
 # Igo Web Framework
 
+[![Build Status](https://travis-ci.org/igocreate/igo.svg?branch=master)](https://travis-ci.org/igocreate/igo)
 
 📖 Read the [full documentation here](/docs/README.md).
 
