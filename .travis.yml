@@ -3,6 +3,9 @@ node_js:
   - "7.4"
 env:
   - CXX=g++-4.8
+before_install:
+  - "npm config set spin false"
+  - "npm install -g mocha"
 addons:
   apt:
     sources:
