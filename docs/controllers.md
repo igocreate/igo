@@ -53,7 +53,7 @@ config.cookieSessionConfig = {
 
 ### Multipart data
 
-Multipart data is parsed with [formidable](https://github.com/felixge/node-formidable). The fields and the files are put in req.fields and req.files, and ready to be used.
+Multipart data is parsed with [formidable](https://github.com/felixge/node-formidable). The fields and the files are put in `req.body` and `req.files`, and ready to be used.
 
 ### Validation
 
