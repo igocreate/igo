@@ -47,7 +47,7 @@ config.signedCookiesSecret = 'abcdefghijklmnopqrstuvwxyz';
 config.cookieSessionConfig = {
   name:   'app',
   keys:   [ 'aaaaaaaaaaa' ]
-  maxAge: maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
 };
 ```
 
