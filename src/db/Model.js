@@ -7,6 +7,8 @@ var Query = require('./Query');
 //
 var Model = function(model, schema) {
 
+  model._schema = schema;
+
   // init
   if (!schema.primary) {
     schema.primary = ['id'];

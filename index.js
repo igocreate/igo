@@ -9,7 +9,8 @@ module.exports = {
   render:   require('consolidate').dust,
   logger:   require('winston'),
   mailer:   require('./src/mailer'),
-  Model:    require('./src/db/Model')
+  Model:    require('./src/db/Model'),
+  Admin:    require('./src/admin/Admin')
 };
 
 if (!process.env.NODE_ENV || process.env.NODE_ENV === 'dev') {
