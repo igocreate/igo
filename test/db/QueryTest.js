@@ -9,9 +9,10 @@ var Query     = require('../../src/db/Query');
 
 describe('db.Query', function() {
 
-  var Book = function() {};
+  class Book {
 
-  var schema = {
+  };
+  Book.schema = {
     table:    'books',
     primary:  ['id']
   };
@@ -19,7 +20,7 @@ describe('db.Query', function() {
   //
   describe('first', function() {
     it('should return correct SQL', function() {
-      var first = new Query(Book, schema).first();
+      var first = new Query(Book).first();
       var sql = 'SELECT * FROM `books` ORDER BY `id` LIMIT ?, ?';
       assert.equal(sql, first.query.generated.sql);
     });

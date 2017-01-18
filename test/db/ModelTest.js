@@ -9,16 +9,11 @@ var Model     = require('../../src/db/Model');
 
 describe('db.Model', function() {
 
-  var model = function() {
-    this.init = function() {
-      this._initialized = true;
-    };
-  };
-
   describe('standard operations', function() {
 
     var schema = {
       table:    'books',
+      primary: ['id'],
       columns: [
         'id',
         'code',
@@ -26,7 +21,9 @@ describe('db.Model', function() {
       ]
     };
 
-    var Book = new Model(model, schema);
+    class Book extends Model {
+    }
+    Book.schema = schema;
 
     //
     describe('insert', function() {
@@ -78,18 +75,21 @@ describe('db.Model', function() {
 
     var schema = {
       table:    'books',
+      primary:  ['id'],
       columns: [
         'id',
         'code',
         'title'
       ],
       scopes: {
-        default: query => query.where({code: 'abc'}),
-        a: query => query.where({code: 'a'}),
+        default:  query => query.where({code: 'abc'}),
+        a:        query => query.where({code: 'a'}),
       }
     };
 
-    var Book = new Model(model, schema);
+    class Book extends Model {
+    }
+    Book.schema = schema;
 
     describe('default scope', function() {
       it('should use default scope', function(done) {

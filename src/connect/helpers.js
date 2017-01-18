@@ -23,7 +23,7 @@ module.exports = function(req, res, next) {
 // translate
 dust.helpers.t = function(chunk, context, bodies, params) {
   var key         = dust.helpers.tap(params.key, chunk, context);
-  var translation = req.t(key, params);
+  var translation = i18next.t(key, params);
   return chunk.write(translation);
 };
 

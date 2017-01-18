@@ -7,10 +7,12 @@ var Sql     = require('./Sql');
 var db      = require('./db');
 
 
-var Query = function(Instance, schema) {
+var Query = function(modelClass) {
+
+  var schema = modelClass.schema;
 
   this.query = {
-    table: schema.table,
+    table:    schema.table,
     verb:     'select',
     where:    [],
     order:    [],
@@ -22,7 +24,9 @@ var Query = function(Instance, schema) {
   // INSERT
   this.insert = function(table) {
     this.query.verb   = 'insert';
-    this.query.table  = table;
+    if (table) {
+      this.query.table  = table;
+    }
     return this;
   };
 
@@ -133,7 +137,7 @@ var Query = function(Instance, schema) {
         schema.scopes[scope](_this);
       }
     });
-  }
+  };
 
   // INCLUDES
   this.includes = function(includes) {
@@ -174,7 +178,7 @@ var Query = function(Instance, schema) {
   this.options = function(options) {
     _.merge(this.query.options, options);
     return this;
-  }
+  };
 
   // generate SQL
   this.toSQL = function() {
@@ -189,10 +193,9 @@ var Query = function(Instance, schema) {
   this.execute = function(callback) {
     var _this = this;
 
-    schema.scopes && _this.applyScopes();
+    if (schema.scopes) _this.applyScopes();
 
     var sqlQuery = _this.toSQL();
-    //console.dir(sqlQuery);
 
     db.query(sqlQuery.sql, sqlQuery.params, _this.query.options, function(err, rows) {
       if (err) {
@@ -242,12 +245,12 @@ var Query = function(Instance, schema) {
       }, function() {
         //
         if (rows && rows.length > 0 && _this.query.limit === 1) {
-          rows = new Instance(rows[0]);
+          rows = new modelClass(rows[0]);
         } else if (_this.query.limit === 1) {
           rows = null;
         } else if (_this.query.verb === 'select') {
           rows = rows.map(function(row) {
-            return new Instance(row);
+            return new modelClass(row);
           });
         }
         callback && callback(err, rows);

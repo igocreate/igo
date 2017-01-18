@@ -26,7 +26,7 @@ module.exports.breadcrumb = function(config, lis) {
     html += '<a href="' + config.adminpath + li[0] + '">';
     html += li[1];
     html += '</a></li>';
-  })
+  });
   html += '</ol>';
   return html;
 };

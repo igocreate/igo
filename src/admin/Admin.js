@@ -9,7 +9,7 @@ module.exports.register = function(app, admin) {
 
   // default configuration
   const config = {
-    fields:     admin.model._schema.columns,
+    fields:     admin.model.schema.columns,
     adminpath:  '/admin',
     template:   'admin/admin'
   };
@@ -26,4 +26,4 @@ module.exports.register = function(app, admin) {
     });
   });
 
-}
+};

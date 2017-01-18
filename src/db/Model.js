@@ -5,136 +5,130 @@ var _   = require('lodash');
 var Query = require('./Query');
 
 //
-var Model = function(model, schema) {
+class Model  {
 
-  model._schema = schema;
+  constructor(values) {
+    // if (!schema.primary) {
+    //   schema.primary = ['id'];
+    // } else if (!_.isArray(schema.primary)) {
+    //   schema.primary = [ schema.primary ];
+    // }
 
-  // init
-  if (!schema.primary) {
-    schema.primary = ['id'];
-  } else if (!_.isArray(schema.primary)) {
-    schema.primary = [ schema.primary ];
+    if (values) {
+      //
+      _.assign(this, values);
+    }
   }
 
-  var primaryObject = function(instance) {
-    return _.pick(instance, schema.primary);
+  primaryObject() {
+    return _.pick(this, this.constructor.schema.primary);
   }
 
-  var Instance = function(row) {
-    var instance = new model();
+  // update
+  update(values, callback) {
+    var _this = this;
+    _.assign(_this, values);
+    new Query(this.constructor).unscoped().update(this.constructor.schema.table).values(values).where(this.primaryObject()).execute(function(err, result) {
+      if (callback) callback(err, _this);
+    });
+  }
 
-    row && _.assign(instance, row);
+  // reload
+  reload(callback) {
+    model.unscoped().find(this.id, callback);
+  }
 
-    instance.init && instance.init();
+  // destroy
+  destroy(callback) {
+    new Query(this.constructor).unscoped().delete(this.constructor.schema.table).where(this.primaryObject()).execute(callback);
+  }
 
-    // update
-    instance.update = function(values, callback) {
-      var _this = this;
-      _.assign(_this, values);
-      new Query(Instance, schema).unscoped().update(schema.table).values(values).where(primaryObject(instance)).execute(function(err, result) {
-        callback && callback(err, _this);
-      });
-    };
-
-    // reload
-    instance.reload = function(callback) {
-      model.unscoped().find(this.id, callback);
-    };
-
-    // destroy
-    instance.destroy = function(callback) {
-      new Query(Instance, schema).unscoped().delete(schema.table).where(primaryObject(instance)).execute(callback);
-    };
-
-    return instance;
-  };
-
-  // build new instance
-  model.build = function(args) {
-    return new Instance(args);
-  };
 
   // find by id
-  model.find = function(id, callback) {
-    new Query(Instance, schema).find(id, callback);
-  };
+  static find(id, callback) {
+    new Query(this).find(id, callback);
+  }
 
   // create
-  model.create = function(values, options, callback) {
+  static create(values, options, callback) {
+    var _this = this;
     if (_.isFunction(values)) {
       callback = values;
     }
     if (_.isFunction(options)) {
       callback = options;
     }
-    _.defaultsDeep(values, new Instance());
-    return new Query(Instance, schema).unscoped().insert(schema.table).values(values).options(options).execute(function(err, result) {
+    _.defaultsDeep(values, new this());
+    return new Query(this).unscoped().insert().values(values).options(options).execute(function(err, result) {
       if (err) {
         return callback && callback(err, result);
       }
       if (result && result.insertId) {
-        return model.unscoped().find(result.insertId, callback);
+        return _this.unscoped().find(result.insertId, callback);
       }
-      model.unscoped().find(primaryObject(values), callback);
+      _this.class.unscoped().find(primaryObject(values), callback);
     });
-  };
+  }
 
   // return first
-  model.first = function(callback) {
-    new Query(Instance, schema).first(callback);
-  };
+  static first(callback) {
+    new Query(this).first(callback);
+  }
 
   // return last
-  model.last = function(callback) {
-    new Query(Instance, schema).last(callback);
-  };
+  static last(callback) {
+    new Query(this).last(callback);
+  }
 
   // return all
-  model.list = model.all = function(callback) {
-    new Query(Instance, schema).list(callback);
-  };
+  static list(callback) {
+    new Query(this).list(callback);
+  }
+
+  static all(callback) {
+    return this.list(callback);
+  }
 
   // filter
-  model.where = function(where, params) {
-    return new Query(Instance, schema).where(where, params);
+  static where(where, params) {
+    return new Query(this).where(where, params);
   }
 
   // limit
-  model.limit = function(offset, limit) {
-    return new Query(Instance, schema).limit(offset, limit);
+  static limit(offset, limit) {
+    return new Query(this).limit(offset, limit);
   }
 
   // order
-  model.order = function(order) {
-    return new Query(Instance, schema).order(order);
+  static order(order) {
+    return new Query(this).order(order);
   }
 
   // destroy
-  model.destroy = function(id, callback) {
-    return new Query(Instance, schema).unscoped().delete(schema.table).where({ id: id }).execute(callback);
+  static destroy(id, callback) {
+    return new Query(this).unscoped().delete(schema.table).where({ id: id }).execute(callback);
   }
 
   // destroy all
-  model.destroyAll = function(callback) {
-    return new Query(Instance, schema).unscoped().delete(schema.table).execute(callback);
+  static destroyAll(callback) {
+    return new Query(this).unscoped().delete(schema.table).execute(callback);
   }
 
   // includes
-  model.includes = function(includes) {
-    return new Query(Instance, schema).includes(includes);
+  static includes(includes) {
+    return new Query(this).includes(includes);
   }
 
   //unscoped
-  model.unscoped = function() {
-    return new Query(Instance, schema).unscoped();
+  static unscoped() {
+    return new Query(this).unscoped();
   }
 
   //scope
-  model.scope = function(scope) {
-    return new Query(Instance, schema).scope(scope);
+  static scope(scope) {
+    return new Query(this).scope(scope);
   }
 
-  return model;
-};
+}
 
 module.exports = Model;
