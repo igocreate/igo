@@ -73,7 +73,7 @@ class Model  {
         if (result && result.insertId) {
           return _this.unscoped().find(result.insertId, callback);
         }
-        _this.class.unscoped().find(values.primaryObject(), callback);
+        _this.unscoped().find(obj.primaryObject(), callback);
       });
     });
   }
