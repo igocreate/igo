@@ -59,7 +59,10 @@ module.exports = function(gulp, options) {
   gulp.task('uglify', function() {
     return gulp.src(options.uglify.src)
       .pipe(concat('main.js'))
-      .pipe(uglify({outSourceMaps: true}).on('error', gulpUtil.log))
+      .pipe(uglify({outSourceMaps: true}).on('error', function(err) {
+        gulpUtil.log(err);
+        return this.end();
+      }))
       .pipe(fingerprint('./views/js.fingerprint'))
       .pipe(gulp.dest('./public'));
   });
