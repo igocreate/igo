@@ -1,4 +1,6 @@
 
+'use strict';
+
 var async   = require('async');
 var _       = require('lodash');
 var winston = require('winston');
@@ -245,15 +247,22 @@ var Query = function(modelClass) {
       }, function() {
         //
         if (rows && rows.length > 0 && _this.query.limit === 1) {
-          rows = new modelClass(rows[0]);
-        } else if (_this.query.limit === 1) {
-          rows = null;
-        } else if (_this.query.verb === 'select') {
-          rows = rows.map(function(row) {
-            return new modelClass(row);
+          var obj = new modelClass(rows[0]);
+          obj.afterFind(function() {
+            callback(null, obj);
           });
+        } else if (_this.query.limit === 1) {
+          callback && callback(err, null);
+        } else if (_this.query.verb === 'select') {
+          async.mapSeries(rows, function(row, callback) {
+            var obj = new modelClass(row);
+            obj.afterFind(function() {
+              callback(null, obj);
+            });
+          }, callback);
+        } else {
+          callback && callback(err, rows);
         }
-        callback && callback(err, rows);
       });
     });
   };

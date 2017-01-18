@@ -28,8 +28,10 @@ class Model  {
   update(values, callback) {
     var _this = this;
     _.assign(_this, values);
-    new Query(this.constructor).unscoped().update(this.constructor.schema.table).values(values).where(this.primaryObject()).execute(function(err, result) {
-      if (callback) callback(err, _this);
+    this.beforeUpdate(function() {
+      new Query(_this.constructor).unscoped().update(_this.constructor.schema.table).values(values).where(_this.primaryObject()).execute(function(err, result) {
+        if (callback) callback(err, _this);
+      });
     });
   }
 
@@ -43,6 +45,9 @@ class Model  {
     new Query(this.constructor).unscoped().delete(this.constructor.schema.table).where(this.primaryObject()).execute(callback);
   }
 
+  beforeCreate(callback)  { callback(); }
+  beforeUpdate(callback)  { callback(); }
+  afterFind(callback)     { callback(); }
 
   // find by id
   static find(id, callback) {
@@ -58,15 +63,18 @@ class Model  {
     if (_.isFunction(options)) {
       callback = options;
     }
-    _.defaultsDeep(values, new this());
-    return new Query(this).unscoped().insert().values(values).options(options).execute(function(err, result) {
-      if (err) {
-        return callback && callback(err, result);
-      }
-      if (result && result.insertId) {
-        return _this.unscoped().find(result.insertId, callback);
-      }
-      _this.class.unscoped().find(primaryObject(values), callback);
+    var obj = new this(values);
+
+    obj.beforeCreate(function() {
+      return new Query(_this).unscoped().insert().values(obj).options(options).execute(function(err, result) {
+        if (err) {
+          return callback && callback(err, result);
+        }
+        if (result && result.insertId) {
+          return _this.unscoped().find(result.insertId, callback);
+        }
+        _this.class.unscoped().find(values.primaryObject(), callback);
+      });
     });
   }
 

@@ -5,6 +5,10 @@
 var _ = require('lodash');
 
 
+var value = function(v) {
+  return v;
+};
+
 //
 module.exports.index = function(config, objects) {
 
@@ -24,7 +28,7 @@ module.exports.breadcrumb = function(config, lis) {
   lis.forEach(function(li) {
     html += '<li class="breadcrumb-item">';
     html += '<a href="' + config.adminpath + li[0] + '">';
-    html += li[1];
+    html += value(li[1]);
     html += '</a></li>';
   });
   html += '</ol>';
