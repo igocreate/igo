@@ -3,7 +3,11 @@
 
 Testing your application is super important. Igo helps to write efficient tests easily.
 
-Igo uses Mocha for running the tests and superagent for testing the controller layer.
+Igo uses [Mocha](https://mochajs.org/) test framework, and offers more features:
+- Testing controllers layer with [superagent](https://github.com/visionmedia/superagent)
+- Automatic test database reinitialization before first test
+- Test isolation: each test runs in a transaction that is rollbacked
+
 
 ## Introduction
 

@@ -1,8 +1,15 @@
 
 # Development
 
-Igo uses [Bower](https://bower.io/) to manage frontend dependencies, and [Gulp](http://gulpjs.com/) to handle the development workflow.
+Igo uses [Gulp](http://gulpjs.com/) and provides default gulp tasks based on these modules:
+- [Nodemon](https://nodemon.io/) to auto-refresh the server on code change
+- [JSHint](http://jshint.com/) to verify the quality of your backend Javascript code
+- [Bower](https://bower.io) to download and install frontend modules
+- [Less](http://lesscss.org/) or [Sass](http://sass-lang.com/) as a CSS preprocessor
+- [Uglify](http://lisperator.net/uglifyjs/) to compress and minify your frontend Javascript code
+- [Livereload](https://github.com/vohof/gulp-livereload) to refresh your browser automatically
 
+Igo uses [Bower](https://bower.io/) to manage frontend dependencies.
 
 ## Bower
 

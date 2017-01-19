@@ -1,32 +1,23 @@
-# Igo Web Framework
-
-[![Build Status](https://travis-ci.org/igocreate/igo.svg?branch=master)](https://travis-ci.org/igocreate/igo)
+# Igo.js [![Build Status](https://travis-ci.org/igocreate/igo.svg?branch=master)](https://travis-ci.org/igocreate/igo)
 
 📖 Read the [full documentation here](/docs/README.md).
 
-## Short Presentation
-
 Igo is a Web Framework for Node.js that comes with:
-- Pre-configured [Express](http://expressjs.com/) and middlewares
-- [Dust](http://www.dustjs.com/) as a template engine
-- Basic ORM for **MySQL**
-- Complete i18n support via [i18next](http://i18next.com/)
-- Error handling
-- Mailing system based on [Nodemailer](https://github.com/nodemailer/nodemailer)
+- Pre-configured Express, middlewares, and Dust
 - Pre-configured [Gulp](http://gulpjs.com/) tasks for development
-- Test environment based on [Mocha](https://mochajs.org/)
-- Caching with **Redis**
+- Full-featured testing environment based on [Mocha](https://mochajs.org/)
+- Basic ORM for MySQL
 
-**All remarks, suggestions, PRs are welcome! 💕**
+All remarks, suggestions, PRs are welcome! 💕
 
-## 🚀 Getting Started (2 minutes)
+## 🚀 Getting Started
 
-Before using Igo, you need to install Node.js (>=5.9.1), Bower, Gulp and Mocha.
+Before using Igo, you need to install Node.js (>=6.x), Bower, Gulp and Mocha.
 ```sh
 npm install -g bower gulp-cli mocha
 ```
 
-Then, the easiest way to get started with Igo is to create a new project via the `igo` CLI.
+Then, you can easily create a new project via the `igo` CLI.
 
 ```sh
 npm install -g igo
@@ -35,6 +26,6 @@ npm install && bower install
 gulp
 ```
 
-Go to [http://localhost:3000](http://localhost:3000) and start coding (and reading [the docs](/docs/README.md)).
+Open [http://localhost:3000](http://localhost:3000) and start coding (and reading [the docs](/docs/README.md)).
 
 Type ```mocha``` to run tests.
