@@ -1,7 +1,7 @@
 # Igo.js Documentation
 
 ## Contents
-- [Introduction](/docs/Introduction.md)
+- [Introduction](/docs/introduction.md)
   - Presentation, Installation, Getting Started, Configuration
 - [Models](/docs/models.md)
   - MySQL Configuration, DB Migrations, Model API
