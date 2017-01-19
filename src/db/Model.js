@@ -1,25 +1,19 @@
 
+'use strict';
 
 var _   = require('lodash');
 
-var Query = require('./Query');
+var Query     = require('./Query');
+var Schema    = require('./Schema');
 
 //
 class Model  {
 
   constructor(values) {
-    // if (!schema.primary) {
-    //   schema.primary = ['id'];
-    // } else if (!_.isArray(schema.primary)) {
-    //   schema.primary = [ schema.primary ];
-    // }
-
-    if (values) {
-      //
-      _.assign(this, values);
-    }
+    if (values) _.assign(this, values);
   }
 
+  // returns object with primary keys
   primaryObject() {
     return _.pick(this, this.constructor.schema.primary);
   }
@@ -28,7 +22,7 @@ class Model  {
   update(values, callback) {
     var _this = this;
     _.assign(_this, values);
-    this.beforeUpdate(function() {
+    this.beforeUpdate(values, function() {
       new Query(_this.constructor).unscoped().update(_this.constructor.schema.table).values(values).where(_this.primaryObject()).execute(function(err, result) {
         if (callback) callback(err, _this);
       });
@@ -45,9 +39,9 @@ class Model  {
     new Query(this.constructor).unscoped().delete(this.constructor.schema.table).where(this.primaryObject()).execute(callback);
   }
 
-  beforeCreate(callback)  { callback(); }
-  beforeUpdate(callback)  { callback(); }
-  afterFind(callback)     { callback(); }
+  beforeCreate(callback)          { callback(); }
+  beforeUpdate(values, callback)  { callback(); }
+  afterFind(callback)             { callback(); }
 
   // find by id
   static find(id, callback) {
@@ -135,6 +129,12 @@ class Model  {
   //scope
   static scope(scope) {
     return new Query(this).scope(scope);
+  }
+
+  // register
+  static register(modelClass, schema) {
+    modelClass.schema = Schema.verify(schema);
+    return modelClass;
   }
 
 }
