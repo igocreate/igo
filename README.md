@@ -8,7 +8,7 @@ Igo is a Web Framework for Node.js that comes with:
 
 All remarks, suggestions, PRs are welcome! 💕
 
-## 🚀 Getting Started
+# 🚀 Getting Started
 
 Before using Igo, you need to install Node.js (>=6.x), Bower, Gulp and Mocha.
 ```sh
@@ -28,7 +28,7 @@ Open [http://localhost:3000](http://localhost:3000) and start coding (and readin
 
 Type ```mocha``` to run tests.
 
-## documentation
+# Documentation
 
 - [Introduction](/docs/introduction.md)
   - Presentation, Installation, Getting Started, Configuration
