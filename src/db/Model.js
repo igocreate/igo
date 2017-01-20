@@ -33,7 +33,7 @@ module.exports = function(schema) {
 
     // reload
     reload(callback) {
-      model.unscoped().find(this.id, callback);
+      this.constructor.unscoped().find(this.id, callback);
     }
 
     // destroy
