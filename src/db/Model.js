@@ -137,5 +137,5 @@ module.exports = function(schema) {
   // schema static attribute
   Model.schema = Schema.verify(schema);
 
-  return Model
+  return Model;
 }
