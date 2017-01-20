@@ -51,7 +51,7 @@ When a migration file has run successfully, it is saved in a `__db_migrations` t
 ```js
 'use strict';
 
-const Model     = require('igo').Model;
+const Model  = require('igo').Model;
 
 const schema = {
   table:    'users',
@@ -64,11 +64,14 @@ const schema = {
   ]
 };
 
-const User = function() {
-  //
+class User extends Model(schema) {
+  //override constructor if needed
+  constructor(values) {
+    super(values);
+  }
 };
 
-module.exports = new Model(User, schema);
+module.exports = User;
 ```
 
 The `schema` object defines the table name and the table structure, and how this model can be associated to other models.

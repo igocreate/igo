@@ -21,9 +21,9 @@ describe('db.Model', function() {
       ]
     };
 
-    class Book extends Model {
+    class Book extends Model(schema) {
+
     }
-    Book.schema = schema;
 
     //
     describe('insert', function() {
@@ -87,9 +87,7 @@ describe('db.Model', function() {
       }
     };
 
-    class Book extends Model {
-    }
-    Book.schema = schema;
+    class Book extends Model(schema) {}
 
     describe('default scope', function() {
       it('should use default scope', function(done) {
