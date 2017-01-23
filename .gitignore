@@ -1,4 +1,7 @@
 
+
 .DS_Store
 node_modules
 *.log
+
+skel/public/dist

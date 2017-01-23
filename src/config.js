@@ -20,11 +20,8 @@ module.exports.init = function() {
   config.signedCookiesSecret = 'abcdefghijklmnopqrstuvwxyz';
   config.cookieSessionConfig = {
     name: 'app',
-    keys: [
-      'aaaaaaaaaaa',
-      'bbbbbbbbbbb',
-      'ccccccccccc'
-    ]
+    keys: [ 'aaaaaaaaaaa' ],
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
   };
 
   config.i18n = {
