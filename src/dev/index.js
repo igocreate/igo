@@ -1,7 +1,7 @@
 
 //
 module.exports = {
-  setDefaultGulpTasks:  require('./gulpfile.js'),
+  webpackConfig:        require('./webpack.config'),
   test:                 function() { require('./test/init'); },
-  agent:                require('./test/agent.js'),
+  agent:                require('./test/agent'),
 };
