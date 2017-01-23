@@ -1,12 +1,13 @@
 
 
-@import '../bower_components/bootstrap/scss/bootstrap.scss';
-@import '../bower_components/font-awesome/scss/font-awesome.scss';
+@import '../node_modules/bootstrap/scss/bootstrap.scss';
+
+$fa-font-path: '~font-awesome/fonts';
+@import "~font-awesome/scss/font-awesome";
 
 @import './welcome.scss';
 
 body {
-  padding-top: 5rem;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;

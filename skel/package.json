@@ -1,17 +1,25 @@
 {
-  "name": "{project.name}",
+  "name": "project",
   "version": "0.0.1",
   "description": "",
   "main": "app.js",
   "scripts": {
+    "jshint": "jshint --reporter=node_modules/jshint-stylish ./app/**/*.js || true",
+    "nodemon": "nodemon --watch ./app -e js,json --ignore node_modules/ app.js ",
+    "start": "npm-run-all --parallel nodemon webpack",
+    "webpack": "webpack -p --progress --watch",
     "test": "mocha"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "igo": "{igo.version}"
+    "igo": "^2.2.6"
   },
   "devDependencies": {
-    "igo-dev": "{igo-dev.version}"
+    "bootstrap": "^4.0.0-alpha.6",
+    "font-awesome": "^4.7.0",
+    "igo-dev": "^2.2.0",
+    "jquery": "^3.1.1",
+    "tether": "^1.4.0"
   }
 }

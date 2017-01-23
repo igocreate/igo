@@ -1,7 +1,11 @@
 {
+  "esversion": 6,
   "node": true,
+  "curly": true,
+  "eqeqeq": true,
+  "nocomma": true,
+  "unused": true,
   "globals"   : {
-    // MOCHA
     "describe"   : false,
     "it"         : false,
     "before"     : false,
