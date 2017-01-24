@@ -63,7 +63,6 @@ module.exports = {
           return chunk;
         });
         chunks = _.keyBy(chunks, 'name');
-        console.dir(chunks);
         require("fs").writeFileSync(
           './public/dist/chunks.json',
           JSON.stringify(chunks));
