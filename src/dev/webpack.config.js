@@ -35,7 +35,7 @@ module.exports = {
   // devtool: 'source-map',
   plugins: [
     new CleanWebpackPlugin(['public/dist', 'build'], {
-      root: __dirname,
+      root: process.cwd(),
       verbose: true,
       dry: false,
       exclude: ['chunks.json']
