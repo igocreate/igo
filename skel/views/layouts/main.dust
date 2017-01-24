@@ -11,7 +11,8 @@
 
   <title>{+title}Igo running{/title}</title>
 
-  <link rel="stylesheet" href="/dist/{chunks[2].files[1]}" />
+  <link rel="stylesheet" href="/dist/{chunks.vendor.files.css}" />
+  <link rel="stylesheet" href="/dist/{chunks.main.files.css}" />
 </head>
 
 <body>
@@ -47,8 +48,8 @@
     {+pageFooter /}
   </footer>
 
-  <script src="/dist/{chunks[3].files[0]}" ></script>
-  <script src="/dist/{chunks[0].files[0]}" ></script>
-  <script src="/dist/{chunks[1].files[0]}" ></script>
+  <script src="/dist/{chunks.manifest.files.js}" ></script>
+  <script src="/dist/{chunks.vendor.files.js}" ></script>
+  <script src="/dist/{chunks.main.files.js}" ></script>
 </body>
 </html>

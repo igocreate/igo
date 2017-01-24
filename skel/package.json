@@ -1,5 +1,5 @@
 {
-  "name": "project",
+  "name": "{project.name}",
   "version": "0.0.1",
   "description": "",
   "main": "app.js",
@@ -13,12 +13,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "igo": "^2.2.6"
+    "igo": "{igo.version}"
   },
   "devDependencies": {
     "bootstrap": "^4.0.0-alpha.6",
     "font-awesome": "^4.7.0",
-    "igo-dev": "^2.2.0",
+    "igo-dev": "{igo-dev.version}",
     "jquery": "^3.1.1",
     "tether": "^1.4.0"
   }

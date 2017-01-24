@@ -14,8 +14,7 @@ const webpackUglifyJsPlugin = require('webpack-uglify-js-plugin');
 module.exports = {
   entry: {
     main:   './js/main.js',
-    vendor: './js/vendor.js',
-    styles: './scss/styles.scss'
+    vendor: './js/vendor.js'
   },
   output: {
     filename: '[name]-[chunkhash].js',
@@ -54,11 +53,17 @@ module.exports = {
     function() {
       this.plugin("done", function(stats) {
         var chunks = _.map(stats.compilation.chunks, function(chunk) {
-          return _.pick(chunk, [
+          var chunk = _.pick(chunk, [
             'id', 'ids', 'debugId', 'name',
             'files', 'hash', 'renderedHash'
           ]);
+          chunk.files = _.keyBy(chunk.files, function(file) {
+            return file.substring(file.indexOf('.') + 1);
+          });
+          return chunk;
         });
+        chunks = _.keyBy(chunks, 'name');
+        console.dir(chunks);
         require("fs").writeFileSync(
           './public/dist/chunks.json',
           JSON.stringify(chunks));
