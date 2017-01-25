@@ -28,6 +28,12 @@ module.exports = {
         loader: ['css-loader', 'sass-loader']
       })
     }, {
+      test: /\.less$/,
+      exclude: /node_modules/,
+      loader: ExtractTextPlugin.extract({
+        loader: ['css-loader', 'less-loader']
+      })
+    }, {
       test: /\.(png|woff|woff2|eot|ttf|svg)(\?v=\d+\.\d+\.\d+)?$/,
       loader: 'url-loader?limit=100000'
     }]
