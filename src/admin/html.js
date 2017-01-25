@@ -23,7 +23,7 @@ module.exports.index = function(config, objects) {
 //
 module.exports.show = function(config, object) {
   var title = _.capitalize(config.Name) + ' #' + object.id;
-  
+
   var html = module.exports.breadcrumb(config, [
     [ '/' + config.plural, config.Plural],
     [ '/' + config.plural + '/' + object.id, title]
@@ -33,7 +33,7 @@ module.exports.show = function(config, object) {
   html += '<div class="table-responsive">';
   html += '<table class="table table-sm table-striped">';
   config.fields.forEach(function(field) {
-    html += '<tr><td>' + field + '</td><td>' + object[field] + '</td><tr>';
+    html += '<tr><td>' + field + '</td><td>' + value(object[field]) + '</td><tr>';
   });
   html += '</table></div>';
 
