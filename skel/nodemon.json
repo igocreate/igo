@@ -1,6 +1,5 @@
 {
   "events": {
-    "start":    "npm run jshint",
-    "restart":  "npm run jshint"
+    "start":    "npm run jshint"
   }
 }

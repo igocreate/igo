@@ -1,6 +1,6 @@
 {
   "name": "igo",
-  "version": "2.3.1",
+  "version": "2.3.4",
   "homepage": "https://github.com/igocreate/igo",
   "description": "Igo is a Node.js Web Framework based on Express",
   "main": "index.js",
@@ -44,17 +44,17 @@
     "lodash": "^4.17.4",
     "minimist": "^1.2.0",
     "moment": "2.17.1",
-    "mysql": "2.12.0",
+    "mysql": "2.13.0",
     "nodemailer": "2.7.2",
     "querystring": "0.2.0",
     "redis": "2.6.5",
     "replace": "^0.3.0",
     "require-dir": "0.3.1",
-    "serve-static": "1.11.1",
+    "serve-static": "1.11.2",
     "winston": "2.3.1",
     "winston-papertrail": "1.0.4"
   },
   "devDependencies": {
-    "igo-dev": "2.2.0"
+    "igo-dev": "2.3.0"
   }
 }

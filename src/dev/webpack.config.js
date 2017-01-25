@@ -28,6 +28,12 @@ module.exports = {
         loader: ['css-loader', 'sass-loader']
       })
     }, {
+      test: /\.less$/,
+      exclude: /node_modules/,
+      loader: ExtractTextPlugin.extract({
+        loader: ['css-loader', 'less-loader']
+      })
+    }, {
       test: /\.(png|woff|woff2|eot|ttf|svg)(\?v=\d+\.\d+\.\d+)?$/,
       loader: 'url-loader?limit=100000'
     }]
@@ -35,7 +41,7 @@ module.exports = {
   // devtool: 'source-map',
   plugins: [
     new CleanWebpackPlugin(['public/dist', 'build'], {
-      root: __dirname,
+      root: process.cwd(),
       verbose: true,
       dry: false,
       exclude: ['chunks.json']
@@ -63,7 +69,6 @@ module.exports = {
           return chunk;
         });
         chunks = _.keyBy(chunks, 'name');
-        console.dir(chunks);
         require("fs").writeFileSync(
           './public/dist/chunks.json',
           JSON.stringify(chunks));
