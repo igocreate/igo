@@ -5,12 +5,19 @@ const dust        = require('dustjs-linkedin');
 const dustHelpers = require('dustjs-helpers');
 const i18next     = require('i18next');
 
-var chunks        = null;
+const config      = require('../config');
 
+const chunkspath  = process.cwd() + '/public/chunks.json';
+var   chunks        = null;
 
-const requireChunks = function() {
+//
+const getChunksJson = function() {
+  if (config.env === 'production' && chunks) {
+    return chunks;
+  }
   try {
-    chunks = require(process.cwd() + '/public/dist/chunks.json')
+    delete require.cache[chunkspath];
+    chunks = require(chunkspath);
   } catch (err) {
     // ignored
   }
@@ -22,7 +29,7 @@ module.exports = function(req, res, next) {
 
   res.locals.lang     = req.locale;
   res.locals.session  = req.session;
-  res.locals.chunks   = chunks || requireChunks();
+  res.locals.chunks   = getChunksJson();
 
   //
   res.locals.t = function(chunk, context, bodies, params) {
