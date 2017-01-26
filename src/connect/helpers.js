@@ -7,7 +7,7 @@ const i18next     = require('i18next');
 
 const config      = require('../config');
 
-const chunksPath  = process.cwd() + '/public/dist/chunks.json';
+const chunkspath  = process.cwd() + '/public/chunks.json';
 var   chunks        = null;
 
 //
@@ -16,8 +16,8 @@ const getChunksJson = function() {
     return chunks;
   }
   try {
-    delete require.cache[chunksPath];
-    chunks = require(chunksPath);
+    delete require.cache[chunkspath];
+    chunks = require(chunkspath);
   } catch (err) {
     // ignored
   }

@@ -40,11 +40,10 @@ module.exports = {
   },
   // devtool: 'source-map',
   plugins: [
-    new CleanWebpackPlugin(['public/dist', 'build'], {
+    new CleanWebpackPlugin(['public/dist'], {
       root: process.cwd(),
       verbose: true,
-      dry: false,
-      exclude: ['chunks.json']
+      dry: false
     }),
     new AutoCleanBuildPlugin(),
     new ExtractTextPlugin({
@@ -70,7 +69,7 @@ module.exports = {
         });
         chunks = _.keyBy(chunks, 'name');
         require("fs").writeFileSync(
-          './public/dist/chunks.json',
+          './public/chunks.json',
           JSON.stringify(chunks));
       });
     }
