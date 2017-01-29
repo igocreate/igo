@@ -7,21 +7,21 @@ const i18next     = require('i18next');
 
 const config      = require('../config');
 
-const chunkspath  = process.cwd() + '/public/chunks.json';
-var   chunks        = null;
+const assetsPath  = process.cwd() + '/public/webpack-assets.json';
+var   assets      = null;
 
 //
-const getChunksJson = function() {
-  if (config.env === 'production' && chunks) {
-    return chunks;
+const getWebpackAssets = function() {
+  if (assets && config.env === 'production') {
+    return assets;
   }
+  delete require.cache[assetsPath];
   try {
-    delete require.cache[chunkspath];
-    chunks = require(chunkspath);
+    assets = require(assetsPath);
   } catch (err) {
     // ignored
   }
-  return chunks;
+  return assets;
 };
 
 //
@@ -29,7 +29,7 @@ module.exports = function(req, res, next) {
 
   res.locals.lang     = req.locale;
   res.locals.session  = req.session;
-  res.locals.chunks   = getChunksJson();
+  res.locals.assets   = getWebpackAssets();
 
   //
   res.locals.t = function(chunk, context, bodies, params) {
