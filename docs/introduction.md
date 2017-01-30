@@ -10,7 +10,7 @@ In a few seconds it can give you a production-ready application and a 100% worki
 We love Node.js, it's a fantastic and easy technology to build and run web applications.
 But after building several projects, we found that it was a pain to duplicate these many *technical* files:
 - `app.js` for Express and its bunch of middlewares, plus the configuration for these middlewares,
-- `Gulpfile.js` to have a nice development environment,
+- `Gulpfile.js` or `webpack.config.js` to setup a nice development environment,
 - MySQL, Redis, SMTP configurations and connections,
 - `package.json` with so many dependencies,
 - `Mocha` configuration and tools to write good tests,
@@ -36,11 +36,8 @@ cd myproject
 # install node.js dependencies
 npm install
 
-# install bower dependencies
-bower install
-
 # start the server on http://localhost:3000
-gulp
+npm start
 ```
 
 ## Configuration
@@ -51,7 +48,7 @@ var config = require('igo').config`;
 ```
 
 Some configuration parameters can be defined with environment variables. Igo uses [dotenv](https://github.com/motdotla/dotenv), so you can just add/override variables in the `/.env` file.
-
+E.g:
 ```txt
 # development database
 MYSQL_DATABASE=mydatabase

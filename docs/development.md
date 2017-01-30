@@ -1,78 +1,50 @@
 
 # Development
 
-Igo uses [Gulp](http://gulpjs.com/) and provides default gulp tasks based on these modules:
-- [Nodemon](https://nodemon.io/) to auto-refresh the server on code change
-- [JSHint](http://jshint.com/) to verify the quality of your backend Javascript code
-- [Bower](https://bower.io) to download and install frontend modules
-- [Less](http://lesscss.org/) or [Sass](http://sass-lang.com/) as a CSS preprocessor
-- [Uglify](http://lisperator.net/uglifyjs/) to compress and minify your frontend Javascript code
-- [Livereload](https://github.com/vohof/gulp-livereload) to refresh your browser automatically
+Igo uses npm scripts, [Webpack 2](https://webpack.js.org) and [Nodemon](https://nodemon.io/).
 
-Igo uses [Bower](https://bower.io/) to manage frontend dependencies.
+## Default npm scripts
 
-## Bower
+The default `npm start` script will actually run two scripts in parallel:
+- `nodemon` to start the server, and restart when a file is modified
+- `webpack` to compile your frontend assets on the fly
 
-Modify the `/bower.json` file, and run `bower install`.
-The components will be downloaded in the `/bower_components` directory.
-
-## Gulp
-
-The local `gulpfile.js` can be as short as:
 ```js
-var gulp = require('gulp');
-require('igo').dev.setDefaultGulpTasks(gulp);
+[...]
+"scripts": {
+  "jshint": "jshint --reporter=node_modules/jshint-stylish ./app/**/*.js || true",
+  "nodemon": "nodemon app.js",
+  "start": "npm-run-all --parallel nodemon webpack",
+  "webpack": "webpack -p --progress --watch",
+  "test": "mocha"
+},
+[...]
 ```
 
-The default Gulp tasks defined by Igo include Nodemon, JSHint, Uglify, CSS pre-processing, copying and Livereload.
+## Webpack
+
+Your local `webpack.config.js` can be as short as:
+```js
+//
+const webpackConfig = require('igo').dev.webpackConfig;
+module.exports = webpackConfig;
+```
+
+You can override this default config as you like.
+Here is [the default config](/src/dev/webpack.config.js), embedded with Igo.
 
 ### Nodemon
 
-[gulp-nodemon](https://github.com/JacksonGariety/gulp-nodemon) watches your application files (`/app/**/*.js`) and restarts node as soon as a file is modified.
-
-### JSHint
-
-[gulp-jshint](https://github.com/spalger/gulp-jshint) runs the JSHint code quality tool on the application files (`/app/**/*.js`).
-
-### Uglify
-
-[gulp-uglify](https://github.com/terinjokes/gulp-uglify) runs UglifyJS on the frontend JS files (`/js/**/*.js`) and generate the `/public/main.js` file.
-
-
-### CSS pre-processing
-
-The [Less](http://lesscss.org/) and [Sass](http://sass-lang.com/) CSS pre-processors are integrated in the default Gulp tasks.
-
-The chosen preprocessor will generate the `/public/styles.css` file from the `/less/styles.less` or `/scss/styles.scss` files
-
-Configure your preferred preprocessor with this parameter:
-```js
-var options = {
-  csspreprocessor: 'less' // or 'sass'
-  //...
-};
-require('igo').dev.setDefaultGulpTasks(gulp, options);
-```
-
-### Copy
-
-Can be used to copy any files. For example, to copy fonts files from `/bower_components` to `/public` directory.
-
-Files to copy must be defined in the Gulp tasks options:
-```js
-var options = {
-  //...
-  copy: {
-    // src: dest,
-    './bower_components/font-awesome/fonts/*':            './public/fonts/',
-    './bower_components/bootstrap/dist/fonts/*':          './public/fonts'
+Copy this `nodemon.json` file if you want to run `jshint` automatically.
+```json
+{
+  "watch": [
+    "app"
+  ],
+  "ignore": [],
+  "ext": "js json",
+  "events": {
+    "start": "npm run jshint"
   }
-};
-require('igo').dev.setDefaultGulpTasks(gulp, options);
+}
 ```
-
-### Livereload
-
-Install the Livereload extension for your browser (e.g. [Chrome extension](https://chrome.google.com/webstore/detail/livereload/jnihajbhpnppcggbcgedagnkighmdlei))
-
-Your browser will automatically reload the page when a file is modified.
