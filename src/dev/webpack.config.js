@@ -9,6 +9,8 @@ const CleanWebpackPlugin    = require('clean-webpack-plugin');
 const AutoCleanBuildPlugin  = require('webpack-auto-clean-build-plugin');
 const ExtractTextPlugin     = require('extract-text-webpack-plugin');
 const webpackUglifyJsPlugin = require('webpack-uglify-js-plugin');
+const WebpackChunkHash      = require('webpack-chunk-hash');
+const AssetsWebpackPlugin   = require('assets-webpack-plugin');
 
 //
 module.exports = {
@@ -54,24 +56,31 @@ module.exports = {
     new webpack.optimize.CommonsChunkPlugin({
       names: ['vendor', 'manifest']
     }),
+    // Plugin to replace a standard webpack chunk hashing with custom (md5) one.
+    new WebpackChunkHash({
+      algorithm: 'md5'
+    }),
     // save stats
-    function() {
-      this.plugin("done", function(stats) {
-        var chunks = _.map(stats.compilation.chunks, function(chunk) {
-          var chunk = _.pick(chunk, [
-            'id', 'ids', 'debugId', 'name',
-            'files', 'hash', 'renderedHash'
-          ]);
-          chunk.files = _.keyBy(chunk.files, function(file) {
-            return file.substring(file.indexOf('.') + 1);
-          });
-          return chunk;
-        });
-        chunks = _.keyBy(chunks, 'name');
-        require("fs").writeFileSync(
-          './public/chunks.json',
-          JSON.stringify(chunks));
-      });
-    }
+    new AssetsWebpackPlugin({
+      filename: 'public/webpack-assets.json'
+    })
+    // function() {
+    //   this.plugin("done", function(stats) {
+    //     var chunks = _.map(stats.compilation.chunks, function(chunk) {
+    //       var chunk = _.pick(chunk, [
+    //         'id', 'ids', 'name',
+    //         'files', 'hash', 'renderedHash'
+    //       ]);
+    //       chunk.files = _.keyBy(chunk.files, function(file) {
+    //         return file.substring(file.indexOf('.') + 1);
+    //       });
+    //       return chunk;
+    //     });
+    //     chunks = _.keyBy(chunks, 'name');
+    //     require("fs").writeFileSync(
+    //       './public/chunks.json',
+    //       JSON.stringify(chunks));
+    //   });
+    // }
   ]
 };
