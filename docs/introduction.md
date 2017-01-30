@@ -20,8 +20,8 @@ After several months spent duplicating the same configuration and the same techn
 
 ## Installation
 ```sh
-# install required tools
-npm install -g bower gulp-cli mocha
+# install mocha
+npm install -g mocha
 
 # install igo
 npm install -g igo
