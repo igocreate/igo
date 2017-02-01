@@ -33,8 +33,6 @@ module.exports = class Admin {
     const model   = this.model();
     const options = this.options();
 
-    console.dir(model);
-
     // default configuration
     const defaults = {
       fields:     model.schema.columns,
