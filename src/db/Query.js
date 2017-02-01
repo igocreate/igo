@@ -219,6 +219,8 @@ var Query = function(modelClass) {
         var Obj         = association[2];
         var column      = association[3] || attr + '_id';
         var ref_column  = association[4] || 'id';
+        var extraWhere  = association[5];
+
         var ids         = _.chain(rows).map(column).uniq().compact().value();
         if (ids.length === 0) {
           return callback();
@@ -226,7 +228,11 @@ var Query = function(modelClass) {
         var where = {};
         where[ref_column] = ids;
         var subincludes = _this.query.includes[include];
-        var query = Obj.where(where).includes(subincludes).list(function(err, objs) {
+        var query = Obj.includes(subincludes).where(where);
+        if (extraWhere) {
+          query.where(extraWhere);
+        }
+        query.list(function(err, objs) {
           var objsByKey = {};
           _.forEach(objs, function(obj) {
             var key = obj[ref_column];
