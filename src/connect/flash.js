@@ -9,6 +9,9 @@ module.exports = function(req, res, next) {
     req.session.flash = {};
   }
   req.flash = function(key, value) {
+    if (value === undefined) {
+      return res.locals.flash[key];
+    }
     req.session.flash[key] = value;
   };
   next();

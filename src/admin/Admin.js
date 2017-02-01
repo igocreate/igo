@@ -1,38 +1,71 @@
 
 'use strict';
 
-var _     = require('lodash');
+const _       = require('lodash');
+const express = require('express');
 
-var html  = require('./html');
+const Index   = require('./Index');
+const Show    = require('./Show');
+const New     = require('./New');
+const Create  = require('./Create');
+const Edit    = require('./Edit');
+const Update  = require('./Update');
 
-module.exports.register = function(app, admin) {
 
-  // default configuration
-  const config = {
-    fields:     admin.model.schema.columns,
-    adminpath:  '/admin',
-    template:   'admin/admin'
-  };
+const HtmlRenderer    = require('./HtmlRenderer');
 
-  _.merge(config, admin);
 
-  config.Name   =  _.capitalize(config.name);
-  config.Plural =  _.capitalize(config.plural);
-
-  // index
-  app.get('/' + config.plural, function(req, res) {
-    admin.model.list(function(err, objects) {
-      res.locals.html = html.index(config, objects);
-      res.render(config.template);
-    });
-  });
-
-  // show
-  app.get('/' + config.plural + '/:id', function(req, res) {
-    admin.model.find(req.params.id, function(err, object) {
-      res.locals.html = html.show(config, object);
-      res.render(config.template);
-    });
-  });
-
+//
+const pluralize = function(name) {
+  if (name.endsWith('y')) {
+    return name.substring(name.length - 1) + 'ies';
+  }
+  if (name.endsWith('x')) {
+    return name + 'es';
+  }
+  return name + 's';
 };
+
+module.exports = class Admin {
+
+  static register(router) {
+
+    const model   = this.model();
+    const options = this.options();
+
+    console.dir(model);
+
+    // default configuration
+    const defaults = {
+      fields:     model.schema.columns,
+      adminpath:  '/admin',
+      template:   'admin/admin',
+      Name:       model.name,
+      Plural:     pluralize(model.name),
+      plural:     pluralize(model.name.toLowerCase()),
+      name:       model.name.toLowerCase(),
+      index:      {},
+      show:       {},
+      new:        {},
+      edit:       {}
+    };
+
+    _.defaultsDeep(options, defaults);
+
+    // index
+    router.get ('/' + options.plural, Index(model, options));
+
+    // new, create
+    router.get ('/' + options.plural + '/new',  New(model, options));
+    router.post('/' + options.plural,           Create(model, options));
+
+    // show
+    router.get ('/' + options.plural + '/:id', Show(model, options));
+
+    // edit, update
+    router.get ('/' + options.plural + '/:id/edit', Edit(model, options));
+    router.post('/' + options.plural + '/:id',      Update(model, options));
+
+  }
+
+}
