@@ -6,12 +6,13 @@ const _       = require('lodash');
 const moment  = require('moment');
 
 //
-const value = function(v) {
+const value = function(v, form) {
   if (v === undefined || v === null) {
     return '';
   }
   if (_.isDate(v)) {
-    return moment(v).format('MMMM DD, YYYY hh:mm:ss');
+    const format = form ? null : 'MMMM DD, YYYY HH:mm:ss';
+    return moment(v).format(format);
   }
   return v;
 };
@@ -46,7 +47,7 @@ module.exports.breadcrumb = function(items, options) {
 module.exports.buttons = function(buttons, options) {
   var html = '<div class="pull-right">';
   buttons.forEach(function(button) {
-    html += '<a href="' + options.adminpath + button[0] + '" class="btn btn-secondary">' + button[1] + '</a>';
+    html += '<a href="' + options.adminpath + button[0] + '" class="btn btn-primary">' + button[1] + '</a>';
   })
   html += '</div>';
   return html;
@@ -58,7 +59,7 @@ module.exports.table = function(objects, fields, options) {
   fields = _.reject(fields, function(el) { return el === 'id'; });
 
   var html = '<div class="table-responsive">';
-  html += '<table class="table table-sm table-striped">';
+  html += '<table class="table table-sm">';
   // thead
   html += '<thead><tr>';
   html += '<th>id</th>';
@@ -74,9 +75,9 @@ module.exports.table = function(objects, fields, options) {
     html += '<tr>';
     html += '<td><a href="' + objpath + '">#' + object.id + '</a></td>'
     fields.forEach(function(field) {
-      html += '<td>' + value(_.at(object, field)) + '<td>';
+      html += '<td>' + value(object[field]) + '<td>';
     });
-    html += '<td>';
+    html += '<td class="actions">';
     html += '<a href="' + objpath + '">View</a>';
     html += '&nbsp;<a href="' + objpath + '/edit">Edit</a>';
     html += '</td></tr>';
@@ -89,9 +90,10 @@ module.exports.table = function(objects, fields, options) {
 //
 module.exports.details = function(object, fields, options) {
   let html = '<div class="table-responsive">';
-  html += '<table class="table table-sm table-striped">';
+  html    += '<table class="table table-sm">';
   fields.forEach(function(field) {
-    html += '<tr><td>' + field + '</td><td>' + value(_.at(object, field)) + '</td><tr>';
+    html += '<tr><td class="field">' + field + '</td>';
+    html += '<td class="value">' + value(object[field]) + '</td><tr>';
   });
   html += '</table></div>';
   return html;
@@ -106,27 +108,28 @@ module.exports.form = function(fields, object, options) {
     '/' + options.plural :
     '/' + options.plural + '/' + object.id;
 
-  let html = '<div class="well">';
-  html += '<form class="form-horizontal" action="' + options.adminpath + action + '" method="POST">';
+  let html = '<form action="' + options.adminpath + action + '" method="POST">';
+  html    += '<div class="table-responsive">';
+  html    += '<table class="table table-sm">';
   fields.forEach(function(field) {
-    html += '<div class="form-group">';
-    html += '<label for="' + field + '"  class="col-sm-4 control-label" >' + field + '</label>';
-    html += '<div class="col-sm-8">';
+    html += '<tr>';
+    html += '<td><label for="' + field + '"  class="col-sm-4 control-label" >' + field + '</label></td>';
+    html += '<td>';
     if (field === 'id') {
       html += '<p class="form-control-static">' + object.id + '</p>';
       html += '<input type="hidden" name="id" value="' + object.id + '" />';
     } else {
-      html += '<input type="text" class="form-control" id="' + field + '" name="' + field + '" placeholder="' + field + '" value="' + value(_.at(object, field)) + '" />';
+      html += '<input type="text" class="form-control" id="' + field + '" name="' + field + '" placeholder="' + field + '" value="' + value(object && object[field], true) + '" />';
     }
-    html += '</div></div>';
+    html += '</td></tr>';
   });
   // buttons
-  html += '<div class="form-group">';
-  html += '<label class="col-sm-4 control-label" ></label>';
-  html += '<div class="col-sm-8">';
+  html += '<tr>';
+  html += '<td></td>';
+  html += '<td>';
   html += '<input type="submit" class="btn btn-primary" value="' + submit + '"/>';
-  html += '</div></div>';
-  html += '</form></div>';
+  html += '</td></tr>';
+  html += '<table/></div></form>';
 
   return html;
 };
