@@ -23,8 +23,8 @@ module.exports = function(schema) {
     // update
     update(values, callback) {
       var _this = this;
+      values.updated_at = new Date();
       _.assign(_this, values);
-      _this.updated_at = new Date();
       this.beforeUpdate(values, function() {
         new Query(_this.constructor).unscoped().update(schema.table).values(values).where(_this.primaryObject()).execute(function(err, result) {
           if (callback) callback(err, _this);
