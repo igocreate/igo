@@ -11,7 +11,7 @@ const value = function(v, form) {
     return '';
   }
   if (_.isDate(v)) {
-    const format = form ? null : 'MMMM DD, YYYY HH:mm:ss';
+    const format = form ? 'YYYY/MM/DD HH:mm:ss' : 'MMMM DD, YYYY HH:mm:ss';
     return moment(v).format(format);
   }
   return v;
