@@ -24,6 +24,7 @@ module.exports = function(schema) {
     update(values, callback) {
       var _this = this;
       _.assign(_this, values);
+      _this.updated_at = new Date();
       this.beforeUpdate(values, function() {
         new Query(_this.constructor).unscoped().update(schema.table).values(values).where(_this.primaryObject()).execute(function(err, result) {
           if (callback) callback(err, _this);
@@ -60,7 +61,7 @@ module.exports = function(schema) {
         callback = options;
       }
       var obj = new this(values);
-
+      obj.created_at = new Date();
       obj.beforeCreate(function() {
         return new Query(_this).unscoped().insert().values(obj).options(options).execute(function(err, result) {
           if (err) {
