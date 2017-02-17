@@ -6,7 +6,8 @@ var args = argv._;
 
 //
 var actions = {
-  create: require('./create.js')
+  create: require('./create.js'),
+  db:     require('./db.js')
 };
 
 console.log('igo version: ' + require('../package.json').version);
