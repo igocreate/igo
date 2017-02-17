@@ -3,6 +3,7 @@
 
 const _             = require('lodash');
 
+const AdminUtils    = require('./AdminUtils');
 const HtmlRenderer  = require('./HtmlRenderer');
 
 
@@ -21,7 +22,9 @@ module.exports = function(model, options) {
 
     html += HtmlRenderer.title(title);
 
-    let fields = options.new.fields || options.fields;
+    let fields = options.edit && options.edit.fields ||
+        options.form && options.form.fields ||
+        AdminUtils.defaultFields(options.fields);
     html += HtmlRenderer.form(fields, object, options);
 
     return html;
@@ -29,6 +32,9 @@ module.exports = function(model, options) {
 
   return function(req, res) {
     model.find(req.params.id, function(err, object) {
+      if (!object) {
+        return res.redirect(options.adminpath + '/' + options.plural);
+      }
       res.locals.html = renderHtml(object);
       res.render(options.template);
     });

@@ -3,6 +3,7 @@
 
 const _             = require('lodash');
 
+const AdminUtils    = require('./AdminUtils');
 const HtmlRenderer  = require('./HtmlRenderer');
 
 
@@ -20,8 +21,13 @@ module.exports = function(model, options) {
 
     html += HtmlRenderer.title(title);
 
-    let fields = options.new.fields || options.fields;
-    fields = _.pull(fields, 'id');
+    let fields = options.new && options.new.fields ||
+        options.form && options.form.fields ||
+        AdminUtils.defaultFields(options.fields);
+    // remove static fields
+    fields = _.filter(fields, function(field) {
+      return field[1] !== 'static';
+    });
     html += HtmlRenderer.form(fields, object, options);
 
     return html;

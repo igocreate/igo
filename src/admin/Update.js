@@ -3,6 +3,7 @@
 
 const _             = require('lodash');
 
+const AdminUtils    = require('./AdminUtils');
 const HtmlRenderer  = require('./HtmlRenderer');
 
 
@@ -11,6 +12,12 @@ module.exports = function(model, options) {
 
   return function(req, res) {
     model.find(req.body.id, function(err, object) {
+
+      let fields = options.edit && options.edit.fields ||
+          options.form && options.form.fields ||
+          AdminUtils.defaultFields(options.fields);
+
+      AdminUtils.handleParams(fields, req.body);
 
       object.update(req.body, function(err, object) {
         if (err) {

@@ -45,9 +45,9 @@ module.exports.breadcrumb = function(items, options) {
 
 //
 module.exports.buttons = function(buttons, options) {
-  var html = '<div class="pull-right">';
+  var html = '<div class="float-right admin-actions">';
   buttons.forEach(function(button) {
-    html += '<a href="' + options.adminpath + button[0] + '" class="btn btn-primary">' + button[1] + '</a>';
+    html += '<a href="' + options.adminpath + button[0] + '" class="btn btn-secondary">' + button[1] + '</a>';
   })
   html += '</div>';
   return html;
@@ -70,6 +70,7 @@ module.exports.table = function(objects, fields, options) {
   html += '</tr></thead>';
 
   // tbody
+  objects = objects || [];
   objects.forEach(function(object) {
     var objpath = [ options.adminpath, options.plural, object.id ].join('/');
     html += '<tr>';
@@ -89,13 +90,14 @@ module.exports.table = function(objects, fields, options) {
 
 //
 module.exports.details = function(object, fields, options) {
-  let html = '<div class="table-responsive">';
+  let html = '<div class="row"><div class="col-sm-8 offset-sm-2">';
+  html    += '<div class="table-responsive">';
   html    += '<table class="table table-sm">';
   fields.forEach(function(field) {
     html += '<tr><td class="field">' + field + '</td>';
     html += '<td class="value">' + value(object[field]) + '</td><tr>';
   });
-  html += '</table></div>';
+  html += '</table></div></div></div>';
   return html;
 };
 
@@ -108,28 +110,46 @@ module.exports.form = function(fields, object, options) {
     '/' + options.plural :
     '/' + options.plural + '/' + object.id;
 
-  let html = '<form action="' + options.adminpath + action + '" method="POST">';
-  html    += '<div class="table-responsive">';
-  html    += '<table class="table table-sm">';
-  fields.forEach(function(field) {
-    html += '<tr>';
-    html += '<td><label for="' + field + '"  class="col-sm-4 control-label" >' + field + '</label></td>';
-    html += '<td>';
-    if (field === 'id') {
-      html += '<p class="form-control-static">' + object.id + '</p>';
-      html += '<input type="hidden" name="id" value="' + object.id + '" />';
+  let html = '<div class="row"><div class="col-sm-8 offset-sm-2">';
+  html += '<form action="' + options.adminpath + action + '" method="POST">';
+
+  fields.forEach(function(fieldInfo) {
+    const field = fieldInfo[0];
+    const type  = fieldInfo[1];
+
+    html += '<div class="form-group row">';
+    html += '<label for="' + field + '"  class="col-sm-4 col-form-label" >' + field + '</label>';
+    html += '<div class="col-sm-8">'
+    if (type === 'hidden') {
+      html += '<p class="form-control-static">' + value(object && object[field]) + '</p>';
+      html += '<input type="hidden" name="id" value="' + value(object && object[field]) + '" />';
+    } else if (type === 'static') {
+      html += '<p class="form-control-static">' + value(object && object[field]) + '</p>';
+    } else if (type === 'number') {
+      html += '<input type="number" class="form-control" id="' + field + '" name="' + field + '" placeholder="' + field + '" value="' + value(object && object[field], true) + '" />';
+    } else if (type === 'textarea') {
+      html += '<textarea class="form-control form-textarea" id="' + field + '" name="' + field + '" rows="5" placeholder="' + field + '">' + value(object && object[field], true) + '</textarea>';
+    } else if (type === 'datetime') {
+      html += '<input type="text" class="form-control datetimepicker" id="' + field + '" name="' + field + '" placeholder="' + field + '" value="' + value(object && object[field], true) + '" />';
+    } else if (type === 'checkbox') {
+      html += '<div class="form-check"><label class="form-check-label">';
+      html += '<input class="form-check-input" type="checkbox" id="' + field + '" name="' + field + '" ';
+      if (object && object[field]) {
+        html += 'checked ';
+      }
+      html += 'value="1" > ';
+      html += '</label></div>';
     } else {
       html += '<input type="text" class="form-control" id="' + field + '" name="' + field + '" placeholder="' + field + '" value="' + value(object && object[field], true) + '" />';
     }
-    html += '</td></tr>';
+    html += '</div></div>';
   });
   // buttons
-  html += '<tr>';
-  html += '<td></td>';
-  html += '<td>';
+  html += '<div class="form-group row admin-form-buttons">';
+  html += '<div class="offset-sm-4 col-sm-8">';
   html += '<input type="submit" class="btn btn-primary" value="' + submit + '"/>';
-  html += '</td></tr>';
-  html += '<table/></div></form>';
+  html += '<div></div>';
+  html += '</form></div></div>';
 
   return html;
 };
