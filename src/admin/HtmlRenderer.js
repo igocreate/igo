@@ -23,6 +23,11 @@ module.exports.title = function(title) {
 };
 
 //
+module.exports.subtitle = function(title) {
+  return '<h3>' + title + '</h3>';
+}
+
+//
 module.exports.breadcrumb = function(items, options) {
   var html = '<ol class="breadcrumb">';
   html += '<li class="breadcrumb-item"><a href="' + options.adminpath + '">Admin</a></li>';

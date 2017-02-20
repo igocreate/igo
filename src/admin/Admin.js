@@ -1,30 +1,19 @@
 
 'use strict';
 
-const _       = require('lodash');
-const express = require('express');
+const _               = require('lodash');
+const express         = require('express');
 
-const Index   = require('./Index');
-const Show    = require('./Show');
-const New     = require('./New');
-const Create  = require('./Create');
-const Edit    = require('./Edit');
-const Update  = require('./Update');
+const Index           = require('./Index');
+const Show            = require('./Show');
+const New             = require('./New');
+const Create          = require('./Create');
+const Edit            = require('./Edit');
+const Update          = require('./Update');
 
-
+const AdminUtils      = require('./AdminUtils');
 const HtmlRenderer    = require('./HtmlRenderer');
 
-
-//
-const pluralize = function(name) {
-  if (name.endsWith('y')) {
-    return name.substring(0, name.length - 1) + 'ies';
-  }
-  if (name.endsWith('x')) {
-    return name + 'es';
-  }
-  return name + 's';
-};
 
 module.exports = class Admin {
 
@@ -39,8 +28,8 @@ module.exports = class Admin {
       adminpath:  '/admin',
       template:   'admin/admin',
       Name:       model.name,
-      Plural:     pluralize(model.name),
-      plural:     pluralize(model.name.toLowerCase()),
+      Plural:     AdminUtils.pluralize(model.name),
+      plural:     AdminUtils.pluralize(model.name.toLowerCase()),
       name:       model.name.toLowerCase(),
       index:      {},
       show:       {},
