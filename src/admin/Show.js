@@ -24,12 +24,10 @@ module.exports = function(model, options) {
         name: value.name,
       };
     });
-    options.actions = _.concat(options.actions || [], {
+    html += HtmlRenderer.buttons(_.concat(options.actions || [], {
       url:    options.adminpath + '/' + options.plural + '/' + object.id + '/edit',
       name:   'Edit ' + options.Name,
-    });
-
-    html += HtmlRenderer.buttons(options.actions, options);
+    }), options);
 
     html += HtmlRenderer.title(title);
 
