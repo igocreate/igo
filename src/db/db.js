@@ -243,8 +243,10 @@ module.exports.migrate = function(path, callback) {
           var sql = 'INSERT INTO `__db_migrations`(file, success, err, creation) ' + 'VALUES(?, ?, ?, ?)';
           var success = err ? 0 : 1;
           err = err ? util.format('%s', err) : null;
-          module.exports.query(sql, [file, success, err, new Date()]);
-          callback(err);
+          module.exports.query(sql, [file, success, err, new Date()], function() {
+            callback(err);
+          });
+
         });
       }
     ], function(err, result) {
