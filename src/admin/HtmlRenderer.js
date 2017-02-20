@@ -88,7 +88,9 @@ module.exports.table = function(objects, fields, options) {
     html += '<a href="' + objpath + '">View</a>';
     html += '&nbsp;<a href="' + objpath + '/edit">Edit</a>';
     _.forEach(options.actions, function(action, key)  {
-      html += '&nbsp;<a href="' + objpath + '/' + key + '">' + action.name + '</a>';
+      if (action.condition === undefined || action.condition(object)) {
+        html += '&nbsp;<a href="' + objpath + '/' + key + '">' + action.name + '</a>';
+      }
     });
     html += '</td></tr>';
   });

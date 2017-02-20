@@ -18,13 +18,18 @@ module.exports = function(model, options) {
       [ title ]
     ], options);
 
-    var actions = _.map(options.actions, function(value, key) {
-      return {
-        url:  options.adminpath + '/' + options.plural + '/' + object.id + '/' + key,
-        name: value.name,
-      };
+    // Actions
+    var actions = [];
+    _.forEach(options.actions, function(value, key) {
+      if (value.condition === undefined || value.condition(object)) {
+        actions.push({
+          url:    options.adminpath + '/' + options.plural + '/' + object.id + '/' + key,
+          name:   value.name,
+          button: value.button
+        });
+      }
     });
-    html += HtmlRenderer.buttons(_.concat(actions || [], {
+    html += HtmlRenderer.buttons(_.concat(actions, {
       url:    options.adminpath + '/' + options.plural + '/' + object.id + '/edit',
       name:   'Edit ' + options.Name,
     }), options);
