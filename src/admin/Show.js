@@ -18,13 +18,13 @@ module.exports = function(model, options) {
       [ title ]
     ], options);
 
-    options.actions = _.map(options.actions, function(value, key) {
+    var actions = _.map(options.actions, function(value, key) {
       return {
         url:  options.adminpath + '/' + options.plural + '/' + object.id + '/' + key,
         name: value.name,
       };
     });
-    html += HtmlRenderer.buttons(_.concat(options.actions || [], {
+    html += HtmlRenderer.buttons(_.concat(actions || [], {
       url:    options.adminpath + '/' + options.plural + '/' + object.id + '/edit',
       name:   'Edit ' + options.Name,
     }), options);
