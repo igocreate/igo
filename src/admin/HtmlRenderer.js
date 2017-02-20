@@ -2,8 +2,9 @@
 
 'use strict';
 
-const _       = require('lodash');
-const moment  = require('moment');
+const _           = require('lodash');
+const moment      = require('moment');
+const AdminUtils  = require('./AdminUtils');
 
 //
 const value = function(v, form) {
@@ -52,7 +53,7 @@ module.exports.breadcrumb = function(items, options) {
 module.exports.buttons = function(buttons, options) {
   var html = '<div class="float-right admin-actions">';
   buttons.forEach(function(button) {
-    html += '<a href="' + options.adminpath + button[0] + '" class="btn btn-secondary">' + button[1] + '</a>';
+    html += '<a href="' + button.url + '" class="btn btn-' + (button.button || 'secondary') + ' ml-1">' + button.name + '</a>';
   })
   html += '</div>';
   return html;
@@ -86,6 +87,9 @@ module.exports.table = function(objects, fields, options) {
     html += '<td class="actions">';
     html += '<a href="' + objpath + '">View</a>';
     html += '&nbsp;<a href="' + objpath + '/edit">Edit</a>';
+    _.forEach(options.actions, function(action, key)  {
+      html += '&nbsp;<a href="' + objpath + '/' + key + '">' + action.name + '</a>';
+    });
     html += '</td></tr>';
   });
   html += '</table></div>';

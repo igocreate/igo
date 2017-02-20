@@ -13,9 +13,10 @@ module.exports = function(model, options) {
       [ options.Plural]
     ], options);
 
-    html += HtmlRenderer.buttons([
-      [ '/' + options.plural + '/new', 'New ' + options.Name ]
-    ], options);
+    html += HtmlRenderer.buttons([{
+      url:    options.adminpath + '/' + options.plural + '/new',
+      name:   'New ' + options.Name,
+    }], options);
 
     html += HtmlRenderer.title(options.Plural);
 

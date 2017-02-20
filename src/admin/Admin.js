@@ -10,6 +10,7 @@ const New             = require('./New');
 const Create          = require('./Create');
 const Edit            = require('./Edit');
 const Update          = require('./Update');
+const Action          = require('./Action');
 
 const AdminUtils      = require('./AdminUtils');
 const HtmlRenderer    = require('./HtmlRenderer');
@@ -52,6 +53,11 @@ module.exports = class Admin {
     // edit, update
     router.get ('/' + options.plural + '/:id/edit', Edit(model, options));
     router.post('/' + options.plural + '/:id',      Update(model, options));
+
+    // add actions
+    _.forEach(options.actions, function(value, action) {
+      router.get ('/' + options.plural + '/:id/' + action, Action(value, action, model, options));
+    });
 
   }
 
