@@ -101,14 +101,13 @@ module.exports.table = function(objects, fields, options) {
 
 //
 module.exports.details = function(object, fields, options) {
-  let html = '<div class="row"><div class="col-sm-8 offset-sm-2">';
-  html    += '<div class="table-responsive">';
+  let html = '<div class="table-responsive">';
   html    += '<table class="table table-sm">';
   fields.forEach(function(field) {
     html += '<tr><td class="field">' + field + '</td>';
     html += '<td class="value">' + value(object[field]) + '</td><tr>';
   });
-  html += '</table></div></div></div>';
+  html += '</table></div>';
   return html;
 };
 

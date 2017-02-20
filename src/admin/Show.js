@@ -42,8 +42,9 @@ module.exports = function(model, options) {
     // Associations
     _.forEach(options.show.associations, function(association_options, key) {
       var association = _.find(model.schema.associations, a => a[1] === key );
+      association_options.index = association_options.index || {};
 
-      var fields = association_options.fields || association[2].schema.columns;
+      var fields = association_options.index.fields || association[2].schema.columns;
 
       const suboptions = {
         adminpath: options.adminpath,

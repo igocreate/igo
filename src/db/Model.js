@@ -133,10 +133,16 @@ module.exports = function(schema) {
     static scope(scope) {
       return new Query(this).scope(scope);
     }
+
+    // schema static attribute
+    static use(schema) {
+      this.schema = Schema.verify(schema);
+    }
   }
 
-  // schema static attribute
-  Model.schema = Schema.verify(schema);
+  if (schema) {
+    Model.use(schema);
+  }
 
   return Model;
 }
