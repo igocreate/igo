@@ -7,13 +7,12 @@ const moment      = require('moment');
 const AdminUtils  = require('./AdminUtils');
 
 //
-const value = function(v, form) {
+const value = function(v, dateformat) {
   if (v === undefined || v === null) {
     return '';
   }
   if (_.isDate(v)) {
-    const format = form ? 'YYYY/MM/DD HH:mm:ss' : 'MMMM DD, YYYY HH:mm:ss';
-    return moment(v).format(format);
+    return moment(v).format(dateformat || 'MMMM DD, YYYY HH:mm:ss');
   }
   return v;
 };
@@ -136,15 +135,15 @@ module.exports.form = function(fields, object, options) {
     } else if (type === 'static') {
       html += '<p class="form-control-static">' + value(object && object[field]) + '</p>';
     } else if (type === 'number') {
-      html += '<input type="number" class="form-control" id="' + field + '" name="' + field + '" placeholder="' + field + '" value="' + value(object && object[field], true) + '" />';
+      html += '<input type="number" class="form-control" id="' + field + '" name="' + field + '" placeholder="' + field + '" value="' + value(object && object[field]) + '" />';
     } else if (type === 'textarea') {
-      html += '<textarea class="form-control form-textarea" id="' + field + '" name="' + field + '" rows="5" placeholder="' + field + '">' + value(object && object[field], true) + '</textarea>';
+      html += '<textarea class="form-control form-textarea" id="' + field + '" name="' + field + '" rows="5" placeholder="' + field + '">' + value(object && object[field]) + '</textarea>';
     } else if (type === 'datetime') {
-      html += '<input type="text" class="form-control datetimepicker" id="' + field + '" name="' + field + '" placeholder="' + field + '" value="' + value(object && object[field], true) + '" />';
+      html += '<input type="text" class="form-control datetimepicker" id="' + field + '" name="' + field + '" placeholder="' + field + '" value="' + value(object && object[field], 'YYYY-MM-DD HH:mm:ss') + '" />';
     } else if (type === 'date') {
-      html += '<input type="text" class="form-control datepicker" id="' + field + '" name="' + field + '" placeholder="' + field + '" value="' + value(object && object[field], true) + '" />';
+      html += '<input type="text" class="form-control datepicker" id="' + field + '" name="' + field + '" placeholder="' + field + '" value="' + value(object && object[field], 'YYYY-MM-DD') + '" />';
     } else if (type === 'time') {
-      html += '<input type="text" class="form-control timepicker" id="' + field + '" name="' + field + '" placeholder="' + field + '" value="' + value(object && object[field], true) + '" />';
+      html += '<input type="text" class="form-control timepicker" id="' + field + '" name="' + field + '" placeholder="' + field + '" value="' + value(object && object[field], 'HH:mm:ss') + '" />';
     } else if (type === 'checkbox') {
       html += '<div class="form-check"><label class="form-check-label">';
       html += '<input class="form-check-input" type="checkbox" id="' + field + '" name="' + field + '" ';
@@ -154,7 +153,7 @@ module.exports.form = function(fields, object, options) {
       html += 'value="1" > ';
       html += '</label></div>';
     } else {
-      html += '<input type="text" class="form-control" id="' + field + '" name="' + field + '" placeholder="' + field + '" value="' + value(object && object[field], true) + '" />';
+      html += '<input type="text" class="form-control" id="' + field + '" name="' + field + '" placeholder="' + field + '" value="' + value(object && object[field]) + '" />';
     }
     html += '</div></div>';
   });
