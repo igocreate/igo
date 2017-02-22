@@ -16,7 +16,11 @@ const suggestFieldType = function(field) {
     return 'static';
   } else if (field.match(/_at$/)) {
     return 'datetime';
-  } else if (field.match(/^is_/)) {
+  } else if (field.match(/_date$/)) {
+    return 'date';
+  } else if (field.match(/_time$/)) {
+    return 'time';
+  } else if (field.match(/^(is|has)_/)) {
       return 'checkbox';
   } else if (field === 'description') {
       return 'textarea';

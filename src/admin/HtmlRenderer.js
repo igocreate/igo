@@ -141,6 +141,10 @@ module.exports.form = function(fields, object, options) {
       html += '<textarea class="form-control form-textarea" id="' + field + '" name="' + field + '" rows="5" placeholder="' + field + '">' + value(object && object[field], true) + '</textarea>';
     } else if (type === 'datetime') {
       html += '<input type="text" class="form-control datetimepicker" id="' + field + '" name="' + field + '" placeholder="' + field + '" value="' + value(object && object[field], true) + '" />';
+    } else if (type === 'date') {
+      html += '<input type="text" class="form-control datepicker" id="' + field + '" name="' + field + '" placeholder="' + field + '" value="' + value(object && object[field], true) + '" />';
+    } else if (type === 'time') {
+      html += '<input type="text" class="form-control timepicker" id="' + field + '" name="' + field + '" placeholder="' + field + '" value="' + value(object && object[field], true) + '" />';
     } else if (type === 'checkbox') {
       html += '<div class="form-check"><label class="form-check-label">';
       html += '<input class="form-check-input" type="checkbox" id="' + field + '" name="' + field + '" ';
