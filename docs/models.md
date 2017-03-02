@@ -31,7 +31,7 @@ if (config.env === 'dev') {
 ```
 
 
-## DB Migrations
+## Migrations
 
 All the SQL files should be placed in the `/sql` directory, and will be played in the alphabetical order.
 The SQL files names must follow this pattern: `YYYYMMDD-*.sql`.
@@ -43,7 +43,7 @@ require('igo').db.migrate();
 
 When a migration file has run successfully, it is saved in a `__db_migrations` table so it will not run again next time. (This table is automatically created by the framework.)
 
-### DB CLI
+### CLI
 
 The Igo CLI provides convenient functions to deal with the database migrations.
 
