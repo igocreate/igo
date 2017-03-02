@@ -43,6 +43,17 @@ require('igo').db.migrate();
 
 When a migration file has run successfully, it is saved in a `__db_migrations` table so it will not run again next time. (This table is automatically created by the framework.)
 
+### DB CLI
+
+The Igo CLI provides convenient functions to deal with the database migrations.
+
+```sh
+# run migrations
+igo db migrate
+
+# reset database (WARNING: data will be lost)
+igo db reset
+```
 
 ## Model Definition
 
@@ -263,7 +274,7 @@ User.order('`last_name` DESC').list(function(err, users) {
 
 ### Associations loading
 
-Use `includes` to eager load the objects' associations
+The `includes()` function is used to eager load the objects' associations
 
 ```js
 // include one association
