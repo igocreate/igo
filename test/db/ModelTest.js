@@ -21,9 +21,7 @@ describe('db.Model', function() {
       ]
     };
 
-    class Book extends Model(schema) {
-
-    }
+    class Book extends Model(schema) {}
 
     //
     describe('insert', function() {
@@ -40,10 +38,11 @@ describe('db.Model', function() {
     describe('first', function() {
       it('should select first book', function(done) {
         Book.create(function(err, first) {
-          Book.create(function() {
+          Book.create({title: 'hi'}, function(err, hibook) {
             Book.create(function() {
               Book.unscoped().first(function(err, book) {
                 assert.equal(first.id, book.id);
+                assert.equal('hi', hibook.title);
                 done();
               });
             });

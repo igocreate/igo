@@ -1,5 +1,5 @@
 
-# Igo Models
+# Igo Model API
 
 The Igo Model API for MySQL is the only part of Igo that is not just the integration of another module.
 As you will notice, the syntax was very inspired by [Ruby on Rails Active Record](http://guides.rubyonrails.org/active_record_basics.html).
@@ -20,7 +20,7 @@ config.mysql = {
 };
 ```
 
-This configuration object is directly transmitted to the [node.js driver for mysql](https://github.com/mysqljs/mysql) `mysql.createPool(config.mysql)` function.
+This configuration is given to the [node.js driver for mysql](https://github.com/mysqljs/mysql) `mysql.createPool(config.mysql)` function, to initialize the connection pool.
 
 You can override this configuration in your `/app/config.js` file:
 ```js
@@ -69,6 +69,10 @@ class User extends Model(schema) {
   constructor(values) {
     super(values);
   }
+
+  name() {
+    return this.first_name + ' ' + this.last_name;
+  }
 };
 
 module.exports = User;
@@ -114,14 +118,49 @@ const schema  = {
 };
 ```
 
-The particular `default` scope will be used on all queries.
-Use `.unscoped()` to not use the default scope.
+The `default` scope will be used on all queries.
+(Use `.unscoped()` to not use the default scope.)
 
-## ORM API
+```js
+//Scopes usage
+User.scope('validated').list(function(err, validatedUsers) {
+  //..
+});
+```
+
+### Callbacks
+
+Callbacks are special hooks functions called by Igo during the life cycle of an Igo Model.
+
+| Callback | Triggered |
+|----------|-----------|
+| `beforeCreate(callback)` | before object creation |
+| `beforeUpdate(values, callback)` | before object update (modified attributes are given in the `values` parameter) |
+| `afterFind(callback)` | after object is returned from database |
+
+Example:
+```js
+class User extends Model(schema) {
+
+  // hash password before creation
+  beforeCreate(callback) {
+    this.password = PasswordUtils.hash(this.password);
+    callback();
+  }
+```
+
+
+## Model API
 
 ### Create
 
 ```js
+// create default user
+User.create(function(err, user) {
+  //
+});
+
+// create with specified attributes
 User.create({
   first_name: 'John',
   last_name:  'John',
@@ -132,7 +171,7 @@ User.create({
 
 If the primary key is an `AUTO_INCREMENT` field, it will be set automatically in the object returned in the callback.
 
-### Read
+### Find
 
 ```js
 User.find(id, function(err, user) {
@@ -182,7 +221,7 @@ User.where({first_name: 'Jim'}).destroy(function(err) {
 });
 ```
 
-### Search
+### List
 
 ```js
 User.list(id, function(err, users) {
@@ -192,10 +231,17 @@ User.list(id, function(err, users) {
 
 #### Where
 
+Examples:
 ```js
-User.where('`created_at` BETWEEN ? AND ?', [date1, date2]).list(function(err, users) {
-  console.dir(users);
-});
+
+// filter with attribute values
+User.where({type: 'foo', sub_type: 'bar'}).list(function(err, users) { ... });
+
+// filter with sql
+User.where('`last_name` IS NOT NULL').list(function(err, users) { ... });
+
+// filter with sql and params
+User.where('`created_at` BETWEEN ? AND ?', [date1, date2]).list(function(err, users) { ... });
 ```
 
 #### Limit
@@ -217,11 +263,18 @@ User.order('`last_name` DESC').list(function(err, users) {
 
 ### Associations loading
 
-Use `includes` to eager load the objects' Associations
+Use `includes` to eager load the objects' associations
 
 ```js
-User.includes(['country', 'projects']).first(function(err, user) {
-  console.dir(user.country);
-  console.dir(user.projects);
-});
+// include one association
+User.includes('country']).first( ... );
+
+// include multiple associations
+User.includes(['country', 'projects']).first( ... );
+
+// include nested associations (load projects's lead and tasks for each user)
+User.includes({projects: ['lead', 'tasks']}).first( ... );
+
+// mixed associations
+User.includes(['country', {projects: ['lead', 'tasks']}]).first( ... );
 ```
