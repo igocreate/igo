@@ -1,7 +1,8 @@
 
 'use strict';
 
-const HtmlRenderer = require('./HtmlRenderer');
+const _             = require('lodash');
+const HtmlRenderer  = require('./HtmlRenderer');
 
 //
 module.exports = function(model, options) {
@@ -27,7 +28,13 @@ module.exports = function(model, options) {
 
   //
   return function(req, res) {
-    model.list(function(err, objects) {
+    const associations = _.chain(model.schema.associations)
+      .filter(function(association) {
+        return association[0] === 'belongs_to';
+      }).map(function(association) {
+        return association[1];
+      }).value();
+    model.includes(associations).list(function(err, objects) {
       res.locals.html = renderHtml(objects);
       res.render(options.template);
     });
