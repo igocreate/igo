@@ -157,13 +157,12 @@ var Query = function(modelClass) {
 
   // FIND
   this.find = function(id, callback) {
-    if (id && (_.isString(id) || _.isNumber(id))) {
+    if (id === null || id === undefined || id.length === 0) {
+      return callback(null, null);
+    } else if (_.isString(id) || _.isNumber(id)) {
       this.where({ id: id }).first(callback);
-    } else if (id && _.isArray(id)) {
+    } else if (_.isArray(id)) {
       id = _.compact(id);
-      if (id.length === 0) {
-        return callback();
-      }
       this.where({ id: id }).first(callback);
     } else {
       this.where(id).first(callback);

@@ -35,6 +35,27 @@ describe('db.Model', function() {
     });
 
     //
+    describe('find', function() {
+      it('should find book by id', function(done) {
+        Book.create(function(err, first) {
+          Book.find(first.id, function(err, book) {
+            assert.equal(book.id, first.id);
+            done();
+          });
+        });
+      });
+
+      it('should not find book if id is null', function(done) {
+        Book.create(function(err, first) {
+          Book.find(null, function(err, book) {
+            assert.equal(book, null);
+            done();
+          });
+        });
+      });
+    });
+
+    //
     describe('first', function() {
       it('should select first book', function(done) {
         Book.create(function(err, first) {
