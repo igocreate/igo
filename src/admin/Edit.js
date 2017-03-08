@@ -24,7 +24,8 @@ module.exports = function(model, options) {
 
     let fields = options.edit && options.edit.fields ||
         options.form && options.form.fields ||
-        AdminUtils.defaultFields(options.fields);
+        options.fields;
+    fields = AdminUtils.defaultFields(fields);
     html += HtmlRenderer.form(fields, object, options);
 
     return html;

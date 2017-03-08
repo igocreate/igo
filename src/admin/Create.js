@@ -12,10 +12,11 @@ module.exports = function(model, options) {
 
   return function(req, res) {
 
-    let fields = options.new && options.new.fields ||
+    let fields = options.edit && options.new.fields ||
         options.form && options.form.fields ||
-        AdminUtils.defaultFields(options.fields);
-
+        options.fields;
+    fields = AdminUtils.defaultFields(fields);
+    
     AdminUtils.handleParams(fields, req.body);
 
     model.create(req.body, function(err, object) {

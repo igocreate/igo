@@ -32,6 +32,9 @@ const suggestFieldType = function(field) {
 // formtype
 module.exports.defaultFields = function(fields, options) {
   return fields.map(function(field) {
+    if (_.isArray(field)) {
+      return field;
+    }
     return [ field, suggestFieldType(field) ];
   });
 };
