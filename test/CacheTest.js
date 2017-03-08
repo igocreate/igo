@@ -54,4 +54,16 @@ describe('igo.cache', function() {
       });
     })
   });
+
+  it('should store buffers', function(done) {
+    const buffer = Buffer.from('hello world', 'utf8');
+    cache.put('ns', 0, buffer, function() {
+      cache.get('ns', 0, function(err, value) {
+        assert(value !== null);
+        assert(_.isBuffer(value));
+        assert.equal(buffer.toString(), value.toString());
+        done();
+      });
+    })
+  });
 });

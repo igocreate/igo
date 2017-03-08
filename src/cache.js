@@ -24,6 +24,26 @@ var retryStrategy = function(params) {
   return params.attempt * 1000;
 };
 
+//
+const serialize = function(value) {
+  if (_.isBuffer(value)) {
+    return JSON.stringify({ buffer: value.toString('base64') });
+  }
+  return JSON.stringify({ v: value });
+}
+
+//
+const deserialize = function(data) {
+  const obj = JSON.parse(data);
+  if (obj.buffer) {
+    return Buffer.from(obj.buffer, 'base64');
+  }
+  if (obj.v !== undefined) { // can be null
+    deserializeDates(obj);
+    return obj.v;
+  }
+  return obj;
+}
 
 // init cache module : create redis client
 module.exports.init = function(config) {
@@ -58,7 +78,7 @@ module.exports.redisclient = function() {
 //
 module.exports.put = function(namespace, id, value, callback, timeout) {
   var k = namespace + '/' + id;
-  var v = JSON.stringify({ v: value });
+  var v = serialize(value);
 
   redisclient.set(k, v, cls.bind(function(err) {
     if (callback) {
@@ -79,12 +99,7 @@ module.exports.get = function(namespace, id, callback) {
       return callback('notfound');
     }
     // found obj in redis
-    var obj = JSON.parse(value);
-    obj     = obj.v;
-    if (obj === null) {
-      return callback(null, null);
-    }
-    obj = deserializeDates(obj);
+    const obj = deserialize(value);
     callback(null, obj);
   }));
 };
@@ -108,7 +123,10 @@ module.exports.fetch = function(namespace, id, func, callback) {
 };
 
 // retro compatibility
-module.exports.getput = module.exports.fetch;
+module.exports.getput = function(namespace, id, func, callback) {
+  console.warn('IGO: cache.getput() is deprecated, use cache.fetch() instead.');
+  module.exports.fetch(namespace, id, func, callback);
+};
 
 //
 module.exports.info = function(callback) {
