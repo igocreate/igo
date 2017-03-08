@@ -26,22 +26,22 @@ module.exports = {
     rules: [{
       test: /\.scss$/,
       exclude: /node_modules/,
-      loader: ExtractTextPlugin.extract({
-        loader: ['css-loader', 'sass-loader']
+      use: ExtractTextPlugin.extract({
+        use: ['css-loader', 'sass-loader']
       })
     }, {
       test: /\.less$/,
       exclude: /node_modules/,
-      loader: ExtractTextPlugin.extract({
-        loader: ['css-loader', 'less-loader']
+      use: ExtractTextPlugin.extract({
+        use: ['css-loader', 'less-loader']
       })
     }, {
       test: /\.jsx$/,
       exclude: /node_modules/,
-      loader: 'babel-loader'
+      use: 'babel-loader'
     }, {
       test: /\.(png|woff|woff2|eot|ttf|svg)(\?v=\d+\.\d+\.\d+)?$/,
-      loader: 'url-loader?limit=100000'
+      use: 'url-loader?limit=100000'
     }]
   },
   // devtool: 'source-map',
