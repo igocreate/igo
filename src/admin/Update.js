@@ -15,8 +15,9 @@ module.exports = function(model, options) {
 
       let fields = options.edit && options.edit.fields ||
           options.form && options.form.fields ||
-          AdminUtils.defaultFields(options.fields);
+          options.fields;
 
+      fields = AdminUtils.defaultFields(fields);
       AdminUtils.handleParams(fields, req.body);
 
       object.update(req.body, function(err, object) {
