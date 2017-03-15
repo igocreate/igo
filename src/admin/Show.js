@@ -66,7 +66,17 @@ module.exports = function(model, options) {
   };
 
   return function(req, res) {
-    model.includes(_.keys(options.show.associations)).find(req.params.id, function(err, object) {
+    let includes = _.map(model.schema.associations, function(association) {
+      return association[1];
+    });
+    if (options.show.associations) {
+      includes = _.keys(options.show.associations);
+    }
+    model.includes(includes).find(req.params.id, function(err, object) {
+      if (options.show.template) {
+        res.locals[options.name] = object;
+        return res.render(options.show.template);
+      }
       res.locals.html = renderHtml(object);
       res.render(options.template);
     });

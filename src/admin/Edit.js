@@ -36,6 +36,10 @@ module.exports = function(model, options) {
       if (!object) {
         return res.redirect(options.adminpath + '/' + options.plural);
       }
+      if (options.edit.template) {
+        res.locals[options.name] = object;
+        return res.render(options.edit.template);
+      }
       res.locals.html = renderHtml(object);
       res.render(options.template);
     });

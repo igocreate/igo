@@ -35,6 +35,10 @@ module.exports = function(model, options) {
         return association[1];
       }).value();
     model.includes(associations).list(function(err, objects) {
+      if (options.index.template) {
+        res.locals[options.name] = object;
+        return res.render(options.index.template);
+      }
       res.locals.html = renderHtml(objects);
       res.render(options.template);
     });

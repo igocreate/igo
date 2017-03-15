@@ -34,6 +34,9 @@ module.exports = function(model, options) {
   };
 
   return function(req, res) {
+    if (options.new.template) {
+      return res.render(options.new.template);
+    }
     res.locals.html = renderHtml(req.flash(options.name));
     res.render(options.template);
   }
