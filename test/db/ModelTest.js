@@ -56,6 +56,16 @@ describe('db.Model', function() {
     });
 
     //
+    describe('select', function() {
+      it.only('should handle empty arrays in where conditions', function(done) {
+        Book.where({id: []}).list(function(err, books) {
+          assert.equal(0, books.length);
+          done();
+        });
+      });
+    });
+
+    //
     describe('first', function() {
       it('should select first book', function(done) {
         Book.create(function(err, first) {

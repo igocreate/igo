@@ -75,6 +75,9 @@ var Sql = function(query) {
         _.forEach(where, function(value, key) {
           if (value === null) {
             sqlwhere.push('`' + key + '` IS NULL ');
+          } else if (_.isArray(value) && value.length === 0) {
+            // where in empty array --> FALSE
+            sqlwhere.push('FALSE ');
           } else if (_.isArray(value)) {
             sqlwhere.push('`' + key + '` IN (?) ');
             params.push(value);
