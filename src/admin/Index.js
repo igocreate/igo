@@ -7,6 +7,10 @@ const HtmlRenderer  = require('./HtmlRenderer');
 //
 module.exports = function(model, options) {
 
+  if (_.isFunction(options.index)) {
+    return options.index;
+  }
+
   // render
   const renderHtml = function(objects) {
 

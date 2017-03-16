@@ -10,6 +10,10 @@ const HtmlRenderer  = require('./HtmlRenderer');
 //
 module.exports = function(model, options) {
 
+  if (_.isFunction(options.update)) {
+    return options.update;
+  }
+
   return function(req, res) {
     model.find(req.body.id, function(err, object) {
 

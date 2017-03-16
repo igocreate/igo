@@ -10,6 +10,10 @@ const HtmlRenderer  = require('./HtmlRenderer');
 //
 module.exports = function(model, options) {
 
+  if (_.isFunction(options.edit)) {
+    return options.edit;
+  }
+
   const renderHtml = function(object) {
 
     let title = 'Edit ' + options.Name;

@@ -10,6 +10,10 @@ const HtmlRenderer  = require('./HtmlRenderer');
 //
 module.exports = function(model, options) {
 
+  if (_.isFunction(options.create)) {
+    return options.create;
+  }
+
   return function(req, res) {
 
     let fields = options.edit && options.new.fields ||

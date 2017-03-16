@@ -9,6 +9,10 @@ const AdminUtils    = require('./AdminUtils');
 //
 module.exports = function(model, options) {
 
+  if (_.isFunction(options.show)) {
+    return options.show;
+  }
+
   const renderHtml = function(object) {
 
     let title = options.Name + ' #' + object.id;
