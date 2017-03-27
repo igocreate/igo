@@ -20,7 +20,7 @@ module.exports = {
   },
   output: {
     filename: '[name]-[chunkhash].js',
-    path:     './public/dist'
+    path:     process.cwd() + '/public/dist'
   },
   module: {
     rules: [{
