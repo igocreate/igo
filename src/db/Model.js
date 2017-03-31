@@ -61,7 +61,7 @@ module.exports = function(schema) {
         callback = options;
       }
       var obj = new this(values);
-      obj.created_at = new Date();
+      obj.created_at = obj.created_at || new Date();
       obj.beforeCreate(function() {
         return new Query(_this).unscoped().insert().values(obj).options(options).execute(function(err, result) {
           if (err) {
