@@ -36,9 +36,14 @@ module.exports = {
         use: ['css-loader', 'less-loader']
       })
     }, {
-      test: /\.jsx$/,
+      test: /\.(js|jsx)$/,
       exclude: /node_modules/,
-      use: 'babel-loader'
+      use: {
+        loader: 'babel-loader',
+        options: {
+          presets: ['react', 'es2015']
+        }
+      }
     }, {
       test: /\.(png|woff|woff2|eot|ttf|svg)(\?v=\d+\.\d+\.\d+)?$/,
       use: 'url-loader?limit=100000'
