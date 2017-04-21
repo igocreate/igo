@@ -44,7 +44,7 @@ module.exports.send = function(email, data) {
     return chunk.write(translation);
   };
 
-  var template  = options.template(email, data);
+  var template  = data.template || options.template(email, data);
 
   var renderBody = function(callback) {
     if (data.body) {
