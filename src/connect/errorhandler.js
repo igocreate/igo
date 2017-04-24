@@ -34,11 +34,13 @@ var handle = function(err, req, res) {
   winston.error(req.method + ' ' + req.url + ' : ' + err);
   winston.error(err.stack);
 
-  if (config.env === 'production') {
+  if (config.showerrstack) {
+    //
+    res.send('<h1>' + req.url + '</h1><pre>' + err.stack + '</pre>');
+  } else {
+    //
     res.status(500);
     res.render('errors/500');
-  } else {
-    res.send('<h1>' + req.url + '</h1><pre>' + err.stack + '</pre>');
   }
 
   if (config.mailcrashto) {
