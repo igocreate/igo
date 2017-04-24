@@ -34,7 +34,6 @@ module.exports.send = function(email, data) {
   data.to       = options.to || data.to;
   data.lang     = data.lang || 'en';
   data.lng      = data.lang;
-  data.urlbase  = options.urlbase;
   data.subject  = data.subject || i18next.t(options.subject(email, data), data);
   data.views    = './views';
 
