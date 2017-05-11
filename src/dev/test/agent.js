@@ -59,11 +59,7 @@ var mockResponse = function(callback, req) {
   };
 
   res.send = function(data) {
-    if (_.isObject(data)) {
-      res.data = data;
-    } else {
-      res.body = data;
-    };
+    res.body = data;
     callback(null, res, req);
   }
 

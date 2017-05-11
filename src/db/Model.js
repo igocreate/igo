@@ -44,7 +44,6 @@ module.exports = function(schema) {
 
     beforeCreate(callback)          { callback(); }
     beforeUpdate(values, callback)  { callback(); }
-    afterFind(callback)             { callback(); }
 
     // find by id
     static find(id, callback) {

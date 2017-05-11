@@ -147,7 +147,6 @@ Callbacks are special hooks functions called by Igo during the life cycle of an 
 |----------|-----------|
 | `beforeCreate(callback)` | before object creation |
 | `beforeUpdate(values, callback)` | before object update (modified attributes are given in the `values` parameter) |
-| `afterFind(callback)` | after object is returned from database |
 
 Example:
 ```js

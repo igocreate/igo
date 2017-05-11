@@ -253,17 +253,13 @@ var Query = function(modelClass) {
         //
         if (rows && rows.length > 0 && _this.query.limit === 1) {
           var obj = new modelClass(rows[0]);
-          obj.afterFind(function() {
-            callback && callback(null, obj);
-          });
+          callback && callback(null, obj);
         } else if (_this.query.limit === 1) {
           callback && callback(err, null);
         } else if (_this.query.verb === 'select') {
           async.mapSeries(rows, function(row, callback) {
             var obj = new modelClass(row);
-            obj.afterFind(function() {
-              callback(null, obj);
-            });
+            callback(null, obj);
           }, callback);
         } else {
           callback && callback(err, rows);
