@@ -194,7 +194,9 @@ var Query = function(modelClass) {
   this.execute = function(callback) {
     var _this = this;
 
-    if (schema.scopes) _this.applyScopes();
+    if (schema.scopes) {
+      _this.applyScopes();
+    }
 
     var sqlQuery = _this.toSQL();
 
@@ -249,11 +251,11 @@ var Query = function(modelClass) {
           callback();
         });
 
-      }, function() {
+      }, function(err) {
         //
         if (rows && rows.length > 0 && _this.query.limit === 1) {
           var obj = new modelClass(rows[0]);
-          callback && callback(null, obj);
+          callback && callback(err, obj);
         } else if (_this.query.limit === 1) {
           callback && callback(err, null);
         } else if (_this.query.verb === 'select') {
