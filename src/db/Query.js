@@ -257,10 +257,10 @@ var Query = function(modelClass) {
         } else if (_this.query.limit === 1) {
           callback && callback(err, null);
         } else if (_this.query.verb === 'select') {
-          async.mapSeries(rows, function(row, callback) {
-            var obj = new modelClass(row);
-            callback(null, obj);
-          }, callback);
+          const objs = _.map(rows, function(row, callback) {
+            return new modelClass(row);
+          });
+          callback && callback(err, objs);
         } else {
           callback && callback(err, rows);
         }

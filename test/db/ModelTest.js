@@ -2,8 +2,9 @@
 
 require('../../src/dev/test/init');
 
-var assert    = require('assert');
-var _         = require('lodash');
+const assert    = require('assert');
+const _         = require('lodash');
+const async     = require('async');
 
 var Model     = require('../../src/db/Model');
 
@@ -56,11 +57,24 @@ describe('db.Model', function() {
     });
 
     //
-    describe('select', function() {
-      it.only('should handle empty arrays in where conditions', function(done) {
+    describe('list', function() {
+      it('should handle empty arrays in where conditions', function(done) {
         Book.where({id: []}).list(function(err, books) {
           assert.equal(0, books.length);
           done();
+        });
+      });
+
+      it('should handle 10k elements', function(done) {
+        const nb = 10000;
+        async.timesSeries(nb, function(n, next) {
+          Book.create(next);
+        }, function(err, books) {
+          assert.equal(nb, books.length);
+          Book.list(function(err, books) {
+            assert.equal(nb, books.length);
+            done();
+          });
         });
       });
     });
