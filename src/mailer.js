@@ -37,6 +37,13 @@ module.exports.send = function(email, data) {
   data.subject  = data.subject || i18next.t(options.subject(email, data), data);
   data.views    = './views';
 
+  data.t = function(chunk, context, bodies, params) {
+    var key         = dust.helpers.tap(params.key, chunk, context);
+    params.lng      = data.lang;
+    var translation = i18next.t(key, params);
+    return chunk.write(translation);
+  };
+
   var template  = data.template || options.template(email, data);
 
   var renderBody = function(callback) {
