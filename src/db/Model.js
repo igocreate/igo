@@ -60,6 +60,9 @@ module.exports = function(schema) {
         callback = options;
       }
       var obj = new this(values);
+      if (schema.subclasses && !obj[schema.subclass_column]) {
+        obj[schema.subclass_column] = _.findKey(schema.subclasses, { name: this.name });
+      }
       obj.created_at = obj.created_at || new Date();
       obj.beforeCreate(function() {
         return new Query(_this).unscoped().insert().values(obj).options(options).execute(function(err, result) {

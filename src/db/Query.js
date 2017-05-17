@@ -254,13 +254,13 @@ var Query = function(modelClass) {
       }, function(err) {
         //
         if (rows && rows.length > 0 && _this.query.limit === 1) {
-          var obj = new modelClass(rows[0]);
+          var obj = _this.newInstance(rows[0]);
           callback && callback(err, obj);
         } else if (_this.query.limit === 1) {
           callback && callback(err, null);
         } else if (_this.query.verb === 'select') {
           const objs = _.map(rows, function(row, callback) {
-            return new modelClass(row);
+            return _this.newInstance(row);
           });
           callback && callback(err, objs);
         } else {
@@ -269,6 +269,15 @@ var Query = function(modelClass) {
       });
     });
   };
+
+  this.newInstance = function(row) {
+    let instanceClass = modelClass;
+    const type        = row[schema.subclasse_column];
+    if (schema.subclasses && type) {
+      instanceClass = schema.subclasses[type];
+    }
+    return new instanceClass(row)
+  }
 };
 
 module.exports = Query;
