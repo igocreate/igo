@@ -4,17 +4,17 @@
 
 'use strict';
 
-var redis       = require('redis');
-var winston     = require('winston');
-var _           = require('lodash');
-var moment      = require('moment');
+const redis       = require('redis');
+const winston     = require('winston');
+const _           = require('lodash');
+const moment      = require('moment');
 
-var cls         = require('./cls');
+const cls         = require('./cls');
 
-var options     = null;
-var redisclient = null;
+let options       = null;
+let redisclient   = null;
 
-var retryStrategy = function(params) {
+const retryStrategy = function(params) {
   if (params.error.code === 'ECONNREFUSED') {
     winston.error('Redis connection refused on host ' + options.host + ':' + options.port);
     return params.error;
@@ -77,8 +77,8 @@ module.exports.redisclient = function() {
 
 //
 module.exports.put = function(namespace, id, value, callback, timeout) {
-  var k = namespace + '/' + id;
-  var v = serialize(value);
+  const k = namespace + '/' + id;
+  const v = serialize(value);
 
   redisclient.set(k, v, cls.bind(function(err) {
     if (callback) {
@@ -93,7 +93,7 @@ module.exports.put = function(namespace, id, value, callback, timeout) {
 //
 module.exports.get = function(namespace, id, callback) {
 
-  var k = namespace + '/' + id;
+  const k = namespace + '/' + id;
   redisclient.get(k, cls.bind(function(err, value) {
     if (!value) {
       return callback('notfound');
@@ -135,7 +135,7 @@ module.exports.info = function(callback) {
 
 //
 module.exports.del = function(namespace, id, callback) {
-  var k = namespace+'/'+id;
+  const k = namespace+'/'+id;
   // remove from redis
   redisclient.del(k, cls.bind(callback));
 };
@@ -148,7 +148,7 @@ module.exports.flushall = function(callback) {
 
 
 const  DATE_REGEXP = /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z)/;
-var deserializeDates = function(obj) {
+const deserializeDates = function(obj) {
   if (_.isString(obj) && obj.match(DATE_REGEXP)) {
     return moment(obj, moment.ISO_8601).toDate();
   } else if (_.isObject(obj) && _.keys(obj).length > 0) {

@@ -28,7 +28,7 @@ module.exports = function(model, options) {
         if (err) {
           // error, return to form
           req.flash('warning', '' + err);
-          req.flash(options.name, req.body);
+          req.cacheflash(options.name, req.body);
           return res.redirect(options.adminpath + '/' + options.plural + '/' + req.body.id + '/edit');
         }
         res.redirect(options.adminpath + '/' + options.plural + '/' + object.id);
