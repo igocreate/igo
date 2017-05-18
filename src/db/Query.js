@@ -272,7 +272,7 @@ var Query = function(modelClass) {
 
   this.newInstance = function(row) {
     let instanceClass = modelClass;
-    const type        = row[schema.subclasse_column];
+    const type        = row[schema.subclass_column];
     if (schema.subclasses && type) {
       instanceClass = schema.subclasses[type];
     }
