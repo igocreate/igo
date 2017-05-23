@@ -2,8 +2,11 @@
 
 'use strict'
 
-const config  = require('../src/config');
-const db      = require('../src/db/db');
+const _           = require('lodash');
+const config      = require('../src/config');
+const db          = require('../src/db/db');
+
+const plugins     = require('../src/plugins');
 
 // db verbs
 const verbs   = {
@@ -12,6 +15,23 @@ const verbs   = {
   migrate: function(args, callback) {
     config.mysql.debugsql = false;
     db.migrate(callback);
+  },
+
+  // igo db migrations
+  migrations: function(args, callback) {
+    config.mysql.debugsql = false;
+    db.migrations(function(err, migrations) {
+      migrations = _.reverse(migrations);
+      _.each(migrations, function(migration) {
+        console.log([
+          migration.id,
+          (migration.success ? 'OK' : 'KO'),
+          migration.file,
+          migration.err,
+        ].join('  '));
+      });
+      callback(err);
+    });
   },
 
   // igo db reset
@@ -52,6 +72,7 @@ module.exports = function(argv) {
   var args = argv._;
   config.init();
   db.init();
+  plugins.init();
 
   if (args.length > 1 && verbs[args[1]]) {
     verbs[args[1]](args, function(err) {

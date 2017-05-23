@@ -1,29 +1,32 @@
 'use strict';
 
-var _                 = require('lodash');
-var express           = require('express');
-var winston           = require('winston');
+const path              = require('path');
 
-var cons              = require('consolidate');
-var dust              = require('dustjs-linkedin');
-var i18next           = require('i18next');
-var i18nMiddleware    = require('i18next-express-middleware');
-var i18nFsBackend     = require('i18next-node-fs-backend');
-var compression       = require('compression');
-var cookieParser      = require('cookie-parser');
-var cookieSession     = require('cookie-session');
-var bodyParser        = require('body-parser');
-var expressValidator  = require('express-validator');
+const _                 = require('lodash');
+const express           = require('express');
+const winston           = require('winston');
 
-var config            = require('./config');
-var helpers           = require('./connect/helpers');
-var multipart         = require('./connect/multipart');
-var flash             = require('./connect/flash');
-var errorHandler      = require('./connect/errorhandler');
-var routes            = require('./routes');
+const cons              = require('consolidate');
+const dust              = require('dustjs-linkedin');
+const i18next           = require('i18next');
+const i18nMiddleware    = require('i18next-express-middleware');
+const i18nFsBackend     = require('i18next-node-fs-backend');
+const compression       = require('compression');
+const cookieParser      = require('cookie-parser');
+const cookieSession     = require('cookie-session');
+const bodyParser        = require('body-parser');
+const expressValidator  = require('express-validator');
+
+const config            = require('./config');
+const helpers           = require('./connect/helpers');
+const multipart         = require('./connect/multipart');
+const flash             = require('./connect/flash');
+const errorHandler      = require('./connect/errorhandler');
+const routes            = require('./routes');
+const plugins           = require('./plugins');
 
 //
-var app = module.exports = express();
+const app = module.exports = express();
 
 var services = {
   redis:  require('./cache'),
@@ -45,6 +48,8 @@ module.exports.configure = function() {
   _.forEach(services, function(service, key) {
     service.init(config);
   });
+
+  plugins.init();
 
   i18next
     .use(i18nMiddleware.LanguageDetector)

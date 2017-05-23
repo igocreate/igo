@@ -1,11 +1,13 @@
 
 process.env.NODE_ENV = 'test';
 
-var db      = require('../../db/db');
-var cache   = require('../../cache');
-var config  = require('../../config');
-var cls     = require('../../cls');
-var app     = require('../../app');
+const db          = require('../../db/db');
+const migrations  = require('../../db/migrations');
+const cache       = require('../../cache');
+const config      = require('../../config');
+const cls         = require('../../cls');
+const app         = require('../../app');
+const plugins     = require('../../plugins');
 
 var context;
 
@@ -24,7 +26,7 @@ var reinitDatabase = function(callback) {
     db.query(CREATE_DATABASE, function() {
       config.mysql.database = database;
       db.init(config);
-      db.migrate(function() {
+      migrations.migrate(function() {
         console.log('igo.dev: reinitialized test database');
         callback();
       });
