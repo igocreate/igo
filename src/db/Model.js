@@ -52,18 +52,20 @@ module.exports = function(schema) {
 
     // create
     static create(values, options, callback) {
-      var _this = this;
+      const _this = this;
       if (_.isFunction(values)) {
         callback = values;
       }
       if (_.isFunction(options)) {
         callback = options;
       }
-      var obj = new this(values);
+      const now = new Date();
+      const obj = new this(values);
       if (schema.subclasses && !obj[schema.subclass_column]) {
         obj[schema.subclass_column] = _.findKey(schema.subclasses, { name: this.name });
       }
-      obj.created_at = obj.created_at || new Date();
+      obj.created_at = obj.created_at || now;
+      obj.updated_at = obj.updated_at || now;
       obj.beforeCreate(function() {
         return new Query(_this).unscoped().insert().values(obj).options(options).execute(function(err, result) {
           if (err) {
