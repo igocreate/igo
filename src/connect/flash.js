@@ -26,9 +26,6 @@ module.exports = function(req, res, next) {
 
   // save flash data in session
   req.flash = function(key, value) {
-    if (value === undefined) {
-      return res.locals.flash[key];
-    }
     req.session.flash[key] = value;
   };
 

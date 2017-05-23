@@ -62,3 +62,5 @@ module.exports = class Admin {
   }
 
 }
+
+module.exports.AdminUtils = AdminUtils;

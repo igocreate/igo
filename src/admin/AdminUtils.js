@@ -30,7 +30,7 @@ const suggestFieldType = function(field) {
 };
 
 // formtype
-module.exports.defaultFields = function(fields, options) {
+module.exports.defaultFields = function(fields) {
   return fields.map(function(field) {
     if (_.isArray(field)) {
       return field;
@@ -41,6 +41,11 @@ module.exports.defaultFields = function(fields, options) {
 
 
 module.exports.handleParams = function(fields, body) {
+  if (fields.schema) {
+    //fields is a model
+    fields = module.exports.defaultFields(fields.schema.columns);
+  }
+  
   _.forEach(fields, function(fieldInfo) {
     let field = fieldInfo[0];
     let type  = fieldInfo[1];
