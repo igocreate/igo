@@ -4,7 +4,7 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "jshint": "jshint --reporter=node_modules/jshint-stylish ./app/**/*.js || true",
+    "jshint": "jshint --reporter=node_modules/jshint-stylish ./app/**/*.js ./locales/**/*.json || true",
     "nodemon": "nodemon app.js",
     "start": "npm-run-all --parallel nodemon webpack",
     "webpack": "webpack -p --progress --watch",

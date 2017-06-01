@@ -1,6 +1,7 @@
 {
   "watch": [
-    "app"
+    "app",
+    "locales"
   ],
   "ignore": [],
   "ext": "js json",
