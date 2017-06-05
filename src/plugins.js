@@ -23,6 +23,8 @@ module.exports.init = function() {
       plugin.init(igo);
     });
     module.exports.list = plugins;
-  } catch (err) { /* console.log(err);*/  };
+  } catch (err) {
+    console.log(err);
+  };
 
 };
