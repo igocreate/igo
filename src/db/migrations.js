@@ -111,12 +111,11 @@ module.exports.migrate = function(sqldir, callback) {
   };
 
   //
-  const files = [];
+  let files = [];
   fs.readdir(sqldir, function(err, filenames) {
     if (err) {
       return callback(err);
     }
-    filenames.sort();
     filenames.forEach(function(filename) {
       files.push({
         filename: filename,
@@ -127,11 +126,10 @@ module.exports.migrate = function(sqldir, callback) {
     // Load Plugins migrations
     async.each(plugins.list, function(plugin, callback) {
       fs.readdir(plugin.dirname + '/sql', function(err, filenames) {
-        filenames.sort();
         filenames.forEach(function(filename) {
           files.push();
           files.push({
-            filename: '[' + plugin.constructor.name + '] ' + filename,
+            filename: filename,
             path:     path.join(plugin.dirname, '/sql', filename)
           });
         });
@@ -139,6 +137,7 @@ module.exports.migrate = function(sqldir, callback) {
       });
     }, function() {
       // execute migrations
+      files = _.sortBy(files, 'filename');
       module.exports.initmigrations(function() {
         async.eachSeries(files, executeFile, callback);
       });
