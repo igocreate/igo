@@ -16,7 +16,7 @@ let db;
 
 module.exports.init = function(_db) {
   db = _db;
-  if (process.env.AUTO_MIGRATE === 'true') {
+  if (config.auto_migrate) {
     module.exports.migrate(function() {});
   }
 };
