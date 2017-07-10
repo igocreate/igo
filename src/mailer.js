@@ -19,7 +19,7 @@ module.exports.init = function(config) {
   options.template = options.template || function(email, data) {
     return './views/emails/' + email + '.dust';
   };
-  transport       = nodemailer.createTransport(options.transport);
+  transport = nodemailer.createTransport(options.transport);
 };
 
 //
