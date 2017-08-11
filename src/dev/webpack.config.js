@@ -51,12 +51,17 @@ module.exports = {
   },
   // devtool: 'source-map',
   plugins: [
+    // webpack 3 scope hoisting
+    new webpack.optimize.ModuleConcatenationPlugin(),
+    // clean dist folder before building
     new CleanWebpackPlugin(['public/dist'], {
       root: process.cwd(),
       verbose: true,
       dry: false
     }),
+    // remove old assets after each build
     new AutoCleanBuildPlugin(),
+    //
     new ExtractTextPlugin({
       filename:   '[name]-[chunkhash].css',
       disable:    false,
@@ -73,23 +78,5 @@ module.exports = {
     new AssetsWebpackPlugin({
       filename: 'public/webpack-assets.json'
     })
-    // function() {
-    //   this.plugin("done", function(stats) {
-    //     var chunks = _.map(stats.compilation.chunks, function(chunk) {
-    //       var chunk = _.pick(chunk, [
-    //         'id', 'ids', 'name',
-    //         'files', 'hash', 'renderedHash'
-    //       ]);
-    //       chunk.files = _.keyBy(chunk.files, function(file) {
-    //         return file.substring(file.indexOf('.') + 1);
-    //       });
-    //       return chunk;
-    //     });
-    //     chunks = _.keyBy(chunks, 'name');
-    //     require("fs").writeFileSync(
-    //       './public/chunks.json',
-    //       JSON.stringify(chunks));
-    //   });
-    // }
   ]
 };

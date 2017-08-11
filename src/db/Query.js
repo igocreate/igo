@@ -74,9 +74,12 @@ var Query = function(modelClass) {
   this.first = function(callback) {
     var _this = this;
     this.query.limit = 1;
-    schema.primary.forEach(function(key) {
-      _this.query.order.push('`' + key + '`');
-    });
+    if (_this.query.order.length === 0) {
+      // default sort by primary key
+      schema.primary.forEach(function(key) {
+        _this.query.order.push('`' + key + '`');
+      });
+    }
     this.execute(callback);
     return this;
   };
@@ -85,9 +88,12 @@ var Query = function(modelClass) {
   this.last = function(callback) {
     var _this = this;
     this.query.limit = 1;
-    schema.primary.forEach(function(key) {
-      _this.query.order.push('`' + key + '` DESC');
-    });
+    if (_this.query.order.length === 0) {
+      // default sort by primary key
+      schema.primary.forEach(function(key) {
+        _this.query.order.push('`' + key + '` DESC');
+      });
+    }
     this.execute(callback);
     return this;
   };
