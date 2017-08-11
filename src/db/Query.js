@@ -73,13 +73,8 @@ var Query = function(modelClass) {
   // FIRST
   this.first = function(callback) {
     var _this = this;
-    this.query.limit = 1;
-    if (_this.query.order.length === 0) {
-      // default sort by primary key
-      schema.primary.forEach(function(key) {
-        _this.query.order.push('`' + key + '`');
-      });
-    }
+    this.query.limit  = 1;
+    this.query.take   = 'first';
     this.execute(callback);
     return this;
   };
@@ -87,13 +82,8 @@ var Query = function(modelClass) {
   // LAST
   this.last = function(callback) {
     var _this = this;
-    this.query.limit = 1;
-    if (_this.query.order.length === 0) {
-      // default sort by primary key
-      schema.primary.forEach(function(key) {
-        _this.query.order.push('`' + key + '` DESC');
-      });
-    }
+    this.query.limit  = 1;
+    this.query.take   = 'last';
     this.execute(callback);
     return this;
   };
@@ -202,6 +192,15 @@ var Query = function(modelClass) {
 
     if (schema.scopes) {
       _this.applyScopes();
+    }
+
+    if (_this.query.order.length === 0 &&
+        (_this.query.take === 'first' || _this.query.take === 'last')) {
+      const order = _this.query.take === 'first' ? 'ASC' : 'DESC';
+      // default sort by primary key
+      schema.primary.forEach(function(key) {
+        _this.query.order.push('`' + key + '` ' + order);
+      });
     }
 
     var sqlQuery = _this.toSQL();
