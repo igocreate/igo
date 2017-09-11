@@ -16,8 +16,6 @@ var reinitDatabase = function(callback) {
   var database = config.mysql.database;
   config.mysql.database = null;
   db.init(config);
-  cache.init(config);
-  cache.flushall();
 
   var DROP_DATABASE   = 'DROP DATABASE IF EXISTS `' + database + '`;';
   var CREATE_DATABASE = 'CREATE DATABASE `' + database + '`;';
@@ -36,9 +34,10 @@ var reinitDatabase = function(callback) {
 
 // // before running tests
 before(function(done) {
-  config.init();
-  cls.init();
   app.configure();
+  if (config.skip_reinit_db) {
+    return done();
+  }
   reinitDatabase(done);
 });
 
