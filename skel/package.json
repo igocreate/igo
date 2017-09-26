@@ -13,13 +13,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "bootstrap": "^4.0.0-alpha.6",
-    "igo": "{igo.version}",
-    "font-awesome": "^4.7.0",
-    "jquery": "^3.1.1",
-    "tether": "^1.4.0"
+    "igo": "{igo.version}"
   },
   "devDependencies": {
-    "igo-dev": "{igo-dev.version}"
+    "bootstrap": "4.0.0-beta",
+    "font-awesome": "^4.7.0",
+    "igo-dev": "{igo-dev.version}",
+    "jquery": "^3.1.1",
+    "popper.js": "^1.12.5"
   }
 }
