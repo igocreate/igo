@@ -32,7 +32,7 @@ var reinitDatabase = function(callback) {
   });
 };
 
-// // before running tests
+// before running tests
 before(function(done) {
   app.configure();
   if (config.skip_reinit_db) {
@@ -48,7 +48,12 @@ beforeEach(function(done) {
     _this.currentTest.fn = cls.bind(_this.currentTest.fn);
     context = cls.getNamespace().active;
     cache.flushall(function() {
-      db.beginTransaction(done);
+      db.beginTransaction(function() {
+        if (config.test && config.test.beforeEach) {
+          return config.test.beforeEach(done);
+        }
+        done();
+      });
     })
   });
 });
@@ -57,5 +62,11 @@ beforeEach(function(done) {
 afterEach(function(done) {
   // cls hack: restore context manually
   cls.getNamespace().active = context;
-  db.rollbackTransaction(done);
+  db.rollbackTransaction(function() {
+    if (config.test && config.test.afterEach) {
+      return config.test.afterEach(done);
+    }
+    done();
+  });
+
 });
