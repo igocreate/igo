@@ -4,5 +4,7 @@ node_js:
   - 7
 services:
   - redis-server
-before_install:
+before_script:
   - "npm install -g mocha"
+script:
+  - "mocha"
