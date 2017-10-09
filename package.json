@@ -1,6 +1,6 @@
 {
   "name": "igo",
-  "version": "2.4.11",
+  "version": "2.4.12",
   "homepage": "https://github.com/igocreate/igo",
   "description": "Igo is a Node.js Web Framework based on Express",
   "main": "index.js",
@@ -48,7 +48,7 @@
     "nodemailer": "4.1.3",
     "querystring": "0.2.0",
     "redis": "2.8.0",
-    "replace": "^0.3.0",
+    "replace-in-file": "^3.0.0-beta.2",
     "require-dir": "0.3.2",
     "serve-static": "1.13.1",
     "uuid": "^3.1.0",

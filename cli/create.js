@@ -1,11 +1,11 @@
 
 'use strict';
 
-var fs      = require('fs');
+const fs      = require('fs');
 
-var _       = require('lodash');
-var fse     = require('fs-extra');
-var replace = require('replace');
+const _       = require('lodash');
+const fse     = require('fs-extra');
+const replace = require('replace-in-file');
 
 
 // igo create
@@ -28,6 +28,7 @@ module.exports = function(argv) {
       clobber: false // do not overwrite
     };
     // recursive copy from skel to project directory
+    console.log('create project in ' + directory);
     fse.copy(__dirname + '/../skel', directory, options, function (err) {
       if (err) {
         console.error(err);
@@ -41,16 +42,15 @@ module.exports = function(argv) {
         '\{igo-dev.version\}':  packagejson.devDependencies['igo-dev'],
         '\{project.name\}':     args[1]
       }
-      _.forEach(replacements, function(replacement, regex) {
-        replace({
-          regex:        regex,
-          replacement:  replacement,
-          paths:        [ directory ],
-          exclude:      'node_modules',
-          recursive:    true,
-          silent:       true
+      _.forEach(replacements, function(replacement, regexp) {
+        const changed = replace.sync({
+          files:      directory + '/**/*',
+          from:       new RegExp(regexp, 'g'),
+          to:         replacement,
+          ignore:     directory + '/node_modules/**/*'
         });
       });
+
       console.log('done!');
     });
   });
