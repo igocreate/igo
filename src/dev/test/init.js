@@ -49,9 +49,9 @@ beforeEach(function(done) {
     context = cls.getNamespace().active;
     cache.flushall(function() {
       db.beginTransaction(function() {
-        // if (config.test && config.test.beforeEach) {
-        //   return config.test.beforeEach(done);
-        // }
+        if (config.test && config.test.beforeEach) {
+          return config.test.beforeEach(done);
+        }
         done();
       });
     })
@@ -63,9 +63,9 @@ afterEach(function(done) {
   // cls hack: restore context manually
   cls.getNamespace().active = context;
   db.rollbackTransaction(function() {
-    // if (config.test && config.test.afterEach) {
-    //   return config.test.afterEach(done);
-    // }
+    if (config.test && config.test.afterEach) {
+      return config.test.afterEach(done);
+    }
     done();
   });
 
