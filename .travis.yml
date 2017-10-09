@@ -2,16 +2,8 @@ language: node_js
 node_js:
   - 6
   - 7
+  - 8
 services:
   - redis-server
-env:
-  - CXX=g++-4.8
-before_install:
-  - "npm config set spin false"
+before_script:
   - "npm install -g mocha"
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - g++-4.8

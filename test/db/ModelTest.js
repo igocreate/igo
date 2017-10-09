@@ -65,8 +65,8 @@ describe('db.Model', function() {
         });
       });
 
-      it('should handle 10k elements', function(done) {
-        const nb = 10000;
+      it('should handle 1k elements', function(done) {
+        const nb = 1000;
         async.timesSeries(nb, function(n, next) {
           Book.create(next);
         }, function(err, books) {
