@@ -16,8 +16,9 @@ const igo = {
   app:      require('./src/app')
 };
 
+const env = process.env.NODE_ENV || 'dev';
 // dev
-if (!process.env.NODE_ENV || process.env.NODE_ENV === 'dev') {
+if (!global.IGO_CLI && env === 'dev') {
   igo.dev = require('./src/dev/index');
 }
 
