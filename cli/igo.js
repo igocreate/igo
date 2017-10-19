@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+global.IGO_CLI = true;
 
 var argv = require('minimist')(process.argv.slice(2));
 var args = argv._;

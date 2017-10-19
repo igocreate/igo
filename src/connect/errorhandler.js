@@ -1,28 +1,40 @@
 'use strict';
 
-var domain  = require('domain');
-var winston = require('winston');
+const domain  = require('domain');
+const winston = require('winston');
 
-var config  = require('../config');
-var mailer  = require('../mailer');
+const config  = require('../config');
+const mailer  = require('../mailer');
 
-var formatMessage = function(req, err) {
-  var url     = req.protocol + '://' + req.hostname + req.url;
+//
+const getURL = function(req) {
+  return [
+    req.protocol,
+    '://',
+    req.get('host'),
+    req.originalUrl
+  ].join('');
+};
 
-  var message = '<h1>' + req.url + '</h1>';
-  message = message + '<pre>' + err.stack + '</pre>';
+//
+const formatMessage = function(req, err) {
+  const url     = getURL(req);
 
-  var details = [
+  const details = [
     '<td>url</td><td>' + url + '</td>',
     '<td>session</td><td>' + JSON.stringify(req.session) + '</td>',
     '<td>referer</td><td>' + req.get('Referer') + '</td>'
   ];
-  message = message + '<table><tr>' + details.join('</tr><tr>') + '</tr></table>';
+
+
+  const message = '<h1>' + url + '</h1>' +
+                  '<pre>' + err.stack + '</pre>' +
+                  '<table><tr>' + details.join('</tr><tr>') + '</tr></table>';
   return message;
 };
 
 // log and show error
-var handle = function(err, req, res) {
+const handle = function(err, req, res) {
 
   // uri error
   if (err instanceof URIError) {
@@ -31,12 +43,12 @@ var handle = function(err, req, res) {
     return;
   }
 
-  winston.error(req.method + ' ' + req.url + ' : ' + err);
+  winston.error(req.method + ' ' + getURL(req) + ' : ' + err);
   winston.error(err.stack);
 
   if (config.showerrstack) {
     //
-    res.send('<h1>' + req.url + '</h1><pre>' + err.stack + '</pre>');
+    res.send('<h1>' + req.originalUrl + '</h1><pre>' + err.stack + '</pre>');
   } else {
     //
     res.status(500);
@@ -55,7 +67,7 @@ var handle = function(err, req, res) {
 // init domain for error handling
 module.exports.init = function(app) {
   return function(req, res, next) {
-    var appDomain = domain.create();
+    const appDomain = domain.create();
     appDomain.add(req);
     appDomain.add(res);
     appDomain.on('error', function(err) {
@@ -73,11 +85,11 @@ module.exports.error = function(err, req, res, next) {
 
 
 // https://nodejs.org/api/domain.html
-var gracefullyShutdown = function(app) {
+const gracefullyShutdown = function(app) {
 
   try {
     // make sure we close down within N seconds
-    var killtimer = setTimeout(() => {
+    const killtimer = setTimeout(() => {
       process.exit(1);
     }, 3000);
     // But don't keep the process open just for that!
