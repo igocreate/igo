@@ -9,87 +9,85 @@ var Sql     = require('./Sql');
 var db      = require('./db');
 
 
-var Query = function(modelClass) {
+class  Query {
 
-  var schema = modelClass.schema;
-
-  this.query = {
-    table:    schema.table,
-    verb:     'select',
-    where:    [],
-    order:    [],
-    includes: {},
-    options:  {},
-    scopes:   [ 'default' ]
-  };
-
-  // INSERT
-  this.insert = function(table) {
-    this.query.verb   = 'insert';
-    if (table) {
-      this.query.table  = table;
-    }
-    return this;
-  };
+  constructor(modelClass, verb = 'select') {
+    this.modelClass = modelClass;
+    this.schema     = modelClass.schema;
+    this.query      = {
+      table:    modelClass.schema.table,
+      verb:     verb,
+      where:    [],
+      order:    [],
+      includes: {},
+      options:  {},
+      scopes:   [ 'default' ]
+    };
+  }
 
   // UPDATE
-  this.update = function(table) {
+  update(values, callback) {
     this.query.verb   = 'update';
-    this.query.table  = table;
+    // limit to schema columns
+    this.query.values = _.pick(values, this.schema.columns);
+    this.execute(callback);
     return this;
-  };
+  }
 
   // DELETE
-  this.delete = this.destroy = function(table) {
+  delete(callback) {
     this.query.verb   = 'delete';
-    this.query.table  = table;
+    this.execute(callback);
     return this;
-  };
+  }
+  destroy(callback) {
+    return this.delete(callback);
+  }
 
   // FROM
-  this.from = function(table) {
+  from(table) {
     this.query.table = table;
     return this;
   };
 
   // WHERE
-  this.where = function(where, params) {
+  where(where, params) {
     where = params ? [where, params] : where;
     this.query.where.push(where);
     return this;
-  };
+  }
 
   // VALUES
-  this.values = function(values) {
+  values(values) {
     values = _.pickBy(values, function(value) {
       // skip instance functions
       return typeof value !== 'function';
     });
     // limit to schema columns
-    this.query.values = _.pick(values, schema.columns);
+    this.query.values = _.pick(values, this.schema.columns);
     return this;
-  };
+  }
 
   // FIRST
-  this.first = function(callback) {
+  first(callback) {
     var _this = this;
     this.query.limit  = 1;
     this.query.take   = 'first';
     this.execute(callback);
     return this;
-  };
+  }
 
   // LAST
-  this.last = function(callback) {
+  last(callback) {
     var _this = this;
     this.query.limit  = 1;
     this.query.take   = 'last';
     this.execute(callback);
     return this;
-  };
+  }
 
   // LIMIT
-  this.limit = function(offset, limit) {
+  limit(offset, limit) {
     if (limit === undefined) {
       limit   = offset;
       offset  = 0;
@@ -100,45 +98,45 @@ var Query = function(modelClass) {
   };
 
   // SCOPE
-  this.scope = function(scope) {
+  scope(scope) {
     this.query.scopes.push(scope);
     return this;
-  };
+  }
 
   // UNSCOPED
-  this.unscoped = function() {
+  unscoped() {
     this.query.scopes.length = 0;
     return this;
-  };
+  }
 
   // LIST
-  this.list = function(callback) {
+  list(callback) {
     this.execute(callback);
     return this;
-  };
+  }
 
   // COUNT
-  this.count = function(callback) {
+  count(callback) {
     this.query.verb   = 'count';
     this.query.limit  = 1;
     this.execute(function(err, row) {
       callback(err, row && row.count);
     });
     return this;
-  };
+  }
 
   // SCOPES
-  this.applyScopes = function() {
+  applyScopes() {
     var _this = this;
     this.query.scopes.forEach(function(scope) {
-      if (schema.scopes[scope]) {
-        schema.scopes[scope](_this);
+      if (_this.schema.scopes[scope]) {
+        _this.schema.scopes[scope](_this);
       }
     });
-  };
+  }
 
   // INCLUDES
-  this.includes = function(includes) {
+  includes(includes) {
     var _this = this;
     var pushInclude = function(include) {
       if (_.isString(include)) {
@@ -149,10 +147,10 @@ var Query = function(modelClass) {
     };
     _.forEach(_.concat([], includes), pushInclude);
     return this;
-  };
+  }
 
   // FIND
-  this.find = function(id, callback) {
+  find(id, callback) {
     if (id === null || id === undefined || id.length === 0) {
       return callback(null, null);
     } else if (_.isString(id) || _.isNumber(id)) {
@@ -163,34 +161,34 @@ var Query = function(modelClass) {
     } else {
       this.where(id).first(callback);
     }
-  };
+  }
 
   // ORDER BY
-  this.order = function(order) {
+  order(order) {
     this.query.order.push(order);
     return this;
   };
 
   // QUERY OPTIONS
-  this.options = function(options) {
+  options(options) {
     _.merge(this.query.options, options);
     return this;
-  };
+  }
 
   // generate SQL
-  this.toSQL = function() {
+  toSQL() {
     var params = [];
     var sql = new Sql(this.query)[this.query.verb + 'SQL']();
     // console.log(sql);
     this.query.generated = sql;
     return sql;
-  };
+  }
 
   //
-  this.execute = function(callback) {
+  execute(callback) {
     var _this = this;
 
-    if (schema.scopes) {
+    if (this.schema.scopes) {
       _this.applyScopes();
     }
 
@@ -198,7 +196,7 @@ var Query = function(modelClass) {
         (_this.query.take === 'first' || _this.query.take === 'last')) {
       const order = _this.query.take === 'first' ? 'ASC' : 'DESC';
       // default sort by primary key
-      schema.primary.forEach(function(key) {
+      this.schema.primary.forEach(function(key) {
         _this.query.order.push('`' + key + '` ' + order);
       });
     }
@@ -213,11 +211,11 @@ var Query = function(modelClass) {
       }
 
       async.eachSeries(_.keys(_this.query.includes), function(include, callback) {
-        var association = _.find(schema.associations, function(association) {
+        var association = _.find(_this.schema.associations, function(association) {
           return association[1] === include;
         });
         if (!association) {
-          throw new Error('Missing association \'' + include + '\' on \'' + schema.table + '\' schema.');
+          throw new Error('Missing association \'' + include + '\' on \'' + _this.schema.table + '\' schema.');
         }
 
         var type        = association[0];
@@ -273,16 +271,16 @@ var Query = function(modelClass) {
         }
       });
     });
-  };
+  }
 
-  this.newInstance = function(row) {
-    let instanceClass = modelClass;
-    const type        = row[schema.subclass_column];
-    if (schema.subclasses && type) {
-      instanceClass = schema.subclasses[type];
+  newInstance(row) {
+    let instanceClass = this.modelClass;
+    const type        = row[this.schema.subclass_column];
+    if (this.schema.subclasses && type) {
+      instanceClass = this.schema.subclasses[type];
     }
     return new instanceClass(row)
   }
-};
+}
 
 module.exports = Query;

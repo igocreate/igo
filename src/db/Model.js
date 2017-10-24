@@ -26,7 +26,7 @@ module.exports = function(schema) {
       values.updated_at = new Date();
       _.assign(_this, values);
       this.beforeUpdate(values, function() {
-        new Query(_this.constructor).unscoped().update(schema.table).values(values).where(_this.primaryObject()).execute(function(err, result) {
+        new Query(_this.constructor, 'update').unscoped().values(values).where(_this.primaryObject()).execute(function(err, result) {
           if (callback) callback(err, _this);
         });
       });
@@ -39,7 +39,7 @@ module.exports = function(schema) {
 
     // destroy
     destroy(callback) {
-      new Query(this.constructor).unscoped().delete(schema.table).where(this.primaryObject()).execute(callback);
+      new Query(this.constructor, 'delete').unscoped().where(this.primaryObject()).execute(callback);
     }
 
     beforeCreate(callback)          { callback(); }
@@ -67,7 +67,7 @@ module.exports = function(schema) {
       obj.created_at = obj.created_at || now;
       obj.updated_at = obj.updated_at || now;
       obj.beforeCreate(function() {
-        return new Query(_this).unscoped().insert().values(obj).options(options).execute(function(err, result) {
+        return new Query(_this, 'insert').unscoped().values(obj).options(options).execute(function(err, result) {
           if (err) {
             return callback && callback(err, result);
           }
@@ -115,12 +115,17 @@ module.exports = function(schema) {
 
     // destroy
     static destroy(id, callback) {
-      return new Query(this).unscoped().delete(schema.table).where({ id: id }).execute(callback);
+      return new Query(this, 'delete').unscoped().where({ id: id }).execute(callback);
     }
 
     // destroy all
     static destroyAll(callback) {
-      return new Query(this).unscoped().delete(schema.table).execute(callback);
+      return new Query(this, 'delete').unscoped().execute(callback);
+    }
+
+    //
+    static update(values, callback) {
+      return new Query(this).unscoped().update(values, callback);
     }
 
     // includes
