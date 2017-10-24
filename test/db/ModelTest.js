@@ -9,20 +9,21 @@ const async     = require('async');
 var Model     = require('../../src/db/Model');
 
 describe('db.Model', function() {
+  
+  var schema = {
+    table:    'books',
+    primary: ['id'],
+    columns: [
+      'id',
+      'code',
+      'title',
+      'library_id'
+    ]
+  };
+
+  class Book extends Model(schema) {}
 
   describe('standard operations', function() {
-
-    var schema = {
-      table:    'books',
-      primary: ['id'],
-      columns: [
-        'id',
-        'code',
-        'title'
-      ]
-    };
-
-    class Book extends Model(schema) {}
 
     //
     describe('insert', function() {
@@ -112,8 +113,110 @@ describe('db.Model', function() {
       });
     });
 
+    //
+    describe('destroy', function() {
+      it('should destroy a book', function(done) {
+        Book.create(function(err, first) {
+          Book.create(function() {
+            Book.create(function(err, last) {
+              Book.destroy(first.id, function(err) {
+                Book.find(first.id, function(err, book) {
+                  assert(!err);
+                  assert(!book);
+                  done();
+                });
+              });
+            });
+          });
+        });
+      });
+
+      it('should destroy selected books', function(done) {
+        Book.create({ code: '123' }, function(err, first) {
+          Book.create({ code: '123' }, function() {
+            Book.create(function(err, last) {
+              Book.where({ code: '123' }).destroy(function(err) {
+                Book.all(function(err, books) {
+                  assert(books.length, 1);
+                  done();
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+
+    //
+    describe('update', function() {
+      it('should update books', function(done) {
+        Book.create({ code: '123' }, function(err, first) {
+          Book.create({ code: '123' }, function(err, second) {
+            Book.create(function(err, last) {
+              Book.where({ code: '123' }).update({ title: 'undeuxtrois'}, function(err) {
+                assert(!err);
+                Book.where({ title: 'undeuxtrois'}).list(function(err, books) {
+                  assert.equal(books.length, 2);
+                  done();
+                });
+              });
+            });
+          });
+        });
+      });
+
+      it('should update all books', function(done) {
+        Book.create({ code: '123' }, function(err, first) {
+          Book.create({ code: '123' }, function(err, second) {
+            Book.create(function(err, last) {
+              Book.update({ title: 'undeuxtrois'}, function(err) {
+                assert(!err);
+                Book.where({ title: 'undeuxtrois'}).list(function(err, books) {
+                  assert.equal(books.length, 3);
+                  done();
+                });
+              });
+            });
+          });
+        });
+      });
+    });
   });
 
+  describe('instance operations', function() {
+
+    describe('destroy', function() {
+      it('should destroy a book', function(done) {
+        Book.create(function(err, first) {
+          Book.create(function() {
+            Book.create(function(err, last) {
+              last.destroy(function(err) {
+                Book.find(last.id, function(err, book) {
+                  assert(!err);
+                  assert(!book);
+                  done();
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+
+    describe('update', function() {
+      it('should update a book', function(done) {
+        Book.create(function(err, book) {
+          book.update({ code: 'hop' }, function(err, book) {
+            book.reload(function(err, book) {
+              assert.equal(book.code, 'hop');
+              done();
+            });
+          });
+        });
+      });
+    });
+
+  });
 
   describe('scopes', function() {
 
@@ -126,18 +229,18 @@ describe('db.Model', function() {
         'title'
       ],
       scopes: {
-        default:  query => query.where({code: 'abc'}),
-        a:        query => query.where({code: 'a'}),
+        default:  query => query.where({ code: 'abc' }),
+        a:        query => query.where({ code: 'a' }),
       }
     };
 
-    class Book extends Model(schema) {}
+    class BookWithScopes extends Model(schema) {}
 
     describe('default scope', function() {
       it('should use default scope', function(done) {
-        Book.create({code: 'a'}, function(err, first) {
-          Book.create({code: 'abc'}, function(err, second) {
-            Book.all(function(err, books) {
+        BookWithScopes.create({code: 'a'}, function(err, first) {
+          BookWithScopes.create({code: 'abc'}, function(err, second) {
+            BookWithScopes.all(function(err, books) {
               assert.equal(books.length, 1);
               done();
             });
@@ -148,9 +251,9 @@ describe('db.Model', function() {
 
     describe('specified scope', function() {
       it('should use a scope', function(done) {
-        Book.create({code: 'a'}, function(err, first) {
-          Book.create({code: 'abc'}, function(err, second) {
-            Book.unscoped().scope('a').list(function(err, books) {
+        BookWithScopes.create({code: 'a'}, function(err, first) {
+          BookWithScopes.create({code: 'abc'}, function(err, second) {
+            BookWithScopes.unscoped().scope('a').list(function(err, books) {
               assert.equal(books.length, 1);
               done();
             });
@@ -158,5 +261,38 @@ describe('db.Model', function() {
         });
       });
     });
+  });
+
+
+  describe('includes', function() {
+
+    var schema = {
+      table:    'libraries',
+      primary: ['id'],
+      columns: [
+        'id',
+        'title'
+      ],
+      associations: [
+        ['has_many', 'books', Book, 'id', 'library_id'],
+      ]
+    };
+  
+    class Library extends Model(schema) {}
+
+
+    it('should find a library with its books', function(done) {
+      Library.create(function(err, library) {
+        Book.create({ library_id: library.id }, function(err, book) {
+          Book.create({ library_id: library.id }, function(err, book) {
+            Library.includes('books').find(library.id, function(err, library) {
+              assert.equal(library.books.length, 2);
+              done();
+            });
+          });
+        });
+      });
+    });
+    
   });
 });

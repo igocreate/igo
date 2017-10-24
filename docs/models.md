@@ -191,6 +191,8 @@ User.find(id, function(err, user) {
 
 ### Update
 
+To update a specific object:
+
 ```js
 User.find(id, function(err, user) {
   user.update({
@@ -198,6 +200,28 @@ User.find(id, function(err, user) {
   }, function(err, user) {
     console.log('Hi ' + user.first_name);
   });
+});
+```
+
+To update several objects:
+
+```js
+User.where({
+  country: 'France'
+}, update({
+  language: 'French'
+}, function(err) {
+  // Users are updated
+});
+```
+
+To update all objects:
+
+```js
+User.update({
+  first_name: 'Jim'
+}, function(err) {
+  // All users are now named Jim
 });
 ```
 
