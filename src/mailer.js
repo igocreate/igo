@@ -64,13 +64,15 @@ module.exports.send = function(email, data) {
         headers['X-MC-Subaccount'] = options.subaccount;
       }
       var mailOptions = {
-        from:     data.from,
-        to:       data.to,
-        replyTo:  data.replyTo,
-        cc:       data.cc,
-        subject:  data.subject,
-        html:     html,
-        headers:  headers
+        from:         data.from,
+        to:           data.to,
+        replyTo:      data.replyTo,
+        cc:           data.cc,
+        bcc:          data.bcc,
+        attachments:  data.attachments,
+        subject:      data.subject,
+        html:         html,
+        headers:      headers
       };
       transport.sendMail(mailOptions, function(err, res) {
         if (err) {
