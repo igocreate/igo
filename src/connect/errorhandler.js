@@ -49,7 +49,7 @@ const handle = function(err, req, res) {
   if (config.showerrstack) {
     //
     res.send('<h1>' + req.originalUrl + '</h1><pre>' + err.stack + '</pre>');
-  } else {
+  } else if (!res._headerSent) {
     //
     res.status(500);
     res.render('errors/500');

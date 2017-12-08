@@ -52,7 +52,7 @@ class  Query {
 
   // WHERE
   where(where, params) {
-    where = params ? [where, params] : where;
+    where = params !== undefined ? [where, params] : where;
     this.query.where.push(where);
     return this;
   }
