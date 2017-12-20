@@ -65,7 +65,7 @@ module.exports.init = function(config) {
     // winston.error('' + err);
   });
 
-  if (config.env !== 'production') {
+  if (config.env !== 'production' && options.flushonrestart !== false) {
     module.exports.flushall();
   }
 };
