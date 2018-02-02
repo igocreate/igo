@@ -11,7 +11,7 @@ const getURL = function(req) {
   return [
     req.protocol,
     '://',
-    req.get('host'),
+    req.headers['x-forwarded-host'] || req.get('host'),
     req.originalUrl
   ].join('');
 };
@@ -21,26 +21,28 @@ const formatMessage = function(req, err) {
   const url     = getURL(req);
 
   const details = [
-    '<td>url</td><td>' + url + '</td>',
-    '<td>session</td><td>' + JSON.stringify(req.session) + '</td>',
-    '<td>referer</td><td>' + req.get('Referer') + '</td>'
+    '<td>URL:</td><td>' + req.method + ' ' + url + '</td>',
+    '<td>req.body:</td><td>' + JSON.stringify(req.body) + '</td>',
+    '<td>req.session:</td><td>' + JSON.stringify(req.session) + '</td>',
+    '<td>Referer:</td><td>' + req.get('Referer') + '</td>',
+    '<td>User-Agent:</td><td>' + req.headers['user-agent'] + '</td>'
   ];
 
-
-  const message = '<h1>' + url + '</h1>' +
+  const message = '<h1>'  + url + '</h1>' +
                   '<pre>' + err.stack + '</pre>' +
-                  '<table><tr>' + details.join('</tr><tr>') + '</tr></table>';
+                  '<table cellspacing="10"><tr>' + details.join('</tr><tr>') + '</tr></table>';
   return message;
 };
 
 // log and show error
 const handle = function(err, req, res) {
 
+  console.log('handle error:');
+  console.dir(err);
+
   // uri error
   if (err instanceof URIError) {
-    res.status(404);
-    res.render('errors/404');
-    return;
+    return res.status(404).render('errors/404');
   }
 
   winston.error(req.method + ' ' + getURL(req) + ' : ' + err);
@@ -48,11 +50,14 @@ const handle = function(err, req, res) {
 
   if (config.showerrstack) {
     //
-    res.send('<h1>' + req.originalUrl + '</h1><pre>' + err.stack + '</pre>');
+    const stacktrace = [
+      '<h1>', req.originalUrl, '</h1>',
+      '<pre>', err.stack, '</pre>'
+    ].join('');
+    res.status(500).send(stacktrace);
   } else if (!res._headerSent) {
     //
-    res.status(500);
-    res.render('errors/500');
+    res.status(500).render('errors/500');
   }
 
   if (config.mailcrashto) {
