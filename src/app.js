@@ -70,8 +70,8 @@ module.exports.configure = function() {
     app.use(errorHandler.init(app));
     app.use(cookieParser(config.signedCookiesSecret));
     app.use(cookieSession(config.cookieSessionConfig));
-    app.use(bodyParser.json());
-    app.use(bodyParser.urlencoded({ extended: true }));
+    app.use(bodyParser.json({ limit: config.bodyParser.limit }));
+    app.use(bodyParser.urlencoded({ limit: config.bodyParser.limit, extended: true }));
     app.use(multipart);
   }
 
