@@ -17,8 +17,9 @@ module.exports.init = function() {
   config.env            = process.env.NODE_ENV || 'dev';
   config.httpport       = process.env.HTTP_PORT || 3000;
 
-  config.signedCookiesSecret = 'abcdefghijklmnopqrstuvwxyz';
-  config.cookieSessionConfig = {
+  config.bodyParser           = { limit: '100kb' };
+  config.signedCookiesSecret  = 'abcdefghijklmnopqrstuvwxyz';
+  config.cookieSessionConfig  = {
     name: 'app',
     keys: [ 'aaaaaaaaaaa' ],
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
