@@ -23,6 +23,13 @@ class  Query {
       options:  {},
       scopes:   [ 'default' ]
     };
+    // filter on subclass
+    const key = _.findKey(this.schema.subclasses, { name: this.modelClass.name })
+    if (key) {
+      this.query.where.push({
+        [this.schema.subclass_column]: key
+      });
+    }
   }
 
   // UPDATE
