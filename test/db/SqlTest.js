@@ -37,6 +37,14 @@ describe('db.Sql', function() {
       assert.equal(0, selectSQL.params[0]);
       assert.equal(3, selectSQL.params[1]);
     });
+
+    it('should allow distinct', function() {
+      query.distinct  = [ 'type' ];
+      query.limit     = null;
+      var selectSQL   = new Sql(query).selectSQL();
+      assert.equal('SELECT DISTINCT `type` FROM `books`', selectSQL.sql);
+      assert.equal(0, selectSQL.params.length);
+    })
   });
 
   //

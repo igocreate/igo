@@ -11,9 +11,14 @@ var Sql = function(query) {
   // SELECT SQL
   this.selectSQL = function() {
     // select
-    var sql = 'SELECT * ';
+    var sql = 'SELECT ';
     var params = [];
 
+    if (query.distinct) {
+      sql += 'DISTINCT `' + query.distinct.join('`,`') + '` ';
+    } else {
+      sql += '* ';
+    }
     // from
     sql += 'FROM `' + query.table + '` ';
 

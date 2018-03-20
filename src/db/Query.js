@@ -19,6 +19,7 @@ class  Query {
       verb:     verb,
       where:    [],
       order:    [],
+      distinct: null,
       includes: {},
       options:  {},
       scopes:   [ 'default' ]
@@ -176,6 +177,12 @@ class  Query {
     return this;
   };
 
+  // DISTINCT
+  distinct(columns) {
+    this.query.distinct = _.isArray(columns) ? columns : [ columns ];
+    return this;
+  }
+
   // QUERY OPTIONS
   options(options) {
     _.merge(this.query.options, options);
@@ -263,7 +270,9 @@ class  Query {
 
       }, function(err) {
         //
-        if (rows && rows.length > 0 && _this.query.limit === 1) {
+        if (_this.query.distinct) {
+          callback && callback(err, rows);
+        } else if (rows && rows.length > 0 && _this.query.limit === 1) {
           var obj = _this.newInstance(rows[0]);
           callback && callback(err, obj);
         } else if (_this.query.limit === 1) {

@@ -221,7 +221,7 @@ To update all objects:
 User.update({
   first_name: 'Jim'
 }, function(err) {
-  // All users are now named Jim
+  // all users are now named Jim
 });
 ```
 
@@ -245,13 +245,13 @@ User.find(id, function(err, user) {
 
 ```js
 User.destroyAll(function(err) {
-  // All users were deleted
+  // all users were deleted
 });
 ```
 
 ```js
 User.where({first_name: 'Jim'}).destroy(function(err) {
-  // All users named Jim were deleted
+  // all users named Jim were deleted
 });
 ```
 
@@ -311,4 +311,18 @@ User.includes({projects: ['lead', 'tasks']}).first( ... );
 
 // mixed associations
 User.includes(['country', {projects: ['lead', 'tasks']}]).first( ... );
+```
+
+### Distinct
+
+```js
+User.distinct('first_name').list(function(err, first_names) {
+  // list all distinct user first names
+  console.dir(first_names);
+});
+
+User.distinct([ 'first_name', 'last_name' ]).list(function(err, first_names) {
+  // list all distinct user first and last names combinations
+  console.dir(first_names);
+});
 ```

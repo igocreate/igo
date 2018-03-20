@@ -113,6 +113,11 @@ module.exports = function(schema) {
       return new Query(this).order(order);
     }
 
+    // distinct
+    static distinct(columns) {
+      return new Query(this).distinct(columns);
+    }
+
     // destroy
     static destroy(id, callback) {
       return new Query(this, 'delete').unscoped().where({ id: id }).execute(callback);
