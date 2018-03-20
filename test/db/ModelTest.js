@@ -180,6 +180,36 @@ describe('db.Model', function() {
           });
         });
       });
+
+      it('should load distinct codes', function(done) {
+        Book.create({ code: '000' }, function(err, first) {
+          Book.create({ code: '111' }, function(err, second) {
+            Book.create({ code: '111' }, function(err, third) {
+              Book.distinct('code').list(function(err, codes) {
+                assert(!err);
+                assert.equal(codes.length, 2);
+                done();
+              });
+            });
+          });
+        });
+      });
+
+      it('should load distinct codes and titles', function(done) {
+        Book.create({ code: '000' }, function(err, first) {
+          Book.create({ code: '111', title: '111' }, function(err, second) {
+            Book.create({ code: '111', title: '111' }, function(err, third) {
+              Book.create({ code: '222', title: '111' }, function(err, last) {
+                Book.where({title: '111' }).distinct([ 'code', 'title' ]).list(function(err, res) {
+                  assert(!err);
+                  assert.equal(res.length, 2);
+                  done();
+                });
+              });
+            });
+          });
+        });
+      });
     });
   });
 
