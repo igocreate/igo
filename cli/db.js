@@ -2,10 +2,12 @@
 
 'use strict'
 
+const async       = require('async');
 const _           = require('lodash');
+const fs          = require('fs');
+
 const config      = require('../src/config');
 const db          = require('../src/db/db');
-
 const plugins     = require('../src/plugins');
 
 // db verbs
@@ -26,8 +28,7 @@ const verbs   = {
         console.log([
           migration.id,
           (migration.success ? 'OK' : 'KO'),
-          migration.file,
-          migration.err,
+          migration.file
         ].join('  '));
       });
       callback(err);
@@ -62,6 +63,49 @@ const verbs   = {
           });
         });
       });
+    });
+  },
+
+  reverse: function(args, callback) {
+    db.query('show tables', function(err, tables) {
+      async.eachSeries(tables, function(table, callback) {
+        table = _.values(table)[0];
+        if (table === '__db_migrations') {
+          return callback();
+        }
+        const object = _.capitalize(table.substring(0, table.length - 1));
+        db.query(`explain ${table}`, function(err, fields) {
+          const primary = _.chain(fields).filter({ Key: 'PRI' }).map('Field').join('\', \'');
+          let lines = [
+            '',
+            'const Model   = require(\'igo\').Model;',
+            '',
+            'const schema = {',
+            '  table: \'' + table + '\',',
+            '  primary: [ \'' + primary + '\' ],',
+            '  columns: ['
+          ];
+          fields.forEach(function(field) {
+            lines.push(`    '${field.Field}',`);
+          });
+          lines = lines.concat([
+            '  ],',
+            '  associations: () => [',
+            '  ], ',
+            '  scopes: {',
+            '  }',
+            '};',
+            '', '',
+            `class ${object} extends Model(schema) {`,
+            `}`, '', '',
+            `module.exports = ${object};`
+          ]);
+
+          const file = `./models/${object}.js`;
+          console.log('wrote ' + file);
+          fs.writeFile(file, lines.join('\n'), callback);
+        });
+      }, callback);
     });
   }
 
