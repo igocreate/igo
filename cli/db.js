@@ -101,7 +101,7 @@ const verbs   = {
             `module.exports = ${object};`
           ]);
 
-          const file = `./models/${object}.js`;
+          const file = `./app/models/${object}.js`;
           console.log('wrote ' + file);
           fs.writeFile(file, lines.join('\n'), callback);
         });
