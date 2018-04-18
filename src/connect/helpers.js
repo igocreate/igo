@@ -43,15 +43,12 @@ module.exports = function(req, res, next) {
 
 // date formatting
 dust.helpers.dateformat = function(chunk, context, bodies, params) {
-  var val = dust.helpers.tap(params.date, chunk, context);
-  if (!val) return chunk;
 
-  var m = moment(val);
+  if (!params.date) return chunk;
 
-  if (params.lang) {
-    var locale = dust.helpers.tap(params.lang, chunk, context);
-    m.locale(locale);
-  }
+  var m = moment(params.date);
+
+  m.locale(params.lang || context.get('lang'));
 
   if (m && m.isValid()) {
     if (params.format === 'calendar') {
