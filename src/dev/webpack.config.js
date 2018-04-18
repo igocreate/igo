@@ -14,6 +14,7 @@ const AssetsWebpackPlugin   = require('assets-webpack-plugin');
 
 //
 module.exports = {
+  mode:   'production',
   entry: {
     main:   './js/main.js',
     vendor: './js/vendor.js'
@@ -66,9 +67,6 @@ module.exports = {
       filename:   '[name]-[chunkhash].css',
       disable:    false,
       allChunks:  true
-    }),
-    new webpack.optimize.CommonsChunkPlugin({
-      names: ['vendor', 'manifest']
     }),
     // Plugin to replace a standard webpack chunk hashing with custom (md5) one.
     new WebpackChunkHash({
