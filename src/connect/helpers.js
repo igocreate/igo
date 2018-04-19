@@ -8,7 +8,7 @@ const i18next     = require('i18next');
 const config      = require('../config');
 
 const assetsPath  = process.cwd() + '/public/webpack-assets.json';
-var   assets      = null;
+let   assets      = null;
 
 //
 const getWebpackAssets = function() {
@@ -33,8 +33,8 @@ module.exports = function(req, res, next) {
 
   //
   res.locals.t = function(chunk, context, bodies, params) {
-    var key         = dust.helpers.tap(params.key, chunk, context);
-    var translation = req.t(key, params);
+    const key         = dust.helpers.tap(params.key, chunk, context);
+    const translation = req.t(key, params);
     return chunk.write(translation);
   };
 
@@ -46,9 +46,9 @@ dust.helpers.dateformat = function(chunk, context, bodies, params) {
 
   if (!params.date) return chunk;
 
-  var m = moment(params.date);
+  const m = moment(params.date);
 
-  m.locale(params.lang || context.get('lang'));
+  m.locale(dust.helpers.tap(params.lang, chunk, context) || context.get('lang'));
 
   if (m && m.isValid()) {
     if (params.format === 'calendar') {
@@ -63,7 +63,7 @@ dust.helpers.dateformat = function(chunk, context, bodies, params) {
 
 // load custom helpers
 try {
-  var helpers = require(process.cwd() + '/app/helpers');
+  const helpers = require(process.cwd() + '/app/helpers');
   helpers.init(dust);
 } catch(err) {
   // ignore

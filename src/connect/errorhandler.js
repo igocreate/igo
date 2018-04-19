@@ -48,16 +48,18 @@ const handle = function(err, req, res) {
   winston.error(req.method + ' ' + getURL(req) + ' : ' + err);
   winston.error(err.stack);
 
-  if (config.showerrstack) {
-    //
-    const stacktrace = [
-      '<h1>', req.originalUrl, '</h1>',
-      '<pre>', err.stack, '</pre>'
-    ].join('');
-    res.status(500).send(stacktrace);
-  } else if (!res._headerSent) {
-    //
-    res.status(500).render('errors/500');
+  if (!res._headerSent) {
+    // show error
+    if (config.showerrstack) {
+      //
+      const stacktrace = [
+        '<h1>', req.originalUrl, '</h1>',
+        '<pre>', err.stack, '</pre>'
+      ].join('');
+      res.status(500).send(stacktrace);
+    } else {
+      res.status(500).render('errors/500');
+    }
   }
 
   if (config.mailcrashto) {
