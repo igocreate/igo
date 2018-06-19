@@ -78,7 +78,10 @@ module.exports.init = function() {
   // logging with timestamp
   winston.clear();
   winston.add(new winston.transports.Console({
-    format:     winston.format.simple()
+    format: winston.format.combine(
+      winston.format.splat(),
+      winston.format.simple()
+    ),
   }));
   if (process.env.PAPERTRAIL_HOST && config.env !== 'test') {
     winston.add(new winston.transports.Papertrail({
