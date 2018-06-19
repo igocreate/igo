@@ -1,6 +1,6 @@
 {
   "name": "igo",
-  "version": "2.4.30",
+  "version": "2.4.31",
   "homepage": "https://github.com/igocreate/igo",
   "description": "Igo is a Node.js Web Framework based on Express",
   "main": "index.js",
