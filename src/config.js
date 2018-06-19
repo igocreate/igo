@@ -77,15 +77,15 @@ module.exports.init = function() {
 
   // logging with timestamp
   winston.remove(winston.transports.Console);
-  winston.add(winston.transports.Console, {
-    timestamp: true
-  });
+  winston.add(new winston.transports.Console({
+    format:     winston.format.simple()
+  }));
   if (process.env.PAPERTRAIL_HOST && config.env !== 'test') {
-    winston.add(Papertrail, {
+    winston.add(new winston.transports.Papertrail({
       host:     process.env.PAPERTRAIL_HOST,
       port:     process.env.PAPERTRAIL_PORT,
       colorize: true
-    });
+    }));
   }
 
   if (config.env === 'test') {
