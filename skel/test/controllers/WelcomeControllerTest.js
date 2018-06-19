@@ -3,9 +3,9 @@
 
 require('igo').dev.test();
 
-var assert = require('assert');
+const assert = require('assert');
 
-var agent = require('igo').dev.agent;
+const agent = require('igo').dev.agent;
 
 
 
