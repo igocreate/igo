@@ -25,7 +25,7 @@ module.exports = function(argv) {
     }
 
     var options = {
-      clobber: false // do not overwrite
+      overwrite: false // do not overwrite
     };
     // recursive copy from skel to project directory
     console.log('create project in ' + directory);
