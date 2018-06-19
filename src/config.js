@@ -76,7 +76,7 @@ module.exports.init = function() {
   };
 
   // logging with timestamp
-  winston.remove(winston.transports.Console);
+  winston.clear();
   winston.add(new winston.transports.Console({
     format:     winston.format.simple()
   }));
@@ -91,12 +91,12 @@ module.exports.init = function() {
   if (config.env === 'test') {
     config.mysql.database = 'test';
     config.nodemailer     = null;
-    winston.add(winston.transports.File, {
+    winston.clear();
+    winston.add(new winston.transports.File({
       filename: './logs/test.log',
       colorize: true,
       json: false
-    });
-    winston.remove(winston.transports.Console);
+    }));
   }
 
   // load app config
