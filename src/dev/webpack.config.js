@@ -8,13 +8,11 @@ const webpack = require('webpack');
 const CleanWebpackPlugin    = require('clean-webpack-plugin');
 const AutoCleanBuildPlugin  = require('webpack-auto-clean-build-plugin');
 const ExtractTextPlugin     = require('extract-text-webpack-plugin');
-const webpackUglifyJsPlugin = require('webpack-uglify-js-plugin');
 const WebpackChunkHash      = require('webpack-chunk-hash');
 const AssetsWebpackPlugin   = require('assets-webpack-plugin');
 
 //
 module.exports = {
-  mode:   'production',
   entry: {
     main:   './js/main.js',
     vendor: './js/vendor.js'
