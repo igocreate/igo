@@ -150,7 +150,7 @@ module.exports.flushall = function(callback) {
 const  DATE_REGEXP = /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z)/;
 const deserializeDates = function(obj) {
   if (_.isString(obj) && obj.match(DATE_REGEXP)) {
-    return moment(obj, moment.ISO_8601).toDate();
+    return new Date(obj);
   } else if (_.isObject(obj) && _.keys(obj).length > 0) {
     _.forIn(obj, function(value, key) {
       obj[key] = deserializeDates(value);
