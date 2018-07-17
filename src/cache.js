@@ -112,9 +112,11 @@ module.exports.fetch = function(namespace, id, func, callback) {
       // invoke
       // console.log(namespace + '/' + id + ' not found in cache');
       func(id, function(err, result) {
-        // put in cache and return result obj
-        module.exports.put(namespace, id, result);
-        callback(null, result);
+        if (!err) {
+          // put in cache and return result obj
+          module.exports.put(namespace, id, result);
+        }
+        callback(err, result);
       });
     } else {
       callback(err, obj);
