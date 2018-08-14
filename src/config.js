@@ -86,8 +86,7 @@ module.exports.init = function() {
   if (process.env.PAPERTRAIL_HOST && config.env !== 'test') {
     winston.add(new winston.transports.Papertrail({
       host:     process.env.PAPERTRAIL_HOST,
-      port:     process.env.PAPERTRAIL_PORT,
-      colorize: true
+      port:     process.env.PAPERTRAIL_PORT
     }));
   }
 
