@@ -1,6 +1,6 @@
 {
   "name": "igo",
-  "version": "2.4.35",
+  "version": "2.4.37",
   "homepage": "https://github.com/igocreate/igo",
   "description": "Igo is a Node.js Web Framework based on Express",
   "main": "index.js",
@@ -52,7 +52,7 @@
     "require-dir": "1.0.0",
     "serve-static": "1.13.2",
     "uuid": "^3.3.2",
-    "winston": "3.0.0",
+    "winston": "2.4.2",
     "winston-papertrail": "1.0.5"
   },
   "devDependencies": {

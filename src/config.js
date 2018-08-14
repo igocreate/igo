@@ -76,29 +76,27 @@ module.exports.init = function() {
   };
 
   // logging with timestamp
-  winston.clear();
-  winston.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.splat(),
-      winston.format.simple()
-    ),
-  }));
+  winston.remove(winston.transports.Console);
+  winston.add(winston.transports.Console, {
+    timestamp: true
+  });
+
   if (process.env.PAPERTRAIL_HOST && config.env !== 'test') {
-    winston.add(new winston.transports.Papertrail({
+    winston.add(Papertrail, {
       host:     process.env.PAPERTRAIL_HOST,
-      port:     process.env.PAPERTRAIL_PORT
-    }));
+      port:     process.env.PAPERTRAIL_PORT,
+    });
   }
 
   if (config.env === 'test') {
     config.mysql.database = 'test';
     config.nodemailer     = null;
-    winston.clear();
-    winston.add(new winston.transports.File({
+    winston.remove(winston.transports.Console);
+    winston.add(winston.transports.File, {
       filename: './logs/test.log',
       colorize: true,
       json: false
-    }));
+    });
   }
 
   // load app config
