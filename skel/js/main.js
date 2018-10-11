@@ -1,6 +1,6 @@
 
 
 // css
-require('../scss/styles.scss');
+require('../scss/main.scss');
 
 // js
