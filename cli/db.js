@@ -125,7 +125,7 @@ module.exports = function(argv) {
     });
   } else {
     console.error('ERROR: Wrong options');
-    console.error('Usage: igo db [migrate|reset]')
+    console.error('Usage: igo db [migrate|migrations|reverse|reset]')
   }
 
 

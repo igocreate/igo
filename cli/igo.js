@@ -8,7 +8,8 @@ var args = argv._;
 //
 var actions = {
   create: require('./create.js'),
-  db:     require('./db.js')
+  db:     require('./db.js'),
+  i18n:   require('./i18n.js')
 };
 
 console.log('igo version: ' + require('../package.json').version);
