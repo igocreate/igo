@@ -10,9 +10,8 @@ var config      = {};
 module.exports  = config;
 
 module.exports.init = function() {
-
   if (config.loaded) return;
-
+  
   config.loaded         = true;
   config.env            = process.env.NODE_ENV || 'dev';
   config.httpport       = process.env.HTTP_PORT || 3000;
