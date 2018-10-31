@@ -98,6 +98,7 @@ module.exports.migrate = function(sqldir, callback) {
           }
           var sql = 'INSERT INTO `__db_migrations`(file, success, err, creation) ' + 'VALUES(?, ?, ?, ?)';
           var success = err ? 0 : 1;
+          console.log((success ? '✅ ' : '❌ ') + file.filename);
           err = err ? util.format('%s', err) : null;
           db.query(sql, [file.filename, success, err, new Date()], function() {
             callback(err);
