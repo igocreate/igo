@@ -98,6 +98,11 @@ module.exports = function(schema) {
       return this.list(callback);
     }
 
+    //
+    static select(select) {
+      return new Query(this).select(select);
+    }
+
     // filter
     static where(where, params) {
       return new Query(this).where(where, params);
@@ -116,6 +121,11 @@ module.exports = function(schema) {
     // distinct
     static distinct(columns) {
       return new Query(this).distinct(columns);
+    }
+
+    // group
+    static group(columns) {
+      return new Query(this).group(columns);
     }
 
     // destroy

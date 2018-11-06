@@ -16,17 +16,30 @@ var Sql = function(query) {
 
     if (query.distinct) {
       sql += 'DISTINCT `' + query.distinct.join('`,`') + '` ';
+    } else if (query.select) {
+      sql += query.select + ' ';
     } else {
       sql += '* ';
     }
+    // } else if (!_.isEmpty(query.group)) {
+    //   sql += 'COUNT(*) AS `count`, ' + query.group.join(', ') + ' ';
+    // } else {
+    //   sql += '* ';
+    // }
+
+
     // from
     sql += 'FROM `' + query.table + '` ';
 
     // where
     sql += this.whereSQL(params);
 
+    // group
+    sql += this.groupSQL();
+
     // order by
     sql += this.orderSQL();
+
 
     // limit
     if (query.limit) {
@@ -177,6 +190,16 @@ var Sql = function(query) {
     return sql;
   };
 
+
+  // GROUP BY SQL
+  this.groupSQL = function() {
+    if (_.isEmpty(query.group )) {
+      return '';
+    }
+
+    var sql = 'GROUP BY ' + query.group.join(', ') + ' ';
+    return sql;
+  };
 };
 
 module.exports = Sql;

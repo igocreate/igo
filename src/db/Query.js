@@ -16,10 +16,12 @@ class  Query {
     this.schema     = modelClass.schema;
     this.query      = {
       table:    modelClass.schema.table,
+      select:   '*',
       verb:     verb,
       where:    [],
       order:    [],
       distinct: null,
+      group:    null,
       includes: {},
       options:  {},
       scopes:   [ 'default' ]
@@ -123,6 +125,12 @@ class  Query {
     return this;
   }
 
+  // SELECT
+  select(select) {
+    this.query.select = select;
+    return this;
+  }
+
   // COUNT
   count(callback) {
     this.query.verb   = 'count';
@@ -180,6 +188,12 @@ class  Query {
   // DISTINCT
   distinct(columns) {
     this.query.distinct = _.isArray(columns) ? columns : [ columns ];
+    return this;
+  }
+
+  // GROUP
+  group(columns) {
+    this.query.group = _.castArray(columns);
     return this;
   }
 
@@ -270,7 +284,7 @@ class  Query {
 
       }, function(err) {
         //
-        if (_this.query.distinct) {
+        if (_this.query.distinct || _this.query.group) {
           callback && callback(err, rows);
         } else if (rows && rows.length > 0 && _this.query.limit === 1) {
           var obj = _this.newInstance(rows[0]);

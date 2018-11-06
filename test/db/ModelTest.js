@@ -17,7 +17,8 @@ describe('db.Model', function() {
       'id',
       'code',
       'title',
-      'library_id'
+      'library_id',
+      'created_at'
     ]
   };
 
@@ -211,7 +212,34 @@ describe('db.Model', function() {
         });
       });
     });
+
+    //
+    describe('select', function() {
+      it('should use custom select', function(done) {
+        Book.create({ code: '123', title: 'title' }, function(err, first) {
+          Book.select('title').list(function(err, books) {
+            assert(!err);
+            assert(books[0].title, 'title');
+            assert(!books[0].code);
+            done();
+          });
+        });
+      });
+
+      it('should use custom select', function(done) {
+        Book.create({ code: '123', title: 'title' }, function(err, first) {
+          Book.select('*, YEAR(created_at) AS `year`').list(function(err, books) {
+            const currentYear = new Date().getFullYear();
+            assert(!err);
+            assert(books[0].title, 'title');
+            assert(books[0].year, currentYear);
+            done();
+          });
+        });
+      });
+    });
   });
+
 
   describe('instance operations', function() {
 
@@ -323,6 +351,49 @@ describe('db.Model', function() {
         });
       });
     });
-    
   });
+
+  describe('group', function() {
+    it('should group by code', function(done) {
+      async.timesSeries(10, function(n, next) {
+        Book.create({ code: 'first' }, next);
+      }, function() {
+        async.timesSeries(20, function(n, next) {
+          Book.create({ code: 'second' }, next);
+        }, function() {
+
+          Book.select('COUNT(*) AS `count`, code').group('code').list(function(err, groups) {
+            const firsts  = _.find(groups, {code: 'first'});
+            const seconds = _.find(groups, {code: 'second'});
+            assert.equal(firsts.count, 10);
+            assert.equal(seconds.count, 20);
+            // [{ count: 10, code: 'first' },
+            //  { count: 20, code: 'second' }]
+            done();
+          });
+        });
+      });
+    });
+
+    it('should group by year', function(done) {
+      async.timesSeries(10, function(n, next) {
+        Book.create({ code: 'first' }, next);
+      }, function() {
+        async.timesSeries(20, function(n, next) {
+          Book.create({ code: 'second' }, next);
+        }, function() {
+
+          Book.select('COUNT(*) AS `count`, YEAR(created_at) AS `year`').group('year').list(function(err, groups) {
+            const currentYear = new Date().getFullYear();
+            assert.equal(groups[0].count, 30);
+            assert.equal(groups[0].year, currentYear);
+            //[ { count: 30, year: 2018 } ]
+            done();
+          });
+        });
+      });
+    });
+  });
+
+
 });
