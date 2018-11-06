@@ -71,7 +71,8 @@ const schema = {
     'email',
     'password',
     'first_name',
-    'last_name'
+    'last_name',
+    'created_at'
   ]
 };
 
@@ -324,5 +325,30 @@ User.distinct('first_name').list(function(err, first_names) {
 User.distinct([ 'first_name', 'last_name' ]).list(function(err, first_names) {
   // list all distinct user first and last names combinations
   console.dir(first_names);
+});
+```
+
+### Select
+
+`select()` allow you to customize `SELECT` (set by default to `SELECT *`).
+
+```js
+User.select('id, first_name').list(function(err, users) {
+  // select only id and first_name columns
+  console.dir(users);
+});
+
+User.select('*, YEAR(created_at) AS `year`').list(function(err, users) {
+  // add year (from created_at column) in user
+  console.dir(users);
+});
+```
+
+### Group
+
+```js
+User.select('COUNT(*) AS `count`, YEAR(created_at) AS `year`').group('year').list(function(err, groups) {
+  // return users count by creation year
+  console.dir(groups);
 });
 ```
