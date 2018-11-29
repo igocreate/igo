@@ -1,6 +1,6 @@
 
 
-@import '../node_modules/bootstrap/scss/bootstrap.scss';
+@import '~bootstrap/scss/bootstrap.scss';
 
-$fa-font-path: '~font-awesome/fonts';
-@import "~font-awesome/scss/font-awesome";
+$fa-font-path: '@fortawesome/fontawesome-free/fonts';
+@import "@fortawesome/fontawesome-free/scss/fontawesome.scss";
