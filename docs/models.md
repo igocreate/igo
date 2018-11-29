@@ -209,7 +209,7 @@ To update several objects:
 ```js
 User.where({
   country: 'France'
-}, update({
+}). update({
   language: 'French'
 }, function(err) {
   // Users are updated
