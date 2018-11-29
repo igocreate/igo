@@ -44,8 +44,8 @@ module.exports = {
         }
       }
     }, {
-      test: /\.(png|woff|woff2|eot|ttf|svg|otf)(\?v=\d+\.\d+\.\d+)?$/,
-      use: 'url-loader?limit=100000'
+      test: /\.(png|gif|jpg|jpeg|woff|woff2|eot|ttf|svg|otf)(\?v=\d+\.\d+\.\d+)?$/,
+      use: 'url-loader?limit=8192'
     }]
   },
   // devtool: 'source-map',
