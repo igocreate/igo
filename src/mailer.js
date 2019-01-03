@@ -1,32 +1,26 @@
-'use strict';
 
-var _           = require('lodash');
-var nodemailer  = require('nodemailer');
-var cons        = require('consolidate');
-var i18next     = require('i18next');
-var winston     = require('winston');
-var dust        = require('dustjs-linkedin');
-var dustHelpers = require('dustjs-helpers');
+const cons        = require('consolidate');
+const dust        = require('dustjs-linkedin');
+const i18next     = require('i18next');
+const nodemailer  = require('nodemailer');
 
-var transport   = null, options = null;
+const config    = require('./config');
+const logger    = require('./logger');
+
+let transport   = null, options = null;
 
 //
-module.exports.init = function(config) {
-  options         = config && config.mailer || {};
-  options.subject = options.subject || function(email, data) {
-    return 'emails.' + email + '.subject';
-  };
-  options.template = options.template || function(email, data) {
-    return './views/emails/' + email + '.dust';
-  };
-  transport = nodemailer.createTransport(options.transport);
+module.exports.init = function() {
+  if (config.mailer) {
+    transport = nodemailer.createTransport(config.mailer.transport);
+  }
 };
 
 //
 module.exports.send = function(email, data) {
 
   if (!data || !data.to) {
-    winston.warn('mailer.send: no email for recipient');
+    logger.warn('mailer.send: no email for recipient');
     return;
   }
 
@@ -55,10 +49,10 @@ module.exports.send = function(email, data) {
 
   renderBody(function(err, html) {
     if (err || !html) {
-      winston.error('mailer.send: error - could not render template ' + template);
-      winston.error(err);
+      logger.error('mailer.send: error - could not render template ' + template);
+      logger.error(err);
     } else {
-      winston.info('mailer.send: Sending mail ' + email + ' to ' + data.to + ' in ' + data.lang);
+      logger.info('mailer.send: Sending mail ' + email + ' to ' + data.to + ' in ' + data.lang);
       var headers = {};
       if (options.subaccount) {
         headers['X-MC-Subaccount'] = options.subaccount;
@@ -76,9 +70,9 @@ module.exports.send = function(email, data) {
       };
       transport.sendMail(mailOptions, function(err, res) {
         if (err) {
-          winston.error(err);
+          logger.error(err);
         } else {
-          winston.info('mailer.send: Message ' + email + ' sent: ' + res.response);
+          logger.info('mailer.send: Message ' + email + ' sent: ' + res.response);
         }
       });
     }

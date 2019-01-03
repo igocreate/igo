@@ -1,12 +1,4 @@
 
-
-'use strict';
-
-const _       = require('lodash');
-const winston = require('winston');
-
-
-
 //
 module.exports.list = []
 

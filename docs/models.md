@@ -60,8 +60,6 @@ igo db reset
 ### Basics
 
 ```js
-'use strict';
-
 const Model  = require('igo').Model;
 
 const schema = {

@@ -1,9 +1,7 @@
 
-
-'use strict'
-
-const async       = require('async');
 const _           = require('lodash');
+const async       = require('async');
+
 const fs          = require('fs');
 
 const config      = require('../src/config');

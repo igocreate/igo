@@ -1,5 +1,4 @@
 
-'use strict';
 
 const fs      = require('fs');
 
@@ -39,7 +38,6 @@ module.exports = function(argv) {
       var packagejson = require('../package.json');
       var replacements = {
         '\{igo.version\}':      packagejson.version,
-        '\{igo-dev.version\}':  packagejson.devDependencies['igo-dev'],
         '\{project.name\}':     args[1]
       }
       _.forEach(replacements, function(replacement, regexp) {

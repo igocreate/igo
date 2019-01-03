@@ -1,9 +1,6 @@
-'use strict';
 
-const moment      = require('moment');
 const dust        = require('dustjs-linkedin');
-const dustHelpers = require('dustjs-helpers');
-const i18next     = require('i18next');
+const moment      = require('moment');
 
 const config      = require('../config');
 

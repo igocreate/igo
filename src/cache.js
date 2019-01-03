@@ -1,25 +1,19 @@
-/*
- * cache get, put, getput, del, flushall
- */
 
-'use strict';
-
-const redis       = require('redis');
-const winston     = require('winston');
 const _           = require('lodash');
-const moment      = require('moment');
+const redis       = require('redis');
 
 const cls         = require('./cls');
+const logger      = require('./logger');
 
 let options       = null;
 let redisclient   = null;
 
 const retryStrategy = function(params) {
   if (params.error.code === 'ECONNREFUSED') {
-    winston.error('Redis connection refused on host ' + options.host + ':' + options.port);
+    logger.error('Redis connection refused on host ' + options.host + ':' + options.port);
     return params.error;
   }
-  winston.error('Redis error ' + params.error);
+  logger.error('Redis error ' + params.error);
   // retry in n seconds
   return params.attempt * 1000;
 };
@@ -62,7 +56,7 @@ module.exports.init = function(config) {
   }
   redisclient.select(options.database || 0);
   redisclient.on('error', function (err) {
-    // winston.error('' + err);
+    // logger.error('' + err);
   });
 
   if (config.env !== 'production' && options.flushonrestart !== false) {
@@ -145,7 +139,7 @@ module.exports.del = function(namespace, id, callback) {
 //
 module.exports.flushall = function(callback) {
   redisclient.flushall(cls.bind(callback));
-  winston.info('Cache flush');
+  logger.info('Cache flush');
 };
 
 

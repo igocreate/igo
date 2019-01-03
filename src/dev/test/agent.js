@@ -1,16 +1,14 @@
 
 
-'use strict';
+const _       = require('lodash');
 
-var url     = require('url');
-var _       = require('lodash');
+const url     = require('url');
 
-
-var app     = require('../../app');
+const app     = require('../../app');
 
 //
-var mockRequest = function(options) {
-  var req = {};
+const mockRequest = function(options) {
+  const req = {};
 
   req.method      = options.method || 'GET';
   req.url         = options.url;
@@ -32,10 +30,9 @@ var mockRequest = function(options) {
 };
 
 //
-var mockResponse = function(callback, req) {
-  var headersSent = false;
+const mockResponse = function(callback, req) {
 
-  var res = {
+  const res = {
     headers: {},
     _headers: {},
     _headerNames: {},
@@ -69,8 +66,8 @@ var mockResponse = function(callback, req) {
 //
 module.exports.send = function(url, options, callback) {
   options.url = url;
-  var req = mockRequest(options);
-  var res = mockResponse(callback, req);
+  const req = mockRequest(options);
+  const res = mockResponse(callback, req);
 
   app.handle(req, res);
 };

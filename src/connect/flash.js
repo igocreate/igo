@@ -1,9 +1,7 @@
 
-'use strict';
-
+const _         = require('lodash');
 const async     = require('async');
 const uuidV4    = require('uuid/v4');
-const _         = require('lodash');
 
 const cache     = require('../cache');
 

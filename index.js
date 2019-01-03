@@ -1,6 +1,4 @@
 
-'use strict';
-
 const igo = {
   cache:    require('./src/cache'),
   cls:      require('./src/cls'),
@@ -9,10 +7,9 @@ const igo = {
   express:  require('express'),
   i18next:  require('i18next'),
   render:   require('consolidate').dust,
-  logger:   require('winston'),
+  logger:   require('./src/logger'),
   mailer:   require('./src/mailer'),
   Model:    require('./src/db/Model'),
-  Admin:    require('./src/admin/Admin'),
   app:      require('./src/app')
 };
 

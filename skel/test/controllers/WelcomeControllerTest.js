@@ -1,6 +1,4 @@
 
-'use strict';
-
 require('igo').dev.test();
 
 const assert = require('assert');

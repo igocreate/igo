@@ -1,12 +1,12 @@
 
 
-var assert    = require('assert');
-var _         = require('lodash');
+require('../src/dev/test/init');
 
 
-var cache     = require('../src/cache');
+const assert    = require('assert');
+const _         = require('lodash');
 
-cache.init();
+const cache     = require('../src/cache');
 
 describe('igo.cache', function() {
 

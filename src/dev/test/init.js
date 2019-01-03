@@ -5,6 +5,7 @@ const db          = require('../../db/db');
 const migrations  = require('../../db/migrations');
 const cache       = require('../../cache');
 const config      = require('../../config');
+const logger      = require('../../logger');
 const cls         = require('../../cls');
 const app         = require('../../app');
 const plugins     = require('../../plugins');
@@ -13,9 +14,9 @@ var context;
 
 //
 var reinitDatabase = function(callback) {
-  var database = config.mysql.database;
+  const database = config.mysql.database;
   config.mysql.database = null;
-  db.init(config);
+  db.init();
 
   var DROP_DATABASE   = 'DROP DATABASE IF EXISTS `' + database + '`;';
   var CREATE_DATABASE = 'CREATE DATABASE `' + database + '`;';
@@ -25,7 +26,7 @@ var reinitDatabase = function(callback) {
       config.mysql.database = database;
       db.init(config);
       migrations.migrate(function() {
-        console.log('igo.dev: reinitialized test database');
+        logger.info('Igo dev: reinitialized test database');
         callback();
       });
     });
@@ -43,7 +44,7 @@ before(function(done) {
 
 // begin transaction before each test
 beforeEach(function(done) {
-  var _this = this;
+  const _this = this;
   cls.getNamespace().run(function() {
     _this.currentTest.fn = cls.bind(_this.currentTest.fn);
     context = cls.getNamespace().active;

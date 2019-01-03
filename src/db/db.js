@@ -1,30 +1,24 @@
-'use strict';
+const _             = require('lodash');
+const mysql         = require('mysql');
 
-var mysql         = require('mysql');
-var util          = require('util');
-var async         = require('async');
-var winston       = require('winston');
-var _             = require('lodash');
-
-var cls           = require('../cls');
-var config        = require('../config');
-
-var pool          = null;
+const cls           = require('../cls');
+const config        = require('../config');
+const logger       = require('../logger');
 
 //
 const migrations = require('./migrations');
 
-const db = module.exports = {};
+let pool          = null;
 
 //
-db.init = function() {
+module.exports.init = function() {
   pool = mysql.createPool(config.mysql);
-  migrations.init(db);
+  migrations.init(module.exports);
 };
 
 // migrations functions
-db.migrations = migrations.list;
-db.migrate    = migrations.migrate;
+module.exports.migrations = migrations.list;
+module.exports.migrate    = migrations.migrate;
 
 
 //
@@ -39,7 +33,7 @@ var getConnection = function(callback) {
 };
 
 //
-db.query = function(sql, params, options, callback) {
+module.exports.query = function(sql, params, options, callback) {
   var runquery;
 
   params  = params  || [];
@@ -58,19 +52,19 @@ db.query = function(sql, params, options, callback) {
     getConnection(function(err, connection, keep) {
       if (err) {
         console.log(err);
-        winston.error(err);
+        logger.error(err);
         return callback(err);
       }
       connection.query(sql, params, cls.bind(function(err, rows) {
 
         if (config.mysql.debugsql || (err && !options.silent)) {
-          winston.info('Db.query: ' + sql);
+          logger.info('Db.query: ' + sql);
           if (params && params.length > 0) {
-            winston.info('With params: ' + params);
+            logger.info('With params: ' + params);
           }
           if (err && !options.silent) {
             console.log(err);
-            winston.error(err);
+            logger.error(err);
           }
         }
         if (callback) {
@@ -86,10 +80,10 @@ db.query = function(sql, params, options, callback) {
   if (pool) {
     runquery();
   } else {
-    winston.info('Db.query: Trying to reinitialize db connection pool');
-    db.init();
+    logger.info('Db.query: Trying to reinitialize db connection pool');
+    module.exports.init();
     if (!pool) {
-      winston.error('could not create db connection pool');
+      logger.error('could not create db connection pool');
       callback('dberror: could not create db connection pool');
     } else {
       runquery();
@@ -98,8 +92,8 @@ db.query = function(sql, params, options, callback) {
 };
 
 //
-db.queryOne = function(sql, params, options, callback) {
-  // console.log('db.queryOne will be deprecated.');
+module.exports.queryOne = function(sql, params, options, callback) {
+  // console.log('module.exports.queryOne will be deprecated.');
   params  = params  || [];
   options = options || {};
   if (_.isFunction(params)) {
@@ -111,7 +105,7 @@ db.queryOne = function(sql, params, options, callback) {
     callback  = options;
     options   = {};
   }
-  return db.query(sql, params, function(err, results) {
+  return module.exports.query(sql, params, function(err, results) {
     if (results && results.length > 0 && callback) {
       return callback(null, results[0]);
     } else if (callback) {
@@ -121,15 +115,15 @@ db.queryOne = function(sql, params, options, callback) {
 };
 
 //
-db.beginTransaction = function(callback) {
+module.exports.beginTransaction = function(callback) {
   getConnection(function(err, connection) {
     if (err) {
-      winston.error(err);
+      logger.error(err);
       return callback(err, connection);
     }
     connection.beginTransaction(cls.bind(function(err) {
       if (err) {
-        winston.error(err);
+        logger.error(err);
       } else {
         cls.getNamespace().set('connection', connection);
       }
@@ -139,15 +133,15 @@ db.beginTransaction = function(callback) {
 };
 
 //
-db.commitTransaction = function(callback) {
+module.exports.commitTransaction = function(callback) {
   getConnection(function(err, connection) {
     if (err) {
-      winston.error(err);
+      logger.error(err);
       return callback(err, connection);
     }
     connection.commit(cls.bind(function(err) {
       if (err) {
-        winston.error(err);
+        logger.error(err);
       } else {
         connection.release();
         cls.getNamespace().set('connection', null);
@@ -158,15 +152,15 @@ db.commitTransaction = function(callback) {
 };
 
 //
-db.rollbackTransaction = function(callback) {
+module.exports.rollbackTransaction = function(callback) {
   getConnection(function(err, connection) {
     if (err) {
-      winston.error(err);
+      logger.error(err);
       return callback(err, connection);
     }
     connection.rollback(cls.bind(function(err) {
       if (err) {
-        winston.error(err);
+        logger.error(err);
       } else {
         connection.release();
         cls.getNamespace().set('connection', null);

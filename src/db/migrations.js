@@ -1,15 +1,13 @@
-'use strict';
-
-
-const util    = require('util');
-const fs      = require('fs');
-const path    = require('path');
 
 const _       = require('lodash');
 const async   = require('async');
-const winston = require('winston');
+
+const fs      = require('fs');
+const path    = require('path');
+const util    = require('util');
 
 const config  = require('../config');
+const logger  = require('../logger');
 const plugins = require('../plugins');
 
 let db;
@@ -52,7 +50,7 @@ module.exports.migrate = function(sqldir, callback) {
     } else if (line.match('\\;$')) {
       querybuf += line;
       if (config.mysql.debugsql) {
-        winston.info(querybuf);
+        logger.info(querybuf);
       }
       db.query(querybuf, callback);
       querybuf = '';
@@ -82,7 +80,7 @@ module.exports.migrate = function(sqldir, callback) {
       }, function(callback) {
         return fs.readFile(file.path, function(err, data) {
           if (err || !data) {
-            winston.error(err);
+            logger.error(err);
             return callback('could not read ' + file.path);
           }
           return callback(null, data);
@@ -90,15 +88,15 @@ module.exports.migrate = function(sqldir, callback) {
       }, function(data, callback) {
         var lines = data.toString().split('\n');
         if (config.mysql.debugsql) {
-          winston.info('Executing ' + file.path + ': ' + lines.length + ' lines to process');
+          logger.info('Executing ' + file.path + ': ' + lines.length + ' lines to process');
         }
         async.eachSeries(lines, executeLine, function(err) {
           if (err) {
-            winston.error('SQL error in file %s', file.path);
+            logger.error('SQL error in file %s', file.path);
           }
           var sql = 'INSERT INTO `__db_migrations`(file, success, err, creation) ' + 'VALUES(?, ?, ?, ?)';
           var success = err ? 0 : 1;
-          console.log((success ? '✅ ' : '❌ ') + file.filename);
+          logger.info((success ? '✅ ' : '❌ ') + file.filename);
           err = err ? util.format('%s', err) : null;
           db.query(sql, [file.filename, success, err, new Date()], function() {
             callback(err);

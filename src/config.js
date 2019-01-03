@@ -1,18 +1,19 @@
-'use strict';
-
-var _           = require('lodash');
-var winston     = require('winston');
-var Papertrail  = require('winston-papertrail').Papertrail;
 
 require('dotenv').config({silent: true});
 
-var config      = {};
+
+const config      = {};
+
+//
 module.exports  = config;
 
+//
 module.exports.init = function() {
-  if (config.loaded) return;
-  
-  config.loaded         = true;
+  if (config._loaded) {
+    return;
+  }
+
+  config._loaded         = true;
   config.env            = process.env.NODE_ENV || 'dev';
   config.httpport       = process.env.HTTP_PORT || 3000;
 
@@ -54,7 +55,9 @@ module.exports.init = function() {
     support: {
       email: null
     },
-    defaultfrom: ''
+    defaultfrom: '',
+    subject:  (email, data) => `emails.${email}.subject`,
+    template: (email, data) => `./views/emails/${email}.dust`
   };
 
   config.mysql = {
@@ -74,28 +77,10 @@ module.exports.init = function() {
     database: process.env.REDIS_DATABASE  || 0
   };
 
-  // logging with timestamp
-  winston.remove(winston.transports.Console);
-  winston.add(winston.transports.Console, {
-    timestamp: true
-  });
-
-  if (process.env.PAPERTRAIL_HOST && config.env !== 'test') {
-    winston.add(Papertrail, {
-      host:     process.env.PAPERTRAIL_HOST,
-      port:     process.env.PAPERTRAIL_PORT,
-    });
-  }
-
+  //
   if (config.env === 'test') {
     config.mysql.database = 'test';
-    config.nodemailer     = null;
-    winston.remove(winston.transports.Console);
-    winston.add(winston.transports.File, {
-      filename: './logs/test.log',
-      colorize: true,
-      json: false
-    });
+    config.mailer         = null;
   }
 
   // load app config
@@ -107,10 +92,8 @@ module.exports.init = function() {
     try {
       require(process.cwd() + file).init(config);
     } catch (err) {
-      winston.error(err);
+      console.error(err);
     }
   });
 
-  winston.info('Config loaded env: ' + config.env);
-  // console.dir(config);
 };

@@ -1,8 +1,5 @@
-'use strict';
 
-var async   = require('async');
-var _       = require('lodash');
-var winston = require('winston');
+const _       = require('lodash');
 
 
 //
@@ -10,9 +7,9 @@ var Sql = function(query) {
 
   // SELECT SQL
   this.selectSQL = function() {
-    // select
-    var sql = 'SELECT ';
-    var params = [];
+
+    let sql       = 'SELECT ';
+    const params  = [];
 
     if (query.distinct) {
       sql += 'DISTINCT `' + query.distinct.join('`,`') + '` ';
@@ -26,7 +23,6 @@ var Sql = function(query) {
     // } else {
     //   sql += '* ';
     // }
-
 
     // from
     sql += 'FROM `' + query.table + '` ';

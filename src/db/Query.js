@@ -1,12 +1,9 @@
 
-'use strict';
+const _       = require('lodash');
+const async   = require('async');
 
-var async   = require('async');
-var _       = require('lodash');
-var winston = require('winston');
-
-var Sql     = require('./Sql');
-var db      = require('./db');
+const Sql     = require('./Sql');
+const db      = require('./db');
 
 
 class  Query {
@@ -234,7 +231,6 @@ class  Query {
     db.query(sqlQuery.sql, sqlQuery.params, _this.query.options, function(err, rows) {
       if (err) {
         // console.log(err);
-        // winston.error(err);
         return callback && callback(err);
       }
 

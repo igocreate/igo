@@ -1,9 +1,8 @@
-'use strict';
 
 const domain  = require('domain');
-const winston = require('winston');
 
 const config  = require('../config');
+const logger  = require('../logger');
 const mailer  = require('../mailer');
 
 //
@@ -45,8 +44,8 @@ const handle = function(err, req, res) {
     return res.status(404).render('errors/404');
   }
 
-  winston.error(req.method + ' ' + getURL(req) + ' : ' + err);
-  winston.error(err.stack);
+  logger.error(req.method + ' ' + getURL(req) + ' : ' + err);
+  logger.error(err.stack);
 
   if (!res._headerSent) {
     // show error

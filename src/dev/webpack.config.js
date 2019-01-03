@@ -6,9 +6,7 @@ const webpack = require('webpack');
 
 // plugins
 const CleanWebpackPlugin    = require('clean-webpack-plugin');
-const AutoCleanBuildPlugin  = require('webpack-auto-clean-build-plugin');
-const ExtractTextPlugin     = require('extract-text-webpack-plugin');
-const WebpackChunkHash      = require('webpack-chunk-hash');
+const MiniCssExtractPlugin  = require('mini-css-extract-plugin');
 const AssetsWebpackPlugin   = require('assets-webpack-plugin');
 
 //
@@ -18,29 +16,33 @@ module.exports = {
     vendor: './js/vendor.js'
   },
   output: {
-    filename: '[name]-[chunkhash].js',
+    filename: '[name]-[hash].js',
     path:     process.cwd() + '/public/dist'
   },
   module: {
     rules: [{
       test: /\.scss$/,
       exclude: /node_modules/,
-      use: ExtractTextPlugin.extract({
-        use: ['css-loader', 'sass-loader']
-      })
+      use: [
+        MiniCssExtractPlugin.loader,
+        'css-loader',
+        'sass-loader'
+      ]
     }, {
       test: /\.less$/,
       exclude: /node_modules/,
-      use: ExtractTextPlugin.extract({
-        use: ['css-loader', 'less-loader']
-      })
+      use: [
+        MiniCssExtractPlugin.loader,
+        'css-loader',
+        'less-loader'
+      ]
     }, {
       test: /\.(js|jsx)$/,
       exclude: /node_modules/,
       use: {
         loader: 'babel-loader',
         options: {
-          presets: ['react', 'env']
+          presets: ['@babel/preset-env', '@babel/preset-react']
         }
       }
     }, {
@@ -48,27 +50,16 @@ module.exports = {
       use: 'url-loader?limit=8192'
     }]
   },
-  // devtool: 'source-map',
   plugins: [
-    // webpack 3 scope hoisting
-    new webpack.optimize.ModuleConcatenationPlugin(),
     // clean dist folder before building
     new CleanWebpackPlugin(['public/dist'], {
-      root: process.cwd(),
-      verbose: true,
-      dry: false
+      root:     process.cwd(),
+      watch:    true
     }),
-    // remove old assets after each build
-    new AutoCleanBuildPlugin(),
-    //
-    new ExtractTextPlugin({
-      filename:   '[name]-[chunkhash].css',
-      disable:    false,
-      allChunks:  true
-    }),
-    // Plugin to replace a standard webpack chunk hashing with custom (md5) one.
-    new WebpackChunkHash({
-      algorithm: 'md5'
+    // extract css
+    new MiniCssExtractPlugin({
+      filename:       '[name]-[hash].css',
+      chunkFilename:  '[id]-[hash].css'
     }),
     // save stats
     new AssetsWebpackPlugin({
