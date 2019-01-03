@@ -1,4 +1,5 @@
 
+
 const _                 = require('lodash');
 const bodyParser        = require('body-parser');
 const compression       = require('compression');
@@ -22,7 +23,6 @@ const logger            = require('./logger');
 const mailer            = require('./mailer');
 const multipart         = require('./connect/multipart');
 const plugins           = require('./plugins');
-const routes            = require('./routes');
 
 
 //
@@ -81,6 +81,8 @@ module.exports.configure = function() {
   app.use(i18nMiddleware.handle(i18next));
   app.use(helpers);
 
+  // load routes
+  const routes = require('./routes');
   routes.init(app);
 
   if (config.env !== 'test') {

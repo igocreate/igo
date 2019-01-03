@@ -2,13 +2,13 @@
 require('dotenv').config({silent: true});
 
 
-const config      = {};
-
 //
+const config    = {};
 module.exports  = config;
 
 //
 module.exports.init = function() {
+
   if (config._loaded) {
     return;
   }
