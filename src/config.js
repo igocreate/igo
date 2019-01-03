@@ -49,15 +49,10 @@ module.exports.init = function() {
       auth: {
         user: null,
         pass: null
-      },
-      subaccount: null
-    },
-    support: {
-      email: null
+      }
     },
     defaultfrom: '',
-    subject:  (email, data) => `emails.${email}.subject`,
-    template: (email, data) => `./views/emails/${email}.dust`
+    subaccount: null
   };
 
   config.mysql = {
