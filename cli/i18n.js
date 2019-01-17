@@ -31,7 +31,9 @@ const verbs   = {
         const key = _.get(entry, 'gsx$key.$t');
         config.i18n.whitelist.forEach((lang) => {
           const value = _.get(entry, 'gsx$' + lang + '.$t');
-          _.setWith(translations, lang + '.' + key, value, Object);
+          if (value) {
+            _.setWith(translations, lang + '.' + key, value, Object);
+          }
         });
 
       });
