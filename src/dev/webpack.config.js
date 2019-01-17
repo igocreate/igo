@@ -53,8 +53,7 @@ module.exports = {
   plugins: [
     // clean dist folder before building
     new CleanWebpackPlugin(['public/dist'], {
-      root:     process.cwd(),
-      watch:    true
+      root:   process.cwd()
     }),
     // extract css
     new MiniCssExtractPlugin({
