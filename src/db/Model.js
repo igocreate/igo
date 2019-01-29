@@ -112,6 +112,11 @@ module.exports = function(schema) {
       return new Query(this).limit(offset, limit);
     }
 
+    // page
+    static page(page, nb) {
+      return new Query(this).page(page, nb);
+    }
+
     // order
     static order(order) {
       return new Query(this).order(order);

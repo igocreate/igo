@@ -6,7 +6,7 @@ const Sql     = require('./Sql');
 const db      = require('./db');
 
 
-class  Query {
+class Query {
 
   constructor(modelClass, verb = 'select') {
     this.modelClass = modelClass;
@@ -104,6 +104,14 @@ class  Query {
     return this;
   };
 
+  // PAGE
+  page(page, nb) {
+    this.query.page   = parseInt(page, 10) || 1;
+    this.query.page   = Math.max(1, this.query.page);
+    this.query.nb     = parseInt(nb, 10) || 25;
+    return this;
+  };
+
   // SCOPE
   scope(scope) {
     this.query.scopes.push(scope);
@@ -130,9 +138,12 @@ class  Query {
 
   // COUNT
   count(callback) {
-    this.query.verb   = 'count';
-    this.query.limit  = 1;
-    this.execute(function(err, row) {
+    const countQuery = _.cloneDeep(this);
+    countQuery.query.verb   = 'count';
+    countQuery.query.limit  = 1;
+    delete countQuery.query.page;
+    delete countQuery.query.nb;
+    countQuery.execute(function(err, row) {
       callback(err, row && row.count);
     });
     return this;
@@ -210,8 +221,85 @@ class  Query {
   }
 
   //
+  paginate(callback) {
+    if (!this.query.page) {
+      return callback();
+    }
+    this.count((err, count) => {
+      const nb_pages  = Math.ceil(count / this.query.nb);
+      this.query.page = Math.min(this.query.page, nb_pages);
+      this.query.offset = (this.query.page - 1) * this.query.nb;
+      this.query.limit  = this.query.nb;
+
+      const links = [];
+      const page  = this.query.page;
+      const start = Math.max(1, page - 5);
+      for (let i = 0; i < 10; i++) {
+        const p = start + i;
+        if (p <= nb_pages) {
+          links.push({ page: p, current: page === p });
+        }
+      }
+      callback(err, {
+        page:     this.query.page,
+        nb:       this.query.nb,
+        previous: page > 1 ? page - 1 : null,
+        next:     page < nb_pages ? page + 1 : null,
+        nb_pages,
+        count,
+        links,
+      });
+    });
+  }
+
+  //
+  loadAssociation(include, rows, callback) {
+    const association = _.find(this.schema.associations, function(association) {
+      return association[1] === include;
+    });
+    if (!association) {
+      throw new Error('Missing association \'' + include + '\' on \'' + this.schema.table + '\' schema.');
+    }
+
+    const type        = association[0];
+    const attr        = association[1];
+    const Obj         = association[2];
+    const column      = association[3] || attr + '_id';
+    const ref_column  = association[4] || 'id';
+    const extraWhere  = association[5];
+
+    const ids         = _.chain(rows).map(column).uniq().compact().value();
+    if (ids.length === 0) {
+      return callback();
+    }
+    const where = {};
+    where[ref_column] = ids;
+    const subincludes = this.query.includes[include];
+    const query = Obj.includes(subincludes).where(where);
+    if (extraWhere) {
+      query.where(extraWhere);
+    }
+    query.list((err, objs) => {
+      const objsByKey = {};
+      _.forEach(objs, (obj) => {
+        const key = obj[ref_column];
+        if (type === 'has_many') {
+          objsByKey[key] = objsByKey[key] || [];
+          objsByKey[key].push(obj);
+        } else {
+          objsByKey[key] = obj;
+        }
+      });
+      const defaultValue = (type === 'has_many' ? [] : null);
+      rows.forEach((row) => row[attr] = objsByKey[row[column]] || defaultValue)
+      callback();
+    });
+  }
+
+
+  //
   execute(callback) {
-    var _this = this;
+    const _this = this;
 
     if (this.schema.scopes) {
       _this.applyScopes();
@@ -226,75 +314,36 @@ class  Query {
       });
     }
 
-    var sqlQuery = _this.toSQL();
 
-    db.query(sqlQuery.sql, sqlQuery.params, _this.query.options, function(err, rows) {
-      if (err) {
-        // console.log(err);
-        return callback && callback(err);
-      }
+    _this.paginate(function(err, pagination) {
 
-      async.eachSeries(_.keys(_this.query.includes), function(include, callback) {
-        var association = _.find(_this.schema.associations, function(association) {
-          return association[1] === include;
-        });
-        if (!association) {
-          throw new Error('Missing association \'' + include + '\' on \'' + _this.schema.table + '\' schema.');
+      const sqlQuery = _this.toSQL();
+      db.query(sqlQuery.sql, sqlQuery.params, _this.query.options, function(err, rows) {
+        if (err) {
+          // console.log(err);
+          return callback && callback(err);
         }
 
-        var type        = association[0];
-        var attr        = association[1];
-        var Obj         = association[2];
-        var column      = association[3] || attr + '_id';
-        var ref_column  = association[4] || 'id';
-        var extraWhere  = association[5];
-
-        var ids         = _.chain(rows).map(column).uniq().compact().value();
-        if (ids.length === 0) {
-          return callback();
-        }
-        var where = {};
-        where[ref_column] = ids;
-        var subincludes = _this.query.includes[include];
-        var query = Obj.includes(subincludes).where(where);
-        if (extraWhere) {
-          query.where(extraWhere);
-        }
-        query.list(function(err, objs) {
-          var objsByKey = {};
-          _.forEach(objs, function(obj) {
-            var key = obj[ref_column];
-            if (type === 'has_many') {
-              objsByKey[key] = objsByKey[key] || [];
-              objsByKey[key].push(obj);
-            } else {
-              objsByKey[key] = obj;
-            }
-          });
-          var defaultValue = (type === 'has_many' ? [] : null);
-          rows.forEach(function(row) {
-            row[attr] = objsByKey[row[column]] || defaultValue;
-          });
-          callback();
-        });
-
-      }, function(err) {
-        //
-        if (_this.query.distinct || _this.query.group) {
+        async.eachSeries(_.keys(_this.query.includes), function(include, callback) {
+          _this.loadAssociation(include, rows, callback);
+        }, function(err) {
+          //
+          if (_this.query.distinct || _this.query.group) {
+            return callback && callback(err, rows);
+          } else if (rows && rows.length > 0 && _this.query.limit === 1) {
+            return callback && callback(err, _this.newInstance(rows[0]));
+          } else if (_this.query.limit === 1) {
+            return callback && callback(err, null);
+          } else if (_this.query.verb === 'select') {
+            rows = _.map(rows, function(row, callback) {
+              return _this.newInstance(row);
+            });
+          }
+          if (pagination) {
+            return callback && callback(err, { pagination, rows })
+          }
           callback && callback(err, rows);
-        } else if (rows && rows.length > 0 && _this.query.limit === 1) {
-          var obj = _this.newInstance(rows[0]);
-          callback && callback(err, obj);
-        } else if (_this.query.limit === 1) {
-          callback && callback(err, null);
-        } else if (_this.query.verb === 'select') {
-          const objs = _.map(rows, function(row, callback) {
-            return _this.newInstance(row);
-          });
-          callback && callback(err, objs);
-        } else {
-          callback && callback(err, rows);
-        }
+        });
       });
     });
   }
