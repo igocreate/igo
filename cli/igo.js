@@ -2,11 +2,14 @@
 
 global.IGO_CLI = true;
 
-var argv = require('minimist')(process.argv.slice(2));
-var args = argv._;
+const argv = require('minimist')(process.argv.slice(2));
+const args = argv._;
+
+const logger = require('../src/logger');
+logger.init();
 
 //
-var actions = {
+const actions = {
   create: require('./create.js'),
   db:     require('./db.js'),
   i18n:   require('./i18n.js')
