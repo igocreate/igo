@@ -228,6 +228,7 @@ class Query {
     this.count((err, count) => {
       const nb_pages  = Math.ceil(count / this.query.nb);
       this.query.page = Math.min(this.query.page, nb_pages);
+      this.query.page = Math.max(this.query.page, 1);
       this.query.offset = (this.query.page - 1) * this.query.nb;
       this.query.limit  = this.query.nb;
 
