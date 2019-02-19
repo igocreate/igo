@@ -59,9 +59,5 @@ dust.helpers.dateformat = function(chunk, context, bodies, params) {
 
 
 // load custom helpers
-try {
-  const helpers = require(process.cwd() + '/app/helpers');
-  helpers.init(dust);
-} catch(err) {
-  // ignore
-}
+const helpers = require(process.cwd() + '/app/helpers');
+helpers.init(dust);
