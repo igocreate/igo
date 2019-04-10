@@ -257,8 +257,8 @@ User.where({first_name: 'Jim'}).destroy(function(err) {
 ### List
 
 ```js
-User.list(id, function(err, users) {
-  console.log('user was deleted.')
+User.list(function(err, users) {
+  // users is an array of User objects
 });
 ```
 
