@@ -236,9 +236,9 @@ User.destroy(id, function(err) {
 
 ```js
 User.find(id, function(err, user) {
-  user.destroy(function(err) (
+  user.destroy(function(err) {
     // user was deleted
-  ));
+  });
 });
 ```
 
