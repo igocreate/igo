@@ -52,9 +52,7 @@ module.exports = {
   },
   plugins: [
     // clean dist folder before building
-    new CleanWebpackPlugin(['public/dist'], {
-      root:   process.cwd()
-    }),
+    new CleanWebpackPlugin(),
     // extract css
     new MiniCssExtractPlugin({
       filename:       '[name]-[hash].css',
