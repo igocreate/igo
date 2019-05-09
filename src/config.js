@@ -61,6 +61,7 @@ module.exports.init = function() {
     user     : process.env.MYSQL_USERNAME || 'root',
     password : process.env.MYSQL_PASSWORD || '',
     database : process.env.MYSQL_DATABASE || 'igo',
+    charset  : process.env.MYSQL_CHARSET  || 'utf8mb4',
     debug    : false,
     connectionLimit : 5,
     debugsql : false
