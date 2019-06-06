@@ -326,24 +326,27 @@ class Query {
           // console.log(err);
           return callback && callback(err);
         }
+        if (!callback) {
+          return;
+        }
 
         async.eachSeries(_.keys(_this.query.includes), (include, callback) => {
           _this.loadAssociation(include, rows, callback);
         }, (err) => {
           //
           if (_this.query.distinct || _this.query.group) {
-            return callback && callback(err, rows);
+            return callback(err, rows);
           } else if (rows && rows.length > 0 && _this.query.limit === 1) {
-            return callback && callback(err, _this.newInstance(rows[0]));
+            return callback(err, _this.newInstance(rows[0]));
           } else if (_this.query.limit === 1) {
-            return callback && callback(err, null);
+            return callback(err, null);
           } else if (_this.query.verb === 'select') {
             rows = _.map(rows, row => _this.newInstance(row))
           }
           if (pagination) {
-            return callback && callback(err, { pagination, rows })
+            return callback(err, { pagination, rows })
           }
-          callback && callback(err, rows);
+          callback(err, rows);
         });
       });
     });

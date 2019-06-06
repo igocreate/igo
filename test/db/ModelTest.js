@@ -429,6 +429,15 @@ describe('db.Model', function() {
         });
       });
     });
+
+    it('should parsejson on reload', function(done) {
+      Book.create({ details }, (err, book) => {
+        book.reload((err, book) => {
+          assert.equal(book.details.a, 'hello');
+          done();
+        });
+      });
+    });
   });
 
   describe('bool columns', function() {

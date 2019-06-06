@@ -19,7 +19,7 @@ module.exports = function(schema) {
 
     // returns object with primary keys
     primaryObject() {
-      return _.pick(this, schema.primary);
+      return _.pick(this, this.constructor.schema.primary);
     }
 
     // update
@@ -84,6 +84,8 @@ module.exports = function(schema) {
       });
       obj.created_at = obj.created_at || now;
       obj.updated_at = obj.updated_at || now;
+      //console.log('create: ');
+      //console.dir(obj);
       obj.beforeCreate(function() {
         return new Query(_this, 'insert').unscoped().values(obj).options(options).execute(function(err, result) {
           if (err) {
