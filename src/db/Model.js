@@ -5,13 +5,16 @@ const _         = require('lodash');
 const Query     = require('./Query');
 const Schema    = require('./Schema');
 
+const utils     = require('../utils');
+
+
 // Simple mixin implementation to set the schema as a static attribute
 module.exports = function(schema) {
 
-  class Model  {
+  class Model {
 
     constructor(values) {
-      if (values) _.assign(this, values);
+      _.assign(this, values);
     }
 
     // returns object with primary keys
@@ -23,6 +26,16 @@ module.exports = function(schema) {
     update(values, callback) {
       var _this = this;
       values.updated_at = new Date();
+      _.each(this.constructor.schema.json_columns, (json_column) => {
+        if (values[json_column] !== undefined) {
+          values[json_column + '_json'] = utils.toJSON(values[json_column]);
+        }
+      });
+      _.each(this.constructor.schema.bool_columns, (bool_column) => {
+        if (values[bool_column] !== undefined) {
+          values[bool_column] = !!values[bool_column];
+        }
+      });
       _.assign(_this, values);
       this.beforeUpdate(values, function() {
         new Query(_this.constructor, 'update').unscoped().values(values).where(_this.primaryObject()).execute(function(err, result) {
@@ -60,9 +73,15 @@ module.exports = function(schema) {
       }
       const now = new Date();
       const obj = new this(values);
-      if (schema.subclasses && !obj[schema.subclass_column]) {
-        obj[schema.subclass_column] = _.findKey(schema.subclasses, { name: this.name });
+      if (this.schema.subclasses && !obj[this.schema.subclass_column]) {
+        obj[this.schema.subclass_column] = _.findKey(this.schema.subclasses, { name: this.name });
       }
+      _.each(this.schema.json_columns, (json_column) => {
+        obj[json_column + '_json'] = utils.toJSON(obj[json_column]);
+      });
+      _.each(this.schema.bool_columns, (bool_column) => {
+        obj[bool_column] = !!obj[bool_column];
+      });
       obj.created_at = obj.created_at || now;
       obj.updated_at = obj.updated_at || now;
       obj.beforeCreate(function() {
@@ -162,15 +181,9 @@ module.exports = function(schema) {
       return new Query(this).scope(scope);
     }
 
-    // schema static attribute
-    static use(schema) {
-      this.schema = Schema.verify(schema);
-    }
   }
 
-  if (schema) {
-    Model.use(schema);
-  }
+  Model.schema = new Schema(schema);
 
   return Model;
 }

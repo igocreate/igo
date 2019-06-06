@@ -9,7 +9,7 @@ const async     = require('async');
 var Model     = require('../../src/db/Model');
 
 describe('db.Model', function() {
-  
+
   var schema = {
     table:    'books',
     primary: ['id'],
@@ -17,14 +17,16 @@ describe('db.Model', function() {
       'id',
       'code',
       'title',
+      'details_json',
+      'is_available',
       'library_id',
       'created_at'
     ]
   };
 
-  class Book extends Model(schema) {}
+  class Book extends Model(schema) {};
 
-  describe('standard operations', function() {
+  describe('standard crud operations', function() {
 
     //
     describe('insert', function() {
@@ -284,7 +286,11 @@ describe('db.Model', function() {
       columns: [
         'id',
         'code',
-        'title'
+        'title',
+        'details_json',
+        'is_available',
+        'library_id',
+        'created_at'
       ],
       scopes: {
         default:  query => query.where({ code: 'abc' }),
@@ -331,11 +337,13 @@ describe('db.Model', function() {
         'id',
         'title'
       ],
-      associations: [
-        ['has_many', 'books', Book, 'id', 'library_id'],
-      ]
+      associations: () => {
+        return [
+          ['has_many', 'books', Book, 'id', 'library_id'],
+        ];
+      }
     };
-  
+
     class Library extends Model(schema) {}
 
 
@@ -391,6 +399,49 @@ describe('db.Model', function() {
             done();
           });
         });
+      });
+    });
+  });
+
+
+  describe('json columns', function() {
+
+    const details = { a: 'hello', b: 'world', c: { d: '!' } };
+
+    it('should stringify on insert', function(done) {
+      Book.create({ details }, (err, book) => {
+        assert.equal(book.details.a, 'hello');
+        Book.find(book.id, (err, book) => {
+          assert.equal(book.details.a, 'hello');
+          done();
+        });
+      });
+    });
+
+    it('should stringify on update', function(done) {
+      Book.create({ details }, (err, book) => {
+        book.update({ details: { a: 'world' }}, (err, book) => {
+          assert.equal(book.details.a, 'world');
+          Book.find(book.id, (err, book) => {
+            assert.equal(book.details.a, 'world');
+            done();
+          });
+        });
+      });
+    });
+  });
+
+  describe('bool columns', function() {
+    it('should handle true booleans', function(done) {
+      Book.create({ is_available: 'true' }, (err, book) => {
+        assert.equal(book.is_available, true);
+        done();
+      });
+    });
+    it('should handle false booleans', function(done) {
+      Book.create({ is_available: '' }, (err, book) => {
+        assert.equal(book.is_available, false);
+        done();
       });
     });
   });

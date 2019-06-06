@@ -5,6 +5,8 @@ const async   = require('async');
 const Sql     = require('./Sql');
 const db      = require('./db');
 
+const utils   = require('../utils');
+
 
 class Query {
 
@@ -325,9 +327,9 @@ class Query {
           return callback && callback(err);
         }
 
-        async.eachSeries(_.keys(_this.query.includes), function(include, callback) {
+        async.eachSeries(_.keys(_this.query.includes), (include, callback) => {
           _this.loadAssociation(include, rows, callback);
-        }, function(err) {
+        }, (err) => {
           //
           if (_this.query.distinct || _this.query.group) {
             return callback && callback(err, rows);
@@ -336,9 +338,7 @@ class Query {
           } else if (_this.query.limit === 1) {
             return callback && callback(err, null);
           } else if (_this.query.verb === 'select') {
-            rows = _.map(rows, function(row, callback) {
-              return _this.newInstance(row);
-            });
+            rows = _.map(rows, row => _this.newInstance(row))
           }
           if (pagination) {
             return callback && callback(err, { pagination, rows })
@@ -355,6 +355,13 @@ class Query {
     if (this.schema.subclasses && type) {
       instanceClass = this.schema.subclasses[type];
     }
+    _.each(this.schema.json_columns, (json_column) => {
+      row[json_column] = utils.fromJSON(row[json_column + '_json']);
+      delete row[json_column + '_json'];
+    });
+    _.each(this.schema.bool_columns, (bool_column) => {
+      row[bool_column] = !!row[bool_column];
+    });
     return new instanceClass(row)
   }
 }
