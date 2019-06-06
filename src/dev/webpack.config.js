@@ -47,7 +47,12 @@ module.exports = {
       }
     }, {
       test: /\.(png|gif|jpg|jpeg|woff|woff2|eot|ttf|svg|otf)(\?v=\d+\.\d+\.\d+)?$/,
-      use: 'url-loader?limit=8192'
+      use: [{
+        loader: 'url-loader',
+        options: {
+          limit: 8192,
+        }
+      }]
     }]
   },
   plugins: [
