@@ -56,10 +56,10 @@ module.exports.init = function(config) {
   }
   redisclient.select(options.database || 0);
   redisclient.on('error', function (err) {
-    // logger.error('' + err);
+    logger.error(err);
   });
 
-  if (config.env !== 'production' && options.flushonrestart !== false) {
+  if (config.env === 'test') {
     module.exports.flushall();
   }
 };
