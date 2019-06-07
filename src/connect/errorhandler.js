@@ -36,9 +36,6 @@ const formatMessage = function(req, err) {
 // log and show error
 const handle = function(err, req, res) {
 
-  console.log('handle error:');
-  console.dir(err);
-
   // uri error
   if (err instanceof URIError) {
     return res.status(404).render('errors/404');
@@ -49,16 +46,16 @@ const handle = function(err, req, res) {
 
   if (!res._headerSent) {
     // show error
-    if (config.showerrstack) {
-      //
-      const stacktrace = [
-        '<h1>', req.originalUrl, '</h1>',
-        '<pre>', err.stack, '</pre>'
-      ].join('');
-      res.status(500).send(stacktrace);
-    } else {
-      res.status(500).render('errors/500');
+    if (config.env === 'production') {
+      return res.status(500).render('errors/500');
     }
+
+    //
+    const stacktrace = [
+      '<h1>', req.method, ': ', req.originalUrl, '</h1>',
+      '<pre>', err.stack, '</pre>'
+    ].join('');
+    res.status(500).send(stacktrace);
   }
 
   if (config.mailcrashto) {
