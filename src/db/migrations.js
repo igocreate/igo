@@ -14,9 +14,18 @@ let db;
 
 module.exports.init = function(_db) {
   db = _db;
-  if (config.auto_migrate) {
-    module.exports.migrate(function() {});
+
+  if (!config.auto_migrate) {
+    return ;
   }
+
+  db.query(`SELECT GET_LOCK('__db_migrations', 0) AS 'lock'`, function(err, res) {
+    if (res[0] && res[0].lock > 0) {
+      module.exports.migrate(function() {
+        db.query(`SELECT RELEASE_LOCK('__db_migrations')`, function() {});
+      });
+    }
+  });
 };
 
 //
