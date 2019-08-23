@@ -41,7 +41,15 @@ module.exports = function(req, res, next) {
 // date formatting
 dust.helpers.dateformat = function(chunk, context, bodies, params) {
 
-  if (!params.date) return chunk;
+  if (!params.date) {
+    return chunk;
+  }
+
+  // do not format strings
+  if (typeof params.date === 'string') {
+    chunk.write(params.date);
+    return chunk;
+  }
 
   const m = moment(params.date);
 
