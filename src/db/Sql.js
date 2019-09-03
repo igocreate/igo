@@ -16,7 +16,7 @@ var Sql = function(query) {
     } else if (query.select) {
       sql += query.select + ' ';
     } else {
-      sql += '* ';
+      sql += '`' + query.table + '`.* ';
     }
     // } else if (!_.isEmpty(query.group)) {
     //   sql += 'COUNT(*) AS `count`, ' + query.group.join(', ') + ' ';

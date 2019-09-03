@@ -15,7 +15,7 @@ class Query {
     this.schema     = modelClass.schema;
     this.query      = {
       table:    modelClass.schema.table,
-      select:   '*',
+      select:   null,
       verb:     verb,
       where:    [],
       order:    [],
