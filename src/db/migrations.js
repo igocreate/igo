@@ -19,12 +19,23 @@ module.exports.init = function(_db) {
     return ;
   }
 
-  db.query(`SELECT GET_LOCK('__db_migrations', 0) AS 'lock'`, function(err, res) {
-    if (res[0] && res[0].lock > 0) {
-      module.exports.migrate(function() {
-        db.query(`SELECT RELEASE_LOCK('__db_migrations')`, function() {});
-      });
+  db.getConnection((err, connection) => {
+    if (err) {
+      return console.error(err);
     }
+    const lock = config.mysql.database + '.__db_migrations';
+    connection.query(`SELECT GET_LOCK('${lock}', 0) AS 'lock'`, function(err, res) {
+      if (!res || !res[0] || res[0].lock < 1) {
+        // could not get lock, skip migration
+        return connection.release();
+      }
+      // got lock, migrate!
+      module.exports.migrate(() => {
+        connection.query(`SELECT RELEASE_LOCK('${lock}')`, () => {
+          connection.release();
+        });
+      });
+    });
   });
 };
 
@@ -36,7 +47,7 @@ module.exports.initmigrations = function(callback) {
 
 //
 module.exports.list = function(callback) {
-  module.exports.initmigrations(function() {
+  module.exports.initmigrations(() => {
     var sql = 'SELECT * FROM `__db_migrations` ORDER BY `id` DESC';
     db.query(sql, callback);
   });
@@ -107,7 +118,7 @@ module.exports.migrate = function(sqldir, callback) {
           var success = err ? 0 : 1;
           logger.info((success ? '✅ ' : '❌ ') + file.filename);
           err = err ? util.format('%s', err) : null;
-          db.query(sql, [file.filename, success, err, new Date()], function() {
+          db.query(sql, [file.filename, success, err, new Date()], () => {
             callback(err);
           });
 
@@ -146,10 +157,10 @@ module.exports.migrate = function(sqldir, callback) {
         });
         callback();
       });
-    }, function() {
+    }, () => {
       // execute migrations
       files = _.sortBy(files, 'filename');
-      module.exports.initmigrations(function() {
+      module.exports.initmigrations(() => {
         async.eachSeries(files, executeFile, callback);
       });
     });

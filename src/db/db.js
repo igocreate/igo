@@ -11,7 +11,7 @@ const migrations = require('./migrations');
 let pool          = null;
 
 //
-module.exports.init = function() {
+module.exports.init = () => {
   pool = mysql.createPool(config.mysql);
   migrations.init(module.exports);
 };
@@ -22,10 +22,10 @@ module.exports.migrate    = migrations.migrate;
 
 
 //
-var getConnection = function(callback) {
+module.exports.getConnection = (callback) => {
   // if connection is in local storage
-  var namespace   = cls.getNamespace();
-  var connection  = namespace && namespace.get('connection');
+  const namespace   = cls.getNamespace();
+  const connection  = namespace && namespace.get('connection');
   if (connection) {
     return callback(null, connection, true);
   }
@@ -33,8 +33,7 @@ var getConnection = function(callback) {
 };
 
 //
-module.exports.query = function(sql, params, options, callback) {
-  var runquery;
+module.exports.query = (sql, params, options, callback) => {
 
   params  = params  || [];
   options = options || {};
@@ -48,8 +47,8 @@ module.exports.query = function(sql, params, options, callback) {
     options   = {};
   }
 
-  runquery = function() {
-    getConnection(function(err, connection, keep) {
+  const runquery = () => {
+    module.exports.getConnection(function(err, connection, keep) {
       if (err) {
         console.log(err);
         logger.error(err);
@@ -116,12 +115,12 @@ module.exports.queryOne = function(sql, params, options, callback) {
 
 //
 module.exports.beginTransaction = function(callback) {
-  getConnection(function(err, connection) {
+  module.exports.getConnection((err, connection) => {
     if (err) {
       logger.error(err);
       return callback(err, connection);
     }
-    connection.beginTransaction(cls.bind(function(err) {
+    connection.beginTransaction(cls.bind((err) => {
       if (err) {
         logger.error(err);
       } else {
@@ -134,12 +133,12 @@ module.exports.beginTransaction = function(callback) {
 
 //
 module.exports.commitTransaction = function(callback) {
-  getConnection(function(err, connection) {
+  module.exports.getConnection((err, connection) => {
     if (err) {
       logger.error(err);
       return callback(err, connection);
     }
-    connection.commit(cls.bind(function(err) {
+    connection.commit(cls.bind((err) => {
       if (err) {
         logger.error(err);
       } else {
@@ -153,12 +152,12 @@ module.exports.commitTransaction = function(callback) {
 
 //
 module.exports.rollbackTransaction = function(callback) {
-  getConnection(function(err, connection) {
+  module.exports.getConnection((err, connection) => {
     if (err) {
       logger.error(err);
       return callback(err, connection);
     }
-    connection.rollback(cls.bind(function(err) {
+    connection.rollback(cls.bind((err) => {
       if (err) {
         logger.error(err);
       } else {
