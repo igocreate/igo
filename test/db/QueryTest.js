@@ -21,7 +21,7 @@ describe('db.Query', function() {
   describe('first', function() {
     it('should return correct SQL', function() {
       var first = new Query(Book).first();
-      var sql = 'SELECT * FROM `books` ORDER BY `id` ASC LIMIT ?, ?';
+      var sql = 'SELECT `books`.* FROM `books` ORDER BY `id` ASC LIMIT ?, ?';
       assert.equal(sql, first.query.generated.sql);
     });
   });

@@ -17,14 +17,14 @@ describe('db.Sql', function() {
 
     it('should return correct SQL', function() {
       var selectSQL = new Sql(query).selectSQL();
-      assert.equal('SELECT * FROM `books`', selectSQL.sql);
+      assert.equal('SELECT `books`.* FROM `books`', selectSQL.sql);
       assert.equal(0, selectSQL.params.length);
     });
 
     it('should allow order by', function() {
       query.order = [ '`title`' ];
       var selectSQL = new Sql(query).selectSQL();
-      assert.equal('SELECT * FROM `books` ORDER BY `title`', selectSQL.sql);
+      assert.equal('SELECT `books`.* FROM `books` ORDER BY `title`', selectSQL.sql);
       assert.equal(0, selectSQL.params.length);
       delete query.order;
     });
@@ -32,7 +32,7 @@ describe('db.Sql', function() {
     it('should allow limit', function() {
       query.limit = 3;
       var selectSQL = new Sql(query).selectSQL();
-      assert.equal('SELECT * FROM `books` LIMIT ?, ?', selectSQL.sql);
+      assert.equal('SELECT `books`.* FROM `books` LIMIT ?, ?', selectSQL.sql);
       assert.equal(2, selectSQL.params.length);
       assert.equal(0, selectSQL.params[0]);
       assert.equal(3, selectSQL.params[1]);
