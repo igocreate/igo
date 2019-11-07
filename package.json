@@ -1,6 +1,6 @@
 {
   "name": "igo",
-  "version": "3.1.9",
+  "version": "3.1.10",
   "homepage": "https://github.com/igocreate/igo",
   "description": "Igo is a Node.js Web Framework based on Express",
   "main": "index.js",
@@ -42,7 +42,7 @@
     "dustjs-helpers": "1.7.4",
     "dustjs-linkedin": "2.7.5",
     "express": "4.17.1",
-    "express-validator": "^6.2.0",
+    "express-validator": "^5.3.1",
     "fibers": "^4.0.2",
     "file-loader": "^4.2.0",
     "fs-extra": "8.1.0",
