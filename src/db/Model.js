@@ -165,6 +165,7 @@ module.exports = function(schema) {
 
     //
     static update(values, callback) {
+      values.updated_at = new Date();
       return new Query(this).unscoped().update(values, callback);
     }
 
