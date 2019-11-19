@@ -10,6 +10,7 @@ const app     = require('../../app');
 const mockRequest = function(options) {
   const req = {};
 
+  req.hostname    = 'test';
   req.method      = options.method || 'GET';
   req.url         = options.url;
   req.originalUrl = options.url;
@@ -41,9 +42,16 @@ const mockResponse = function(callback, req) {
     }
   };
 
+  res.getHeader = function(name) {
+    return res.headers[name];
+  };
+
   res.setHeader = function(name, value) {
     res.headers[name] = value;
   };
+
+  // http hack
+  http.OutgoingMessage.prototype.setHeader = res.setHeader;
 
   res.redirect = function(statusCode, redirectUrl) {
     if (!_.isInteger(statusCode)) {
