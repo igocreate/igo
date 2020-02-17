@@ -44,6 +44,14 @@ const handle = function(err, req, res) {
   logger.error(req.method + ' ' + getURL(req) + ' : ' + err);
   logger.error(err.stack);
 
+  if (config.mailcrashto) {
+    mailer.send('crash', {
+      to:       config.mailcrashto,
+      subject:  [ config.appname, 'Crash:', err ].join(' '),
+      body:     formatMessage(req, err)
+    })
+  }
+  
   if (!res._headerSent) {
     // show error
     if (config.env === 'production') {
@@ -58,13 +66,6 @@ const handle = function(err, req, res) {
     res.status(500).send(stacktrace);
   }
 
-  if (config.mailcrashto) {
-    mailer.send('crash', {
-      to:       config.mailcrashto,
-      subject:  [ config.appname, 'Crash:', err ].join(' '),
-      body:     formatMessage(req, err)
-    })
-  }
 };
 
 // init domain for error handling
