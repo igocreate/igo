@@ -1,7 +1,7 @@
 
 const _         = require('lodash');
 const async     = require('async');
-const uuidV4    = require('uuid/v4');
+const uuidV4    = require('uuid').v4;
 
 const cache     = require('../cache');
 
