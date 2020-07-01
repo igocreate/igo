@@ -87,6 +87,21 @@ module.exports.error = function(err, req, res, next) {
   handle(err, req, res);
 };
 
+//
+module.exports.errorSQL = function(err) {
+  console.log(err);
+  logger.error(err);
+  if (config.mailcrashto) {
+    mailer.send('crash', {
+      to:       config.mailcrashto,
+      subject:  [ config.appname, 'SQL error:', err.code].join(' '),
+      body:     '<table cellspacing="10"><tr>' +
+        '<tr><td>code:</td><td>' + err.code + '</td></tr>' +
+        '<tr><td>sqlMessage:</td><td>' + err.sqlMessage + '</td></tr>' +
+        '<tr><td>sql:</td><td>' + err.sql + '</td></tr></table>',
+    })
+  }
+};
 
 // https://nodejs.org/api/domain.html
 const gracefullyShutdown = function(app) {

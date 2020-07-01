@@ -3,8 +3,9 @@ const mysql         = require('mysql');
 
 const cls           = require('../cls');
 const config        = require('../config');
-const logger       = require('../logger');
+const logger        = require('../logger');
 
+const errorhandler  = require('../connect/errorhandler');
 //
 const migrations = require('./migrations');
 
@@ -62,8 +63,7 @@ module.exports.query = (sql, params, options, callback) => {
             logger.info('With params: ' + params);
           }
           if (err && !options.silent) {
-            console.log(err);
-            logger.error(err);
+            errorhandler.errorSQL(err);
           }
         }
         if (callback) {
