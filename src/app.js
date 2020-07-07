@@ -24,6 +24,8 @@ const mailer            = require('./mailer');
 const multipart         = require('./connect/multipart');
 const plugins           = require('./plugins');
 
+const IgoDust           = require('igo-dust');
+
 
 //
 const app = module.exports = express();
@@ -60,9 +62,17 @@ module.exports.configure = function() {
   app.enable('trust proxy');
 
   // template engine
-  app.engine('dust', cons.dust);
-  app.set('view engine', 'dust');
-  app.set('views', './views');
+  if (config.engine === 'igo-dust') {
+    // igo-dust
+    app.engine('dust', IgoDust.engine);
+    app.set('view engine', 'dust');
+    app.set('views', './views');    
+  } else {
+    // dustjs-linkedin
+    app.engine('dust', cons.dust);
+    app.set('view engine', 'dust');
+    app.set('views', './views');
+  }
 
   app.use(compression());
   app.use(express.static('public'));
