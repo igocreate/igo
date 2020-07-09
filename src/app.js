@@ -3,7 +3,6 @@
 const _                 = require('lodash');
 const bodyParser        = require('body-parser');
 const compression       = require('compression');
-const cons              = require('consolidate');
 const cookieParser      = require('cookie-parser');
 const cookieSession     = require('cookie-session');
 const express           = require('express');
@@ -18,13 +17,10 @@ const config            = require('./config');
 const db                = require('./db/db');
 const errorHandler      = require('./connect/errorhandler');
 const flash             = require('./connect/flash');
-const helpers           = require('./connect/helpers');
 const logger            = require('./logger');
 const mailer            = require('./mailer');
 const multipart         = require('./connect/multipart');
 const plugins           = require('./plugins');
-
-const IgoDust           = require('igo-dust');
 
 
 //
@@ -64,15 +60,20 @@ module.exports.configure = function() {
   // template engine
   if (config.engine === 'igo-dust') {
     // igo-dust
+    const IgoDust = require('igo-dust');
+    
     app.engine('dust', IgoDust.engine);
     app.set('view engine', 'dust');
-    app.set('views', './views');    
   } else {
     // dustjs-linkedin
+    const cons    = require('consolidate');
+    
     app.engine('dust', cons.dust);
     app.set('view engine', 'dust');
     app.set('views', './views');
   }
+  const helpers = require('./connect/helpers');
+  app.use(helpers);
 
   app.use(compression());
   app.use(express.static('public'));
@@ -89,7 +90,6 @@ module.exports.configure = function() {
   app.use(flash);
   app.use(expressValidator());
   app.use(i18nMiddleware.handle(i18next));
-  app.use(helpers);
 
   // load routes
   const routes = require('./routes');
