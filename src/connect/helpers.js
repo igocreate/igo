@@ -48,9 +48,9 @@ const customHelpers = {
   },
 
   igoDust: {
-    t: (params, context, locals) => req.t(params.key, params),
+    t: (params) => req.t(params.key, params),
 
-    dateformat: function(params, context, locals) {
+    dateformat: function(params, locals) {
       if (!params.date) {
         return null;
       }
