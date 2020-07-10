@@ -14,11 +14,6 @@ let   assets      = null;
 //
 const customHelpers = {
   dust: {
-    t: function(chunk, context, bodies, params) {
-      const key         = dust.helpers.tap(params.key, chunk, context);
-      const translation = req.t(key, params);
-      return chunk.write(translation);
-    },
 
     dateformat: function(chunk, context, bodies, params) {
 
@@ -48,8 +43,6 @@ const customHelpers = {
   },
 
   igoDust: {
-    t: (params) => req.t(params.key, params),
-
     dateformat: function(params, locals) {
       if (!params.date) {
         return null;
@@ -100,8 +93,15 @@ module.exports = function(req, res, next) {
   res.locals.session  = req.session;
   res.locals.assets   = getWebpackAssets();
 
-  //
-  res.locals.t = CUSTOM.t;
+  if (config.engine === 'igo-dust') {
+    res.locals.t = (params) => req.t(params.key, params);
+  } else {
+    res.locals.t = function(chunk, context, bodies, params) {
+      const key         = dust.helpers.tap(params.key, chunk, context);
+      const translation = req.t(key, params);
+      return chunk.write(translation);
+    };
+  }
 
   next();
 };
