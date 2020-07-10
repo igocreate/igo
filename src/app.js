@@ -67,17 +67,15 @@ module.exports.configure = function() {
   } else {
     // dustjs-linkedin
     const cons    = require('consolidate');
-    
+
     app.engine('dust', cons.dust);
     app.set('view engine', 'dust');
     app.set('views', './views');
   }
-  const helpers = require('./connect/helpers');
-  app.use(helpers);
-
+  
   app.use(compression());
   app.use(express.static('public'));
-
+  
   if (config.env !== 'test') {
     app.use(errorHandler.init(app));
     app.use(cookieParser(config.signedCookiesSecret));
@@ -86,10 +84,12 @@ module.exports.configure = function() {
     app.use(bodyParser.urlencoded({ limit: config.bodyParser.limit, extended: true }));
     app.use(multipart);
   }
-
+  
   app.use(flash);
   app.use(expressValidator());
   app.use(i18nMiddleware.handle(i18next));
+  const helpers = require('./connect/helpers');
+  app.use(helpers);
 
   // load routes
   const routes = require('./routes');
