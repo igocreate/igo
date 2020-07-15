@@ -1,6 +1,7 @@
 
 const cons        = require('consolidate');
 const dust        = require('dustjs-linkedin');
+const IgoDust     = require('igo-dust');
 const i18next     = require('i18next');
 const nodemailer  = require('nodemailer');
 
@@ -47,21 +48,29 @@ module.exports.send = function(email, data) {
   data.subject  = data.subject || i18next.t(options.subject(email, data), data);
   data.views    = './views';
 
-  //
-  data.t = function(chunk, context, bodies, params) {
-    const key       = dust.helpers.tap(params.key, chunk, context);
-    params.lng      = data.lang;
-    const translation = i18next.t(key, params);
-    return chunk.write(translation);
-  };
-
   const template  = data.template || options.template(email, data);
-
+  
   const renderBody = function(callback) {
     if (data.body) {
       return callback(null, data.body);
     }
-    cons.dust(template, data, callback);
+
+    //
+    if (config.engine === 'igo-dust') {
+      data.t = (params) => {
+        params.lng = data.lang;
+        return i18next.t(params.key, params);
+      };
+      IgoDust.engine(template, {_locals:data}, callback);
+    } else {
+      data.t = function(chunk, context, bodies, params) {
+        const key       = dust.helpers.tap(params.key, chunk, context);
+        params.lng      = data.lang;
+        const translation = i18next.t(key, params);
+        return chunk.write(translation);
+      };
+      cons.dust(template, data, callback);
+    }
   };
 
   renderBody(function(err, html) {
