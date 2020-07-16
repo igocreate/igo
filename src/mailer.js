@@ -1,15 +1,13 @@
 
-const cons        = require('consolidate');
-const dust        = require('dustjs-linkedin');
-const IgoDust     = require('igo-dust');
 const i18next     = require('i18next');
 const nodemailer  = require('nodemailer');
 
-const config    = require('./config');
-const logger    = require('./logger');
+const config      = require('./config');
+const logger      = require('./logger');
+const app         = require('./app');
 
-let transport   = null;
-const options   = {};
+let transport     = null;
+const options     = {};
 
 //
 const DEFAULT_SUBJECT = (email, data) => {
@@ -50,30 +48,17 @@ module.exports.send = function(email, data) {
 
   const template  = data.template || options.template(email, data);
   
-  const renderBody = function(callback) {
+  //
+  const renderBody = (callback) => {
     if (data.body) {
       return callback(null, data.body);
     }
+    app.engine.render(template, data, callback);
 
-    //
-    if (config.engine === 'igo-dust') {
-      data.t = (params) => {
-        params.lng = data.lang;
-        return i18next.t(params.key, params);
-      };
-      IgoDust.engine(template, {_locals:data}, callback);
-    } else {
-      data.t = function(chunk, context, bodies, params) {
-        const key       = dust.helpers.tap(params.key, chunk, context);
-        params.lng      = data.lang;
-        const translation = i18next.t(key, params);
-        return chunk.write(translation);
-      };
-      cons.dust(template, data, callback);
-    }
   };
 
-  renderBody(function(err, html) {
+
+  renderBody((err, html) => {
     if (err || !html) {
       logger.error('mailer.send: error - could not render template ' + template);
       logger.error(err);

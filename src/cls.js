@@ -3,13 +3,14 @@
 const cls       = require('continuation-local-storage');
 
 const logger    = require('./logger');
+const config    = require('./config');
 
 let ns = null;
 
 // load config
-module.exports.init = function(config) {
-  const options = config && config.cls || {};
-  ns          = options.namespace || 'igo';
+module.exports.init = function() {
+  const options = config.cls || {};
+  ns            = options.namespace || 'igo';
   cls.createNamespace(ns);
 };
 

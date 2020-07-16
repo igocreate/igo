@@ -23,38 +23,26 @@ const logger            = require('./logger');
 const mailer            = require('./mailer');
 const plugins           = require('./plugins');
 
-
 //
 const app = module.exports = express();
 
 const ENGINES = {
-  dust:         require('./engines/dust'),
-  'igo-dust':   require('./engines/igo-dust'),
+  'dust':       require('./engines/dust'),
+  'igo-dust':   require('./engines/igo-dust')
 };
 
-var services = {
-  logger,
-  cache,
-  db,
-  mailer,
-  cls
-};
+const SERVICES = [ config, logger, cache, db, mailer, cls, plugins ]
 
 //
 module.exports.init = function(name, service) {
+  console.error('*** this app.init() will be deprecated in future version');
   services[name] = service;
 };
 
 //
 module.exports.configure = function() {
 
-  config.init();
-
-  _.forEach(services, function(service, key) {
-    service.init(config);
-  });
-
-  plugins.init();
+  SERVICES.forEach(service => service.init());
 
   i18next
     .use(i18nMiddleware.LanguageDetector)
@@ -66,22 +54,8 @@ module.exports.configure = function() {
   // template engine
   const engine = ENGINES[config.engine] || ENGINES.dust;
   engine.init(app);
+  app.engine = engine;
 
-  if (config.engine === 'igo-dust') {
-    // igo-dust
-    const IgoDust = require('igo-dust');
-    
-    app.engine('dust', IgoDust.engine);
-    app.set('view engine', 'dust');
-  } else {
-    // dustjs-linkedin
-    const cons    = require('consolidate');
-
-    app.engine('dust', cons.dust);
-    app.set('view engine', 'dust');
-    app.set('views', './views');
-  }
-  
   app.use(compression());
   app.use(express.static('public'));
   

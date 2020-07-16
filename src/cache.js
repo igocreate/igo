@@ -4,6 +4,7 @@ const redis       = require('redis');
 
 const cls         = require('./cls');
 const logger      = require('./logger');
+const config      = require('./config');
 
 let options       = null;
 let redisclient   = null;
@@ -40,8 +41,7 @@ const deserialize = function(data) {
 }
 
 // init cache module : create redis client
-module.exports.init = function(config) {
-  config      = config || {};
+module.exports.init = function() {
   options     = config.redis || {};
 
   options     = _.defaultsDeep(options, {

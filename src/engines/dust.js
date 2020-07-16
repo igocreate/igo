@@ -1,8 +1,9 @@
 
+const i18next     = require('i18next');
+const moment      = require('moment');
+
 const cons        = require('consolidate');
 const dust        = require('dustjs-linkedin');
-
-const moment      = require('moment');
 
 //
 module.exports.init = (app) => {
@@ -22,6 +23,16 @@ module.exports.middleware = (req, res, next) => {
     return chunk.write(translation);
   };
   next();
+};
+
+module.exports.render = (template, data, callback) => {
+  data.t = function(chunk, context, bodies, params) {
+    const key       = dust.helpers.tap(params.key, chunk, context);
+    params.lng      = data.lang;
+    const translation = i18next.t(key, params);
+    return chunk.write(translation);
+  };
+  cons.dust(template, data, callback);
 };
 
 //
