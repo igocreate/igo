@@ -5,7 +5,7 @@
 const WelcomeController   = require('./controllers/WelcomeController');
 
 //
-module.exports.init = function(app) {
+module.exports.init = (app) => {
 
   app.get('/',      WelcomeController.index);
 

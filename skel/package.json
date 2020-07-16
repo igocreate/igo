@@ -9,15 +9,15 @@
     "start": "npm-run-all --parallel nodemon webpack",
     "webpack": "webpack --mode=development --progress --watch",
     "webpack-prod": "webpack --mode=production -p",
-    "test": "mocha"
+    "test": "mocha --recursive --reporter dot --exit"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "igo": "{igo.version}",
-    "bootstrap": "4.4.1",
-    "@fortawesome/fontawesome-free": "5.12.1",
-    "jquery": "3.4.1",
+    "bootstrap": "4.5.0",
+    "@fortawesome/fontawesome-free": "5.14.0",
+    "jquery": "3.5.1",
     "popper.js": "1.16.1"
   }
 }

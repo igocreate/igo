@@ -1,4 +1,4 @@
 
-module.exports.init = function(dust) {
+module.exports.init = (engine) => {
 
 };

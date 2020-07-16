@@ -1,6 +1,6 @@
 
 
-module.exports.init = function(config) {
+module.exports.init = (config) => {
 
   config.signedCookiesSecret = 'abcdefghijklmnopqrstuvwxyz';
   config.cookieSessionConfig = {
