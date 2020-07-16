@@ -17,14 +17,20 @@ const config            = require('./config');
 const db                = require('./db/db');
 const errorHandler      = require('./connect/errorhandler');
 const flash             = require('./connect/flash');
+const locals            = require('./connect/locals');
+const multipart         = require('./connect/multipart');
 const logger            = require('./logger');
 const mailer            = require('./mailer');
-const multipart         = require('./connect/multipart');
 const plugins           = require('./plugins');
 
 
 //
 const app = module.exports = express();
+
+const ENGINES = {
+  dust:         require('./engines/dust'),
+  'igo-dust':   require('./engines/igo-dust'),
+};
 
 var services = {
   logger,
@@ -58,6 +64,9 @@ module.exports.configure = function() {
   app.enable('trust proxy');
 
   // template engine
+  const engine = ENGINES[config.engine] || ENGINES.dust;
+  engine.init(app);
+
   if (config.engine === 'igo-dust') {
     // igo-dust
     const IgoDust = require('igo-dust');
@@ -88,8 +97,8 @@ module.exports.configure = function() {
   app.use(flash);
   app.use(expressValidator());
   app.use(i18nMiddleware.handle(i18next));
-  const helpers = require('./connect/helpers');
-  app.use(helpers);
+  app.use(locals);
+  app.use(engine.middleware);
 
   // load routes
   const routes = require('./routes');
