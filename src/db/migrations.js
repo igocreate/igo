@@ -63,8 +63,7 @@ module.exports.migrate = function(sqldir, callback) {
   let querybuf  = '';
 
   const executeLine = function(line, callback) {
-    line = line.replace('\r', '');
-    line.trim();
+    line = line.replace('\r', '').trim();
     if (line.match('^--')) {
       callback();
     } else if (line.match('\\;$')) {
