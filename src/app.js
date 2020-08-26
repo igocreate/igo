@@ -33,11 +33,6 @@ const ENGINES = {
 
 const SERVICES = [ config, logger, cache, db, mailer, cls, plugins ]
 
-//
-module.exports.init = function(name, service) {
-  console.error('*** this app.init() will be deprecated in future version');
-  services[name] = service;
-};
 
 //
 module.exports.configure = function() {
@@ -84,12 +79,15 @@ module.exports.configure = function() {
 
 }
 
-//
-module.exports.run = function() {
+// configured: callback function invoked when app is configured
+// started: callback function invoked when server is started
+module.exports.run = function(configured, started) {
 
   module.exports.configure();
+  configured && configured();
 
-  app.server = app.listen(config.httpport, function () {
+  app.server = app.listen(config.httpport, function() {
     logger.info('Listening to port %s', config.httpport);
+    started && started();
   });
 };
