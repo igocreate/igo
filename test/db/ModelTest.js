@@ -328,38 +328,6 @@ describe('db.Model', function() {
   });
 
 
-  describe('includes', function() {
-
-    var schema = {
-      table:    'libraries',
-      primary: ['id'],
-      columns: [
-        'id',
-        'title'
-      ],
-      associations: () => {
-        return [
-          ['has_many', 'books', Book, 'id', 'library_id'],
-        ];
-      }
-    };
-
-    class Library extends Model(schema) {}
-
-
-    it('should find a library with its books', function(done) {
-      Library.create(function(err, library) {
-        Book.create({ library_id: library.id }, function(err, book) {
-          Book.create({ library_id: library.id }, function(err, book) {
-            Library.includes('books').find(library.id, function(err, library) {
-              assert.equal(library.books.length, 2);
-              done();
-            });
-          });
-        });
-      });
-    });
-  });
 
   describe('group', function() {
     it('should group by code', function(done) {

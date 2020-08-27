@@ -271,8 +271,9 @@ class Query {
     const ref_column  = association[4] || 'id';
     const extraWhere  = association[5];
 
-    const ids         = _.chain(rows).map(column).uniq().compact().value();
-    if (ids.length === 0) {
+    const ids         = _.chain(rows).flatMap(column).uniq().compact().value();
+
+    if (type !== 'has_many' && ids.length === 0) {
       return callback();
     }
     const where = {};
@@ -294,7 +295,16 @@ class Query {
         }
       });
       const defaultValue = (type === 'has_many' ? [] : null);
-      rows.forEach((row) => row[attr] = objsByKey[row[column]] || defaultValue)
+
+      rows.forEach((row) => {
+        if (!Array.isArray(row[column])) {
+          row[attr] = objsByKey[row[column]] || defaultValue;
+          return ;
+        }
+        // row[attr] = _.chain(objsByKey).pick(row[column]).flatMap().value();
+        row[attr] = _.chain(row[column]).flatMap(id => objsByKey[id]).compact().value();
+      });
+
       callback();
     });
   }
@@ -330,19 +340,22 @@ class Query {
           return;
         }
 
+        if (_this.query.distinct || _this.query.group) {
+          return callback(err, rows);
+        } else if (_this.query.limit === 1 && (!rows || rows.length === 0 )) {
+          return callback(err, null);
+        } else if (_this.query.verb === 'select') {
+          rows = _.map(rows, row => _this.newInstance(row))
+        }
+
         async.eachSeries(_.keys(_this.query.includes), (include, callback) => {
           _this.loadAssociation(include, rows, callback);
         }, (err) => {
           //
-          if (_this.query.distinct || _this.query.group) {
-            return callback(err, rows);
-          } else if (rows && rows.length > 0 && _this.query.limit === 1) {
-            return callback(err, _this.newInstance(rows[0]));
-          } else if (_this.query.limit === 1) {
-            return callback(err, null);
-          } else if (_this.query.verb === 'select') {
-            rows = _.map(rows, row => _this.newInstance(row))
+          if (_this.query.limit === 1) {
+            return callback(err, rows[0]);
           }
+
           if (pagination) {
             return callback(err, { pagination, rows })
           }

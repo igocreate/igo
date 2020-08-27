@@ -90,6 +90,13 @@ module.exports = User;
 
 The `schema` object defines the table name and the table structure, and how this model can be associated to other models.
 
+
+### Columns Types
+
+Columns which name starts with `is_` will automatically be cast as boolean on instance.
+Columns which name ends with `_json` will automatically be stringified on creation and update and parsed on load(on the instance, the column key is set without the `_json` extension).
+
+
 ### Associations
 
 Add `associations` in the schema declaration.
@@ -110,6 +117,23 @@ const schema  = {
     [ 'has_many',   'projects', Project, 'id', 'user_id'],
     [ 'belongs_to', 'country',  Country, 'country_id' ],
   ]
+};
+```
+
+`has_many` can also be used with an array of references.
+In the following example, projects_ids should be an array of projects' ids.
+
+```js
+const schema  = {
+  // ...
+  columns: [
+    'id',
+    'projects_ids_json',
+    // ...
+  ]
+  associations: () => ([
+    [ 'has_many',   'projects', require('./Project'), 'projects_ids', 'id'],
+  ])
 };
 ```
 
