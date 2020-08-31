@@ -54,14 +54,14 @@ module.exports = class Schema {
     return _.filter(values.columns, column => _.isObject(column) && column.type === type);
   }
 
-  serializeTypes(obj) {
+  serializeTypes(obj, isUpdate) {
     _.each(this.json_columns, (json_column) => {
-      if (obj[json_column.attr] !== undefined) {
+      if (!isUpdate || obj[json_column.attr] !== undefined) {
         obj[json_column.name] = utils.toJSON(obj[json_column.attr]);
       }
     });
     _.each(this.bool_columns, (bool_column) => {
-      if (obj[bool_column.name] !== undefined) {
+      if (!isUpdate || obj[bool_column.name] !== undefined) {
         obj[bool_column.name] = !!obj[bool_column.name];
       }
     });
@@ -76,26 +76,5 @@ module.exports = class Schema {
       row[bool_column.name] = !!row[bool_column.name];
     });
   }
-
-
-    /*
-    - boolean
-    b: !!
-    a: !!
-    - json
-    b: utils.toJSON
-    a: utils.fromJSON
-    - array
-    b:
-    a: split(',')
-    - number ?
-
-    b: create/update (Models.js) 
-    a: newInstance (Query.js)
-
-    - check schema.columns (replace by schema.col_names)
-    - let 'is_' ans '_json' but with deprecated alert
-
-    */
 
 };

@@ -26,7 +26,7 @@ module.exports = function(schema) {
     update(values, callback) {
       var _this = this;
       values.updated_at = new Date();
-      this.constructor.schema.serializeTypes(values);
+      this.constructor.schema.serializeTypes(values, true);
       _.assign(_this, values);
       this.beforeUpdate(values, function() {
         new Query(_this.constructor, 'update').unscoped().values(values).where(_this.primaryObject()).execute(function(err, result) {
@@ -59,6 +59,9 @@ module.exports = function(schema) {
       if (_.isFunction(values)) {
         callback = values;
       }
+      // else {
+      //   values = _.pick(values, this.schema.col_names);
+      // }
       if (_.isFunction(options)) {
         callback = options;
       }
