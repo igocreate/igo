@@ -38,7 +38,7 @@ class Query {
   update(values, callback) {
     this.query.verb   = 'update';
     // limit to schema columns
-    this.query.values = _.pick(values, this.schema.columns);
+    this.query.values = _.pick(values, this.schema.col_names);
     this.execute(callback);
     return this;
   }
@@ -73,7 +73,7 @@ class Query {
       return typeof value !== 'function';
     });
     // limit to schema columns
-    this.query.values = _.pick(values, this.schema.columns);
+    this.query.values = _.pick(values, this.schema.col_names);
     return this;
   }
 
@@ -371,13 +371,8 @@ class Query {
     if (this.schema.subclasses && type) {
       instanceClass = this.schema.subclasses[type];
     }
-    _.each(this.schema.json_columns, (json_column) => {
-      row[json_column] = utils.fromJSON(row[json_column + '_json']);
-      delete row[json_column + '_json'];
-    });
-    _.each(this.schema.bool_columns, (bool_column) => {
-      row[bool_column] = !!row[bool_column];
-    });
+    this.schema.parseTypes(row);
+
     return new instanceClass(row)
   }
 }

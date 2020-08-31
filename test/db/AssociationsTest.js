@@ -15,8 +15,8 @@ describe('includes', function() {
       'id',
       'code',
       'title',
-      'details_json',
-      'is_available',
+      {name: 'details_json', type: 'json', attr: 'details'},
+      {name:'is_available', type: 'boolean'},
       'library_id',
       'created_at'
     ],
@@ -151,8 +151,7 @@ describe('includes', function() {
       columns: [
         'id',
         'title',
-        'books_ids_json',
-        // { name: 'books', type: 'json' }
+        {name: 'books_ids_json', type: 'json', attr: 'books_ids'},
       ],
       associations: () => {
         return [

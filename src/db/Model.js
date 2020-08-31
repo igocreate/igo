@@ -26,16 +26,7 @@ module.exports = function(schema) {
     update(values, callback) {
       var _this = this;
       values.updated_at = new Date();
-      _.each(this.constructor.schema.json_columns, (json_column) => {
-        if (values[json_column] !== undefined) {
-          values[json_column + '_json'] = utils.toJSON(values[json_column]);
-        }
-      });
-      _.each(this.constructor.schema.bool_columns, (bool_column) => {
-        if (values[bool_column] !== undefined) {
-          values[bool_column] = !!values[bool_column];
-        }
-      });
+      this.constructor.schema.serializeTypes(values);
       _.assign(_this, values);
       this.beforeUpdate(values, function() {
         new Query(_this.constructor, 'update').unscoped().values(values).where(_this.primaryObject()).execute(function(err, result) {
@@ -76,16 +67,11 @@ module.exports = function(schema) {
       if (this.schema.subclasses && !obj[this.schema.subclass_column]) {
         obj[this.schema.subclass_column] = _.findKey(this.schema.subclasses, { name: this.name });
       }
-      _.each(this.schema.json_columns, (json_column) => {
-        obj[json_column + '_json'] = utils.toJSON(obj[json_column]);
-      });
-      _.each(this.schema.bool_columns, (bool_column) => {
-        obj[bool_column] = !!obj[bool_column];
-      });
+
+      this.schema.serializeTypes(obj);
+
       obj.created_at = obj.created_at || now;
       obj.updated_at = obj.updated_at || now;
-      //console.log('create: ');
-      //console.dir(obj);
       obj.beforeCreate(function() {
         return new Query(_this, 'insert').unscoped().values(obj).options(options).execute(function(err, result) {
           if (err) {

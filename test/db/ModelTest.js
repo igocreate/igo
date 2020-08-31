@@ -17,8 +17,8 @@ describe('db.Model', function() {
       'id',
       'code',
       'title',
-      'details_json',
-      'is_available',
+      {name: 'details_json', type: 'json', attr: 'details'},
+      {name:'is_available', type: 'boolean'},
       'library_id',
       'created_at'
     ]
@@ -287,8 +287,8 @@ describe('db.Model', function() {
         'id',
         'code',
         'title',
-        'details_json',
-        'is_available',
+        {name: 'details_json', type: 'json', attr: 'details'},
+        {name:'is_available', type: 'boolean'},
         'library_id',
         'created_at'
       ],
