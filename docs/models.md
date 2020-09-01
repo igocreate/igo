@@ -93,8 +93,22 @@ The `schema` object defines the table name and the table structure, and how this
 
 ### Columns Types
 
-Columns which name starts with `is_` will automatically be cast as boolean on instance.
-Columns which name ends with `_json` will automatically be stringified on creation and update and parsed on load(on the instance, the column key is set without the `_json` extension).
+Column types can be specified.
+
+```js
+const schema = {
+  table:    'users',
+  columns:  [
+    'id',
+    'first_name',
+    'last_name',
+    {name: 'is_validated', type: 'boolean'}
+    {name: 'details_json', type: 'json', attr: 'details'},
+  ]
+};
+```
+`boolean` will automatically be cast as boolean on instance.
+`json` columns will automatically be stringified on creation and update and parsed on load (on the instance, the column key is set with the `attr` attribute).
 
 
 ### Associations
