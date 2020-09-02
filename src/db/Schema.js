@@ -45,10 +45,11 @@ module.exports = class Schema {
     return _.transform(row, (result, value, key) => {
       const column = _.find(this.columns, {name: key});
       if (!column || column.type === 'default') {
-        return result[key] = value;
+        result[key] = value;
+        return ;
       }
       if (column.type === 'array') {
-        value = value && value.split ? value.split(',') : null;
+        value = value && value.split ? value.split(',') : [];
       } else if (value === null) {
         value = null;
       } else if (column.type === 'boolean') {
@@ -56,7 +57,7 @@ module.exports = class Schema {
       } else if (column.type === 'json') {
         value = utils.fromJSON(value);
       }
-      return result[column.attr] = value;
+      result[column.attr] = value;
     });
   }
 

@@ -406,6 +406,17 @@ describe('db.Model', function() {
       });
     });
 
+    it('should stringify on global update', function(done) {
+      Book.create({ details }, (err, book) => {
+        Book.update({ details: { a: 'world' }}, () => {
+          Book.find(book.id, (err, book) => {
+            assert.equal(book.details.a, 'world');
+            done();
+          });
+        });
+      });
+    });
+
     it('should parsejson on reload', function(done) {
       Book.create({ details }, (err, book) => {
         book.reload((err, book) => {
@@ -429,6 +440,12 @@ describe('db.Model', function() {
         done();
       });
     });
+    it.skip('should let boolean to null', function(done) {
+      Book.create({ is_available: null }, (err, book) => {
+        assert.equal(book.is_available, null);
+        done();
+      });
+    });
   });
 
   describe('array columns', function() {
@@ -448,7 +465,6 @@ describe('db.Model', function() {
     };
     class Book extends Model(schema) {};
 
-
     it('should handle array', function(done) {
       Book.create({ details: [1, 2] }, (err, book) => {
         assert(Array.isArray(book.details));
@@ -456,12 +472,12 @@ describe('db.Model', function() {
       });
     });
 
-    // it('should handle false booleans', function(done) {
-    //   Book.create({ is_available: '' }, (err, book) => {
-    //     assert.equal(book.is_available, false);
-    //     done();
-    //   });
-    // });
+    it('should handle array', function(done) {
+      Book.create({ details: '' }, (err, book) => {
+        assert(Array.isArray(book.details));
+        done();
+      });
+    });
   });
 
   

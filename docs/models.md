@@ -104,12 +104,13 @@ const schema = {
     'last_name',
     {name: 'is_validated', type: 'boolean'}
     {name: 'details_json', type: 'json', attr: 'details'},
+    {name: 'pets_array', type: 'array', attr: 'pets'},
   ]
 };
 ```
 `boolean` will automatically be cast as boolean on instance.
 `json` columns will automatically be stringified on creation and update and parsed on load (on the instance, the column key is set with the `attr` attribute).
-
+`array` columns will automatically be stringified on creation and update and split on load (on the instance, the column key is set with the `attr` attribute).
 
 ### Associations
 
@@ -142,7 +143,7 @@ const schema  = {
   // ...
   columns: [
     'id',
-    'projects_ids_json',
+    {name: 'projects_ids_json', type: 'json', attr: 'projects_ids'}
     // ...
   ]
   associations: () => ([

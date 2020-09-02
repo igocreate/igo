@@ -73,16 +73,16 @@ class Query {
       if (!column) {
         return null;
       }
-      if (value === null) {
-        value = null;
-      } else if (column.type === 'boolean') {
+      if (column.type === 'boolean') {
         value = !!value;
+      } else if (value === null || value === undefined) {
+        value = null;
       } else if (column.type === 'json') {
         value = utils.toJSON(value);
       } else if (column.type === 'array') {
-        value = (value || []).join(',');
+        value = Array.isArray(value) ? value.join(',') : value;
       }
-      return result[column.name] = value;
+      result[column.name] = value;
     }).value();
 
     return this;
@@ -363,7 +363,7 @@ class Query {
           _this.loadAssociation(include, rows, callback);
         }, (err) => {
           if (_this.query.verb === 'select') {
-            rows = _.map(rows, row => _this.newInstance(row))
+            rows = _.map(rows, row => _this.newInstance(row));
           }
 
           //
@@ -386,7 +386,6 @@ class Query {
     if (this.schema.subclasses && type) {
       instanceClass = this.schema.subclasses[type];
     }
-
     return new instanceClass(row)
   }
 }
