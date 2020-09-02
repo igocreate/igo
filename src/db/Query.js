@@ -5,8 +5,7 @@ const async   = require('async');
 const Sql     = require('./Sql');
 const db      = require('./db');
 
-const utils   = require('../utils');
-
+const columnTypes = require('./columnTypes');
 
 class Query {
 
@@ -69,20 +68,11 @@ class Query {
     this.query.values = _(values)
     .pickBy(value => typeof value !== 'function') // skip instance functions
     .transform((result, value, key) => {
-      const column = _.find(this.schema.columns, {attr: key});
+      const column = this.schema.colsByAttr[key];
       if (!column) {
         return null;
       }
-      if (column.type === 'boolean') {
-        value = !!value;
-      } else if (value === null || value === undefined) {
-        value = null;
-      } else if (column.type === 'json') {
-        value = utils.toJSON(value);
-      } else if (column.type === 'array') {
-        value = Array.isArray(value) ? value.join(',') : value;
-      }
-      result[column.name] = value;
+      result[column.name] = columnTypes.set(column.type, value);
     }).value();
 
     return this;

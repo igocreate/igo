@@ -2,6 +2,8 @@
 const _       = require('lodash');
 const utils   = require('../utils');
 
+const columnTypes = require('./columnTypes');
+
 module.exports = class Schema {
 
   constructor(values) {
@@ -28,6 +30,8 @@ module.exports = class Schema {
       }
       return {name: column, attr: column, type: 'default'};
     });
+    this.colsByName = _.keyBy(this.columns, 'name');
+    this.colsByAttr = _.keyBy(this.columns, 'attr');
 
     // asynchronous loading of associations for circular dependencies
     process.nextTick(() => {
@@ -40,24 +44,16 @@ module.exports = class Schema {
     });
   }
 
-
   parseTypes(row) {
     return _.transform(row, (result, value, key) => {
-      const column = _.find(this.columns, {name: key});
-      if (!column || column.type === 'default') {
+      const column = this.colsByName[key];
+
+      if (!column) {
         result[key] = value;
         return ;
       }
-      if (column.type === 'array') {
-        value = value && value.split ? value.split(',') : [];
-      } else if (value === null) {
-        value = null;
-      } else if (column.type === 'boolean') {
-        value = !!value;
-      } else if (column.type === 'json') {
-        value = utils.fromJSON(value);
-      }
-      result[column.attr] = value;
+
+      result[column.attr] = columnTypes.get(column.type, value);;
     });
   }
 
