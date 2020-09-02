@@ -21,7 +21,7 @@ module.exports = class Schema {
       // Deprecated "is_" prefix
       if (_.startsWith(column, 'is_')) {
         console.log('warn: "is_" prefix is deprecated for schema columns, please use an object with a type');
-        return {name: column, type: 'boolean'};
+        return {name: column, type: 'boolean', attr: column};
       }
       // Deprecated "_json" suffix
       if (_.endsWith(column, '_json')) {
