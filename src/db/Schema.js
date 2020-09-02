@@ -1,8 +1,6 @@
 
 const _       = require('lodash');
-const logger  = require('../../src/logger');
 const utils   = require('../utils');
-const { json } = require('body-parser');
 
 module.exports = class Schema {
 
@@ -12,31 +10,24 @@ module.exports = class Schema {
     this.primary          = values.primary || ['id'];
     this.subclass_column  = values.subclass_column || 'type';
 
-    // Deprecated "is_" prefix
-    if (_.find(values.columns, column => _.isString(column) && _.startsWith(column, 'is_'))) {
-      logger.warn('"is_" prefix is deprecated for schema columns, please use an object with a type');
-      values.columns = _.map(values.columns, column => {
-        if (!_.isString(column) || !_.startsWith(column, 'is_')) {
-          return column;
-        }
+    // Map columns
+    this.columns = _.map(values.columns, column => {
+      if (typeof column === 'object') {
+        column.attr = column.attr || column.name;
+        return column;
+      }
+      // Deprecated "is_" prefix
+      if (_.startsWith(column, 'is_')) {
+        console.log('warn: "is_" prefix is deprecated for schema columns, please use an object with a type');
         return {name: column, type: 'boolean'};
-      });
-    }
-
-    // Deprecated "_json" suffix
-    if (_.find(values.columns, column => _.isString(column) && _.endsWith(column, '_json'))) {
-      logger.warn('"_json" suffix is deprecated for schema columns, please use an object with a type instead');
-      values.columns = _.map(values.columns, column => {
-        if (!_.isString(column) || !_.endsWith(column, '_json')) {
-          return column;
-        }
-        return {name: column, type: 'json', attr: column.substring(0, column.length - 5)};
-      });
-    }
-
-    this.col_names    = _.map(values.columns, column => _.isString(column) ? column : column.name);
-    this.bool_columns = this._getType('boolean', values);
-    this.json_columns = this._getType('json', values);
+      }
+      // Deprecated "_json" suffix
+      if (_.endsWith(column, '_json')) {
+        console.log('warn: "_json" suffix is deprecated for schema columns, please use an object with a type instead');
+        return {name: column, type: 'json', attr: column.substring(0, column.length - 5)}
+      }
+      return {name: column, attr: column, type: 'default'};
+    });
 
     // asynchronous loading of associations for circular dependencies
     process.nextTick(() => {
@@ -50,30 +41,22 @@ module.exports = class Schema {
   }
 
 
-  _getType(type, values) {
-    return _.filter(values.columns, column => _.isObject(column) && column.type === type);
-  }
-
-  serializeTypes(obj, isUpdate) {
-    _.each(this.json_columns, (json_column) => {
-      if (!isUpdate || obj[json_column.attr] !== undefined) {
-        obj[json_column.name] = utils.toJSON(obj[json_column.attr]);
-      }
-    });
-    _.each(this.bool_columns, (bool_column) => {
-      if (!isUpdate || obj[bool_column.name] !== undefined) {
-        obj[bool_column.name] = !!obj[bool_column.name];
-      }
-    });
-  }
-  
   parseTypes(row) {
-    _.each(this.json_columns, (json_column) => {
-      row[json_column.attr] = utils.fromJSON(row[json_column.name]);
-      delete row[json_column.name];
-    });
-    _.each(this.bool_columns, (bool_column) => {
-      row[bool_column.name] = !!row[bool_column.name];
+    return _.transform(row, (result, value, key) => {
+      const column = _.find(this.columns, {name: key});
+      if (!column || column.type === 'default') {
+        return result[key] = value;
+      }
+      if (column.type === 'array') {
+        value = value && value.split ? value.split(',') : null;
+      } else if (value === null) {
+        value = null;
+      } else if (column.type === 'boolean') {
+        value = !!value;
+      } else if (column.type === 'json') {
+        value = utils.fromJSON(value);
+      }
+      return result[column.attr] = value;
     });
   }
 

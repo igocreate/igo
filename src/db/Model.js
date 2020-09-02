@@ -26,7 +26,6 @@ module.exports = function(schema) {
     update(values, callback) {
       var _this = this;
       values.updated_at = new Date();
-      this.constructor.schema.serializeTypes(values, true);
       _.assign(_this, values);
       this.beforeUpdate(values, function() {
         new Query(_this.constructor, 'update').unscoped().values(values).where(_this.primaryObject()).execute(function(err, result) {
@@ -59,9 +58,6 @@ module.exports = function(schema) {
       if (_.isFunction(values)) {
         callback = values;
       }
-      // else {
-      //   values = _.pick(values, this.schema.col_names);
-      // }
       if (_.isFunction(options)) {
         callback = options;
       }
@@ -70,8 +66,6 @@ module.exports = function(schema) {
       if (this.schema.subclasses && !obj[this.schema.subclass_column]) {
         obj[this.schema.subclass_column] = _.findKey(this.schema.subclasses, { name: this.name });
       }
-
-      this.schema.serializeTypes(obj);
 
       obj.created_at = obj.created_at || now;
       obj.updated_at = obj.updated_at || now;

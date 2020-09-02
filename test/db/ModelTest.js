@@ -37,6 +37,14 @@ describe('db.Model', function() {
           done();
         });
       });
+
+      it('should insert a book with values', function(done) {
+        Book.create({code: 123}, function(err, book) {
+          assert(book && book.id);
+          assert.equal(book.code, 123);
+          done();
+        });
+      });
     });
 
     //
@@ -423,5 +431,39 @@ describe('db.Model', function() {
     });
   });
 
+  describe('array columns', function() {
+
+    var schema = {
+      table:    'books',
+      primary: ['id'],
+      columns: [
+        'id',
+        'code',
+        'title',
+        {name: 'details_json', type: 'array', attr: 'details'},
+        {name:'is_available', type: 'boolean'},
+        'library_id',
+        'created_at'
+      ]
+    };
+    class Book extends Model(schema) {};
+
+
+    it('should handle array', function(done) {
+      Book.create({ details: [1, 2] }, (err, book) => {
+        assert(Array.isArray(book.details));
+        done();
+      });
+    });
+
+    // it('should handle false booleans', function(done) {
+    //   Book.create({ is_available: '' }, (err, book) => {
+    //     assert.equal(book.is_available, false);
+    //     done();
+    //   });
+    // });
+  });
+
+  
 
 });

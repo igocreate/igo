@@ -36,10 +36,8 @@ class Query {
 
   // UPDATE
   update(values, callback) {
-    this.query.verb   = 'update';
-    // limit to schema columns
-    this.query.values = _.pick(values, this.schema.col_names);
-    this.execute(callback);
+    this.query.verb = 'update';
+    this.values(values).execute(callback);
     return this;
   }
 
@@ -68,12 +66,25 @@ class Query {
 
   // VALUES
   values(values) {
-    values = _.pickBy(values, function(value) {
-      // skip instance functions
-      return typeof value !== 'function';
-    });
-    // limit to schema columns
-    this.query.values = _.pick(values, this.schema.col_names);
+    this.query.values = _(values)
+    .pickBy(value => typeof value !== 'function') // skip instance functions
+    .transform((result, value, key) => {
+      const column = _.find(this.schema.columns, {attr: key});
+      if (!column) {
+        return null;
+      }
+      if (value === null) {
+        value = null;
+      } else if (column.type === 'boolean') {
+        value = !!value;
+      } else if (column.type === 'json') {
+        value = utils.toJSON(value);
+      } else if (column.type === 'array') {
+        value = (value || []).join(',');
+      }
+      return result[column.name] = value;
+    }).value();
+
     return this;
   }
 
@@ -345,12 +356,16 @@ class Query {
         } else if (_this.query.limit === 1 && (!rows || rows.length === 0 )) {
           return callback(err, null);
         } else if (_this.query.verb === 'select') {
-          rows = _.map(rows, row => _this.newInstance(row))
+          rows = _.map(rows, row => _this.schema.parseTypes(row));
         }
 
         async.eachSeries(_.keys(_this.query.includes), (include, callback) => {
           _this.loadAssociation(include, rows, callback);
         }, (err) => {
+          if (_this.query.verb === 'select') {
+            rows = _.map(rows, row => _this.newInstance(row))
+          }
+
           //
           if (_this.query.limit === 1) {
             return callback(err, rows[0]);
@@ -371,7 +386,6 @@ class Query {
     if (this.schema.subclasses && type) {
       instanceClass = this.schema.subclasses[type];
     }
-    this.schema.parseTypes(row);
 
     return new instanceClass(row)
   }
