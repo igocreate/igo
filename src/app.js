@@ -19,6 +19,7 @@ const errorHandler      = require('./connect/errorhandler');
 const flash             = require('./connect/flash');
 const locals            = require('./connect/locals');
 const multipart         = require('./connect/multipart');
+const validator         = require('./connect/validator');
 const logger            = require('./logger');
 const mailer            = require('./mailer');
 const plugins           = require('./plugins');
@@ -64,7 +65,11 @@ module.exports.configure = function() {
   }
   
   app.use(flash);
-  app.use(expressValidator());
+  if (config.validator === 'igo-validator') {
+    app.use(validator);
+  } else {
+    app.use(expressValidator());
+  }
   app.use(i18nMiddleware.handle(i18next));
   app.use(locals);
   app.use(engine.middleware);
