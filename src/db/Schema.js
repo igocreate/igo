@@ -1,8 +1,9 @@
 
-const _       = require('lodash');
-const utils   = require('../utils');
+const _         = require('lodash');
+const utils     = require('../utils');
 
-const columnTypes = require('./columnTypes');
+const DataTypes = require('./DataTypes');
+
 
 module.exports = class Schema {
 
@@ -45,15 +46,12 @@ module.exports = class Schema {
   }
 
   parseTypes(row) {
-    return _.transform(row, (result, value, key) => {
-      const column = this.colsByName[key];
-
-      if (!column) {
-        result[key] = value;
-        return ;
+    _.forOwn(row, (value, key) => {
+      const column  = this.colsByName[key];
+      const type    = column && DataTypes[column.type];
+      if (column && type) {
+        row[column.attr] = type.get(value);
       }
-
-      result[column.attr] = columnTypes.get(column.type, value);;
     });
   }
 

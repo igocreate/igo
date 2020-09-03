@@ -1,13 +1,14 @@
 
-const _       = require('lodash');
-const async   = require('async');
+const _         = require('lodash');
+const async     = require('async');
 
-const Sql     = require('./Sql');
-const db      = require('./db');
+const Sql       = require('./Sql');
+const db        = require('./db');
 
-const columnTypes = require('./columnTypes');
+const DataTypes = require('./DataTypes');
 
-class Query {
+
+module.exports = class Query {
 
   constructor(modelClass, verb = 'select') {
     this.modelClass = modelClass;
@@ -65,16 +66,12 @@ class Query {
 
   // VALUES
   values(values) {
-    this.query.values = _(values)
-    .pickBy(value => typeof value !== 'function') // skip instance functions
-    .transform((result, value, key) => {
+    this.query.values = _.transform(values, (result, value, key) => {
       const column = this.schema.colsByAttr[key];
-      if (!column) {
-        return null;
+      if (column) {
+        result[column.name] = DataTypes[column.type].set(value);
       }
-      result[column.name] = columnTypes.set(column.type, value);
-    }).value();
-
+    }, {});
     return this;
   }
 
@@ -346,7 +343,7 @@ class Query {
         } else if (_this.query.limit === 1 && (!rows || rows.length === 0 )) {
           return callback(err, null);
         } else if (_this.query.verb === 'select') {
-          rows = _.map(rows, row => _this.schema.parseTypes(row));
+          rows = _.each(rows, row => _this.schema.parseTypes(row));
         }
 
         async.eachSeries(_.keys(_this.query.includes), (include, callback) => {
@@ -379,5 +376,3 @@ class Query {
     return new instanceClass(row)
   }
 }
-
-module.exports = Query;

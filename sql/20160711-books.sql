@@ -7,6 +7,7 @@ CREATE TABLE `books` (
   `code`          VARCHAR(50),
   `title`         VARCHAR(100),
   `details_json`  TEXT,
+  `tags_array`    VARCHAR(512),
   `is_available`  TINYINT(0),
   `created_at`    DATETIME,
   PRIMARY KEY (`id`)

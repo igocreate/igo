@@ -468,6 +468,7 @@ describe('db.Model', function() {
     it('should handle array', function(done) {
       Book.create({ details: [1, 2] }, (err, book) => {
         assert(Array.isArray(book.details));
+        assert.equal(book.details.length, 2);
         done();
       });
     });
@@ -475,6 +476,7 @@ describe('db.Model', function() {
     it('should handle array', function(done) {
       Book.create({ details: '' }, (err, book) => {
         assert(Array.isArray(book.details));
+        assert.equal(book.details.length, 0);
         done();
       });
     });
