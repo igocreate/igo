@@ -72,9 +72,10 @@ module.exports = (req, res, next) => {
   req.getValidationResult = () => {
     // console.log('warn: req.getValidationResult() is deprecated!');
     const result = {
-      errors: res.locals._errors,
-      isEmpty: () => _.isEmpty(res.locals._errors),
-      mapped: () => res.locals._errors,
+      errors:   res.locals._errors,
+      isEmpty:  () => _.isEmpty(res.locals._errors),
+      mapped:   () => res.locals._errors,
+      array:    () => _.values(res.locals._errors),
     };
     return new Promise((resolve) => {
       resolve(result);
