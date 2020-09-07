@@ -9,7 +9,7 @@ const async     = require('async');
 const Query     = require('../../src/db/Query');
 const Model     = require('../../src/db/Model');
 
-const NB        = 10_000;
+const NB        = 10000;
 
 describe('PerfTest', function() {
 
