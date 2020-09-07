@@ -57,7 +57,7 @@ Multipart data is parsed with [multiparty](https://github.com/pillarjs/multipart
 
 ### Validation
 
-Request validation is made with [express-validator](https://github.com/ctavan/express-validator).
+Request validation is made with [Validator.js](https://github.com/validatorjs/validator.js)
 
 ### Flash Scope
 

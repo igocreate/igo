@@ -6,7 +6,6 @@ const compression       = require('compression');
 const cookieParser      = require('cookie-parser');
 const cookieSession     = require('cookie-session');
 const express           = require('express');
-const expressValidator  = require('express-validator');
 const i18nFsBackend     = require('i18next-node-fs-backend');
 const i18nMiddleware    = require('i18next-express-middleware');
 const i18next           = require('i18next');
@@ -65,11 +64,7 @@ module.exports.configure = function() {
   }
   
   app.use(flash);
-  if (config.validator === 'igo-validator') {
-    app.use(validator);
-  } else {
-    app.use(expressValidator());
-  }
+  app.use(validator);
   app.use(i18nMiddleware.handle(i18next));
   app.use(locals);
   app.use(engine.middleware);
