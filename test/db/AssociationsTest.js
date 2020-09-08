@@ -140,6 +140,26 @@ describe('includes', function() {
         });
       });
     });
+
+    schema.scopes = {
+      default: q => q.includes('books')
+    }
+    class Library2 extends Model(schema) {};
+
+    it('should ignore associations for inserts', function(done) {
+      Library2.create(function(err, library) {
+        assert(!err);
+        done();
+      });
+    });
+
+    it('should ignore associations for updates', function(done) {
+      Library2.create(function(err, library) {
+        assert(!err);
+        assert(library);
+        done();
+      });
+    });
   });
 
   //

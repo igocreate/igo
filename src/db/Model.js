@@ -70,7 +70,7 @@ module.exports = function(schema) {
       obj.created_at = obj.created_at || now;
       obj.updated_at = obj.updated_at || now;
       obj.beforeCreate(function() {
-        return new Query(_this, 'insert').unscoped().values(obj).options(options).execute(function(err, result) {
+        return new Query(_this, 'insert').values(obj).options(options).execute(function(err, result) {
           if (err) {
             return callback && callback(err, result);
           }

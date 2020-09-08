@@ -268,14 +268,17 @@ module.exports = class Query {
     const column      = association[3] || attr + '_id';
     const ref_column  = association[4] || 'id';
     const extraWhere  = association[5];
+    
+    const ids           = _.chain(rows).flatMap(column).uniq().compact().value();
+    const defaultValue  = (type === 'has_many' ? [] : null);
 
-    const ids         = _.chain(rows).flatMap(column).uniq().compact().value();
-
-    if (type !== 'has_many' && ids.length === 0) {
+    if (ids.length === 0) {
+      rows.forEach(row => row[attr] = defaultValue);
       return callback();
     }
-    const where = {};
-    where[ref_column] = ids;
+    const where = {
+      [ref_column]: ids
+    };
     const subincludes = this.query.includes[include];
     const query = Obj.includes(subincludes).where(where);
     if (extraWhere) {
@@ -292,14 +295,12 @@ module.exports = class Query {
           objsByKey[key] = obj;
         }
       });
-      const defaultValue = (type === 'has_many' ? [] : null);
 
       rows.forEach((row) => {
         if (!Array.isArray(row[column])) {
           row[attr] = objsByKey[row[column]] || defaultValue;
           return ;
         }
-        // row[attr] = _.chain(objsByKey).pick(row[column]).flatMap().value();
         row[attr] = _.chain(row[column]).flatMap(id => objsByKey[id]).compact().value();
       });
 
@@ -336,6 +337,9 @@ module.exports = class Query {
         }
         if (!callback) {
           return;
+        }
+        if (_this.query.verb !== 'select') {
+          return callback(err, rows);
         }
 
         if (_this.query.distinct || _this.query.group) {
