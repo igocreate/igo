@@ -10,6 +10,9 @@ module.exports.init = (app) => {
   app.engine('dust', IgoDust.engine);
   app.set('view engine', 'dust');
   app.set('views', './views');
+
+  // configure
+  IgoDust.configure(app);
   
   initHelpers();
 }
