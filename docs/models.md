@@ -109,7 +109,9 @@ const schema = {
 };
 ```
 `boolean` will automatically be cast as boolean on instance.
+
 `json` columns will automatically be stringified on creation and update and parsed on load (on the instance, the column key is set with the `attr` attribute).
+
 `array` columns will automatically be stringified on creation and update and split on load (on the instance, the column key is set with the `attr` attribute).
 
 ### Associations
@@ -351,6 +353,22 @@ User.includes({projects: ['lead', 'tasks']}).first( ... );
 User.includes(['country', {projects: ['lead', 'tasks']}]).first( ... );
 ```
 
+### Count
+
+`count()` allows you to count rows.
+
+```js
+User.count(function(err, count) {
+  // count all users
+  console.dir(count);
+});
+
+User.where({first_name: 'john'}).count(function(err, count) {
+  // count all users named John
+  console.dir(count);
+});
+```
+
 ### Distinct
 
 ```js
@@ -367,7 +385,7 @@ User.distinct([ 'first_name', 'last_name' ]).list(function(err, first_names) {
 
 ### Select
 
-`select()` allow you to customize `SELECT` (set by default to `SELECT *`).
+`select()` allows you to customize `SELECT` (set by default to `SELECT *`).
 
 ```js
 User.select('id, first_name').list(function(err, users) {

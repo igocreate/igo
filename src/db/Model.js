@@ -136,6 +136,11 @@ module.exports = function(schema) {
       return new Query(this).group(columns);
     }
 
+    // count
+    static count(callback) {
+      return new Query(this).count(callback);
+    }
+
     // destroy
     static destroy(id, callback) {
       return new Query(this, 'delete').unscoped().where({ id: id }).execute(callback);

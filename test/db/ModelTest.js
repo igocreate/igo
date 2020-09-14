@@ -335,6 +335,28 @@ describe('db.Model', function() {
     });
   });
 
+  describe('count', function() {
+    it('should count rows', function(done) {
+      async.timesSeries(10, function(n, next) {
+        Book.create({ code: 'first' }, next);
+      }, function() {
+        async.timesSeries(20, function(n, next) {
+          Book.create({ code: 'second' }, next);
+        }, function() {
+
+          Book.where({code: 'first'}).count(function(err, count) {
+            assert.equal(count, 10);
+
+            Book.count(function(err, count) {
+              assert.equal(count, 30);
+
+              done();
+            });
+          });
+        });
+      });
+    });
+  });
 
 
   describe('group', function() {
