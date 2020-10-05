@@ -1,6 +1,5 @@
 
 //
-const app = require('igo').app;
+const { app } = require('igo');
 
-//
 app.run();

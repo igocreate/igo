@@ -6,7 +6,7 @@ const igo = {
   db:       require('./src/db/db'),
   express:  require('express'),
   i18next:  require('i18next'),
-  render:   require('consolidate').dust,
+  render:   require('consolidate').dust, // TODO: remove consolidate & dust
   logger:   require('./src/logger'),
   mailer:   require('./src/mailer'),
   Model:    require('./src/db/Model'),

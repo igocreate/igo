@@ -37,12 +37,15 @@ module.exports = function(argv) {
       // replace in files
       var packagejson = require('../package.json');
       var replacements = {
-        '\{igo.version\}':      packagejson.version,
-        '\{project.name\}':     args[1]
+        '\{igo.version\}':  packagejson.version,
+        '\{project.name\}': args[1]
       }
       _.forEach(replacements, function(replacement, regexp) {
         const changed = replace.sync({
-          files:      directory + '/**/*',
+          files:      [
+            directory + '/**/*.*',
+            directory + '/**/.*'
+          ],
           from:       new RegExp(regexp, 'g'),
           to:         replacement,
           ignore:     directory + '/node_modules/**/*'
