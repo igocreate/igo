@@ -47,7 +47,7 @@ module.exports.configure = function() {
   app.enable('trust proxy');
 
   // template engine
-  const engine = ENGINES[config.engine] || ENGINES.dust;
+  const engine = ENGINES[config.engine] || ENGINES['igo-dust'];
   engine.init(app);
   app.engine = engine;
 
