@@ -1,5 +1,5 @@
 
-const request     = require('request');
+const https       = require('https');
 const fs          = require('fs');
 const _           = require('lodash');
 const async       = require('async');
@@ -13,6 +13,43 @@ const readJson = (path, callback) => {
   });
 };
 
+//
+const parseJson = (json) => {
+  const translations = {};
+  // parse
+  json.feed.entry.forEach(entry => {
+    const key = _.get(entry, 'gsx$key.$t');
+    config.i18n.whitelist.forEach((lang) => {
+      const value = _.get(entry, `gsx$${lang}.$t`);
+      if (value) {
+        _.setWith(translations, `${lang}.${key}`, value, Object);
+      }
+    });
+  });
+  return translations;
+};
+
+const writeTranslationFiles = (translations) => {
+  // write translation files
+  config.i18n.whitelist.forEach((lang) => {
+    const dir = `./locales/${lang}`;
+    if (!fs.existsSync(dir)) {
+      console.warn('Missing directory: ' + dir);
+      return;
+    }
+    translations[lang]._meta = {
+      generated_at: new Date(),
+      lang
+    };
+    const data = JSON.stringify(translations[lang], null, 2);
+    const filename = `${dir}/translation.json`;
+    console.log(`Writing ${filename}`);
+    
+    fs.writeFileSync(filename, data );
+  });
+}
+
+
 // verbs
 const verbs   = {
 
@@ -21,51 +58,28 @@ const verbs   = {
     if (!config.i18n.spreadsheet_id) {
       return callback('Missing config.i18n.spreadsheet_id');
     }
-    const path = 'https://spreadsheets.google.com/feeds/list/' +
-                  config.i18n.spreadsheet_id +
-                  '/default/public/values?alt=json';
+    const url = `https://spreadsheets.google.com/feeds/list/${config.i18n.spreadsheet_id}/default/public/values?alt=json`;
 
     // request json data
-    request(path, (err, res, body) => {
-      if (err) {
-        return callback(err);
-      }
-      const json = JSON.parse(body);
-      //console.dir(json);
-      const translations = {};
+    https.get(url, (resp) => {
+      let body = '';
 
-      // parse
-      json.feed.entry.forEach(entry => {
-        //
-        const key = _.get(entry, 'gsx$key.$t');
-        config.i18n.whitelist.forEach((lang) => {
-          const value = _.get(entry, 'gsx$' + lang + '.$t');
-          if (value) {
-            _.setWith(translations, lang + '.' + key, value, Object);
-          }
-        });
-
+      resp.on('data', (chunk) => {
+        body += chunk;
       });
 
-      // write translation files
-      config.i18n.whitelist.forEach((lang) => {
-        const dir = `./locales/${lang}`;
-        if (!fs.existsSync(dir)) {
-          console.warn('Missing directory: ' + dir);
-          return;
-        }
-        translations[lang]._meta = {
-          generated_at: new Date(),
-          lang
-        };
-        const data = JSON.stringify(translations[lang], null, 2);
-        const filename = `${dir}/translation.json`;
-        console.log('Writing ' + filename);
-        fs.writeFileSync(filename, data );
-      });
+      resp.on('end', () => {
+        const json = JSON.parse(body);
+        //console.dir(json);
 
-      callback();
-    });
+        const translations = parseJson(json);
+        writeTranslationFiles(translations);
+
+        callback();
+      })
+
+      
+    }).on('error', callback);
   },
 
   // igo i18n csv
