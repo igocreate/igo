@@ -1,6 +1,6 @@
 {
   "name": "igo",
-  "version": "3.5.2",
+  "version": "3.5.3",
   "homepage": "https://github.com/igocreate/igo",
   "description": "Igo is a Node.js Web Framework based on Express",
   "main": "index.js",
@@ -74,8 +74,8 @@
     "url-loader": "^4.1.1",
     "uuid": "^8.3.1",
     "validator": "^13.1.17",
-    "webpack": "^5.1.0",
-    "webpack-cli": "^4.0.0",
+    "webpack": "^4.44.2",
+    "webpack-cli": "^3.3.12",
     "winston": "3.3.3",
     "winston-papertrail": "1.0.5"
   }
