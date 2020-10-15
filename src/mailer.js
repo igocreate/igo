@@ -5,6 +5,7 @@ const nodemailer  = require('nodemailer');
 const config      = require('./config');
 const logger      = require('./logger');
 const app         = require('./app');
+const igodust     = require('./engines/igodust');
 
 let transport     = null;
 const options     = {};
@@ -53,7 +54,7 @@ module.exports.send = function(email, data) {
     if (data.body) {
       return callback(null, data.body);
     }
-    app.engine.render(template, data, callback);
+    igodust.render(template, data, callback);
 
   };
 

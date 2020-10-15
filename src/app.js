@@ -9,7 +9,7 @@ const express           = require('express');
 const i18nFsBackend     = require('i18next-node-fs-backend');
 const i18nMiddleware    = require('i18next-express-middleware');
 const i18next           = require('i18next');
-
+const igodust           = require('./engines/igodust');
 const cache             = require('./cache');
 const cls               = require('./cls');
 const config            = require('./config');
@@ -26,18 +26,13 @@ const plugins           = require('./plugins');
 //
 const app = module.exports = express();
 
-const ENGINES = {
-  'dust':       require('./engines/dust'),
-  'igo-dust':   require('./engines/igo-dust')
-};
-
-const SERVICES = [ config, logger, cache, db, mailer, cls, plugins ]
-
+// services to initialize
+const SERVICES = [ config, igodust, logger, cache, db, mailer, cls, plugins ]
 
 //
 module.exports.configure = function() {
 
-  SERVICES.forEach(service => service.init());
+  SERVICES.forEach(service => service.init(app));
 
   i18next
     .use(i18nMiddleware.LanguageDetector)
@@ -45,11 +40,6 @@ module.exports.configure = function() {
     .init(config.i18n);
 
   app.enable('trust proxy');
-
-  // template engine
-  const engine = ENGINES[config.engine] || ENGINES['igo-dust'];
-  engine.init(app);
-  app.engine = engine;
 
   app.use(compression());
   app.use(express.static('public'));
@@ -67,7 +57,7 @@ module.exports.configure = function() {
   app.use(validator);
   app.use(i18nMiddleware.handle(i18next));
   app.use(locals);
-  app.use(engine.middleware);
+  app.use(igodust.middleware);
 
   // load routes
   const routes = require('./routes');
