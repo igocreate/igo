@@ -18,6 +18,9 @@ module.exports = {
     path:       path.resolve(__dirname, './public/dist'),
     publicPath: '/dist/',
   },
+  stats: {
+    colors: true
+  },
   module: {
     rules: [{
       test: /\.scss$/,
