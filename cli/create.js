@@ -6,6 +6,8 @@ const _       = require('lodash');
 const fse     = require('fs-extra');
 const replace = require('replace-in-file');
 
+const utils   = require('../src/utils');
+
 
 // igo create
 module.exports = function(argv) {
@@ -38,7 +40,10 @@ module.exports = function(argv) {
       var packagejson = require('../package.json');
       var replacements = {
         '\{igo.version\}':  packagejson.version,
-        '\{project.name\}': args[1]
+        '\{project.name\}': args[1],
+        '\{RANDOM_1\}':     utils.randomString(40),
+        '\{RANDOM_2\}':     utils.randomString(40),
+        '\{RANDOM_3\}':     utils.randomString(40)
       }
       _.forEach(replacements, function(replacement, regexp) {
         const changed = replace.sync({

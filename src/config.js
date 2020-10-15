@@ -18,11 +18,11 @@ module.exports.init = function() {
   config.httpport       = process.env.HTTP_PORT || 3000;
 
   config.bodyParser           = { limit: '100kb' };
-  config.signedCookiesSecret  = 'abcdefghijklmnopqrstuvwxyz';
-  config.cookieSessionConfig  = {
+  config.cookieSecret  = 'abcdefghijklmnopqrstuvwxyz';
+  config.cookieSession = {
     name: 'app',
     keys: [ 'aaaaaaaaaaa' ],
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    maxAge: 31 * 24 * 60 * 60 * 1000, // 31 days
     sameSite: true
   };
 

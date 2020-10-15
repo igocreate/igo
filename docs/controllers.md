@@ -43,12 +43,9 @@ Sessions are encoded, signed and stored in cookies with [cookie-session](https:/
 It is highly recommended configure your own secret keys in `/app/config.js`.
 
 ```js
-config.signedCookiesSecret = 'abcdefghijklmnopqrstuvwxyz';
-config.cookieSessionConfig = {
-  name:   'app',
-  keys:   [ 'aaaaaaaaaaa' ]
-  maxAge: 24 * 60 * 60 * 1000 // 24 hours
-};
+config.cookieSecret         = 'abcdefghijklmnopqrstuvwxyz';
+config.cookieSession.keys   = [ 'azertyuiop' ];
+config.cookieSession.maxAge = 24 * 60 * 60 * 1000; // 24 hours
 ```
 
 ### Multipart data
