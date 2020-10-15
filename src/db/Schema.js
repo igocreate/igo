@@ -21,12 +21,12 @@ module.exports = class Schema {
       }
       // Deprecated "is_" prefix
       if (_.startsWith(column, 'is_')) {
-        console.log('warn: "is_" prefix is deprecated for schema columns, please use an object with a type');
+        console.log(`warn: "is_" prefix is deprecated for ${this.table}.${column}, please use {name:'${column}', type: 'boolean'}.`);
         return {name: column, type: 'boolean', attr: column};
       }
       // Deprecated "_json" suffix
       if (_.endsWith(column, '_json')) {
-        console.log('warn: "_json" suffix is deprecated for schema columns, please use an object with a type instead');
+        console.log(`warn: "_json" suffix is deprecated for ${this.table}.${column} , please use {name:'${column}', type: 'json'}.`);
         return {name: column, type: 'json', attr: column.substring(0, column.length - 5)}
       }
       return {name: column, attr: column, type: 'default'};
