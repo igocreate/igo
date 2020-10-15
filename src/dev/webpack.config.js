@@ -1,13 +1,11 @@
 
-const _       = require('lodash');
-const path    = require('path');
-
 // plugins
 const CleanWebpackPlugin    = require('clean-webpack-plugin').CleanWebpackPlugin;
 const MiniCssExtractPlugin  = require('mini-css-extract-plugin');
 const AssetsWebpackPlugin   = require('assets-webpack-plugin');
 
-//
+
+// Webpack config
 module.exports = {
   entry: {
     main:   './js/main.js',
@@ -15,7 +13,7 @@ module.exports = {
   },
   output: {
     filename:   '[name]-[fullhash].js',
-    path:       path.resolve(__dirname, './public/dist'),
+    path:       process.cwd() + '/public/dist',
     publicPath: '/dist/',
   },
   stats: {
