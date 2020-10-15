@@ -2,8 +2,6 @@
 const _       = require('lodash');
 const path    = require('path');
 
-const webpack = require('webpack');
-
 // plugins
 const CleanWebpackPlugin    = require('clean-webpack-plugin').CleanWebpackPlugin;
 const MiniCssExtractPlugin  = require('mini-css-extract-plugin');
@@ -16,8 +14,9 @@ module.exports = {
     vendor: './js/vendor.js'
   },
   output: {
-    filename: '[name]-[hash].js',
-    path:     process.cwd() + '/public/dist'
+    filename:   '[name]-[fullhash].js',
+    path:       path.resolve(__dirname, './public/dist'),
+    publicPath: '/dist/',
   },
   module: {
     rules: [{
@@ -64,8 +63,8 @@ module.exports = {
     }),
     // extract css
     new MiniCssExtractPlugin({
-      filename:       '[name]-[hash].css',
-      chunkFilename:  '[id]-[hash].css'
+      filename:       '[name]-[fullhash].css',
+      chunkFilename:  '[id]-[fullhash].css'
     }),
     // save stats
     new AssetsWebpackPlugin({
