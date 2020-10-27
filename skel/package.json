@@ -15,7 +15,7 @@
   "license": "ISC",
   "dependencies": {
     "igo": "{igo.version}",
-    "bootstrap": "4.5.2",
+    "bootstrap": "4.5.3",
     "@fortawesome/fontawesome-free": "5.15.1",
     "jquery": "3.5.1",
     "popper.js": "1.16.1"
