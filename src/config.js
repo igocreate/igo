@@ -43,16 +43,16 @@ module.exports.init = function() {
 
   config.mailer = {
     transport: {
-      host: null,
-      port: 465,
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT || 465,
       secure: true,
       auth: {
-        user: null,
-        pass: null
-      }
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
+      },
     },
-    defaultfrom: '',
-    subaccount: null
+    defaultfrom:  process.env.SMTP_FROM,
+    subaccount:   process.env.SMTP_SUBACCOUNT
   };
 
   config.mysql = {
@@ -79,16 +79,22 @@ module.exports.init = function() {
     config.mailer         = null;
   }
 
+  //
+  if (config.env === 'production') {
+    config.auto_migrate = true;
+  }
+
   // load app config
   var configFiles = [
     '/app/config',
-    // '/app/config/' + config.env
+    '/app/config-' + config.env
   ];
   configFiles.forEach(function(file) {
     try {
       require(process.cwd() + file).init(config);
     } catch (err) {
-      console.error(err);
+      // ignore error
+      // console.error(err);
     }
   });
 
