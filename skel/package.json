@@ -8,7 +8,7 @@
     "nodemon": "nodemon app.js",
     "start": "npm-run-all --parallel nodemon webpack",
     "webpack": "webpack --mode=development --progress --watch",
-    "webpack-prod": "webpack --mode=production -p",
+    "webpack-prod": "webpack --mode=production",
     "test": "mocha --recursive --reporter dot --exit"
   },
   "author": "",
