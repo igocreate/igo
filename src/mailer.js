@@ -32,6 +32,11 @@ module.exports.init = function() {
 //
 module.exports.send = function(email, data) {
 
+  if (config.env === 'test') {
+    // no emails in test env
+    return;
+  }
+
   if (!data || !data.to) {
     logger.warn('mailer.send: no email for recipient');
     return;

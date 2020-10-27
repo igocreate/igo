@@ -13,11 +13,11 @@ module.exports.init = function() {
     return;
   }
 
-  config._loaded         = true;
+  config._loaded        = true;
   config.env            = process.env.NODE_ENV || 'dev';
   config.httpport       = process.env.HTTP_PORT || 3000;
 
-  config.bodyParser           = { limit: '100kb' };
+  config.bodyParser    = { limit: '1mb' };
   config.cookieSecret  = 'abcdefghijklmnopqrstuvwxyz';
   config.cookieSession = {
     name: 'app',
@@ -76,7 +76,6 @@ module.exports.init = function() {
   //
   if (config.env === 'test') {
     config.mysql.database = 'test';
-    config.mailer         = null;
   }
 
   //
@@ -93,8 +92,10 @@ module.exports.init = function() {
     try {
       require(process.cwd() + file).init(config);
     } catch (err) {
-      // ignore error
-      // console.error(err);
+      // ignore module not found error
+      if (err.code !== 'MODULE_NOT_FOUND') {
+        console.error(err);
+      }
     }
   });
 
