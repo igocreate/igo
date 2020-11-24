@@ -21,7 +21,7 @@ const parseJson = (json) => {
     const key = _.get(entry, 'gsx$key.$t');
     config.i18n.whitelist.forEach((lang) => {
       const value = _.get(entry, `gsx$${lang}.$t`);
-      if (value) {
+      if (value !== '') {
         _.setWith(translations, `${lang}.${key}`, value, Object);
       }
     });
@@ -59,18 +59,19 @@ const verbs   = {
       return callback('Missing config.i18n.spreadsheet_id');
     }
     const url = `https://spreadsheets.google.com/feeds/list/${config.i18n.spreadsheet_id}/default/public/values?alt=json`;
+    console.log(`Loading: ${url}`);
 
     // request json data
     https.get(url, (resp) => {
-      let body = '';
+      let body = [];
 
       resp.on('data', (chunk) => {
-        body += chunk;
+        body.push(chunk);
       });
 
       resp.on('end', () => {
-        const json = JSON.parse(body);
-        //console.dir(json);
+        const buffer = Buffer.concat(body);
+        const json = JSON.parse(buffer.toString());
 
         const translations = parseJson(json);
         writeTranslationFiles(translations);
@@ -101,19 +102,23 @@ const verbs   = {
           }
         }
       };
-      traverse(translations[0], []);
+      translations.forEach(translation => {
+        traverse(translation, []);
+      });
+      
 
       // build csv
       const writer = csvWriter({ headers: [ 'key' ].concat(langs) });
 
-      writer.pipe(fs.createWriteStream('./translations.csv'))
-      keys.forEach(key => {
+      const file = './translations.csv';
+      writer.pipe(fs.createWriteStream(file))
+      _.uniq(keys).forEach(key => {
         const row =  _.map(translations, translation => _.get(translation, key))
         writer.write([ key ].concat(row))
       });
       
       writer.end()
-      console.log(keys.length + ' lines written');
+      console.log(keys.length + ' lines written in ' + file);
       callback();
     });
   }
