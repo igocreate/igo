@@ -21,9 +21,7 @@ const parseJson = (json) => {
     const key = _.get(entry, 'gsx$key.$t');
     config.i18n.whitelist.forEach((lang) => {
       const value = _.get(entry, `gsx$${lang}.$t`);
-      if (value !== '') {
-        _.setWith(translations, `${lang}.${key}`, value, Object);
-      }
+      _.setWith(translations, `${lang}.${key}`, value, Object);
     });
   });
   return translations;
