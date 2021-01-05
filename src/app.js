@@ -40,6 +40,7 @@ module.exports.configure = function() {
     .init(config.i18n);
 
   app.enable('trust proxy');
+  app.disable('x-powered-by');
 
   app.use(compression());
   app.use(express.static('public'));
