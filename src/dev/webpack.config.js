@@ -59,8 +59,7 @@ module.exports = {
     // clean dist folder before building
     new CleanWebpackPlugin({
       cleanStaleWebpackAssets: false,
-      cleanOnceBeforeBuildPatterns: ['**/*'],
-      cleanAfterEveryBuildPatterns: ['*.js','*.css'],
+      verbose: true
     }),
     // extract css
     new MiniCssExtractPlugin({
