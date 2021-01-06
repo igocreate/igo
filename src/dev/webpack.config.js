@@ -16,6 +16,7 @@ module.exports = {
     path:       process.cwd() + '/public/dist',
     publicPath: '/dist/',
   },
+  target: ['web', 'es5'], // IE 11 compatibility
   stats: {
     colors: true
   },
