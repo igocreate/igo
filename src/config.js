@@ -23,7 +23,7 @@ module.exports.init = function() {
     name: 'app',
     keys: [ 'aaaaaaaaaaa' ],
     maxAge: 31 * 24 * 60 * 60 * 1000, // 31 days
-    sameSite: true
+    sameSite: 'Lax'
   };
 
   config.i18n = {
