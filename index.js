@@ -10,6 +10,7 @@ const igo = {
   logger:   require('./src/logger'),
   mailer:   require('./src/mailer'),
   Model:    require('./src/db/Model'),
+  Form:     require('./src/forms/Form'),
   app:      require('./src/app')
 };
 

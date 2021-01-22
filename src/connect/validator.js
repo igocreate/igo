@@ -69,8 +69,11 @@ module.exports = (req, res, next) => {
   req.checkQuery = (param, msg) => {
     return new Chain(param, req.query[param], msg, res.locals._errors);
   };
+  req.getValidationErrors = () => {
+    return _.isEmpty(res.locals._errors) ? null : res.locals._errors;
+  }
   req.getValidationResult = () => {
-    // console.log('warn: req.getValidationResult() is deprecated!');
+    console.log('warn: req.getValidationResult() is deprecated. Use req.getValidationErrors()');
     const result = {
       errors:   res.locals._errors,
       isEmpty:  () => _.isEmpty(res.locals._errors),
