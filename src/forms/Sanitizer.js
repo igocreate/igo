@@ -1,13 +1,12 @@
 
 
 const _         = require('lodash');
-const moment    = require('moment');
 
 //
 module.exports.sanitize = (value, attr) => {
   const { type } = attr;
 
-  if (!value) {
+  if (value === null || value === undefined) {
     return value;
   }
 
@@ -17,36 +16,23 @@ module.exports.sanitize = (value, attr) => {
       // return array as it is
       return value;
     }
+    // take first value
     return module.exports.sanitize(value[0], attr);
   }
 
   if (typeof value !== 'string') {
+    console.warn(`Sanitizer should only sanitize strings (${attr.name} is ${typeof value})`);
     return value;
   }
 
   // trim
   value = value.trim();
 
-  // Dates
-  if (type === 'date') {
-    const m = moment(value, attr.format);
-    if (!m.isValid()) {
-      return null;
-    }
-    value = m.toDate();
-  }
-
   // Numbers
   if (['int', 'float'].indexOf(type) > -1) {
     value = _.replace(value, / /g, '');
-    if (type === 'int') {
-      value = parseInt(value, 10);
-    } else if (type === 'float') {
+    if (type === 'float') {
       value = _.replace(value, /,/g, '.');
-      value = _.parseFloat(value);
-    }
-    if (isNaN(value)) {
-      return null;
     }
   }
 
