@@ -118,12 +118,6 @@ module.exports.fetch = function(namespace, id, func, callback) {
   });
 };
 
-// retro compatibility
-module.exports.getput = function(namespace, id, func, callback) {
-  console.warn('IGO: cache.getput() is deprecated, use cache.fetch() instead.');
-  module.exports.fetch(namespace, id, func, callback);
-};
-
 //
 module.exports.info = function(callback) {
   redisclient.info(cls.bind(callback));
