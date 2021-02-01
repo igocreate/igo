@@ -35,8 +35,13 @@ module.exports = function(schema) {
     }
 
     // reload
-    reload(callback) {
-      this.constructor.unscoped().find(this.id, callback);
+    reload(includes, callback) {
+      if (!callback) {
+        callback = includes;
+      }
+      const query = this.constructor.unscoped();
+      includes && query.includes(includes);
+      query.find(this.id, callback);
     }
 
     // destroy

@@ -241,6 +241,18 @@ describe('includes', function() {
         });
       });
     });
+
+
+    it('should include associations on reload', function(done) {
+      Library.create(function(err, library) {
+        Book.create({ library_id: library.id }, function(err, book) {
+          book.reload('library', (err, book) => {
+            assert.equal(book.library.id, library.id);
+            done();
+          });
+        });
+      });
+    });
   });
 
 });
