@@ -41,8 +41,15 @@ module.exports.init = function(_db) {
 
 //
 module.exports.initmigrations = function(callback) {
-  var create = 'CREATE TABLE IF NOT EXISTS `__db_migrations` (' + '`id` INTEGER NOT NULL AUTO_INCREMENT, ' + '`file` VARCHAR(100), ' + '`success` TINYINT(1), ' + '`err` VARCHAR(255), ' + '`creation` DATETIME, ' + 'PRIMARY KEY (`id`) ' + ') ENGINE=InnoDB DEFAULT CHARSET=utf8';
-  db.query(create, callback);
+  const sql = `CREATE TABLE IF NOT EXISTS \`__db_migrations\`(
+    \`id\` INTEGER NOT NULL AUTO_INCREMENT,
+    \`file\` VARCHAR(100),
+    \`success\` TINYINT(1),
+    \`err\` VARCHAR(255),
+    \`creation\` DATETIME,
+    PRIMARY KEY (\`id\`)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`
+  db.query(sql, callback);
 };
 
 //
@@ -113,10 +120,12 @@ module.exports.migrate = function(sqldir, callback) {
           if (err) {
             logger.error('SQL error in file %s', file.path);
           }
-          var sql = 'INSERT INTO `__db_migrations`(file, success, err, creation) ' + 'VALUES(?, ?, ?, ?)';
+          var sql = `INSERT INTO \`__db_migrations\`
+            (file, success, err, creation) 
+            VALUES(?, ?, ?, ?)`;
           var success = err ? 0 : 1;
           logger.info((success ? '✅ ' : '❌ ') + file.filename);
-          err = err ? util.format('%s', err) : null;
+          err = err ? String(err) : null;
           db.query(sql, [file.filename, success, err, new Date()], () => {
             callback(err);
           });
