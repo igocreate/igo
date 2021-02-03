@@ -9,6 +9,7 @@ const schema = {
     { name: 'password', type: 'text' },
     { name: 'check',    type: 'boolean' },
     { name: 'date',     type: 'date', format: 'DD/MM/YYYY' },
+    { name: 'array',    type: 'array' },
   ]
 };
 

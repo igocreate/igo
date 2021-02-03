@@ -3,21 +3,22 @@
 const _         = require('lodash');
 
 //
-module.exports.sanitize = (value, attr) => {
-  const { type } = attr;
+const sanitize = module.exports.sanitize = (value, attr) => {
+  const { type, item_type } = attr;
 
   if (value === null || value === undefined) {
-    return value;
+    return attr.default || value;
   }
 
-  // Arrays
-  if (_.isArray(value)) {
-    if (type === 'array') {
-      // return array as it is
-      return value;
+  if (type === 'array') {
+    if (!value) {
+      return attr.default || null;
     }
-    // take first value
-    return module.exports.sanitize(value[0], attr);
+    value = _.castArray(value);
+    if (item_type) {
+      return _.map(value, item => sanitize(item, {type: item_type}));
+    }
+    return value;
   }
 
   if (typeof value !== 'string') {
