@@ -12,6 +12,8 @@
   - Routes, Middlewares
 - [Development](/docs/development.md)
   - Webpack, Nodemon
+- [Forms](/docs/forms.md)
+  - Igo Form
 - [Test](/docs/test.md)
   - Using Mocha, testing controllers
 - [Production](/docs/production.md)
