@@ -1,8 +1,9 @@
 
 const _         = require('lodash');
 const validator = require('validator');
-const { rejectSeries } = require('async');
 
+
+//
 class Chain {
 
   constructor(param, value, msg, errors) {

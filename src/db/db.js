@@ -91,29 +91,6 @@ module.exports.query = (sql, params, options, callback) => {
 };
 
 //
-module.exports.queryOne = function(sql, params, options, callback) {
-  // console.log('module.exports.queryOne will be deprecated.');
-  params  = params  || [];
-  options = options || {};
-  if (_.isFunction(params)) {
-    callback  = params;
-    params    = [];
-    options   = {};
-  }
-  if (_.isFunction(options)) {
-    callback  = options;
-    options   = {};
-  }
-  return module.exports.query(sql, params, function(err, results) {
-    if (results && results.length > 0 && callback) {
-      return callback(null, results[0]);
-    } else if (callback) {
-      return callback(err, null);
-    }
-  });
-};
-
-//
 module.exports.beginTransaction = function(callback) {
   module.exports.getConnection((err, connection) => {
     if (err) {

@@ -1,7 +1,7 @@
 
 const igo = {
   cache:    require('./src/cache'),
-  cls:      require('./src/cls'),
+  cls:      require('./src/cls'),     // will be deprecated
   config:   require('./src/config'),
   db:       require('./src/db/db'),
   express:  require('express'),

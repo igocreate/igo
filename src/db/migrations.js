@@ -96,8 +96,8 @@ module.exports.migrate = function(sqldir, callback) {
       function(callback) {
         var sql;
         sql = 'SELECT id from  `__db_migrations` WHERE `file`=? AND `success`=1';
-        return db.queryOne(sql, [file.filename], function(err, result) {
-          if (result) {
+        return db.query(sql, [file.filename], function(err, result) {
+          if (result && result.length > 0) {
             return callback('alreadyplayed');
           } else {
             return callback();

@@ -84,11 +84,11 @@ module.exports.init = function() {
   }
 
   // load app config
-  var configFiles = [
+  const configFiles = [
     '/app/config',
     '/app/config-' + config.env
   ];
-  configFiles.forEach(function(file) {
+  configFiles.forEach((file) => {
     try {
       require(process.cwd() + file).init(config);
     } catch (err) {

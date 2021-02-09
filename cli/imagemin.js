@@ -9,7 +9,6 @@ const imagemin          = require('imagemin');
 const imageminJpegtran  = require('imagemin-jpegtran'); // lossless
 const imageminOptipng   = require('imagemin-optipng');  // lossless
 const imageminGifsicle  = require('imagemin-gifsicle'); // lossless
-const { call } = require('file-loader');
 
 const EXTENSIONS = [ '.jpg', '.jpeg', '.png', '.gif' ];
 const ROOT = './public';

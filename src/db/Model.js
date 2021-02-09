@@ -5,8 +5,6 @@ const _         = require('lodash');
 const Query     = require('./Query');
 const Schema    = require('./Schema');
 
-const utils     = require('../utils');
-
 
 // Simple mixin implementation to set the schema as a static attribute
 module.exports = function(schema) {

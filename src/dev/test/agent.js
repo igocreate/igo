@@ -73,7 +73,7 @@ const mockResponse = function(callback, req) {
 };
 
 //
-module.exports.send = function(url, options, callback) {
+module.exports.send = (url, options, callback) => {
   options.url = url;
   const req = mockRequest(options);
   const res = mockResponse(callback, req);
@@ -82,7 +82,7 @@ module.exports.send = function(url, options, callback) {
 };
 
 //
-module.exports.get = function(url, options, callback) {
+module.exports.get = (url, options, callback) => {
   if (_.isFunction(options)) {
     callback  = options;
     options   = {};
@@ -92,7 +92,7 @@ module.exports.get = function(url, options, callback) {
 };
 
 //
-module.exports.post = function(url, options, callback) {
+module.exports.post = (url, options, callback) => {
   if (_.isFunction(options)) {
     callback  = options;
     options   = {};
