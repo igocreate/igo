@@ -57,7 +57,15 @@ module.exports.configure = function() {
     }
     app.use(cookieParser(config.cookieSecret || config.signedCookiesSecret));
     app.use(cookieSession(config.cookieSession || config.cookieSessionConfig));
+
     app.use(bodyParser.json({ limit: config.bodyParser.limit }));
+    app.use((err, req, res, next) => {
+      if (err) {
+        res.status(400).send('Bad Request');
+      } else {
+        next();
+      }
+    });
     app.use(bodyParser.urlencoded({ limit: config.bodyParser.limit, extended: true }));
     app.use(multipart);
   }
