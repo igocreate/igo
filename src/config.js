@@ -34,7 +34,7 @@ module.exports.init = function() {
       loadPath:           'locales/{{lng}}/{{ns}}.json',
     },
     detection: {
-      order:              [ 'querystring', 'path' ],
+      order:              [ 'querystring', 'path', 'cookie' ],
       lookupPath:         'lang',
       lookupQuerystring:  'lang',
       caches:             false
