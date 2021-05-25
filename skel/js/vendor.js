@@ -2,8 +2,9 @@
 // css
 require('../scss/vendor.scss');
 
-// js
-window.$ = window.jQuery  = require('jquery');
-window.Popper             = require('popper.js').default;
+// bootstrap
+require('@popperjs/core');
+window.bootstrap  = require('bootstrap');
 
-require('bootstrap');
+// jQuery
+window.$ = window.jQuery  = require('jquery');
