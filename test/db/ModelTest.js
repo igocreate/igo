@@ -31,7 +31,7 @@ describe('db.Model', function() {
     //
     describe('insert', function() {
 
-      it('should insert a book', function(done) {
+      it.only('should insert a book', function(done) {
         Book.create(function(err, book) {
           assert(book && book.id);
           done();

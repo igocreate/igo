@@ -55,6 +55,10 @@ module.exports.init = function() {
     subaccount:   process.env.SMTP_SUBACCOUNT
   };
 
+  // default db is mysql
+  config.database = 'postgresql';
+
+  // mysql
   config.mysql = {
     host     : process.env.MYSQL_HOST     || 'localhost',
     port     : process.env.MYSQL_PORT     || 3306,
@@ -64,6 +68,18 @@ module.exports.init = function() {
     charset  : process.env.MYSQL_CHARSET  || 'utf8mb4',
     debug    : false,
     connectionLimit : 5,
+  };
+
+  // postgresql
+  config.postgresql = {
+    host     : process.env.POSTGRESQL_HOST     || 'localhost',
+    port     : process.env.POSTGRESQL_PORT     || 5432,
+    user     : process.env.POSTGRESQL_USERNAME || '',
+    password : process.env.POSTGRESQL_PASSWORD || '',
+    database : process.env.POSTGRESQL_DATABASE || 'igo',
+    max: 5,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
     debugsql : false
   };
 
@@ -75,7 +91,8 @@ module.exports.init = function() {
 
   //
   if (config.env === 'test') {
-    config.mysql.database = 'test';
+    config.mysql.database       = 'test';
+    config.postgresql.database  = 'test';
   }
 
   //

@@ -1,5 +1,4 @@
 const _             = require('lodash');
-const mysql         = require('mysql');
 
 const cls           = require('../cls');
 const config        = require('../config');
@@ -9,18 +8,26 @@ const errorhandler  = require('../connect/errorhandler');
 //
 const migrations = require('./migrations');
 
+const DATABASES = {
+  mysql:      require('./databases/mysql'),
+  postgresql: require('./databases/postgresql'),
+};
+
+let database      = null;
 let pool          = null;
+
 
 //
 module.exports.init = () => {
-  pool = mysql.createPool(config.mysql);
+  database  = DATABASES[config.database];
+  pool      = database.createPool();
   migrations.init(module.exports);
+  module.exports.database = database;
 };
 
 // migrations functions
 module.exports.migrations = migrations.list;
 module.exports.migrate    = migrations.migrate;
-
 
 //
 module.exports.getConnection = (callback) => {
@@ -30,7 +37,7 @@ module.exports.getConnection = (callback) => {
   if (connection) {
     return callback(null, connection, true);
   }
-  pool.getConnection(cls.bind(callback));
+  database.getConnection(pool, cls.bind(callback));
 };
 
 //
@@ -49,15 +56,15 @@ module.exports.query = (sql, params, options, callback) => {
   }
 
   const runquery = () => {
-    module.exports.getConnection(function(err, connection, keep) {
+    module.exports.getConnection((err, connection, keep) => {
       if (err) {
         console.log(err);
         logger.error(err);
         return callback(err);
       }
-      connection.query(sql, params, cls.bind(function(err, rows) {
 
-        if (config.mysql.debugsql || (err && !options.silent)) {
+      database.query(connection, sql, params, cls.bind(function(err, rows) {
+        if (config[config.database].debugsql || (err && !options.silent)) {
           logger.info('Db.query: ' + sql);
           if (params && params.length > 0) {
             logger.info('With params: ' + params);
@@ -70,7 +77,7 @@ module.exports.query = (sql, params, options, callback) => {
           callback(err, rows);
         }
         if (!keep) {
-          connection.release();
+          database.release(connection);
         }
       }));
     });
@@ -97,7 +104,7 @@ module.exports.beginTransaction = function(callback) {
       logger.error(err);
       return callback(err, connection);
     }
-    connection.beginTransaction(cls.bind((err) => {
+    database.beginTransaction(connection, cls.bind((err) => {
       if (err) {
         logger.error(err);
       } else {
@@ -115,11 +122,11 @@ module.exports.commitTransaction = function(callback) {
       logger.error(err);
       return callback(err, connection);
     }
-    connection.commit(cls.bind((err) => {
+    database.commit(connection, cls.bind((err) => {
       if (err) {
         logger.error(err);
       } else {
-        connection.release();
+        database.release(connection);
         cls.getNamespace().set('connection', null);
       }
       callback(err);
@@ -134,11 +141,11 @@ module.exports.rollbackTransaction = function(callback) {
       logger.error(err);
       return callback(err, connection);
     }
-    connection.rollback(cls.bind((err) => {
+    database.rollback(connection, cls.bind((err) => {
       if (err) {
         logger.error(err);
       } else {
-        connection.release();
+        database.release(connection);
         cls.getNamespace().set('connection', null);
       }
       callback(err);

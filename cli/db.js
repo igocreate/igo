@@ -13,13 +13,13 @@ const verbs   = {
 
   // igo db migrate
   migrate: function(args, callback) {
-    config.mysql.debugsql = false;
+    config[config.database].debugsql = false;
     db.migrate(callback);
   },
 
   // igo db migrations
   migrations: function(args, callback) {
-    config.mysql.debugsql = false;
+    config[config.database].debugsql = false;
     db.migrations(function(err, migrations) {
       migrations = _.reverse(migrations);
       _.each(migrations, function(migration) {
@@ -36,10 +36,10 @@ const verbs   = {
   // igo db reset
   reset: function(args, callback) {
     const stdin     = process.openStdin();
-    const database  = config.mysql.database;
+    const database  = config[config.database].database;
 
     console.log('WARNING: Database will be reset, data will be lost!');
-    console.log('Confirm the database name (' + config.mysql.database + '):');
+    console.log('Confirm the database name (' + config[config.database].database + '):');
     stdin.addListener('data', function(d) {
       d = d.toString().trim();
       if (d !== database) {
@@ -49,12 +49,12 @@ const verbs   = {
       const DROP_DATABASE   = 'DROP DATABASE IF EXISTS `' + database + '`;';
       const CREATE_DATABASE = 'CREATE DATABASE `' + database + '`;';
 
-      config.mysql.debugsql = false;
-      config.mysql.database = null;
+      config[config.database].debugsql = false;
+      config[config.database].database = null;
       db.init();
       db.query(DROP_DATABASE, function() {
         db.query(CREATE_DATABASE, function() {
-          config.mysql.database = database;
+          config[config.database].database = database;
           db.init();
           db.migrate(function() {
             callback();

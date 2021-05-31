@@ -10,22 +10,26 @@ const cls         = require('../../cls');
 const app         = require('../../app');
 const plugins     = require('../../plugins');
 
-var context;
+let context = null;
 
 //
-var reinitDatabase = function(callback) {
-  const database = config.mysql.database;
-  config.mysql.database = null;
+const reinitDatabase = (callback) => {
+  console.log('reinit');
+  const database  = config[config.database].database;
+  config[config.database].database = null;
   db.init();
+  const { dialect } = db.database;
+  const sqldir = config.database === 'postgresql' ? './postgresql' : './sql';
 
-  var DROP_DATABASE   = 'DROP DATABASE IF EXISTS `' + database + '`;';
-  var CREATE_DATABASE = 'CREATE DATABASE `' + database + '`;';
+  const DROP_DATABASE   = dialect.dropDb(database);
+  const CREATE_DATABASE = dialect.createDb(database);
 
+  // console.log(DROP_DATABASE);
   db.query(DROP_DATABASE, function() {
     db.query(CREATE_DATABASE, function() {
-      config.mysql.database = database;
-      db.init(config);
-      migrations.migrate(function() {
+      config[config.database].database = database;
+      db.init();
+      migrations.migrate(sqldir, function() {
         logger.info('Igo dev: reinitialized test database');
         callback();
       });

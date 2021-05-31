@@ -23,16 +23,16 @@ module.exports.init = function(_db) {
     if (err) {
       return console.error(err);
     }
-    const lock = config.mysql.database + '.__db_migrations';
-    connection.query(`SELECT GET_LOCK('${lock}', 0) AS 'lock'`, function(err, res) {
+    const lock = config[config.database].database + '.__db_migrations';
+    db.query(connection, `SELECT GET_LOCK('${lock}', 0) AS 'lock'`, function(err, res) {
       if (!res || !res[0] || res[0].lock < 1) {
         // could not get lock, skip migration
-        return connection.release();
+        return db.release(connection);
       }
       // got lock, migrate!
       module.exports.migrate(() => {
-        connection.query(`SELECT RELEASE_LOCK('${lock}')`, () => {
-          connection.release();
+        db.query(connection, `SELECT RELEASE_LOCK('${lock}')`, () => {
+          db.release(connection);
         });
       });
     });
@@ -41,21 +41,14 @@ module.exports.init = function(_db) {
 
 //
 module.exports.initmigrations = function(callback) {
-  const sql = `CREATE TABLE IF NOT EXISTS \`__db_migrations\`(
-    \`id\` INTEGER NOT NULL AUTO_INCREMENT,
-    \`file\` VARCHAR(100),
-    \`success\` TINYINT(1),
-    \`err\` VARCHAR(255),
-    \`creation\` DATETIME,
-    PRIMARY KEY (\`id\`)
-   ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`
+  const sql = db.database.dialect.createMigrationsTable;
   db.query(sql, callback);
 };
 
 //
 module.exports.list = function(callback) {
   module.exports.initmigrations(() => {
-    var sql = 'SELECT * FROM `__db_migrations` ORDER BY `id` DESC';
+    var sql = db.database.dialect.listMigrations;
     db.query(sql, callback);
   });
 };
@@ -88,14 +81,14 @@ module.exports.migrate = function(sqldir, callback) {
     }
   };
 
+
   const executeFile = function(file, callback) {
     if (!file.filename.match('[0-9]{8}.*\\.sql$')) {
       return callback();
     }
     return async.waterfall([
       function(callback) {
-        var sql;
-        sql = 'SELECT id from  `__db_migrations` WHERE `file`=? AND `success`=1';
+        const sql = db.database.dialect.findMigration;
         return db.query(sql, [file.filename], function(err, result) {
           if (result && result.length > 0) {
             return callback('alreadyplayed');
@@ -120,9 +113,7 @@ module.exports.migrate = function(sqldir, callback) {
           if (err) {
             logger.error('SQL error in file %s', file.path);
           }
-          var sql = `INSERT INTO \`__db_migrations\`
-            (file, success, err, creation) 
-            VALUES(?, ?, ?, ?)`;
+          const sql = db.database.dialect.insertMigration;
           var success = err ? 0 : 1;
           logger.info((success ? '✅ ' : '❌ ') + file.filename);
           err = err ? String(err) : null;
