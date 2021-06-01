@@ -1,5 +1,6 @@
 
-const { Pool } = require('pg');
+const _         = require('lodash');
+const { Pool }  = require('pg');
 
 const config = require('../../config');
 
@@ -19,8 +20,6 @@ module.exports.getConnection = (pool, callback) => {
 // query
 module.exports.query = (connection, sql, params, callback) => {
   const { client } = connection;
-  console.log(sql);
-  console.dir(params);
   client.query(sql, params, callback);
 };
 
@@ -62,5 +61,15 @@ module.exports.dialect = {
   listMigrations:   'SELECT * FROM "__db_migrations" ORDER BY "id" DESC',
   findMigration:    'SELECT "id" from  "__db_migrations" WHERE "file"=$1 AND "success"=1',
   insertMigration:  'INSERT INTO "__db_migrations" (file, success, err, creation) VALUES($1, $2, $3, $4)',
+  esc: '"',
+  param: i => `$${i}`,
+  limit: (i, j) => `LIMIT $${j} OFFSET $${i} `,
+  returning: 'RETURNING "id"',
+  insertId: result => {
+    return result && result[0] && result[0].id
+  },
+  getRows: result => result.rows,
+  emptyInsert: 'DEFAULT VALUES ',
+  in: '= ANY',
 
 };

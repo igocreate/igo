@@ -214,7 +214,7 @@ module.exports = class Query {
   // generate SQL
   toSQL() {
     var params = [];
-    var sql = new Sql(this.query)[this.query.verb + 'SQL']();
+    var sql = new Sql(this.query, db.database.dialect)[this.query.verb + 'SQL']();
     // console.log(sql);
     this.query.generated = sql;
     return sql;
@@ -311,7 +311,8 @@ module.exports = class Query {
 
   //
   execute(callback) {
-    const _this = this;
+    const _this   = this;
+    const { esc } = db.database.dialect;
 
     if (this.schema.scopes) {
       _this.applyScopes();
@@ -322,7 +323,8 @@ module.exports = class Query {
       const order = _this.query.take === 'first' ? 'ASC' : 'DESC';
       // default sort by primary key
       this.schema.primary.forEach(function(key) {
-        _this.query.order.push('`' + key + '` ' + order);
+        _this.query.order.push(`${esc}${key}${esc} ${order}`);
+        // _this.query.order.push('`' + key + '` ' + order);
       });
     }
 

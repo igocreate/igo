@@ -35,8 +35,10 @@ module.exports.getConnection = (callback) => {
   const namespace   = cls.getNamespace();
   const connection  = namespace && namespace.get('connection');
   if (connection) {
+    // console.log('keep same connection');
     return callback(null, connection, true);
   }
+  // console.log('create new connection');
   database.getConnection(pool, cls.bind(callback));
 };
 
@@ -63,7 +65,10 @@ module.exports.query = (sql, params, options, callback) => {
         return callback(err);
       }
 
-      database.query(connection, sql, params, cls.bind(function(err, rows) {
+      // console.log(sql);
+      // console.dir(params);
+      database.query(connection, sql, params, cls.bind(function(err, result) {
+        // console.dir(result);
         if (config[config.database].debugsql || (err && !options.silent)) {
           logger.info('Db.query: ' + sql);
           if (params && params.length > 0) {
@@ -74,7 +79,7 @@ module.exports.query = (sql, params, options, callback) => {
           }
         }
         if (callback) {
-          callback(err, rows);
+          callback(err, database.dialect.getRows(result));
         }
         if (!keep) {
           database.release(connection);

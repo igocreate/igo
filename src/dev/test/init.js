@@ -14,7 +14,6 @@ let context = null;
 
 //
 const reinitDatabase = (callback) => {
-  console.log('reinit');
   const database  = config[config.database].database;
   config[config.database].database = null;
   db.init();

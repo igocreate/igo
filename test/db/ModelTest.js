@@ -31,7 +31,7 @@ describe('db.Model', function() {
     //
     describe('insert', function() {
 
-      it.only('should insert a book', function(done) {
+      it('should insert a book', function(done) {
         Book.create(function(err, book) {
           assert(book && book.id);
           done();
@@ -238,7 +238,7 @@ describe('db.Model', function() {
 
       it('should use custom select', function(done) {
         Book.create({ code: '123', title: 'title' }, function(err, first) {
-          Book.select('*, YEAR(created_at) AS `year`').list(function(err, books) {
+          Book.select('*, EXTRACT(YEAR FROM created_at) AS "year"').list(function(err, books) {
             const currentYear = new Date().getFullYear();
             assert(!err);
             assert(books[0].title, 'title');
@@ -368,7 +368,7 @@ describe('db.Model', function() {
           Book.create({ code: 'second' }, next);
         }, function() {
 
-          Book.select('COUNT(*) AS `count`, code').group('code').list(function(err, groups) {
+          Book.select('COUNT(*) AS "count", code').group('code').list(function(err, groups) {
             const firsts  = _.find(groups, {code: 'first'});
             const seconds = _.find(groups, {code: 'second'});
             assert.equal(firsts.count, 10);
@@ -389,7 +389,7 @@ describe('db.Model', function() {
           Book.create({ code: 'second' }, next);
         }, function() {
 
-          Book.select('COUNT(*) AS `count`, YEAR(created_at) AS `year`').group('year').list(function(err, groups) {
+          Book.select('COUNT(*) AS "count", EXTRACT(YEAR FROM created_at) AS "year"').group('year').list(function(err, groups) {
             const currentYear = new Date().getFullYear();
             assert.equal(groups[0].count, 30);
             assert.equal(groups[0].year, currentYear);

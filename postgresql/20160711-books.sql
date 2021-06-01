@@ -8,6 +8,6 @@ CREATE TABLE "books" (
   "title"         VARCHAR(100),
   "details_json"  TEXT,
   "tags_array"    VARCHAR(512),
-  "is_available"  SMALLINT,
+  "is_available"  BOOLEAN,
   "created_at"    TIMESTAMP
 );

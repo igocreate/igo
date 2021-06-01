@@ -2,11 +2,16 @@
 
 require('../../src/dev/test/init');
 
-var assert    = require('assert');
-var _         = require('lodash');
+const assert    = require('assert');
+const _         = require('lodash');
 
-var Query     = require('../../src/db/Query');
+const db        = require('../../src/db/db');
+const Query     = require('../../src/db/Query');
 
+const mysql       = require('../../src/db/databases/mysql');
+const postgresql  = require('../../src/db/databases/postgresql');
+
+//
 describe('db.Query', function() {
 
   class Book {

@@ -5,10 +5,10 @@ var _         = require('lodash');
 
 var Sql           = require('../../src/db/Sql');
 
-const { dialect } = require('../../src/db/databases/mysql');
+const { dialect } = require('../../src/db/databases/postgresql');
 
 
-describe('db.Sql', function() {
+describe('db.PostgreSql', function() {
 
   var query = {
     table: 'books',
@@ -20,14 +20,14 @@ describe('db.Sql', function() {
 
     it('should return correct SQL', function() {
       var selectSQL = new Sql(query, dialect).selectSQL();
-      assert.equal('SELECT `books`.* FROM `books`', selectSQL.sql);
+      assert.equal('SELECT "books".* FROM "books"', selectSQL.sql);
       assert.equal(0, selectSQL.params.length);
     });
 
     it('should allow order by', function() {
-      query.order = [ '`title`' ];
+      query.order = [ '"title"' ];
       var selectSQL = new Sql(query, dialect).selectSQL();
-      assert.equal('SELECT `books`.* FROM `books` ORDER BY `title`', selectSQL.sql);
+      assert.equal('SELECT "books".* FROM "books" ORDER BY "title"', selectSQL.sql);
       assert.equal(0, selectSQL.params.length);
       delete query.order;
     });
@@ -35,7 +35,7 @@ describe('db.Sql', function() {
     it('should allow limit', function() {
       query.limit = 3;
       var selectSQL = new Sql(query, dialect).selectSQL();
-      assert.equal('SELECT `books`.* FROM `books` LIMIT ?, ?', selectSQL.sql);
+      assert.equal('SELECT "books".* FROM "books" LIMIT $2 OFFSET $1', selectSQL.sql);
       assert.equal(2, selectSQL.params.length);
       assert.equal(0, selectSQL.params[0]);
       assert.equal(3, selectSQL.params[1]);
@@ -45,7 +45,7 @@ describe('db.Sql', function() {
       query.distinct  = [ 'type' ];
       query.limit     = null;
       var selectSQL   = new Sql(query, dialect).selectSQL();
-      assert.equal('SELECT DISTINCT `type` FROM `books`', selectSQL.sql);
+      assert.equal('SELECT DISTINCT "type" FROM "books"', selectSQL.sql);
       assert.equal(0, selectSQL.params.length);
     })
   });
@@ -54,7 +54,7 @@ describe('db.Sql', function() {
   describe('countSQL', function() {
     it('should return correct SQL', function() {
       var selectSQL = new Sql(query, dialect).countSQL();
-      assert.equal('SELECT COUNT(0) as `count` FROM `books`', selectSQL.sql);
+      assert.equal('SELECT COUNT(0) as "count" FROM "books"', selectSQL.sql);
     });
   });
 
@@ -89,7 +89,7 @@ describe('db.Sql', function() {
       var params  = [];
       query.where = [{ id: 123 }];
       var sql     = new Sql(query, dialect).whereSQL(params);
-      assert.equal('WHERE `id` = ? ', sql);
+      assert.equal('WHERE "id" = $1 ', sql);
       assert.equal(123, params[0]);
     });
   });

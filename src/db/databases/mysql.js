@@ -43,8 +43,8 @@ module.exports.rollback = (connection, callback) => {
 
 // dialect
 module.exports.dialect = {
-  createDb: db => `CREATE DATABASE \`${database}\`;`,
-  dropDb:   db => `DROP DATABASE IF EXISTS \`${database}\`;`,
+  createDb: db => `CREATE DATABASE \`${db}\`;`,
+  dropDb:   db => `DROP DATABASE IF EXISTS \`${db}\`;`,
   createMigrationsTable: `CREATE TABLE IF NOT EXISTS \`__db_migrations\`(
     \`id\` INTEGER NOT NULL AUTO_INCREMENT,
     \`file\` VARCHAR(100),
@@ -55,6 +55,15 @@ module.exports.dialect = {
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`,
   listMigrations: 'SELECT * FROM `__db_migrations` ORDER BY `id` DESC',
   findMigration:  'SELECT id from  `__db_migrations` WHERE `file`=? AND `success`=1',
-  insertMigration: '`INSERT INTO \`__db_migrations\` (file, success, err, creation) VALUES(?, ?, ?, ?)`',
+  insertMigration: 'INSERT INTO \`__db_migrations\` (file, success, err, creation) VALUES(?, ?, ?, ?)',
+  esc: '`',
+  param: i => '?',
+  limit: (i, j) => 'LIMIT ?, ? ',
+  returning: '',
+  insertId: result => result && result.insertId,
+  getRows: result => result,
+  emptyInsert: null,
+  in: 'IN',
+
   
 };

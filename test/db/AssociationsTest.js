@@ -224,7 +224,7 @@ describe('includes', function() {
     });
 
 
-    it('should list libraries with their books', function(done) {
+    it('should list libraries with their books (2)', function(done) {
       Book.create(function(err, book1) {
         Book.create(function(err, book2) {
           Book.create(function(err, book3) {
