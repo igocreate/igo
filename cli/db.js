@@ -46,12 +46,14 @@ const verbs   = {
         return callback('Cancelled.');
       }
 
-      const DROP_DATABASE   = 'DROP DATABASE IF EXISTS `' + database + '`;';
-      const CREATE_DATABASE = 'CREATE DATABASE `' + database + '`;';
-
       config[config.database].debugsql = false;
       config[config.database].database = null;
       db.init();
+
+      const { dialect } = db.database;
+      const DROP_DATABASE   = dialect.dropDb(database);
+      const CREATE_DATABASE = dialect.createDb(database);
+
       db.query(DROP_DATABASE, function() {
         db.query(CREATE_DATABASE, function() {
           config[config.database].database = database;

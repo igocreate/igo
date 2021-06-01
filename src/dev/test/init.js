@@ -18,7 +18,6 @@ const reinitDatabase = (callback) => {
   config[config.database].database = null;
   db.init();
   const { dialect } = db.database;
-  const sqldir = config.database === 'postgresql' ? './postgresql' : './sql';
 
   const DROP_DATABASE   = dialect.dropDb(database);
   const CREATE_DATABASE = dialect.createDb(database);
@@ -28,7 +27,7 @@ const reinitDatabase = (callback) => {
     db.query(CREATE_DATABASE, function() {
       config[config.database].database = database;
       db.init();
-      migrations.migrate(sqldir, function() {
+      migrations.migrate(function() {
         logger.info('Igo dev: reinitialized test database');
         callback();
       });
