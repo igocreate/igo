@@ -23,17 +23,22 @@ module.exports.init = function(_db) {
     if (err) {
       return console.error(err);
     }
+    const { dialect } = db.database;
     const lock = config[config.database].database + '.__db_migrations';
-    db.query(connection, `SELECT GET_LOCK('${lock}', 0) AS 'lock'`, function(err, res) {
-      if (!res || !res[0] || res[0].lock < 1) {
+    const getLock = dialect.getLock(lock);
+    db.database.query(connection, getLock, [], (err, res) => {
+      if (!dialect.gotLock(res)) {
         // could not get lock, skip migration
-        return db.release(connection);
+        return db.database.release(connection);
       }
       // got lock, migrate!
       module.exports.migrate(() => {
-        db.query(connection, `SELECT RELEASE_LOCK('${lock}')`, () => {
-          db.release(connection);
-        });
+        const releaseLock = dialect.releaseLock(lock);
+        setTimeout(() => {
+          db.query(releaseLock, () => {
+            db.database.release(connection);
+          });
+        }, 10000);
       });
     });
   });
