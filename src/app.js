@@ -13,7 +13,7 @@ const igodust           = require('./engines/igodust');
 const cache             = require('./cache');
 const cls               = require('./cls');
 const config            = require('./config');
-const db                = require('./db/db');
+const dbs               = require('./db/dbs');
 const errorHandler      = require('./connect/errorhandler');
 const flash             = require('./connect/flash');
 const locals            = require('./connect/locals');
@@ -27,7 +27,7 @@ const plugins           = require('./plugins');
 const app = module.exports = express();
 
 // services to initialize
-const SERVICES = [ config, igodust, logger, cache, db, mailer, cls, plugins ]
+const SERVICES = [ config, igodust, logger, cache, dbs, mailer, cls, plugins ]
 
 //
 module.exports.configure = function() {

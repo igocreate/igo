@@ -3,7 +3,7 @@ const igo = {
   cache:    require('./src/cache'),
   cls:      require('./src/cls'),     // will be deprecated
   config:   require('./src/config'),
-  db:       require('./src/db/db'),
+  dbs:      require('./src/db/dbs'),
   express:  require('express'),
   i18next:  require('i18next'),
   IgoDust:  require('igo-dust'),

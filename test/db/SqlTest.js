@@ -5,7 +5,7 @@ var _         = require('lodash');
 
 var Sql           = require('../../src/db/Sql');
 
-const { dialect } = require('../../src/db/databases/mysql');
+const { dialect } = require('../../src/db/drivers/mysql');
 
 
 describe('db.Sql', function() {

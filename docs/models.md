@@ -38,7 +38,7 @@ The SQL files names must follow this pattern: `YYYYMMDD-*.sql`.
 
 To run the migrations, use:
 ```js
-require('igo').db.migrate();
+require('igo').dbs.mysql.migrate();
 ```
 
 When a migration file has run successfully, it is saved in a `__db_migrations` table so it will not run again next time. (This table is automatically created by the framework.)

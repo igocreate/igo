@@ -10,10 +10,9 @@ const config  = require('../config');
 const logger  = require('../logger');
 const plugins = require('../plugins');
 
-let db;
 
-module.exports.init = function(_db) {
-  db = _db;
+//
+module.exports.init = function(db) {
 
   if (!config.auto_migrate) {
     return ;
@@ -23,20 +22,20 @@ module.exports.init = function(_db) {
     if (err) {
       return console.error(err);
     }
-    const { dialect } = db.database;
-    const lock = config[config.database].database + '.__db_migrations';
+    const { dialect } = db.driver;
+    const lock = db.config.database + '.__db_migrations';
     const getLock = dialect.getLock(lock);
-    db.database.query(connection, getLock, [], (err, res) => {
+    db.driver.query(connection, getLock, [], (err, res) => {
       if (!dialect.gotLock(res)) {
         // could not get lock, skip migration
-        return db.database.release(connection);
+        return db.driver.release(connection);
       }
       // got lock, migrate!
-      module.exports.migrate(() => {
+      module.exports.migrate(db, () => {
         const releaseLock = dialect.releaseLock(lock);
         setTimeout(() => {
           db.query(releaseLock, () => {
-            db.database.release(connection);
+            db.driver.release(connection);
           });
         }, 10000);
       });
@@ -45,21 +44,21 @@ module.exports.init = function(_db) {
 };
 
 //
-module.exports.initmigrations = function(callback) {
-  const sql = db.database.dialect.createMigrationsTable;
+module.exports.initmigrations = function(db, callback) {
+  const sql = db.driver.dialect.createMigrationsTable;
   db.query(sql, callback);
 };
 
 //
-module.exports.list = function(callback) {
-  module.exports.initmigrations(() => {
-    var sql = db.database.dialect.listMigrations;
+module.exports.list = function(db, callback) {
+  module.exports.initmigrations(db, () => {
+    var sql = db.driver.dialect.listMigrations;
     db.query(sql, callback);
   });
 };
 
 //
-module.exports.migrate = function(sqldir, callback) {
+module.exports.migrate = function(db, sqldir, callback) {
   if (_.isFunction(sqldir)) {
     callback = sqldir;
     sqldir = null;
@@ -93,7 +92,7 @@ module.exports.migrate = function(sqldir, callback) {
     }
     return async.waterfall([
       function(callback) {
-        const sql = db.database.dialect.findMigration;
+        const sql = db.driver.dialect.findMigration;
         return db.query(sql, [file.filename], function(err, result) {
           if (result && result.length > 0) {
             return callback('alreadyplayed');
@@ -118,7 +117,7 @@ module.exports.migrate = function(sqldir, callback) {
           if (err) {
             logger.error('SQL error in file %s', file.path);
           }
-          const sql = db.database.dialect.insertMigration;
+          const sql = db.driver.dialect.insertMigration;
           var success = err ? 0 : 1;
           logger.info((success ? '✅ ' : '❌ ') + file.filename);
           err = err ? String(err) : null;
@@ -164,7 +163,7 @@ module.exports.migrate = function(sqldir, callback) {
     }, () => {
       // execute migrations
       files = _.sortBy(files, 'filename');
-      module.exports.initmigrations(() => {
+      module.exports.initmigrations(db, () => {
         async.eachSeries(files, executeFile, callback);
       });
     });

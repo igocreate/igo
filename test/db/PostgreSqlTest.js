@@ -5,7 +5,7 @@ var _         = require('lodash');
 
 var Sql           = require('../../src/db/Sql');
 
-const { dialect } = require('../../src/db/databases/postgresql');
+const { dialect } = require('../../src/db/drivers/postgresql');
 
 
 describe('db.PostgreSql', function() {

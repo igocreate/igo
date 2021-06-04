@@ -6,7 +6,7 @@ const assert    = require('assert');
 const _         = require('lodash');
 const async     = require('async');
 
-var Model     = require('../../src/db/Model');
+const Model     = require('../../src/db/Model');
 
 describe('db.Model', function() {
 

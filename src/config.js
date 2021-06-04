@@ -56,35 +56,39 @@ module.exports.init = function() {
   };
 
   // default db is mysql
-  config.database = 'mysql';
+  config.databases = [ 'mysql', 'postgresql' ];
 
   // config.skip_reinit_db = true;
 
   // mysql
   config.mysql = {
-    host     : process.env.MYSQL_HOST     || 'localhost',
-    port     : process.env.MYSQL_PORT     || 3306,
-    user     : process.env.MYSQL_USERNAME || 'root',
-    password : process.env.MYSQL_PASSWORD || '',
-    database : process.env.MYSQL_DATABASE || 'igo',
-    charset  : process.env.MYSQL_CHARSET  || 'utf8mb4',
-    debug    : false,
-    connectionLimit : 5,
+    driver:   'mysql',
+    host:     process.env.MYSQL_HOST     || 'localhost',
+    port:     process.env.MYSQL_PORT     || 3306,
+    user:     process.env.MYSQL_USERNAME || 'root',
+    password: process.env.MYSQL_PASSWORD || '',
+    database: process.env.MYSQL_DATABASE || 'igo',
+    charset:  process.env.MYSQL_CHARSET  || 'utf8mb4',
+    debug:    false,
+    connectionLimit: 5,
+    debugsql: false
   };
 
   // postgresql
   config.postgresql = {
-    host     : process.env.POSTGRESQL_HOST     || 'localhost',
-    port     : process.env.POSTGRESQL_PORT     || 5432,
-    user     : process.env.POSTGRESQL_USERNAME || '',
-    password : process.env.POSTGRESQL_PASSWORD || '',
-    database : process.env.POSTGRESQL_DATABASE || 'igo',
-    max: 5,
+    driver:   'postgresql',
+    host:     process.env.POSTGRESQL_HOST     || 'localhost',
+    port:     process.env.POSTGRESQL_PORT     || 5432,
+    user:     process.env.POSTGRESQL_USERNAME || '',
+    password: process.env.POSTGRESQL_PASSWORD || '',
+    database: process.env.POSTGRESQL_DATABASE || 'igo',
+    max:      5,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
-    debugsql : false
+    debugsql: false
   };
 
+  // cache
   config.redis = {
     host:     process.env.REDIS_HOST      || 'localhost',
     port:     process.env.REDIS_PORT      || 6379,

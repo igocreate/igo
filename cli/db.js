@@ -5,7 +5,8 @@ const async       = require('async');
 const fs          = require('fs');
 
 const config      = require('../src/config');
-const db          = require('../src/db/db');
+const dbs          = require('../src/db/dbs');
+const migrations  = require('../src/db/migrations');
 const plugins     = require('../src/plugins');
 
 // db verbs
@@ -13,16 +14,18 @@ const verbs   = {
 
   // igo db migrate
   migrate: function(args, callback) {
-    config[config.database].debugsql = false;
-    db.migrate(callback);
+    const db = dbs.main;
+    db.config.debugsql = false;
+    migrations.migrate(db, callback);
   },
 
   // igo db migrations
   migrations: function(args, callback) {
-    config[config.database].debugsql = false;
-    db.migrations(function(err, migrations) {
+    const db = dbs.main;
+    db.config.debugsql = false;
+    migrations.list(db, (err, migrations) => {
       migrations = _.reverse(migrations);
-      _.each(migrations, function(migration) {
+      _.each(migrations, (migration) => {
         console.log([
           migration.id,
           (migration.success ? 'OK' : 'KO'),
@@ -35,38 +38,38 @@ const verbs   = {
 
   // igo db reset
   reset: function(args, callback) {
-    const stdin     = process.openStdin();
-    const database  = config[config.database].database;
-
+    const db = dbs.main;
+    const database  = db.config.database;
+    
     console.log('WARNING: Database will be reset, data will be lost!');
-    console.log('Confirm the database name (' + config[config.database].database + '):');
+    console.log('Confirm the database name (' + database + '):');
+    const stdin = process.openStdin();
     stdin.addListener('data', function(d) {
       d = d.toString().trim();
       if (d !== database) {
         return callback('Cancelled.');
       }
 
-      config[config.database].debugsql = false;
-      config[config.database].database = null;
+      db.config.debugsql = false;
+      db.config.database = null;
       db.init();
 
-      const { dialect } = db.database;
+      const { dialect }     = db.driver;
       const DROP_DATABASE   = dialect.dropDb(database);
       const CREATE_DATABASE = dialect.createDb(database);
 
-      db.query(DROP_DATABASE, function() {
-        db.query(CREATE_DATABASE, function() {
-          config[config.database].database = database;
+      db.query(DROP_DATABASE, () => {
+        db.query(CREATE_DATABASE, () => {
+          db.config.database = database;
           db.init();
-          db.migrate(function() {
-            callback();
-          });
+          migrations.migrate(db, callback);
         });
       });
     });
   },
 
   reverse: function(args, callback) {
+    const db = dbs.main;
     db.query('show tables', function(err, tables) {
       async.eachSeries(tables, function(table, callback) {
         table = _.values(table)[0];
@@ -74,18 +77,18 @@ const verbs   = {
           return callback();
         }
         const object = _.capitalize(table.substring(0, table.length - 1));
-        db.query(`explain ${table}`, function(err, fields) {
+        db.query(`explain ${table}`, (err, fields) => {
           const primary = _.chain(fields).filter({ Key: 'PRI' }).map('Field').join('\', \'');
           let lines = [
             '',
-            'const Model   = require(\'igo\').Model;',
+            'const { Model } = require(\'igo\');',
             '',
             'const schema = {',
             '  table: \'' + table + '\',',
             '  primary: [ \'' + primary + '\' ],',
             '  columns: ['
           ];
-          fields.forEach(function(field) {
+          fields.forEach((field) => {
             lines.push(`    '${field.Field}',`);
           });
           lines = lines.concat([
@@ -113,9 +116,11 @@ const verbs   = {
 
 // igo db
 module.exports = function(argv) {
-  var args = argv._;
+  
+  const args = argv._;
+
   config.init();
-  db.init();
+  dbs.init();
   plugins.init();
 
   if (args.length > 1 && verbs[args[1]]) {
@@ -127,6 +132,5 @@ module.exports = function(argv) {
     console.error('ERROR: Wrong options');
     console.error('Usage: igo db [migrate|migrations|reverse|reset]')
   }
-
 
 };

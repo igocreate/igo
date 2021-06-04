@@ -3,7 +3,7 @@ const _         = require('lodash');
 const async     = require('async');
 
 const Sql       = require('./Sql');
-const db        = require('./db');
+const dbs       = require('./dbs');
 
 const DataTypes = require('./DataTypes');
 
@@ -13,6 +13,7 @@ module.exports = class Query {
   constructor(modelClass, verb = 'select') {
     this.modelClass = modelClass;
     this.schema     = modelClass.schema;
+    this.db         = dbs[modelClass.schema.database || 'main'];
     this.query      = {
       table:    modelClass.schema.table,
       select:   null,
@@ -213,10 +214,10 @@ module.exports = class Query {
 
   // generate SQL
   toSQL() {
-    var params = [];
-    var sql = new Sql(this.query, db.database.dialect)[this.query.verb + 'SQL']();
+    const { db, query } = this;
+    const sql = new Sql(this.query, db.driver.dialect)[this.query.verb + 'SQL']();
     // console.log(sql);
-    this.query.generated = sql;
+    query.generated = sql;
     return sql;
   }
 
@@ -311,29 +312,29 @@ module.exports = class Query {
 
   //
   execute(callback) {
-    const _this   = this;
-    const { dialect } = db.database;
-    const { esc }     = dialect;
+    const { query, schema, db } = this;
+    const { dialect }   = db.driver;
+    const { esc }       = dialect;
 
-    if (this.schema.scopes) {
-      _this.applyScopes();
+    if (schema.scopes) {
+      this.applyScopes();
     }
 
-    if (_this.query.order.length === 0 &&
-        (_this.query.take === 'first' || _this.query.take === 'last')) {
-      const order = _this.query.take === 'first' ? 'ASC' : 'DESC';
+    if (query.order.length === 0 &&
+        (query.take === 'first' || query.take === 'last')) {
+      const order = query.take === 'first' ? 'ASC' : 'DESC';
       // default sort by primary key
-      this.schema.primary.forEach(function(key) {
-        _this.query.order.push(`${esc}${key}${esc} ${order}`);
+      schema.primary.forEach(function(key) {
+        query.order.push(`${esc}${key}${esc} ${order}`);
         // _this.query.order.push('`' + key + '` ' + order);
       });
     }
 
 
-    _this.paginate(function(err, pagination) {
+    this.paginate((err, pagination) => {
       
-      const sqlQuery = _this.toSQL();
-      db.query(sqlQuery.sql, sqlQuery.params, _this.query.options, function(err, rows) {
+      const sqlQuery = this.toSQL();
+      db.query(sqlQuery.sql, sqlQuery.params, query.options, (err, rows) => {
         if (err) {
           // console.log(err);
           return callback && callback(err);
@@ -341,30 +342,30 @@ module.exports = class Query {
         if (!callback) {
           return;
         }
-        if (_this.query.verb === 'insert') {
+        if (query.verb === 'insert') {
           const insertId = dialect.insertId(rows);
           return callback(null, { insertId });
-        } else if (_this.query.verb !== 'select') {
+        } else if (query.verb !== 'select') {
           return callback(null, rows);
         }
 
-        if (_this.query.distinct || _this.query.group) {
+        if (query.distinct || query.group) {
           return callback(null, rows);
-        } else if (_this.query.limit === 1 && (!rows || rows.length === 0 )) {
+        } else if (query.limit === 1 && (!rows || rows.length === 0 )) {
           return callback(null, null);
-        } else if (_this.query.verb === 'select') {
-          rows = _.each(rows, row => _this.schema.parseTypes(row));
+        } else if (query.verb === 'select') {
+          rows = _.each(rows, row => schema.parseTypes(row));
         }
 
-        async.eachSeries(_.keys(_this.query.includes), (include, callback) => {
-          _this.loadAssociation(include, rows, callback);
+        async.eachSeries(_.keys(query.includes), (include, callback) => {
+          this.loadAssociation(include, rows, callback);
         }, (err) => {
-          if (_this.query.verb === 'select') {
-            rows = _.map(rows, row => _this.newInstance(row));
+          if (query.verb === 'select') {
+            rows = _.map(rows, row => this.newInstance(row));
           }
 
           //
-          if (_this.query.limit === 1) {
+          if (query.limit === 1) {
             return callback(err, rows[0]);
           }
 

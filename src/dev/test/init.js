@@ -1,7 +1,7 @@
 
 process.env.NODE_ENV = 'test';
 
-const db          = require('../../db/db');
+const dbs         = require('../../db/dbs');
 const migrations  = require('../../db/migrations');
 const cache       = require('../../cache');
 const config      = require('../../config');
@@ -13,21 +13,27 @@ const plugins     = require('../../plugins');
 let context = null;
 
 //
-const reinitDatabase = (callback) => {
-  const database  = config[config.database].database;
-  config[config.database].database = null;
+const reinitDatabase = (db, callback) => {
+  
+  if (config.skip_reinit_db) {
+    return done();
+  }
+  
+  const { dialect }   = db.driver;
+
+  const database      = db.config.database;
+  db.config.database  = null;
   db.init();
-  const { dialect } = db.database;
 
   const DROP_DATABASE   = dialect.dropDb(database);
   const CREATE_DATABASE = dialect.createDb(database);
 
   // console.log(DROP_DATABASE);
-  db.query(DROP_DATABASE, function() {
-    db.query(CREATE_DATABASE, function() {
-      config[config.database].database = database;
+  db.query(DROP_DATABASE, () => {
+    db.query(CREATE_DATABASE, () => {
+      db.config.database = database;
       db.init();
-      migrations.migrate(function() {
+      migrations.migrate(db, './sql', () => {
         logger.info('Igo dev: reinitialized test database');
         callback();
       });
@@ -38,20 +44,18 @@ const reinitDatabase = (callback) => {
 // before running tests
 before(function(done) {
   app.configure();
-  if (config.skip_reinit_db) {
-    return done();
-  }
-  reinitDatabase(done);
+  // reinit main database
+  reinitDatabase(dbs.main, done);
 });
 
 // begin transaction before each test
 beforeEach(function(done) {
-  const _this = this;
-  cls.getNamespace().run(function() {
-    _this.currentTest.fn = cls.bind(_this.currentTest.fn);
+  const db = dbs.main;
+  cls.getNamespace().run(() => {
+    this.currentTest.fn = cls.bind(this.currentTest.fn);
     context = cls.getNamespace().active;
-    cache.flushall(function() {
-      db.beginTransaction(function() {
+    cache.flushall(() => {
+      db.beginTransaction(() => {
         if (config.test && config.test.beforeEach) {
           return config.test.beforeEach(done);
         }
@@ -63,9 +67,10 @@ beforeEach(function(done) {
 
 // rollback transaction after each test
 afterEach(function(done) {
+  const db = dbs.main;
   // cls hack: restore context manually
   cls.getNamespace().active = context;
-  db.rollbackTransaction(function() {
+  db.rollbackTransaction(() => {
     if (config.test && config.test.afterEach) {
       return config.test.afterEach(done);
     }
