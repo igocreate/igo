@@ -2,7 +2,6 @@
 
 const _         = require('lodash');
 
-const db        = require('./db');
 const Query     = require('./Query');
 const Schema    = require('./Schema');
 
@@ -59,7 +58,6 @@ module.exports = function(schema) {
     // create
     static create(values, options, callback) {
       const _this       = this;
-      const { dialect } = db.database;
 
       if (_.isFunction(values)) {
         callback = values;
@@ -80,7 +78,7 @@ module.exports = function(schema) {
           if (err) {
             return callback && callback(err, result);
           }
-          const insertId = dialect.insertId(result);
+          const { insertId } = result;
           if (insertId) {
             return _this.unscoped().find(insertId, callback);
           }

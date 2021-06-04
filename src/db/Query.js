@@ -312,7 +312,8 @@ module.exports = class Query {
   //
   execute(callback) {
     const _this   = this;
-    const { esc } = db.database.dialect;
+    const { dialect } = db.database;
+    const { esc }     = dialect;
 
     if (this.schema.scopes) {
       _this.applyScopes();
@@ -330,7 +331,7 @@ module.exports = class Query {
 
 
     _this.paginate(function(err, pagination) {
-
+      
       const sqlQuery = _this.toSQL();
       db.query(sqlQuery.sql, sqlQuery.params, _this.query.options, function(err, rows) {
         if (err) {
@@ -340,14 +341,17 @@ module.exports = class Query {
         if (!callback) {
           return;
         }
-        if (_this.query.verb !== 'select') {
-          return callback(err, rows);
+        if (_this.query.verb === 'insert') {
+          const insertId = dialect.insertId(rows);
+          return callback(null, { insertId });
+        } else if (_this.query.verb !== 'select') {
+          return callback(null, rows);
         }
 
         if (_this.query.distinct || _this.query.group) {
-          return callback(err, rows);
+          return callback(null, rows);
         } else if (_this.query.limit === 1 && (!rows || rows.length === 0 )) {
-          return callback(err, null);
+          return callback(null, null);
         } else if (_this.query.verb === 'select') {
           rows = _.each(rows, row => _this.schema.parseTypes(row));
         }
