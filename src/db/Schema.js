@@ -12,6 +12,7 @@ module.exports = class Schema {
 
     this.primary          = values.primary || ['id'];
     this.subclass_column  = values.subclass_column || 'type';
+    this.database         = values.database || 'main';
 
     // Map columns
     this.columns = _.map(values.columns, column => {

@@ -13,7 +13,7 @@ module.exports = class Query {
   constructor(modelClass, verb = 'select') {
     this.modelClass = modelClass;
     this.schema     = modelClass.schema;
-    this.db         = dbs[modelClass.schema.database || 'main'];
+
     this.query      = {
       table:    modelClass.schema.table,
       select:   null,
@@ -26,6 +26,7 @@ module.exports = class Query {
       options:  {},
       scopes:   [ 'default' ]
     };
+
     // filter on subclass
     const key = _.findKey(this.schema.subclasses, { name: this.modelClass.name })
     if (key) {
@@ -139,13 +140,14 @@ module.exports = class Query {
 
   // COUNT
   count(callback) {
-    const countQuery = _.cloneDeep(this);
+    const countQuery = new Query(this.modelClass);
+    countQuery.query = _.cloneDeep(this.query);
     countQuery.query.verb   = 'count';
     countQuery.query.limit  = 1;
     delete countQuery.query.page;
     delete countQuery.query.nb;
-    countQuery.execute(function(err, row) {
-      callback(err, row && row[0] && row[0].count);
+    countQuery.execute((err, rows) => {
+      callback(err, rows && rows[0] && rows[0].count);
     });
     return this;
   }
@@ -212,9 +214,14 @@ module.exports = class Query {
     return this;
   }
 
+  getDb() {
+    return dbs[this.schema.database];
+  }
+
   // generate SQL
   toSQL() {
-    const { db, query } = this;
+    const { query } = this;
+    const db        = this.getDb();
     const sql = new Sql(this.query, db.driver.dialect)[this.query.verb + 'SQL']();
     // console.log(sql);
     query.generated = sql;
@@ -312,9 +319,10 @@ module.exports = class Query {
 
   //
   execute(callback) {
-    const { query, schema, db } = this;
-    const { dialect }   = db.driver;
-    const { esc }       = dialect;
+    const { query, schema } = this;
+    const db                = this.getDb();
+    const { dialect }       = db.driver;
+    const { esc }           = dialect;
 
     if (schema.scopes) {
       this.applyScopes();

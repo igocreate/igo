@@ -250,7 +250,7 @@ describe('db.Model', function() {
     });
 
     //
-    describe('select', function() {
+    describe('count', function() {
       it('should count elements', function(done) {
         const nb = 100;
         async.timesSeries(nb, function(n, next) {
