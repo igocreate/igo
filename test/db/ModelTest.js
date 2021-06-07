@@ -248,6 +248,22 @@ describe('db.Model', function() {
         });
       });
     });
+
+    //
+    describe('select', function() {
+      it('should count elements', function(done) {
+        const nb = 100;
+        async.timesSeries(nb, function(n, next) {
+          Book.create(next);
+        }, function(err, books) {
+          assert.equal(nb, books.length);
+          Book.count(function(err, count) {
+            assert.equal(nb, count);
+            done();
+          });
+        });
+      });
+    });
   });
 
 
