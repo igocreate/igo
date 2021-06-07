@@ -56,7 +56,7 @@ module.exports.init = function() {
   };
 
   // default db is mysql
-  config.databases = [ 'mysql', 'postgresql' ];
+  config.databases = [ 'mysql' ];
 
   // config.skip_reinit_db = true;
 
