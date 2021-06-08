@@ -1,11 +1,11 @@
 
-const _         = require('lodash');
-const async     = require('async');
-const uuidV4    = require('uuid').v4;
+const _               = require('lodash');
+const async           = require('async');
+const { v4: uuidv4 }  = require('uuid');
 
-const cache     = require('../cache');
+const cache           = require('../cache');
 
-const NS        = 'cacheflash';
+const NS              = 'cacheflash';
 
 //
 module.exports = function(req, res, next) {
@@ -29,7 +29,7 @@ module.exports = function(req, res, next) {
 
   // save flash data in redis
   req.cacheflash = function(key, value) {
-    const uuid = uuidV4();
+    const uuid = uuidv4();
     req.session.cacheflash.push(uuid);
     const obj = {};
     obj[key] = value;
