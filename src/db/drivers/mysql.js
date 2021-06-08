@@ -7,8 +7,8 @@ const config  = require('../../config');
 
 
 // create pool
-module.exports.createPool = () => {
-  return mysql.createPool(config.mysql);
+module.exports.createPool = (dbconfig) => {
+  return mysql.createPool(dbconfig);
 };
 
 // get connection

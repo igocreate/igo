@@ -2,12 +2,10 @@
 const _         = require('lodash');
 const { Pool }  = require('pg');
 
-const config = require('../../config');
-
 
 // create pool
-module.exports.createPool = () => {
-  return new Pool(config.postgresql)
+module.exports.createPool = (dbconfig) => {
+  return new Pool(dbconfig)
 };
 
 // get connection

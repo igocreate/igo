@@ -18,12 +18,12 @@ class Db {
 
   constructor(name) {
     this.name     = name;
-    this.config = config[name];
+    this.config   = config[name];
     this.driver   = DRIVERS[this.config.driver];
   }
 
   init() {
-    this.pool = this.driver.createPool();
+    this.pool = this.driver.createPool(this.config);
   }
 
   //
