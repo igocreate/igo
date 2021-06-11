@@ -16,7 +16,8 @@ let context = null;
 const reinitDatabase = (db, callback) => {
   
   if (config.skip_reinit_db) {
-    return done();
+    return callback();
+
   }
   
   const { dialect }   = db.driver;
