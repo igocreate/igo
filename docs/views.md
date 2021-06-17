@@ -74,3 +74,13 @@ module.exports.init = function(dust) {
 
 };
 ```
+
+Igo have one predefined helper :
+
+  Dateformat, it take a timestamp and format it with the help of momentjs [momentjs](https://momentjs.com/)
+  
+```js  
+
+  {@dateformat date=date format="calendar" /}
+
+```
