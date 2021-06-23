@@ -341,7 +341,7 @@ The `includes()` function is used to eager load the objects' associations
 
 ```js
 // include one association
-User.includes('country']).first( ... );
+User.includes('country').first( ... );
 
 // include multiple associations
 User.includes(['country', 'projects']).first( ... );
