@@ -71,7 +71,8 @@ module.exports.send = function(email, data) {
       return;
     }
 
-    logger.info('mailer.send: Sending mail ' + email + ' to ' + data.to + ' in ' + data.lang);
+    const emailLog = data.is_anonymous ? '**********' : data.to;
+    logger.info('mailer.send: Sending mail ' + email + ' to ' + emailLog + ' in ' + data.lang);
     const headers = {};
     if (config.mailer.subaccount) {
       headers['X-MC-Subaccount'] = config.mailer.subaccount;
