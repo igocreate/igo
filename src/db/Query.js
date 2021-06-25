@@ -40,17 +40,16 @@ module.exports = class Query {
   update(values, callback) {
     this.query.verb = 'update';
     this.values(values).execute(callback);
-    return this;
   }
 
   // DELETE
   delete(callback) {
     this.query.verb   = 'delete';
     this.execute(callback);
-    return this;
   }
+  
   destroy(callback) {
-    return this.delete(callback);
+    this.delete(callback);
   }
 
   // FROM
@@ -129,7 +128,6 @@ module.exports = class Query {
   // LIST
   list(callback) {
     this.execute(callback);
-    return this;
   }
 
   // SELECT
@@ -149,7 +147,6 @@ module.exports = class Query {
     countQuery.execute((err, rows) => {
       callback(err, rows && rows[0] && rows[0].count);
     });
-    return this;
   }
 
   // SCOPES
