@@ -17,7 +17,6 @@ module.exports.init = function() {
   config.env            = process.env.NODE_ENV || 'dev';
   config.httpport       = process.env.HTTP_PORT || 3000;
 
-  config.bodyParser    = { limit: '1mb' };
   config.cookieSecret  = 'abcdefghijklmnopqrstuvwxyz';
   config.cookieSession = {
     name: 'app',
@@ -121,5 +120,10 @@ module.exports.init = function() {
       }
     }
   });
+
+  // deprecated config
+  if (config.bodyParser) {
+    console.warn('config.bodyParser is now deprecated.');
+  }
 
 };
