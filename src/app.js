@@ -45,15 +45,9 @@ module.exports.configure = function() {
   app.use(express.static('public'));
   
   if (config.env !== 'test') {
+
     app.use(errorHandler.init(app));
-    if (!config.cookieSecret) {
-      console.log('WARN: config.cookieSecret is missing!');
-      console.log('WARN: config.signedCookiesSecret is now config.cookieSecret')
-    }
-    if (!config.cookieSession) {
-      console.log('WARN: config.cookieSession is missing!');
-      console.log('WARN: config.cookieSessionConfig is now config.cookieSession')
-    }
+
     app.use(cookieParser(config.cookieSecret || config.signedCookiesSecret));
     app.use(cookieSession(config.cookieSession || config.cookieSessionConfig));
 

@@ -6,7 +6,7 @@ const logger  = require('../logger');
 const mailer  = require('../mailer');
 
 //
-const getURL = function(req) {
+const getURL = (req) => {
   return [
     req.protocol,
     '://',
@@ -16,40 +16,39 @@ const getURL = function(req) {
 };
 
 //
-const formatMessage = function(req, err) {
-  const url     = getURL(req);
-
-  const details = [
-    '<td>URL:</td><td>' + req.method + ' ' + url + '</td>',
-    '<td>req.body:</td><td>' + JSON.stringify(req.body) + '</td>',
-    '<td>req.session:</td><td>' + JSON.stringify(req.session) + '</td>',
-    '<td>Referer:</td><td>' + req.get('Referer') + '</td>',
-    '<td>User-Agent:</td><td>' + req.headers['user-agent'] + '</td>'
-  ];
-
-  const message = '<h1>'  + url + '</h1>' +
-                  '<pre>' + err.stack + '</pre>' +
-                  '<table cellspacing="10"><tr>' + details.join('</tr><tr>') + '</tr></table>';
+const formatMessage = (req, err) => {
+  const url = getURL(req);
+  const message = `
+    <h1>${url}</h1>
+    <pre>${err.stack}</pre>
+    <table cellspacing="10">
+      <tr><td>URL:</td><td>${req.method} ${url}</td></tr>
+      <tr><td>req.body:</td><td>${JSON.stringify(req.body)}</td></tr>
+      <tr><td>req.session:</td><td>${JSON.stringify(req.session)}</td></tr>
+      <tr><td>Referer:</td><td>${req.get('Referer')}</td></tr>
+      <tr><td>User-Agent:</td><td>${req.headers['user-agent']}</td></tr>
+    </table>
+  `;
   return message;
 };
 
 // log and show error
-const handle = function(err, req, res) {
+const handle = (err, req, res) => {
 
   // uri error
   if (err instanceof URIError) {
     return res.status(404).render('errors/404');
   }
 
-  logger.error(req.method + ' ' + getURL(req) + ' : ' + err);
+  logger.error(`${req.method} ${getURL(req)} : ${err}`);
   logger.error(err.stack);
 
   if (config.mailcrashto) {
     mailer.send('crash', {
       to:       config.mailcrashto,
-      subject:  [ config.appname, 'Crash:', err ].join(' '),
+      subject:  `[${config.appname}] Crash: ${err}`,
       body:     formatMessage(req, err)
-    })
+    });
   }
   
   if (!res._headerSent) {
@@ -59,22 +58,22 @@ const handle = function(err, req, res) {
     }
 
     //
-    const stacktrace = [
-      '<h1>', req.method, ': ', req.originalUrl, '</h1>',
-      '<pre>', err.stack, '</pre>'
-    ].join('');
+    const stacktrace = `
+      <h1>${req.method}: ${req.originalUrl}</h1>
+      <pre>${err.stack}</pre>
+    `;
     res.status(500).send(stacktrace);
   }
 
 };
 
 // init domain for error handling
-module.exports.init = function(app) {
-  return function(req, res, next) {
+module.exports.init = (app) => {
+  return (req, res, next) => {
     const appDomain = domain.create();
     appDomain.add(req);
     appDomain.add(res);
-    appDomain.on('error', function(err) {
+    appDomain.on('error', (err) => {
       handle(err, req, res);
       gracefullyShutdown(app);
     });
@@ -83,23 +82,23 @@ module.exports.init = function(app) {
 };
 
 // handle express error
-module.exports.error = function(err, req, res, next) {
+module.exports.error = (err, req, res, next) => {
   handle(err, req, res);
 };
 
 //
 module.exports.errorSQL = function(err) {
-  console.log(err);
   logger.error(err);
   if (config.mailcrashto) {
     mailer.send('crash', {
       to:       config.mailcrashto,
-      subject:  [ config.appname, 'SQL error:', err.code].join(' '),
-      body:     '<table cellspacing="10"><tr>' +
-        '<tr><td>code:</td><td>' + err.code + '</td></tr>' +
-        '<tr><td>sqlMessage:</td><td>' + err.sqlMessage + '</td></tr>' +
-        '<tr><td>sql:</td><td>' + err.sql + '</td></tr></table>',
-    })
+      subject:  `[${config.appname}] SQL error: ${err.code}`,
+      body: `<table cellspacing="10">
+              <tr><td>code:</td><td>${err.code}</td></tr>
+              <tr><td>sqlMessage:</td><td>${err.sqlMessage}</td></tr>
+              <tr><td>sql:</td><td>${err.sql}</td></tr>
+            </table>`
+    });
   }
 };
 
