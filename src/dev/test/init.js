@@ -8,7 +8,6 @@ const config      = require('../../config');
 const logger      = require('../../logger');
 const cls         = require('../../cls');
 const app         = require('../../app');
-const plugins     = require('../../plugins');
 
 let context = null;
 

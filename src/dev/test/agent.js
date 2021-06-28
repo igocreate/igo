@@ -51,8 +51,15 @@ const mockResponse = function(callback, req) {
     res.headers[name] = value;
   };
 
-  // http hack
+  // http hacks
+  // console.dir(http.OutgoingMessage.prototype.end.toString());
   http.OutgoingMessage.prototype.setHeader = res.setHeader;
+  http.OutgoingMessage.prototype._writeRaw = function _writeRaw(data, encoding, callback) {
+    res.send(data, encoding, callback);
+  };
+  http.OutgoingMessage.prototype.end = function end(chunk, encoding, callback) {
+    res.send(chunk);
+  };
 
   res.redirect = function(statusCode, redirectUrl) {
     if (!_.isInteger(statusCode)) {

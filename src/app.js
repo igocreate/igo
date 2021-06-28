@@ -44,19 +44,19 @@ module.exports.configure = function() {
   app.use(compression());
   app.use(express.static('public'));
   
+  // async error handling
+  app.use(errorHandler.init(app));
+
   if (config.env !== 'test') {
-
-    app.use(errorHandler.init(app));
-
-    app.use(cookieParser(config.cookieSecret || config.signedCookiesSecret));
-    app.use(cookieSession(config.cookieSession || config.cookieSessionConfig));
-
+    // does not work in test mode, because of mock requests
+    app.use(cookieParser(config.cookieSecret));
+    app.use(cookieSession(config.cookieSession));
     app.use(express.urlencoded({ limit: '10mb', extended: true }));
     app.use(express.json({ limit: '10mb' }));
-
     app.use(multipart);
   }
-  
+
+
   app.use(flash);
   app.use(validator);
   app.use(i18nMiddleware.handle(i18next));
@@ -67,9 +67,8 @@ module.exports.configure = function() {
   const routes = require('./routes');
   routes.init(app);
 
-  if (config.env !== 'test') {
-    app.use(errorHandler.error);
-  }
+  // express error handling
+  app.use(errorHandler.error);
 
 }
 

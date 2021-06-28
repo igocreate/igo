@@ -114,7 +114,9 @@ const gracefullyShutdown = function(app) {
     killtimer.unref();
 
     // stop taking new requests.
-    app.server.close();
+    if (app.server) {
+      app.server.close();
+    }
 
   } catch (err) {
     // oh well, not much we can do at this point.
