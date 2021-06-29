@@ -68,7 +68,7 @@ const handle = (err, req, res) => {
 };
 
 // init domain for error handling
-module.exports.init = (app) => {
+module.exports.initDomain = (app) => {
   return (req, res, next) => {
     const appDomain = domain.create();
     appDomain.add(req);

@@ -55,12 +55,7 @@ beforeEach(function(done) {
     this.currentTest.fn = cls.bind(this.currentTest.fn);
     context = cls.getNamespace().active;
     cache.flushall(() => {
-      db.beginTransaction(() => {
-        if (config.test && config.test.beforeEach) {
-          return config.test.beforeEach(done);
-        }
-        done();
-      });
+      db.beginTransaction(done);
     })
   });
 });
@@ -70,11 +65,5 @@ afterEach(function(done) {
   const db = dbs.main;
   // cls hack: restore context manually
   cls.getNamespace().active = context;
-  db.rollbackTransaction(() => {
-    if (config.test && config.test.afterEach) {
-      return config.test.afterEach(done);
-    }
-    done();
-  });
-
+  db.rollbackTransaction(done);
 });

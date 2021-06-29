@@ -44,10 +44,9 @@ module.exports.configure = function() {
   app.use(compression());
   app.use(express.static('public'));
   
-  // async error handling
-  app.use(errorHandler.init(app));
-
   if (config.env !== 'test') {
+    // async error handling
+    app.use(errorHandler.initDomain(app));
     // does not work in test mode, because of mock requests
     app.use(cookieParser(config.cookieSecret));
     app.use(cookieSession(config.cookieSession));
@@ -67,9 +66,10 @@ module.exports.configure = function() {
   const routes = require('./routes');
   routes.init(app);
 
-  // express error handling
-  app.use(errorHandler.error);
-
+  if (config.env !== 'test') {
+    // express error handling
+    app.use(errorHandler.error);
+  }
 }
 
 // configured: callback function invoked when app is configured
