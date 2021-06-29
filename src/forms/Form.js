@@ -57,6 +57,10 @@ module.exports = function(schema) {
       });
     }
 
+    getValues() {
+      return _.pick(this, _.map(schema.attributes, 'name'));
+    }
+
   }
 
   Form.schema = schema;
