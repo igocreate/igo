@@ -76,7 +76,7 @@ module.exports.put = function(namespace, id, value, callback, timeout) {
 
   redisclient.set(k, v, cls.bind(function(err) {
     if (callback) {
-      callback(null, value);
+      callback(err, value);
     }
     if (timeout || options.timeout) {
       redisclient.expire(k, timeout || options.timeout);
