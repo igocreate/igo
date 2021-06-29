@@ -3,6 +3,20 @@ const _         = require('lodash');
 const { Pool }  = require('pg');
 
 
+// HACK : fix client for missing activeQuery in handleCommandComplete
+// https://github.com/brianc/node-postgres/issues/1872
+const fixClient = (client) => {
+  client.connection.removeAllListeners('commandComplete');
+  client._handleCommandComplete = (msg) => {
+    if (!this.activeQuery) {
+      return;
+    }
+    this.activeQuery.handleCommandComplete(msg, this.connection)
+  };
+  client.connection.on('commandComplete', client._handleCommandComplete);
+};
+
+
 // create pool
 module.exports.createPool = (dbconfig) => {
   return new Pool(dbconfig)
@@ -11,6 +25,9 @@ module.exports.createPool = (dbconfig) => {
 // get connection
 module.exports.getConnection = (pool, callback) => {
   pool.connect((err, client, release) => {
+    if (client) {
+      fixClient(client);
+    }
     callback(err, { client, release });
   });
 };
