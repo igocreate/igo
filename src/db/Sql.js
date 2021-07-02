@@ -88,7 +88,11 @@ var Sql = function(query, dialect) {
     var sqlwhere = [];
     _.forEach(query.where, function(where) {
       if (_.isArray(where)) {
-        sqlwhere.push(where[0] + ' ');
+        let s = where[0];
+        while (s.indexOf('$?') > -1) {
+          s = s.replace('$?', dialect.param(i++));
+        }
+        sqlwhere.push(s + ' ');
         if (_.isArray(where[1])) {
           Array.prototype.push.apply(params, where[1]);
         } else {
