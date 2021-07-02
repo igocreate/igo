@@ -12,7 +12,7 @@ module.exports = function(schema) {
     submit(req, scope='body') {
 
       // save submitted values
-      const submitted = _.clone(req[scope]);
+      this._src = _.clone(req[scope]);
 
       // 1 : sanitize
       this.sanitize(req, scope);
@@ -20,10 +20,10 @@ module.exports = function(schema) {
       // 2 : validate
       this.validate && this.validate(req);
 
-      // 3 : save errors and unsanitize
+      // 3 : save errors and revert
       this.errors = req.getValidationErrors();
       if (this.errors) {
-        this.unsanitize(submitted);
+        this.revert();
         return this
       }
 
@@ -43,9 +43,9 @@ module.exports = function(schema) {
     }
 
     // revert to values in req scope
-    unsanitize(submitted) {
+    revert() {
       _.each(schema.attributes, attr => {
-        this[attr.name] = submitted[attr.name];
+        this[attr.name] = this._src[attr.name];
       });
     }
 

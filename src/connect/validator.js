@@ -61,6 +61,10 @@ Object.keys(validator).forEach((key) => {
 //
 module.exports = (req, res, next) => {
   res.locals._errors = res.locals._errors || {};
+
+  req.addError = (param, msg, value) => {
+    res.locals._errors[param] = { param, msg, value };
+  }
   req.checkBody = (param, msg) => {
     return new Chain(param, req.body[param], msg, res.locals._errors);
   };
