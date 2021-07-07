@@ -407,3 +407,31 @@ User.select('COUNT(*) AS `count`, YEAR(created_at) AS `year`').group('year').lis
   console.dir(groups);
 });
 ```
+
+### Pagin
+
+```js
+User.page(current_page, nb_limit_element).list((err, users) => {
+  // return pagin of users
+  console.dir(users);
+ // {
+ // pagination: {
+ //   page: 1,
+ //   nb: 10,
+ //   previous: null,
+ //   next: null,
+ //   nb_pages: 1,
+ //   count: '1',
+ //   links: [ [Object] ]
+ // },
+ // rows: [
+ //   User {
+ //     id: 1,
+ //     first_name: "edouard"
+ //     updated_at: 2021-07-07T07:33:31.457Z,
+ //     created_at: 2021-07-07T07:33:31.457Z,
+ //   }
+ // ]
+ //}
+});
+```
