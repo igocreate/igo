@@ -14,8 +14,8 @@ Igo Forms will allow you to manage forms more easily by sanitizing, validating a
 
 Here is a simple IgoForm, where a schema and a Form class are declared.
 
-The schema is composed of several attributes, and each attribute must have a name and a type.
-The type is important as it allows the sanitization (e.g. replace , with . for a float element) and convertion (e.g. convert an int in base 10).
+The schema is composed of several attributes, and each attribute must have a name and a data type.
+The data type is important as it allows the sanitization (e.g. replace , with . for a float element) and conversion (e.g. convert an int in base 10).
 
 In the following example, a FriendForm is created, where the name of the user must be present.
 
@@ -24,7 +24,8 @@ const { Form }  = require('igo');
 
 const schema = {
   attributes: [
-    { name: 'name', type: 'text' }
+    { name: 'name', type: 'text' },
+    { name: 'age',  type: 'int' },
   ]
 };
 
@@ -36,7 +37,7 @@ class FriendForm extends Form(schema) {
   }
 
   validate(req) {
-    req.checkBody('name',   'errors.user.name').notEmpty();
+    req.checkBody('name', 'errors.user.name').notEmpty();
   }
 }
 
@@ -51,10 +52,10 @@ The form object can now be used to validate a form. To use it in a controller, i
 // Import the form class
 const FriendForm = require('./FriendForm');
 
-module.exports.newFriend = (req, res) => {
+module.exports.new = (req, res) => {
   const form = res.locals.flash.form || new FriendForm().init(req.query);
 
-  res.render('/newFriend', { form });
+  res.render('/new', { form });
 };
 ```
 
@@ -62,34 +63,33 @@ To validate the form, you must call the function `submit` on it. This function w
 
 If the validation generates errors, those errors are then in `form.errors`. If there is none error, `form.errors` will be `null`.
 ```
-module.exports.createFriend = (req, res) => {
+module.exports.create = (req, res) => {
   const form = new FriendForm().submit(req);
   if (form.errors) {
     req.flash('form', form);
-    return res.redirect('/newFriend');
+    return res.redirect('/new');
   }
   
-  Friend.create(form, (err, friend) => {
+  Friend.create(form.getValues(), (err, friend) => {
     res.redirect('/friends');
   });
 });
 ```
 If you want to access values from the form, they are inside the form object (e.g. the value for the input named `name` is in `form.name`).
 
-If you want to only get access to the values declared on the form, the function `getValues` on a form object will only return the values declared in the form. 
+If you want to only get access to the values declared on the form, the function `form.getValues()` will only return the values declared in the form. 
 
 #### Options
 
-In addition to submit, others functions can be called on an Igo Form.
+In addition to submit, other functions can be called on an Igo Form.
 
-• ```submit```: Sanitize the form, validate it (e.g. using [validator.js](https://github.com/validatorjs/validator.js)), save errors of the form, and convert the values (e.g. an input taking a number to an int). 
+• ```submit```: Global function to sanitize the data, validate it (e.g. using [validator.js](https://github.com/validatorjs/validator.js)), save errors of the form, and convert the values (e.g. an input taking a number to an int). 
 
-• ```sanitize```: Sanitize the form submitted. By default called with the function submit.
+• ```sanitize```: Sanitize the submitted data. By default called with the function submit.
 
-• ```revert```: revert to the values in req form.
+• ```revert```: back to the original submitted values.
 
-
-•```convert```: convert the values of the form. 
+•```convert```: convert the values of the form in the expected data type.
 
 •```getValues```: get the values on the form using the schema defined before.
 
