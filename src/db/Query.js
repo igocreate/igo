@@ -145,7 +145,7 @@ module.exports = class Query {
     delete countQuery.query.page;
     delete countQuery.query.nb;
     countQuery.execute((err, rows) => {
-      callback(err, rows && rows[0] && rows[0].count);
+      callback(err, rows && rows[0] && parseInt(rows[0].count, 10));
     });
   }
 
