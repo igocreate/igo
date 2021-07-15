@@ -178,10 +178,10 @@ module.exports = class Query {
     if (id === null || id === undefined || id.length === 0) {
       return callback(null, null);
     } else if (_.isString(id) || _.isNumber(id)) {
-      this.where({ id: id }).first(callback);
+      this.where({ id }).first(callback);
     } else if (_.isArray(id)) {
       id = _.compact(id);
-      this.where({ id: id }).first(callback);
+      this.where({ id }).first(callback);
     } else {
       this.where(id).first(callback);
     }
@@ -338,8 +338,7 @@ module.exports = class Query {
 
     this.paginate((err, pagination) => {
       
-      const sqlQuery = this.toSQL();
-      db.query(sqlQuery.sql, sqlQuery.params, query.options, (err, rows) => {
+      this.runQuery((err, rows) => {
         if (err) {
           // console.log(err);
           return callback && callback(err);
@@ -381,6 +380,13 @@ module.exports = class Query {
         });
       });
     });
+  }
+
+  runQuery(callback) {
+    const { query } = this;
+    const sqlQuery  = this.toSQL();
+    const db        = this.getDb();
+    db.query(sqlQuery.sql, sqlQuery.params, query.options, callback);
   }
 
   newInstance(row) {

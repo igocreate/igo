@@ -1,10 +1,18 @@
 
 
 const _         = require('lodash');
+const CachedQuery = require('./CachedQuery');
 
 const Query     = require('./Query');
 const Schema    = require('./Schema');
 
+
+const newQuery = (constructor, verb) => {
+  if (constructor.schema.cache) {
+    return new CachedQuery(constructor, verb);
+  }
+  return new Query(constructor, verb);
+};
 
 // Simple mixin implementation to set the schema as a static attribute
 module.exports = function(schema) {
@@ -25,8 +33,8 @@ module.exports = function(schema) {
       var _this = this;
       values.updated_at = new Date();
       _.assign(_this, values);
-      this.beforeUpdate(values, function() {
-        new Query(_this.constructor, 'update').unscoped().values(values).where(_this.primaryObject()).execute(function(err, result) {
+      this.beforeUpdate(values, () => {
+        newQuery(_this.constructor, 'update').unscoped().values(values).where(_this.primaryObject()).execute((err, result) => {
           if (callback) callback(err, _this);
         });
       });
@@ -44,7 +52,7 @@ module.exports = function(schema) {
 
     // destroy
     destroy(callback) {
-      new Query(this.constructor, 'delete').unscoped().where(this.primaryObject()).execute(callback);
+      newQuery(this.constructor, 'delete').unscoped().where(this.primaryObject()).execute(callback);
     }
 
     beforeCreate(callback)          { callback(); }
@@ -52,7 +60,7 @@ module.exports = function(schema) {
 
     // find by id
     static find(id, callback) {
-      new Query(this).find(id, callback);
+      newQuery(this).find(id, callback);
     }
 
     // create
@@ -73,8 +81,8 @@ module.exports = function(schema) {
 
       obj.created_at = obj.created_at || now;
       obj.updated_at = obj.updated_at || now;
-      obj.beforeCreate(function() {
-        new Query(_this, 'insert').values(obj).options(options).execute(function(err, result) {
+      obj.beforeCreate(() => {
+        newQuery(_this, 'insert').values(obj).options(options).execute((err, result) => {
           if (err) {
             return callback && callback(err, result);
           }
@@ -89,17 +97,17 @@ module.exports = function(schema) {
 
     // return first
     static first(callback) {
-      new Query(this).first(callback);
+      newQuery(this).first(callback);
     }
 
     // return last
     static last(callback) {
-      new Query(this).last(callback);
+      newQuery(this).last(callback);
     }
 
     // return all
     static list(callback) {
-      new Query(this).list(callback);
+      newQuery(this).list(callback);
     }
 
     static all(callback) {
@@ -108,73 +116,73 @@ module.exports = function(schema) {
 
     //
     static select(select) {
-      return new Query(this).select(select);
+      return newQuery(this).select(select);
     }
 
     // filter
     static where(where, params) {
-      return new Query(this).where(where, params);
+      return newQuery(this).where(where, params);
     }
 
     // limit
     static limit(offset, limit) {
-      return new Query(this).limit(offset, limit);
+      return newQuery(this).limit(offset, limit);
     }
 
     // page
     static page(page, nb) {
-      return new Query(this).page(page, nb);
+      return newQuery(this).page(page, nb);
     }
 
     // order
     static order(order) {
-      return new Query(this).order(order);
+      return newQuery(this).order(order);
     }
 
     // distinct
     static distinct(columns) {
-      return new Query(this).distinct(columns);
+      return newQuery(this).distinct(columns);
     }
 
     // group
     static group(columns) {
-      return new Query(this).group(columns);
+      return newQuery(this).group(columns);
     }
 
     // count
     static count(callback) {
-      return new Query(this).count(callback);
+      return newQuery(this).count(callback);
     }
 
     // destroy
     static destroy(id, callback) {
-      return new Query(this, 'delete').unscoped().where({ id: id }).execute(callback);
+      return newQuery(this, 'delete').unscoped().where({ id: id }).execute(callback);
     }
 
     // destroy all
     static destroyAll(callback) {
-      return new Query(this, 'delete').unscoped().execute(callback);
+      return newQuery(this, 'delete').unscoped().execute(callback);
     }
 
     //
     static update(values, callback) {
       values.updated_at = new Date();
-      return new Query(this).unscoped().update(values, callback);
+      return newQuery(this).unscoped().update(values, callback);
     }
 
     // includes
     static includes(includes) {
-      return new Query(this).includes(includes);
+      return newQuery(this).includes(includes);
     }
 
     //unscoped
     static unscoped() {
-      return new Query(this).unscoped();
+      return newQuery(this).unscoped();
     }
 
     //scope
     static scope(scope) {
-      return new Query(this).scope(scope);
+      return newQuery(this).scope(scope);
     }
 
   }

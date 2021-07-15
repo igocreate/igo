@@ -1,5 +1,6 @@
 
 const _           = require('lodash');
+const async       = require('async');
 const redis       = require('redis');
 
 const cls         = require('./cls');
@@ -9,7 +10,7 @@ const config      = require('./config');
 let options       = null;
 let redisclient   = null;
 
-const retryStrategy = function(params) {
+const retryStrategy = (params) => {
   if (params.error.code === 'ECONNREFUSED') {
     logger.error('Redis connection refused on host ' + options.host + ':' + options.port);
     return params.error;
@@ -20,15 +21,15 @@ const retryStrategy = function(params) {
 };
 
 //
-const serialize = function(value) {
+const serialize = (value) => {
   if (_.isBuffer(value)) {
     return JSON.stringify({ buffer: value.toString('base64') });
   }
   return JSON.stringify({ v: value });
-}
+};
 
 //
-const deserialize = function(data) {
+const deserialize = (data) => {
   const obj = JSON.parse(data);
   if (obj.buffer) {
     return Buffer.from(obj.buffer, 'base64');
@@ -38,10 +39,10 @@ const deserialize = function(data) {
     return obj.v;
   }
   return obj;
-}
+};
 
 // init cache module : create redis client
-module.exports.init = function() {
+module.exports.init = () => {
   options     = config.redis || {};
 
   options     = _.defaultsDeep(options, {
@@ -55,7 +56,7 @@ module.exports.init = function() {
     redisclient.auth(options.password);
   }
   redisclient.select(options.database || 0);
-  redisclient.on('error', function (err) {
+  redisclient.on('error', (err) => {
     logger.error(err);
   });
 
@@ -65,16 +66,17 @@ module.exports.init = function() {
 };
 
 //
-module.exports.redisclient = function() {
+module.exports.redisclient = () => {
   return redisclient;
 };
 
 //
-module.exports.put = function(namespace, id, value, callback, timeout) {
+module.exports.put = (namespace, id, value, callback, timeout) => {
   const k = namespace + '/' + id;
   const v = serialize(value);
 
-  redisclient.set(k, v, cls.bind(function(err) {
+  // console.log('PUT: ' + k);
+  redisclient.set(k, v, cls.bind((err) => {
     if (callback) {
       callback(err, value);
     }
@@ -85,10 +87,9 @@ module.exports.put = function(namespace, id, value, callback, timeout) {
 };
 
 //
-module.exports.get = function(namespace, id, callback) {
-
+module.exports.get = (namespace, id, callback) => {
   const k = namespace + '/' + id;
-  redisclient.get(k, cls.bind(function(err, value) {
+  redisclient.get(k, cls.bind((err, value) => {
     if (!value) {
       return callback('notfound');
     }
@@ -100,49 +101,73 @@ module.exports.get = function(namespace, id, callback) {
 
  // - returns object from cache if exists.
  // - calls func(id, callback) otherwise and put result in cache
-module.exports.fetch = function(namespace, id, func, callback) {
-  module.exports.get(namespace, id, function(err, obj) {
-    if (err === 'notfound') {
-      // invoke
-      // console.log(namespace + '/' + id + ' not found in cache');
-      func(id, function(err, result) {
-        if (!err) {
-          // put in cache and return result obj
-          module.exports.put(namespace, id, result);
-        }
-        callback(err, result);
-      });
-    } else {
-      callback(err, obj);
+module.exports.fetch = (namespace, id, func, callback, timeout) => {
+
+  module.exports.get(namespace, id, (err, obj) => {
+    if (err !== 'notfound') {
+      // console.log(namespace + '/' + id + ' found in cache');
+      return callback(err, obj);
     }
+
+    // invoke
+    // console.log(namespace + '/' + id + ' not found in cache');
+    func(id, (err, result) => {
+      if (!err) {
+        // put in cache and return result obj
+        module.exports.put(namespace, id, result, null, timeout);
+      }
+      callback(err, result);
+    });
   });
 };
 
 //
-module.exports.info = function(callback) {
+module.exports.info = (callback) => {
   redisclient.info(cls.bind(callback));
 };
 
 //
-module.exports.del = function(namespace, id, callback) {
+module.exports.del = (namespace, id, callback) => {
   const k = namespace+'/'+id;
   // remove from redis
   redisclient.del(k, cls.bind(callback));
 };
 
 //
-module.exports.flushall = function(callback) {
+module.exports.flushall = (callback) => {
   redisclient.flushall(cls.bind(callback));
   logger.info('Cache flush');
 };
 
+// flush with wildcard
+module.exports.flush = (pattern) => {
+  let cursor = '0';
+
+  const scan = (fn) => {
+    redisclient.scan(cursor, 'MATCH', pattern, 'COUNT', '100', (err, res) => {
+      cursor = res[0];
+      async.eachSeries(res[1], fn, () => {
+        if (cursor === '0') {
+          return;
+        }
+        // recursive scan
+        scan(fn);
+      });
+    });
+  };
+
+  scan((key, callback) => {
+    // console.log('DEL: ' + key);
+    redisclient.del(key, cls.bind(callback));
+  });
+};
 
 const  DATE_REGEXP = /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z)/;
-const deserializeDates = function(obj) {
+const deserializeDates = (obj) => {
   if (_.isString(obj) && obj.match(DATE_REGEXP)) {
     return new Date(obj);
   } else if (_.isObject(obj) && _.keys(obj).length > 0) {
-    _.forIn(obj, function(value, key) {
+    _.forIn(obj, (value, key) => {
       obj[key] = deserializeDates(value);
     });
   }
