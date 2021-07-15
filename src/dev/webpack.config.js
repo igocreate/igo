@@ -48,12 +48,7 @@ module.exports = {
       }
     }, {
       test: /\.(png|gif|jpg|jpeg|woff|woff2|eot|ttf|svg|otf)(\?v=\d+\.\d+\.\d+)?$/,
-      use: [{
-        loader: 'url-loader',
-        options: {
-          limit: 8192,
-        }
-      }]
+      type: 'asset/resource'
     }]
   },
   plugins: [
