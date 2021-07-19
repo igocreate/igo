@@ -1,6 +1,6 @@
 {
   "name": "igo",
-  "version": "3.9.1",
+  "version": "3.9.2",
   "homepage": "https://github.com/igocreate/igo",
   "description": "Igo is a Node.js Web Framework based on Express",
   "main": "index.js",
@@ -34,7 +34,7 @@
     "continuation-local-storage": "3.2.1",
     "cookie-parser": "1.4.5",
     "cookie-session": "^2.0.0-beta.3",
-    "css-loader": "^6.0.0",
+    "css-loader": "^6.1.0",
     "csv-write-stream": "^2.0.0",
     "dotenv": "10.0.0",
     "express": "4.17.1",
@@ -74,7 +74,7 @@
     "url-loader": "^4.1.1",
     "uuid": "^8.3.2",
     "validator": "^13.6.0",
-    "webpack": "^5.44.0",
+    "webpack": "^5.45.1",
     "webpack-cli": "^4.7.2",
     "winston": "3.3.3",
     "winston-papertrail": "1.0.5"
