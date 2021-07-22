@@ -44,6 +44,7 @@ module.exports = function(schema) {
     reload(includes, callback) {
       if (!callback) {
         callback = includes;
+        includes = null;
       }
       const query = this.constructor.unscoped();
       includes && query.includes(includes);
