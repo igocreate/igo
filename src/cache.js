@@ -139,24 +139,31 @@ module.exports.flushall = (callback) => {
   logger.info('Cache flush');
 };
 
-// flush with wildcard
-module.exports.flush = (pattern) => {
+// scan keys
+// - fn is invoked with (key, callback)
+module.exports.scan = (pattern, fn) => {
   let cursor = '0';
 
-  const scan = (fn) => {
+  const scan = () => {
     redisclient.scan(cursor, 'MATCH', pattern, 'COUNT', '100', (err, res) => {
       cursor = res[0];
       async.eachSeries(res[1], fn, () => {
         if (cursor === '0') {
+          // done
           return;
         }
         // recursive scan
-        scan(fn);
+        scan();
       });
     });
   };
 
-  scan((key, callback) => {
+  scan();
+};
+
+// flush with wildcard
+module.exports.flush = (pattern) => {
+  module.exports.scan(pattern, (key, callback) => {
     // console.log('DEL: ' + key);
     redisclient.del(key, cls.bind(callback));
   });
