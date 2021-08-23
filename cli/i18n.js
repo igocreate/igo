@@ -15,12 +15,26 @@ const readJson = (path, callback) => {
 
 //
 const parseJson = (json) => {
+  const rows = json.table.rows;
   const translations = {};
+
+  // get indexes (key and langs)
+  const firstRow = rows.shift();
+  const indexes = {};
+  _.each(firstRow.c, (v, i) => {
+    if (v && v.v) {
+      indexes[v.v] = i;
+    }
+  });
+
   // parse
-  json.feed.entry.forEach(entry => {
-    const key = _.get(entry, 'gsx$key.$t');
+  rows.forEach(entry => {
+    const key = _.get(entry, `c[${indexes.key}].v`);
+    if (!key) {
+      return ;
+    }
     config.i18n.whitelist.forEach((lang) => {
-      const value = _.get(entry, `gsx$${lang}.$t`);
+      const value = _.get(entry, `c[${indexes[lang]}].v`);
       _.setWith(translations, `${lang}.${key}`, value, Object);
     });
   });
@@ -36,7 +50,6 @@ const writeTranslationFiles = (translations) => {
       return;
     }
     translations[lang]._meta = {
-      generated_at: new Date(),
       lang
     };
     const data = JSON.stringify(translations[lang], null, 2);
@@ -56,7 +69,8 @@ const verbs   = {
     if (!config.i18n.spreadsheet_id) {
       return callback('Missing config.i18n.spreadsheet_id');
     }
-    const url = `https://spreadsheets.google.com/feeds/list/${config.i18n.spreadsheet_id}/default/public/values?alt=json`;
+
+    const url = `https://docs.google.com/spreadsheets/d/${config.i18n.spreadsheet_id}/gviz/tq?tqx=out:json`;
     console.log(`Loading: ${url}`);
 
     // request json data
@@ -69,15 +83,14 @@ const verbs   = {
 
       resp.on('end', () => {
         const buffer = Buffer.concat(body);
-        const json = JSON.parse(buffer.toString());
-
+        const text = buffer.toString();
+        const json = JSON.parse(text.substr(47).slice(0, -2))
         const translations = parseJson(json);
         writeTranslationFiles(translations);
 
         callback();
-      })
+      });
 
-      
     }).on('error', callback);
   },
 
