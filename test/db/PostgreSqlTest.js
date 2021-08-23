@@ -20,33 +20,33 @@ describe('db.PostgreSql', function() {
 
     it('should return correct SQL', function() {
       var selectSQL = new Sql(query, dialect).selectSQL();
-      assert.equal('SELECT "books".* FROM "books"', selectSQL.sql);
-      assert.equal(0, selectSQL.params.length);
+      assert.strictEqual('SELECT "books".* FROM "books"', selectSQL.sql);
+      assert.strictEqual(0, selectSQL.params.length);
     });
 
     it('should allow order by', function() {
       query.order = [ '"title"' ];
       var selectSQL = new Sql(query, dialect).selectSQL();
-      assert.equal('SELECT "books".* FROM "books" ORDER BY "title"', selectSQL.sql);
-      assert.equal(0, selectSQL.params.length);
+      assert.strictEqual('SELECT "books".* FROM "books" ORDER BY "title"', selectSQL.sql);
+      assert.strictEqual(0, selectSQL.params.length);
       delete query.order;
     });
 
     it('should allow limit', function() {
       query.limit = 3;
       var selectSQL = new Sql(query, dialect).selectSQL();
-      assert.equal('SELECT "books".* FROM "books" LIMIT $2 OFFSET $1', selectSQL.sql);
-      assert.equal(2, selectSQL.params.length);
-      assert.equal(0, selectSQL.params[0]);
-      assert.equal(3, selectSQL.params[1]);
+      assert.strictEqual('SELECT "books".* FROM "books" LIMIT $2 OFFSET $1', selectSQL.sql);
+      assert.strictEqual(2, selectSQL.params.length);
+      assert.strictEqual(0, selectSQL.params[0]);
+      assert.strictEqual(3, selectSQL.params[1]);
     });
 
     it('should allow distinct', function() {
       query.distinct  = [ 'type' ];
       query.limit     = null;
       var selectSQL   = new Sql(query, dialect).selectSQL();
-      assert.equal('SELECT DISTINCT "type" FROM "books"', selectSQL.sql);
-      assert.equal(0, selectSQL.params.length);
+      assert.strictEqual('SELECT DISTINCT "type" FROM "books"', selectSQL.sql);
+      assert.strictEqual(0, selectSQL.params.length);
     })
   });
 
@@ -54,7 +54,7 @@ describe('db.PostgreSql', function() {
   describe('countSQL', function() {
     it('should return correct SQL', function() {
       var selectSQL = new Sql(query, dialect).countSQL();
-      assert.equal('SELECT COUNT(0) as "count" FROM "books"', selectSQL.sql);
+      assert.strictEqual('SELECT COUNT(0) as "count" FROM "books"', selectSQL.sql);
     });
   });
 
@@ -65,32 +65,32 @@ describe('db.PostgreSql', function() {
       var params  = [];
       query.where = [[ 'field like ?', '%soon%' ]];
       var sql     = new Sql(query, dialect).whereSQL(params);
-      assert.equal('WHERE field like ? ', sql);
-      assert.equal('%soon%', params[0]);
+      assert.strictEqual('WHERE field like ? ', sql);
+      assert.strictEqual('%soon%', params[0]);
     });
 
     it('should allow integer as query param', function() {
       var params  = [];
       query.where = [[ 'id=?', 12 ]];
       var sql     = new Sql(query, dialect).whereSQL(params);
-      assert.equal('WHERE id=? ', sql);
-      assert.equal(12, params[0]);
+      assert.strictEqual('WHERE id=? ', sql);
+      assert.strictEqual(12, params[0]);
     });
 
     it('should allow array as query param', function() {
       var params  = [];
       query.where = [[ 'field like ?', ['%soon%'] ]];
       var sql     = new Sql(query, dialect).whereSQL(params);
-      assert.equal('WHERE field like ? ', sql);
-      assert.equal('%soon%', params[0]);
+      assert.strictEqual('WHERE field like ? ', sql);
+      assert.strictEqual('%soon%', params[0]);
     });
 
     it('should allow object as criterion', function() {
       var params  = [];
       query.where = [{ id: 123 }];
       var sql     = new Sql(query, dialect).whereSQL(params);
-      assert.equal('WHERE "id" = $1 ', sql);
-      assert.equal(123, params[0]);
+      assert.strictEqual('WHERE "id" = $1 ', sql);
+      assert.strictEqual(123, params[0]);
     });
   });
 });

@@ -41,7 +41,7 @@ describe('db.Model', function() {
       it('should insert a book with values', function(done) {
         Book.create({code: 123}, function(err, book) {
           assert(book && book.id);
-          assert.equal(book.code, 123);
+          assert.strictEqual(book.code, '123');
           done();
         });
       });
@@ -52,7 +52,7 @@ describe('db.Model', function() {
       it('should find book by id', function(done) {
         Book.create(function(err, first) {
           Book.find(first.id, function(err, book) {
-            assert.equal(book.id, first.id);
+            assert.strictEqual(book.id, first.id);
             done();
           });
         });
@@ -61,7 +61,7 @@ describe('db.Model', function() {
       it('should not find book if id is null', function(done) {
         Book.create(function(err, first) {
           Book.find(null, function(err, book) {
-            assert.equal(book, null);
+            assert.strictEqual(book, null);
             done();
           });
         });
@@ -72,7 +72,7 @@ describe('db.Model', function() {
     describe('list', function() {
       it('should handle empty arrays in where conditions', function(done) {
         Book.where({id: []}).list(function(err, books) {
-          assert.equal(0, books.length);
+          assert.strictEqual(0, books.length);
           done();
         });
       });
@@ -82,9 +82,9 @@ describe('db.Model', function() {
         async.timesSeries(nb, function(n, next) {
           Book.create(next);
         }, function(err, books) {
-          assert.equal(nb, books.length);
+          assert.strictEqual(nb, books.length);
           Book.list(function(err, books) {
-            assert.equal(nb, books.length);
+            assert.strictEqual(nb, books.length);
             done();
           });
         });
@@ -98,8 +98,8 @@ describe('db.Model', function() {
           Book.create({title: 'hi'}, function(err, hibook) {
             Book.create(function() {
               Book.unscoped().first(function(err, book) {
-                assert.equal(first.id, book.id);
-                assert.equal('hi', hibook.title);
+                assert.strictEqual(first.id, book.id);
+                assert.strictEqual('hi', hibook.title);
                 done();
               });
             });
@@ -115,7 +115,7 @@ describe('db.Model', function() {
           Book.create(function() {
             Book.create(function(err, last) {
               Book.unscoped().last(function(err, book) {
-                assert.equal(last.id, book.id);
+                assert.strictEqual(last.id, book.id);
                 done();
               });
             });
@@ -167,7 +167,7 @@ describe('db.Model', function() {
               Book.where({ code: '123' }).update({ title: 'undeuxtrois'}, function(err) {
                 assert(!err);
                 Book.where({ title: 'undeuxtrois'}).list(function(err, books) {
-                  assert.equal(books.length, 2);
+                  assert.strictEqual(books.length, 2);
                   done();
                 });
               });
@@ -183,7 +183,7 @@ describe('db.Model', function() {
               Book.update({ title: 'undeuxtrois'}, function(err) {
                 assert(!err);
                 Book.where({ title: 'undeuxtrois'}).list(function(err, books) {
-                  assert.equal(books.length, 3);
+                  assert.strictEqual(books.length, 3);
                   done();
                 });
               });
@@ -198,7 +198,7 @@ describe('db.Model', function() {
             Book.create({ code: '111' }, function(err, third) {
               Book.distinct('code').list(function(err, codes) {
                 assert(!err);
-                assert.equal(codes.length, 2);
+                assert.strictEqual(codes.length, 2);
                 done();
               });
             });
@@ -213,7 +213,7 @@ describe('db.Model', function() {
               Book.create({ code: '222', title: '111' }, function(err, last) {
                 Book.where({title: '111' }).distinct([ 'code', 'title' ]).list(function(err, res) {
                   assert(!err);
-                  assert.equal(res.length, 2);
+                  assert.strictEqual(res.length, 2);
                   done();
                 });
               });
@@ -256,9 +256,9 @@ describe('db.Model', function() {
         async.timesSeries(nb, function(n, next) {
           Book.create(next);
         }, function(err, books) {
-          assert.equal(nb, books.length);
+          assert.strictEqual(nb, books.length);
           Book.count(function(err, count) {
-            assert.equal(nb, count);
+            assert.strictEqual(nb, count);
             done();
           });
         });
@@ -292,7 +292,7 @@ describe('db.Model', function() {
         Book.create(function(err, book) {
           book.update({ code: 'hop' }, function(err, book) {
             book.reload(function(err, book) {
-              assert.equal(book.code, 'hop');
+              assert.strictEqual(book.code, 'hop');
               done();
             });
           });
@@ -329,7 +329,7 @@ describe('db.Model', function() {
         BookWithScopes.create({code: 'a'}, function(err, first) {
           BookWithScopes.create({code: 'abc'}, function(err, second) {
             BookWithScopes.all(function(err, books) {
-              assert.equal(books.length, 1);
+              assert.strictEqual(books.length, 1);
               done();
             });
           });
@@ -342,7 +342,7 @@ describe('db.Model', function() {
         BookWithScopes.create({code: 'a'}, function(err, first) {
           BookWithScopes.create({code: 'abc'}, function(err, second) {
             BookWithScopes.unscoped().scope('a').list(function(err, books) {
-              assert.equal(books.length, 1);
+              assert.strictEqual(books.length, 1);
               done();
             });
           });
@@ -361,10 +361,10 @@ describe('db.Model', function() {
         }, function() {
 
           Book.where({code: 'first'}).count(function(err, count) {
-            assert.equal(count, 10);
+            assert.strictEqual(count, 10);
 
             Book.count(function(err, count) {
-              assert.equal(count, 30);
+              assert.strictEqual(count, 30);
 
               done();
             });
@@ -387,8 +387,8 @@ describe('db.Model', function() {
           Book.select('COUNT(*) AS "count", code').group('code').list(function(err, groups) {
             const firsts  = _.find(groups, {code: 'first'});
             const seconds = _.find(groups, {code: 'second'});
-            assert.equal(firsts.count, 10);
-            assert.equal(seconds.count, 20);
+            assert.strictEqual(firsts.count, 10);
+            assert.strictEqual(seconds.count, 20);
             // [{ count: 10, code: 'first' },
             //  { count: 20, code: 'second' }]
             done();
@@ -407,8 +407,8 @@ describe('db.Model', function() {
 
           Book.select('COUNT(*) AS "count", EXTRACT(YEAR FROM created_at) AS "year"').group('year').list(function(err, groups) {
             const currentYear = new Date().getFullYear();
-            assert.equal(groups[0].count, 30);
-            assert.equal(groups[0].year, currentYear);
+            assert.strictEqual(groups[0].count, 30);
+            assert.strictEqual(groups[0].year, currentYear);
             //[ { count: 30, year: 2018 } ]
             done();
           });
@@ -424,9 +424,9 @@ describe('db.Model', function() {
 
     it('should stringify on insert', function(done) {
       Book.create({ details }, (err, book) => {
-        assert.equal(book.details.a, 'hello');
+        assert.strictEqual(book.details.a, 'hello');
         Book.find(book.id, (err, book) => {
-          assert.equal(book.details.a, 'hello');
+          assert.strictEqual(book.details.a, 'hello');
           done();
         });
       });
@@ -435,9 +435,9 @@ describe('db.Model', function() {
     it('should stringify on update', function(done) {
       Book.create({ details }, (err, book) => {
         book.update({ details: { a: 'world' }}, (err, book) => {
-          assert.equal(book.details.a, 'world');
+          assert.strictEqual(book.details.a, 'world');
           Book.find(book.id, (err, book) => {
-            assert.equal(book.details.a, 'world');
+            assert.strictEqual(book.details.a, 'world');
             done();
           });
         });
@@ -448,7 +448,7 @@ describe('db.Model', function() {
       Book.create({ details }, (err, book) => {
         Book.update({ details: { a: 'world' }}, () => {
           Book.find(book.id, (err, book) => {
-            assert.equal(book.details.a, 'world');
+            assert.strictEqual(book.details.a, 'world');
             done();
           });
         });
@@ -458,7 +458,7 @@ describe('db.Model', function() {
     it('should parsejson on reload', function(done) {
       Book.create({ details }, (err, book) => {
         book.reload((err, book) => {
-          assert.equal(book.details.a, 'hello');
+          assert.strictEqual(book.details.a, 'hello');
           done();
         });
       });
@@ -468,19 +468,19 @@ describe('db.Model', function() {
   describe('bool columns', function() {
     it('should handle true booleans', function(done) {
       Book.create({ is_available: 'true' }, (err, book) => {
-        assert.equal(book.is_available, true);
+        assert.strictEqual(book.is_available, true);
         done();
       });
     });
     it('should handle false booleans', function(done) {
       Book.create({ is_available: '' }, (err, book) => {
-        assert.equal(book.is_available, false);
+        assert.strictEqual(book.is_available, false);
         done();
       });
     });
     it.skip('should let boolean to null', function(done) {
       Book.create({ is_available: null }, (err, book) => {
-        assert.equal(book.is_available, null);
+        assert.strictEqual(book.is_available, null);
         done();
       });
     });
@@ -506,7 +506,7 @@ describe('db.Model', function() {
     it('should handle array', function(done) {
       Book.create({ details: [1, 2] }, (err, book) => {
         assert(Array.isArray(book.details));
-        assert.equal(book.details.length, 2);
+        assert.strictEqual(book.details.length, 2);
         done();
       });
     });
@@ -514,7 +514,7 @@ describe('db.Model', function() {
     it('should handle array', function(done) {
       Book.create({ details: '' }, (err, book) => {
         assert(Array.isArray(book.details));
-        assert.equal(book.details.length, 0);
+        assert.strictEqual(book.details.length, 0);
         done();
       });
     });

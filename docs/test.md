@@ -41,9 +41,9 @@ describe('utils/DateUtils', function() {
     it('should return start of day', function() {
       var d     = new Date();
       var start = DateUtils.startOfDay(d);
-      assert.equal(start.getHours(), 0);
-      assert.equal(start.getMinutes(), 0);
-      assert.equal(start.getSeconds(), 0);
+      assert.strictEqual(start.getHours(), 0);
+      assert.strictEqual(start.getMinutes(), 0);
+      assert.strictEqual(start.getSeconds(), 0);
     });
   });
 });
@@ -66,8 +66,8 @@ describe('controllers/IndexController', function() {
     // redirection test
     it('should redirect to /foo', function(done) {
       agent.get('/', function(err, res) {
-        assert.equal(res.statusCode, 302);
-        assert.equal(res.redirectUrl, '/foo');
+        assert.strictEqual(res.statusCode, 302);
+        assert.strictEqual(res.redirectUrl, '/foo');
         done();
       });
     });
@@ -82,7 +82,7 @@ The HTML response is set in `res.body`.
 //...
 it('should show form', function(done) {
   agent.get('/foo', function(err, res) {
-    assert.equal(res.statusCode, 200);
+    assert.strictEqual(res.statusCode, 200);
     assert(res.body.match(/<form /));
     done();
   });
@@ -105,8 +105,8 @@ it('should return user and login', function(done) {
     };
     agent.post('/api/login', req, function(err, res) {
       assert(res.data.id);
-      assert.equal(res.data.login, user.login);
-      assert.equal(res.locals.session.current_user.id, user.id);
+      assert.strictEqual(res.data.login, user.login);
+      assert.strictEqual(res.locals.session.current_user.id, user.id);
       done();
     });
   });

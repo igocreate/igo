@@ -57,7 +57,7 @@ describe('PerfTest', function() {
         const t0 = Date.now();
         Book.list((err, books) => {
           console.log(`t: ${Date.now() - t0}ms`);
-          assert.equal(books.length, NB);
+          assert.strictEqual(books.length, NB);
           done();
         });
       });

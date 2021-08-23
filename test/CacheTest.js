@@ -20,7 +20,7 @@ describe('igo.cache', () => {
   });
 
   describe('cache.put', () => {
-    
+
     it('should store string values', (done) => {
       cache.put('ns', 0, 'hello', () => {
         cache.get('ns', 0, (err, value) => {
@@ -65,7 +65,7 @@ describe('igo.cache', () => {
         cache.get('ns', 0, (err, value) => {
           assert(value !== null);
           assert(_.isBuffer(value));
-          assert.equal(buffer.toString(), value.toString());
+          assert.strictEqual(buffer.toString(), value.toString());
           done();
         });
       })

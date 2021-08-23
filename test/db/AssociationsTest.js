@@ -41,7 +41,7 @@ describe('includes', () => {
         Book.create({ library_id: library.id }, (err, book) => {
           Book.includes('library').find(book.id, (err, book) => {
             assert(book.library);
-            assert.equal(book.library.id, library.id);
+            assert.strictEqual(book.library.id, library.id);
             done();
           });
         });
@@ -52,7 +52,7 @@ describe('includes', () => {
       Library.create((err, library) => {
         Book.create({ library_id: 99999 }, (err, book) => {
           Book.includes('library').find(book.id, (err, book) => {
-            assert.equal(book.library, null);
+            assert.strictEqual(book.library, null);
             done();
           });
         });
@@ -65,9 +65,9 @@ describe('includes', () => {
           Book.create({ library_id: library.id }, (err, book) => {
             Book.create({ library_id: library2.id }, (err, book) => {
               Book.includes('library').list((err, books) => {
-                assert.equal(books.length, 2);
-                assert.equal(books[0].library.id, library.id);
-                assert.equal(books[1].library.id, library2.id);
+                assert.strictEqual(books.length, 2);
+                assert.strictEqual(books[0].library.id, library.id);
+                assert.strictEqual(books[1].library.id, library2.id);
                 done();
               });
             });
@@ -97,7 +97,7 @@ describe('includes', () => {
         Book.create({ library_id: library.id }, (err, book) => {
           Book.create({ library_id: library.id }, (err, book) => {
             Library.includes('books').find(library.id, (err, library) => {
-              assert.equal(library.books.length, 2);
+              assert.strictEqual(library.books.length, 2);
               done();
             });
           });
@@ -110,7 +110,7 @@ describe('includes', () => {
         Book.create({library_id: null}, (err, book1) => {
           Library.includes('books').find(library.id, (err, library) => {
             assert(Array.isArray(library.books));
-            assert.equal(library.books.length, 0);
+            assert.strictEqual(library.books.length, 0);
             done();
           });
         });
@@ -122,7 +122,7 @@ describe('includes', () => {
         Book.create({library_id: 99999}, (err, book1) => {
           Library.includes('books').find(library.id, (err, library) => {
             assert(Array.isArray(library.books));
-            assert.equal(library.books.length, 0);
+            assert.strictEqual(library.books.length, 0);
             done();
           });
         });
@@ -136,8 +136,8 @@ describe('includes', () => {
             Book.create({library_id: library.id}, (err, book2) => {
               Book.create({library_id: library2.id}, (err, book3) => {
                 Library.includes('books').list((err, libraries) => {
-                  assert.equal(libraries[0].books.length, 2);
-                  assert.equal(libraries[1].books.length, 1);
+                  assert.strictEqual(libraries[0].books.length, 2);
+                  assert.strictEqual(libraries[1].books.length, 1);
                   done();
                 });
               });
@@ -192,8 +192,8 @@ describe('includes', () => {
         Book.create((err, book2) => {
           Library.create({books_ids:[book1.id, book2.id]},(err, library) => {
             Library.includes('books').find(library.id, (err, library) => {
-              assert.equal(library.books.length, 2);
-              assert.equal(library.books[0].id, book1.id);
+              assert.strictEqual(library.books.length, 2);
+              assert.strictEqual(library.books[0].id, book1.id);
               done();
             });
           });
@@ -207,7 +207,7 @@ describe('includes', () => {
           Library.create({books_ids: null},(err, library) => {
             Library.includes('books').find(library.id, (err, library) => {
               assert(Array.isArray(library.books));
-              assert.equal(library.books.length, 0);
+              assert.strictEqual(library.books.length, 0);
               done();
             });
           });
@@ -221,7 +221,7 @@ describe('includes', () => {
           Library.create({books_ids: [99999]},(err, library) => {
             Library.includes('books').find(library.id, (err, library) => {
               assert(Array.isArray(library.books));
-              assert.equal(library.books.length, 0);
+              assert.strictEqual(library.books.length, 0);
               done();
             });
           });
@@ -237,8 +237,8 @@ describe('includes', () => {
             Library.create({books_ids:[book1.id]},(err, library) => {
               Library.create({books_ids:[book1.id, book2.id, book3.id]},(err, library) => {
                 Library.includes('books').list((err, libraries) => {
-                  assert.equal(libraries[0].books.length, 1);
-                  assert.equal(libraries[1].books.length, 3);
+                  assert.strictEqual(libraries[0].books.length, 1);
+                  assert.strictEqual(libraries[1].books.length, 3);
                   done();
                 });
               });
@@ -253,7 +253,7 @@ describe('includes', () => {
       Library.create((err, library) => {
         Book.create({ library_id: library.id }, (err, book) => {
           book.reload('library', (err, book) => {
-            assert.equal(book.library.id, library.id);
+            assert.strictEqual(book.library.id, library.id);
             done();
           });
         });

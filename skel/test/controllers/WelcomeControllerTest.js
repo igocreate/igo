@@ -13,7 +13,7 @@ describe('controllers/WelcomeController', function() {
   describe('/', function() {
     it('should show welcome page', function(done) {
       agent.get('/', function(err, res) {
-        assert.equal(res.statusCode, 200);
+        assert.strictEqual(res.statusCode, 200);
         assert(res.body.match(/running/));
         done();
       });
