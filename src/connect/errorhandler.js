@@ -90,14 +90,22 @@ module.exports.error = (err, req, res, next) => {
 module.exports.errorSQL = function(err) {
   logger.error(err);
   if (config.mailcrashto) {
+    let body = `<table cellspacing="10">`;
+    body += `<tr><td>code:</td><td>${err.code}</td></tr>`;
+    if (err.sqlMessage) {
+    body += `<tr><td>sqlMessage:</td><td>${err.sqlMessage}</td></tr>`;
+    } else {
+      body += `<tr><td colspan="2">${String(err)}</td></tr>`;
+    }
+    if (err.sql) {
+      body += `<tr><td>sql:</td><td>${err.sql}</td></tr>`;
+    }
+    body += `</table>`;
+
     mailer.send('crash', {
       to:       config.mailcrashto,
       subject:  `[${config.appname}] SQL error: ${err.code}`,
-      body: `<table cellspacing="10">
-              <tr><td>code:</td><td>${err.code}</td></tr>
-              <tr><td>sqlMessage:</td><td>${err.sqlMessage}</td></tr>
-              <tr><td>sql:</td><td>${err.sql}</td></tr>
-            </table>`
+      body
     });
   }
 };
