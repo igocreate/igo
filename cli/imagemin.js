@@ -1,8 +1,9 @@
 
-const fs    = require('fs');
-const path  = require('path');
+const fs      = require('fs');
+const path    = require('path');
 
-const async = require('async');
+const async   = require('async');
+const config  = require('../src/config');
 
 // https://web.dev/use-imagemin-to-compress-images/
 const imagemin          = require('imagemin');
@@ -79,6 +80,8 @@ const walk = (dir, callback) => {
 module.exports = () => {
   // let's walk
   walk(ROOT, () => {
-    console.log('Done. Reduced ' + s(eco));
+    if (config.env !== 'test') {
+      console.log('Done. Reduced ' + s(eco));
+    }
   });
 }
