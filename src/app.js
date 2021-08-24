@@ -50,8 +50,8 @@ module.exports.configure = function() {
     // does not work in test mode, because of mock requests
     app.use(cookieParser(config.cookieSecret));
     app.use(cookieSession(config.cookieSession));
-    app.use(express.urlencoded({ limit: '10mb', extended: true }));
-    app.use(express.json({ limit: '10mb' }));
+    app.use(express.urlencoded(config.urlencoded));
+    app.use(express.json(config.json));
     app.use(multipart);
   }
 

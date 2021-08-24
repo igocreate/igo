@@ -25,6 +25,9 @@ module.exports.init = function() {
     sameSite: 'Lax'
   };
 
+  config.urlencoded = { limit: '10mb', extended: true };
+  config.json       = { limit: '10mb' };
+
   config.i18n = {
     whitelist:            [ 'en', 'fr' ],
     preload:              [ 'en', 'fr' ],
