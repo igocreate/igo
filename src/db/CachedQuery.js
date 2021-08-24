@@ -1,11 +1,11 @@
 
 const cache   = require('../cache');
 
-const Query   = require('./Query');
+const Query       = require('./Query');
+const CacheStats  = require('./CacheStats');
 
 module.exports = class CachedQuery extends Query {
-
-
+  
   runQuery(callback) {
     const { query, schema } = this;
     const sqlQuery  = this.toSQL();
@@ -19,11 +19,13 @@ module.exports = class CachedQuery extends Query {
     }
 
     const key = JSON.stringify(sqlQuery);
+    let type  = 'hits';
     cache.fetch(namespace, key, (id, callback) => {
+      type  = 'misses';
       db.query(sqlQuery.sql, sqlQuery.params, query.options, callback);
-    }, callback, schema.ttl);
-
-  }
-
-
+    }, (err, result) => {
+      callback(err, result);
+      CacheStats.incr(query.table, type);
+    }, schema.ttl);
+  };
 };

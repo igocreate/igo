@@ -127,6 +127,12 @@ module.exports.info = (callback) => {
 };
 
 //
+module.exports.incr = (namespace, id) => {
+  const k = namespace+'/'+id;
+  redisclient.incr(k);
+};
+
+//
 module.exports.del = (namespace, id, callback) => {
   const k = namespace+'/'+id;
   // remove from redis
@@ -141,15 +147,18 @@ module.exports.flushall = (callback) => {
 
 // scan keys
 // - fn is invoked with (key, callback)
-module.exports.scan = (pattern, fn) => {
+module.exports.scan = (pattern, fn, callback) => {
   let cursor = '0';
 
   const scan = () => {
-    redisclient.scan(cursor, 'MATCH', pattern, 'COUNT', '100', (err, res) => {
+    redisclient.scan(cursor, 'MATCH', pattern, 'COUNT', '1', (err, res) => {
       cursor = res[0];
       async.eachSeries(res[1], fn, () => {
         if (cursor === '0') {
           // done
+          if (callback) {
+            callback();
+          };
           return;
         }
         // recursive scan

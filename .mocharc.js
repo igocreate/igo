@@ -1,6 +1,6 @@
 module.exports = {
   recursive:  true,
-  reporter:   'dot',
+  reporter:   'spec',
   exit:       true,
   timeout:    10000
 };
