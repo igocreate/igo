@@ -53,7 +53,12 @@ module.exports = function(schema) {
     convert(req, scope) {
       _.each(schema.attributes, attr => {
         const value = Converter.convert(req[scope][attr.name], attr);
-        this[attr.name] = value || attr.default || null;
+        this[attr.name] = value;
+        if (this[attr.name] === null ||
+            this[attr.name] === undefined ||
+            this[attr.name] === '') {
+          this[attr.name] = attr.default || null;
+        }
       });
     }
 

@@ -4,6 +4,7 @@ const Form = require('../../src/forms/Form');
 const schema = {
   attributes: [
     { name: 'email',    type: 'text' },
+    { name: 'name',     type: 'text' },
     { name: 'int',      type: 'int' },
     { name: 'float',    type: 'float' },
     { name: 'password', type: 'text' },

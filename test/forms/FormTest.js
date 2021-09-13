@@ -8,50 +8,68 @@ const UserForm  = require('./UserForm');
 const ArrayForm = require('./ArrayForm');
 
 //
-describe('igo.Form', function() {
+describe('igo.Form', () => {
 
-  let req = {};
-  const res = { locals: {} };
-  validator(req, res, () => {});
+  
+  const reqWithBody = (body) => {
+    const req = {};
+    const res = { locals: {} };
+    validator(req, res, () => {});
+    req.body = body;
+    return req;
+  };
 
-  it('should validate form', function(done) {
-    req.body = {
+  it('should validate form', () => {
+    const body = {
       email: 'noooo@nooo.fr',
       int: '1 234',
       float: '1234,56',
       date: '24/12/2000'
     };
-    const form = new UserForm().submit(req);
+    const form = new UserForm().submit(reqWithBody(body));
     assert.strictEqual(form.errors, null);
     assert(_.isDate(form.date));
-    done();
   });
 
-  it('should validate with array', function(done) {
-    req.body = {
+  it('should validate with array', () => {
+    const body = {
       array: 'elem',
       array2: ['elem', 'second_elem'],
       array_int: ['2', '1 234'],
       array_default: '',
       array_null: null,
     };
-    const form = new ArrayForm().submit(req);
+    const form = new ArrayForm().submit(reqWithBody(body));
     assert.strictEqual(form.errors, null);
     assert.strictEqual(form.array.length, 1);
     assert.strictEqual(form.array2.length, 2);
     assert.strictEqual(form.array_int[1], 1234);
     assert.strictEqual(form.array_default.length, 0);
     assert.strictEqual(form.array_null, null);
-    done();
   });
 
-  it('should not validate form with errors', function(done) {
-    req.body = {
-      email: 'noooo'
+  it('should not validate form with errors', () => {
+    const body = {
+      email: 'noooo',
+      int: 'abc'
     };
-    const form = new UserForm().submit(req);
+    const form = new UserForm().submit(reqWithBody(body));
+    console.dir(form);
     assert.strictEqual(_.keys(form.errors).length, 4);
-    done();
+  });
+
+  it('should handle zeros as a value', () => {
+    const body = {
+      email: 'noooo@gmail.com',
+      name: '',
+      float: '1234,56',
+      date: '24/12/2000',
+      int:    '0'
+    };
+    const form = new UserForm().submit(reqWithBody(body));
+    assert.strictEqual(_.keys(form.errors).length, 0);
+    assert.strictEqual(form.int, 0);
+    assert.strictEqual(form.name, null);
   });
 
 });
