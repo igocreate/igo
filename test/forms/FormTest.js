@@ -54,7 +54,6 @@ describe('igo.Form', () => {
       int: 'abc'
     };
     const form = new UserForm().submit(reqWithBody(body));
-    console.dir(form);
     assert.strictEqual(_.keys(form.errors).length, 4);
   });
 
