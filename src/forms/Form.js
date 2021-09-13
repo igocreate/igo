@@ -54,9 +54,7 @@ module.exports = function(schema) {
       _.each(schema.attributes, attr => {
         const value = Converter.convert(req[scope][attr.name], attr);
         this[attr.name] = value;
-        if (this[attr.name] === null ||
-            this[attr.name] === undefined ||
-            this[attr.name] === '') {
+        if (!this[attr.name] && this[attr.name] !== 0) {
           this[attr.name] = attr.default || null;
         }
       });

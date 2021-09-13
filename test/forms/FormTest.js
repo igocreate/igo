@@ -29,6 +29,10 @@ describe('igo.Form', () => {
     const form = new UserForm().submit(reqWithBody(body));
     assert.strictEqual(form.errors, null);
     assert(_.isDate(form.date));
+    assert.strictEqual(form.int, 1234);
+    assert.strictEqual(form.age, null);
+    assert.strictEqual(form.float, 1234.56);
+    assert.strictEqual(form.price, null);
   });
 
   it('should validate with array', () => {
@@ -50,8 +54,7 @@ describe('igo.Form', () => {
 
   it('should not validate form with errors', () => {
     const body = {
-      email: 'noooo',
-      int: 'abc'
+      email: 'noooo'
     };
     const form = new UserForm().submit(reqWithBody(body));
     assert.strictEqual(_.keys(form.errors).length, 4);
@@ -61,14 +64,19 @@ describe('igo.Form', () => {
     const body = {
       email: 'noooo@gmail.com',
       name: '',
+      int:    '0',
+      age:    'abc',
       float: '1234,56',
       date: '24/12/2000',
-      int:    '0'
+      price: '0.0'
     };
     const form = new UserForm().submit(reqWithBody(body));
     assert.strictEqual(_.keys(form.errors).length, 0);
-    assert.strictEqual(form.int, 0);
     assert.strictEqual(form.name, null);
+    assert.strictEqual(form.int, 0);
+    assert.strictEqual(form.age, null);
+    assert.strictEqual(form.float, 1234.56);
+    assert.strictEqual(form.price, 0);
   });
 
 });
