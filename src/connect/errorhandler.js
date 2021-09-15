@@ -40,6 +40,11 @@ const handle = (err, req, res) => {
     return res.status(404).render('errors/404');
   }
 
+  // Syntax error (json format)
+  if (err instanceof SyntaxError) {
+    return res.status(500).render('errors/500');
+  }
+
   logger.error(`${req.method} ${getURL(req)} : ${err}`);
   logger.error(err.stack);
 
