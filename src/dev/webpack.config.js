@@ -30,14 +30,6 @@ module.exports = {
         'sass-loader'
       ]
     }, {
-      test: /\.less$/,
-      exclude: /node_modules/,
-      use: [
-        MiniCssExtractPlugin.loader,
-        'css-loader',
-        'less-loader'
-      ]
-    }, {
       test: /\.(js|jsx)$/,
       exclude: /node_modules/,
       use: {
