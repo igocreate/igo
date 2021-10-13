@@ -4,7 +4,6 @@ const async   = require('async');
 
 const fs      = require('fs');
 const path    = require('path');
-const util    = require('util');
 
 const config  = require('../config');
 const logger  = require('../logger');
@@ -63,7 +62,7 @@ module.exports.migrate = function(db, sqldir, callback) {
     callback = sqldir;
     sqldir = null;
   }
-  sqldir          = sqldir || './sql';
+  sqldir        = sqldir || './sql';
   let querybuf  = '';
 
   const executeLine = function(line, callback) {

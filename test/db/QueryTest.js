@@ -3,7 +3,6 @@
 require('../../src/dev/test/init');
 
 const assert    = require('assert');
-const _         = require('lodash');
 
 const Query     = require('../../src/db/Query');
 const Model     = require('../../src/db/Model');
@@ -14,7 +13,7 @@ describe('db.Query', function() {
   class Book extends Model({
     table:    'books',
     primary:  ['id']
-  }) {};
+  }) {}
 
   //
   describe('first', function() {

@@ -40,4 +40,4 @@ module.exports.bind = function(callback) {
     return namespace.bind(callback);
   }
   return callback;
-}
+};

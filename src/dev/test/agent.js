@@ -24,7 +24,7 @@ const mockRequest = function(options) {
   req.headers     = options.headers || {};
   req.files       = options.files   || {};
   req.resume      = function() {};
-  req.listeners   = function() { return [] };
+  req.listeners   = function() { return []; };
   req.unpipe      = function() {};
   req.connection  = {};
 
@@ -57,7 +57,7 @@ const mockResponse = function(callback, req) {
   http.OutgoingMessage.prototype._writeRaw = function _writeRaw(data, encoding, callback) {
     res.send(data, encoding, callback);
   };
-  http.OutgoingMessage.prototype.end = function end(chunk, encoding, callback) {
+  http.OutgoingMessage.prototype.end = function end(chunk) {
     res.send(chunk);
   };
 
@@ -74,7 +74,7 @@ const mockResponse = function(callback, req) {
   res.send = function(data) {
     res.body = data;
     callback(null, res, req);
-  }
+  };
 
   return res;
 };

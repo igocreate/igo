@@ -163,7 +163,7 @@ var Sql = function(query, dialect) {
     // var sql = 'UPDATE `' + query.table + '` SET ';
 
     // columns
-    var columns = [], values = [], params = [];
+    const columns = [], params = [];
     _.forEach(query.values, function(value, key) {
       columns.push(`${esc}${key}${esc} = ${dialect.param(i++)}`);
       // columns.push('`' + key + '`=?');
@@ -174,7 +174,7 @@ var Sql = function(query, dialect) {
 
     sql += this.whereSQL(params);
 
-    var ret = {
+    const ret = {
       sql: sql,
       params: params
     };

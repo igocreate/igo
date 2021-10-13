@@ -14,12 +14,12 @@ module.exports = function(argv) {
   var args = argv._;
 
   if (args.length !== 2) {
-    console.warn('Usage: igo create <project-directory>')
+    console.warn('Usage: igo create <project-directory>');
     process.exit(1);
   }
 
   var directory = './' + args[1];
-  fs.mkdir(directory, function(err, dir) {
+  fs.mkdir(directory, (err) => {
     if (err && err.code !== 'EEXIST') {
       console.error('mkdir error: ' + err);
       process.exit(1);
@@ -30,7 +30,7 @@ module.exports = function(argv) {
     };
     // recursive copy from skel to project directory
     console.log('create project in ' + directory);
-    fse.copy(__dirname + '/../skel', directory, options, function (err) {
+    fse.copy(__dirname + '/../skel', directory, options, (err) => {
       if (err) {
         console.error(err);
         process.exit(1);
@@ -39,14 +39,14 @@ module.exports = function(argv) {
       // replace in files
       var packagejson = require('../package.json');
       var replacements = {
-        '\{igo.version\}':  packagejson.version,
-        '\{project.name\}': args[1],
-        '\{RANDOM_1\}':     utils.randomString(40),
-        '\{RANDOM_2\}':     utils.randomString(40),
-        '\{RANDOM_3\}':     utils.randomString(40)
-      }
+        '{igo.version}':  packagejson.version,
+        '{project.name}': args[1],
+        '{RANDOM_1}':     utils.randomString(40),
+        '{RANDOM_2}':     utils.randomString(40),
+        '{RANDOM_3}':     utils.randomString(40)
+      };
       _.forEach(replacements, function(replacement, regexp) {
-        const changed = replace.sync({
+        replace.sync({
           files:      [
             directory + '/**/*.*',
             directory + '/**/.*'

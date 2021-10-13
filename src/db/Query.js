@@ -28,7 +28,7 @@ module.exports = class Query {
     };
 
     // filter on subclass
-    const key = _.findKey(this.schema.subclasses, { name: this.modelClass.name })
+    const key = _.findKey(this.schema.subclasses, { name: this.modelClass.name });
     if (key) {
       this.query.where.push({
         [this.schema.subclass_column]: key
@@ -56,7 +56,7 @@ module.exports = class Query {
   from(table) {
     this.query.table = table;
     return this;
-  };
+  }
 
   // WHERE
   where(where, params) {
@@ -78,7 +78,6 @@ module.exports = class Query {
 
   // FIRST
   first(callback) {
-    var _this = this;
     this.query.limit  = 1;
     this.query.take   = 'first';
     this.execute(callback);
@@ -87,7 +86,6 @@ module.exports = class Query {
 
   // LAST
   last(callback) {
-    var _this = this;
     this.query.limit  = 1;
     this.query.take   = 'last';
     this.execute(callback);
@@ -103,7 +101,7 @@ module.exports = class Query {
     this.query.offset = 0;
     this.query.limit  = limit;
     return this;
-  };
+  }
 
   // PAGE
   page(page, nb) {
@@ -111,7 +109,7 @@ module.exports = class Query {
     this.query.page   = Math.max(1, this.query.page);
     this.query.nb     = parseInt(nb, 10) || 25;
     return this;
-  };
+  }
 
   // SCOPE
   scope(scope) {
@@ -191,7 +189,7 @@ module.exports = class Query {
   order(order) {
     this.query.order.push(order);
     return this;
-  };
+  }
 
   // DISTINCT
   distinct(columns) {
@@ -374,7 +372,7 @@ module.exports = class Query {
           }
 
           if (pagination) {
-            return callback(err, { pagination, rows })
+            return callback(err, { pagination, rows });
           }
           callback(err, rows);
         });
@@ -395,6 +393,6 @@ module.exports = class Query {
     if (this.schema.subclasses && type) {
       instanceClass = this.schema.subclasses[type];
     }
-    return new instanceClass(row)
+    return new instanceClass(row);
   }
-}
+};

@@ -1,6 +1,5 @@
 
 const winston     = require('winston');
-const Papertrail  = require('winston-papertrail').Papertrail;
 
 const config = require('./config');
 
@@ -34,11 +33,11 @@ module.exports.init = () => {
 
   if (process.env.PAPERTRAIL_HOST && config.env !== 'test') {
     logger.add(new winston.transports.Papertrail({
-    	host: 'logs.papertrailapp.com',
-    	port: 12345
+      host: 'logs.papertrailapp.com',
+      port: 12345
     }));
   }
 
   logger.debug('Winston logger initialized');
 
-}
+};

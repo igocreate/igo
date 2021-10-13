@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 
 
 
@@ -11,14 +12,14 @@ module.exports.init = function(app) {
   //
   app.get('/error', (req, res) => {
     missingfunction();
-    res.send('ok')
+    res.send('ok');
   });
 
   //
   app.get('/asyncerror', (req, res) => {
     process.nextTick(() => {
       missingfunction();
-      res.send('ok')
+      res.send('ok');
     });
   });
 

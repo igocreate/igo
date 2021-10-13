@@ -3,10 +3,8 @@
 require('../../src/dev/test/init');
 
 const assert    = require('assert');
-const _         = require('lodash');
 const async     = require('async');
 
-const Query     = require('../../src/db/Query');
 const Model     = require('../../src/db/Model');
 
 const NB        = 10000;
@@ -27,7 +25,7 @@ describe('PerfTest', function() {
       'created_at'
     ],
   };
-  class Book extends Model(schema) {};
+  class Book extends Model(schema) {}
 
   const createBook = (n, next) => {
     Book.create({

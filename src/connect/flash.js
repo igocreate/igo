@@ -34,7 +34,7 @@ module.exports = function(req, res, next) {
     const obj = {};
     obj[key] = value;
     cache.put(NS, uuid, obj, null, 60); // 60s
-  }
+  };
 
   if (!cacheflash.length) {
     return next();

@@ -100,7 +100,7 @@ const verbs   = {
             '};',
             '', '',
             `class ${object} extends Model(schema) {`,
-            `}`, '', '',
+            '}', '', '',
             `module.exports = ${object};`
           ]);
 
@@ -130,7 +130,7 @@ module.exports = function(argv) {
     });
   } else {
     console.error('ERROR: Wrong options');
-    console.error('Usage: igo db [migrate|migrations|reverse|reset]')
+    console.error('Usage: igo db [migrate|migrations|reverse|reset]');
   }
 
 };

@@ -14,7 +14,7 @@ const format = function(obj, isFiles) {
 
     // Backward compatibility (formidable)
     if (isFiles) {
-      _.each(value, v => {v.name = v.originalFilename});
+      _.each(value, v => {v.name = v.originalFilename;});
     }
     return value.length === 1 ? value[0] : value;
   });

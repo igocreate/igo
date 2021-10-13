@@ -6,7 +6,7 @@ const NAMESPACE = '_cache_statistics';
 //
 module.exports.incr = (key, type) => {
   cache.incr(NAMESPACE, `${key}.${type}`);
-}
+};
 
 //
 module.exports.getStats = (callback) => {

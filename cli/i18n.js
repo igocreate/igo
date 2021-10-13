@@ -58,7 +58,7 @@ const writeTranslationFiles = (translations) => {
     
     fs.writeFileSync(filename, data );
   });
-}
+};
 
 
 // verbs
@@ -84,7 +84,7 @@ const verbs   = {
       resp.on('end', () => {
         const buffer = Buffer.concat(body);
         const text = buffer.toString();
-        const json = JSON.parse(text.substr(47).slice(0, -2))
+        const json = JSON.parse(text.substr(47).slice(0, -2));
         const translations = parseJson(json);
         writeTranslationFiles(translations);
 
@@ -122,13 +122,13 @@ const verbs   = {
       const writer = csvWriter({ headers: [ 'key' ].concat(langs) });
 
       const file = './translations.csv';
-      writer.pipe(fs.createWriteStream(file))
+      writer.pipe(fs.createWriteStream(file));
       _.uniq(keys).forEach(key => {
-        const row =  _.map(translations, translation => _.get(translation, key))
-        writer.write([ key ].concat(row))
+        const row =  _.map(translations, translation => _.get(translation, key));
+        writer.write([ key ].concat(row));
       });
       
-      writer.end()
+      writer.end();
       console.log(keys.length + ' lines written in ' + file);
       callback();
     });
@@ -148,7 +148,7 @@ module.exports = function(argv) {
     });
   } else {
     console.error('ERROR: Wrong options');
-    console.error('Usage: igo i18n [update|csv]')
+    console.error('Usage: igo i18n [update|csv]');
   }
 
 

@@ -6,6 +6,6 @@
   "ignore": [],
   "ext": "js json",
   "events": {
-    "start": "npm run jshint"
+    "start": "npm run eslint"
   }
 }

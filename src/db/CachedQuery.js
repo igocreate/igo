@@ -27,5 +27,5 @@ module.exports = class CachedQuery extends Query {
       callback(err, result);
       CacheStats.incr(query.table, type);
     }, schema.ttl);
-  };
+  }
 };

@@ -87,7 +87,7 @@ module.exports.initDomain = (app) => {
 };
 
 // handle express error
-module.exports.error = (err, req, res, next) => {
+module.exports.error = (err, req, res) => {
   handle(err, req, res);
 };
 
@@ -95,17 +95,17 @@ module.exports.error = (err, req, res, next) => {
 module.exports.errorSQL = function(err) {
   logger.error(err);
   if (config.mailcrashto) {
-    let body = `<table cellspacing="10">`;
+    let body = '<table cellspacing="10">';
     body += `<tr><td>code:</td><td>${err.code}</td></tr>`;
     if (err.sqlMessage) {
-    body += `<tr><td>sqlMessage:</td><td>${err.sqlMessage}</td></tr>`;
+      body += `<tr><td>sqlMessage:</td><td>${err.sqlMessage}</td></tr>`;
     } else {
       body += `<tr><td colspan="2">${String(err)}</td></tr>`;
     }
     if (err.sql) {
       body += `<tr><td>sql:</td><td>${err.sql}</td></tr>`;
     }
-    body += `</table>`;
+    body += '</table>';
 
     mailer.send('crash', {
       to:       config.mailcrashto,
@@ -135,4 +135,4 @@ const gracefullyShutdown = function(app) {
     // oh well, not much we can do at this point.
     console.error('Error shutting down gracefully!', err.stack);
   }
-}
+};

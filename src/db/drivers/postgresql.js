@@ -1,5 +1,4 @@
 
-const _         = require('lodash');
 const { Pool }  = require('pg');
 
 
@@ -11,7 +10,7 @@ const fixClient = (client) => {
     if (!this.activeQuery) {
       return;
     }
-    this.activeQuery.handleCommandComplete(msg, this.connection)
+    this.activeQuery.handleCommandComplete(msg, this.connection);
   };
   client.connection.on('commandComplete', client._handleCommandComplete);
 };
@@ -19,7 +18,7 @@ const fixClient = (client) => {
 
 // create pool
 module.exports.createPool = (dbconfig) => {
-  return new Pool(dbconfig)
+  return new Pool(dbconfig);
 };
 
 // get connection
@@ -81,13 +80,13 @@ module.exports.dialect = {
   limit: (i, j) => `LIMIT $${j} OFFSET $${i} `,
   returning: 'RETURNING "id"',
   insertId: result => {
-    return result && result[0] && result[0].id
+    return result && result[0] && result[0].id;
   },
   getRows: result => result && result.rows,
   emptyInsert: 'DEFAULT VALUES ',
   in: '= ANY',
-  getLock: lock => `SELECT pg_try_advisory_lock(123456789);`,
+  getLock: () => 'SELECT pg_try_advisory_lock(123456789);',
   gotLock: res => res && res.rows && res.rows[0] && res.rows[0].pg_try_advisory_lock,
-  releaseLock: lock => `SELECT pg_advisory_unlock_all();`,
+  releaseLock: () => 'SELECT pg_advisory_unlock_all();',
 
 };

@@ -3,9 +3,7 @@
 require('../../src/dev/test/init');
 
 const assert    = require('assert');
-const _         = require('lodash');
 
-const Query     = require('../../src/db/Query');
 const Model     = require('../../src/db/Model');
 const cache     = require('../../src/cache');
 
@@ -24,7 +22,7 @@ describe('db.CachedQuery', function() {
     cache: {
       ttl: 100
     }
-  }) {};
+  }) {}
 
   //
   describe('find', function() {

@@ -56,7 +56,7 @@ beforeEach(function(done) {
     context = cls.getNamespace().active;
     cache.flushall(() => {
       db.beginTransaction(done);
-    })
+    });
   });
 });
 

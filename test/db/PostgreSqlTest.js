@@ -1,7 +1,6 @@
 
 
 var assert    = require('assert');
-var _         = require('lodash');
 
 var Sql           = require('../../src/db/Sql');
 
@@ -47,7 +46,7 @@ describe('db.PostgreSql', function() {
       var selectSQL   = new Sql(query, dialect).selectSQL();
       assert.strictEqual('SELECT DISTINCT "type" FROM "books"', selectSQL.sql);
       assert.strictEqual(0, selectSQL.params.length);
-    })
+    });
   });
 
   //

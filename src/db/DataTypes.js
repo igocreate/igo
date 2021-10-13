@@ -20,4 +20,4 @@ module.exports = {
     set:  value => value && Array.isArray(value) ? value.join(',') : value,
     get:  value => value && value.split ? value.split(',') : []
   },
-}
+};

@@ -1,6 +1,5 @@
 
 const _         = require('lodash');
-const utils     = require('../utils');
 
 const DataTypes = require('./DataTypes');
 
@@ -31,7 +30,7 @@ module.exports = class Schema {
       // Deprecated "_json" suffix
       if (_.endsWith(column, '_json')) {
         console.log(`warn: "_json" suffix is deprecated for ${this.table}.${column} , please use {name:'${column}', type: 'json'}.`);
-        return {name: column, type: 'json', attr: column.substring(0, column.length - 5)}
+        return {name: column, type: 'json', attr: column.substring(0, column.length - 5)};
       }
       return {name: column, attr: column, type: 'default'};
     });
@@ -42,10 +41,10 @@ module.exports = class Schema {
     process.nextTick(() => {
       if (_.isFunction(values.associations)) {
         this.associations = values.associations();
-      };
+      }
       if (_.isFunction(values.subclasses)) {
         this.subclasses = values.subclasses();
-      };
+      }
     });
   }
 

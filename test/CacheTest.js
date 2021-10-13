@@ -36,7 +36,7 @@ describe('igo.cache', () => {
           assert(value === null);
           done();
         });
-      })
+      });
     });
 
     it('should store dates', (done) => {
@@ -46,7 +46,7 @@ describe('igo.cache', () => {
           assert(_.isDate(value));
           done();
         });
-      })
+      });
     });
 
     it('should store objects with dates', (done) => {
@@ -56,7 +56,7 @@ describe('igo.cache', () => {
           assert(_.isDate(value.t0));
           done();
         });
-      })
+      });
     });
 
     it('should store buffers', (done) => {
@@ -68,7 +68,7 @@ describe('igo.cache', () => {
           assert.strictEqual(buffer.toString(), value.toString());
           done();
         });
-      })
+      });
     });
   });
 
@@ -85,7 +85,7 @@ describe('igo.cache', () => {
           assert.strictEqual(keys[0], 'scantest/122');
           done();
         }, 100);
-      })
+      });
     });
   });
 });

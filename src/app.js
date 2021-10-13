@@ -1,6 +1,5 @@
 
 
-const _                 = require('lodash');
 const compression       = require('compression');
 const cookieParser      = require('cookie-parser');
 const cookieSession     = require('cookie-session');
@@ -26,7 +25,7 @@ const plugins           = require('./plugins');
 const app = module.exports = express();
 
 // services to initialize
-const SERVICES = [ config, igodust, logger, cache, dbs, mailer, cls, plugins ]
+const SERVICES = [ config, igodust, logger, cache, dbs, mailer, cls, plugins ];
 
 //
 module.exports.configure = function() {
@@ -34,9 +33,9 @@ module.exports.configure = function() {
   SERVICES.forEach(service => service.init(app));
 
   i18next
-    .use(i18nMiddleware.LanguageDetector)
-    .use(i18nFsBackend)
-    .init(config.i18n);
+  .use(i18nMiddleware.LanguageDetector)
+  .use(i18nFsBackend)
+  .init(config.i18n);
 
   app.enable('trust proxy');
   app.disable('x-powered-by');
@@ -70,7 +69,7 @@ module.exports.configure = function() {
     // express error handling
     app.use(errorHandler.error);
   }
-}
+};
 
 // configured: callback function invoked when app is configured
 // started: callback function invoked when server is started

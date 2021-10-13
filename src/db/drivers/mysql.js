@@ -2,10 +2,6 @@
 const mysql   = require('mysql');
 
 
-const config  = require('../../config');
-
-
-
 // create pool
 module.exports.createPool = (dbconfig) => {
   return mysql.createPool(dbconfig);
@@ -55,10 +51,10 @@ module.exports.dialect = {
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`,
   listMigrations: 'SELECT * FROM `__db_migrations` ORDER BY `id` DESC',
   findMigration:  'SELECT id from  `__db_migrations` WHERE `file`=? AND `success`=1',
-  insertMigration: 'INSERT INTO \`__db_migrations\` (file, success, err, creation) VALUES(?, ?, ?, ?)',
+  insertMigration: 'INSERT INTO `__db_migrations` (file, success, err, creation) VALUES(?, ?, ?, ?)',
   esc: '`',
-  param: i => '?',
-  limit: (i, j) => 'LIMIT ?, ? ',
+  param: () => '?',
+  limit: () => 'LIMIT ?, ? ',
   returning: '',
   insertId: result => result && result.insertId,
   getRows: result => result,

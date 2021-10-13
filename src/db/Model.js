@@ -34,7 +34,7 @@ module.exports = function(schema) {
       values.updated_at = new Date();
       _.assign(_this, values);
       this.beforeUpdate(values, () => {
-        newQuery(_this.constructor, 'update').unscoped().values(values).where(_this.primaryObject()).execute((err, result) => {
+        newQuery(_this.constructor, 'update').unscoped().values(values).where(_this.primaryObject()).execute((err) => {
           if (callback) callback(err, _this);
         });
       });
@@ -191,4 +191,4 @@ module.exports = function(schema) {
   Model.schema = new Schema(schema);
 
   return Model;
-}
+};

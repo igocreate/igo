@@ -24,7 +24,7 @@ describe('db.Model', function() {
     ]
   };
 
-  class Book extends Model(schema) {};
+  class Book extends Model(schema) {}
 
   describe('standard crud operations', function() {
 
@@ -59,7 +59,7 @@ describe('db.Model', function() {
       });
 
       it('should not find book if id is null', function(done) {
-        Book.create(function(err, first) {
+        Book.create(function() {
           Book.find(null, function(err, book) {
             assert.strictEqual(book, null);
             done();
@@ -111,7 +111,7 @@ describe('db.Model', function() {
     //
     describe('last', function() {
       it('should select last book', function(done) {
-        Book.create(function(err, first) {
+        Book.create(function() {
           Book.create(function() {
             Book.create(function(err, last) {
               Book.unscoped().last(function(err, book) {
@@ -129,8 +129,8 @@ describe('db.Model', function() {
       it('should destroy a book', function(done) {
         Book.create(function(err, first) {
           Book.create(function() {
-            Book.create(function(err, last) {
-              Book.destroy(first.id, function(err) {
+            Book.create(function() {
+              Book.destroy(first.id, function() {
                 Book.find(first.id, function(err, book) {
                   assert(!err);
                   assert(!book);
@@ -143,10 +143,10 @@ describe('db.Model', function() {
       });
 
       it('should destroy selected books', function(done) {
-        Book.create({ code: '123' }, function(err, first) {
+        Book.create({ code: '123' }, function() {
           Book.create({ code: '123' }, function() {
-            Book.create(function(err, last) {
-              Book.where({ code: '123' }).destroy(function(err) {
+            Book.create(function() {
+              Book.where({ code: '123' }).destroy(function() {
                 Book.all(function(err, books) {
                   assert(books.length, 1);
                   done();
@@ -161,9 +161,9 @@ describe('db.Model', function() {
     //
     describe('update', function() {
       it('should update books', function(done) {
-        Book.create({ code: '123' }, function(err, first) {
-          Book.create({ code: '123' }, function(err, second) {
-            Book.create(function(err, last) {
+        Book.create({ code: '123' }, function() {
+          Book.create({ code: '123' }, function() {
+            Book.create(function() {
               Book.where({ code: '123' }).update({ title: 'undeuxtrois'}, function(err) {
                 assert(!err);
                 Book.where({ title: 'undeuxtrois'}).list(function(err, books) {
@@ -177,9 +177,9 @@ describe('db.Model', function() {
       });
 
       it('should update all books', function(done) {
-        Book.create({ code: '123' }, function(err, first) {
-          Book.create({ code: '123' }, function(err, second) {
-            Book.create(function(err, last) {
+        Book.create({ code: '123' }, function() {
+          Book.create({ code: '123' }, function() {
+            Book.create(function() {
               Book.update({ title: 'undeuxtrois'}, function(err) {
                 assert(!err);
                 Book.where({ title: 'undeuxtrois'}).list(function(err, books) {
@@ -193,9 +193,9 @@ describe('db.Model', function() {
       });
 
       it('should load distinct codes', function(done) {
-        Book.create({ code: '000' }, function(err, first) {
-          Book.create({ code: '111' }, function(err, second) {
-            Book.create({ code: '111' }, function(err, third) {
+        Book.create({ code: '000' }, function() {
+          Book.create({ code: '111' }, function() {
+            Book.create({ code: '111' }, function() {
               Book.distinct('code').list(function(err, codes) {
                 assert(!err);
                 assert.strictEqual(codes.length, 2);
@@ -207,10 +207,10 @@ describe('db.Model', function() {
       });
 
       it('should load distinct codes and titles', function(done) {
-        Book.create({ code: '000' }, function(err, first) {
-          Book.create({ code: '111', title: '111' }, function(err, second) {
-            Book.create({ code: '111', title: '111' }, function(err, third) {
-              Book.create({ code: '222', title: '111' }, function(err, last) {
+        Book.create({ code: '000' }, function() {
+          Book.create({ code: '111', title: '111' }, function() {
+            Book.create({ code: '111', title: '111' }, function() {
+              Book.create({ code: '222', title: '111' }, function() {
                 Book.where({title: '111' }).distinct([ 'code', 'title' ]).list(function(err, res) {
                   assert(!err);
                   assert.strictEqual(res.length, 2);
@@ -226,7 +226,7 @@ describe('db.Model', function() {
     //
     describe('select', function() {
       it('should use custom select', function(done) {
-        Book.create({ code: '123', title: 'title' }, function(err, first) {
+        Book.create({ code: '123', title: 'title' }, function() {
           Book.select('title').list(function(err, books) {
             assert(!err);
             assert(books[0].title, 'title');
@@ -237,7 +237,7 @@ describe('db.Model', function() {
       });
 
       it('should use custom select', function(done) {
-        Book.create({ code: '123', title: 'title' }, function(err, first) {
+        Book.create({ code: '123', title: 'title' }, function() {
           Book.select('*, EXTRACT(YEAR FROM created_at) AS "year"').list(function(err, books) {
             const currentYear = new Date().getFullYear();
             assert(!err);
@@ -271,10 +271,10 @@ describe('db.Model', function() {
 
     describe('destroy', function() {
       it('should destroy a book', function(done) {
-        Book.create(function(err, first) {
+        Book.create(function() {
           Book.create(function() {
             Book.create(function(err, last) {
-              last.destroy(function(err) {
+              last.destroy(function() {
                 Book.find(last.id, function(err, book) {
                   assert(!err);
                   assert(!book);
@@ -326,8 +326,8 @@ describe('db.Model', function() {
 
     describe('default scope', function() {
       it('should use default scope', function(done) {
-        BookWithScopes.create({code: 'a'}, function(err, first) {
-          BookWithScopes.create({code: 'abc'}, function(err, second) {
+        BookWithScopes.create({code: 'a'}, function() {
+          BookWithScopes.create({code: 'abc'}, function() {
             BookWithScopes.all(function(err, books) {
               assert.strictEqual(books.length, 1);
               done();
@@ -339,8 +339,8 @@ describe('db.Model', function() {
 
     describe('specified scope', function() {
       it('should use a scope', function(done) {
-        BookWithScopes.create({code: 'a'}, function(err, first) {
-          BookWithScopes.create({code: 'abc'}, function(err, second) {
+        BookWithScopes.create({code: 'a'}, function() {
+          BookWithScopes.create({code: 'abc'}, function() {
             BookWithScopes.unscoped().scope('a').list(function(err, books) {
               assert.strictEqual(books.length, 1);
               done();
@@ -501,7 +501,7 @@ describe('db.Model', function() {
         'created_at'
       ]
     };
-    class Book extends Model(schema) {};
+    class Book extends Model(schema) {}
 
     it('should handle array', function(done) {
       Book.create({ details: [1, 2] }, (err, book) => {

@@ -99,8 +99,8 @@ module.exports.get = (namespace, id, callback) => {
   }));
 };
 
- // - returns object from cache if exists.
- // - calls func(id, callback) otherwise and put result in cache
+// - returns object from cache if exists.
+// - calls func(id, callback) otherwise and put result in cache
 module.exports.fetch = (namespace, id, func, callback, timeout) => {
 
   module.exports.get(namespace, id, (err, obj) => {
@@ -158,7 +158,7 @@ module.exports.scan = (pattern, fn, callback) => {
           // done
           if (callback) {
             callback();
-          };
+          }
           return;
         }
         // recursive scan

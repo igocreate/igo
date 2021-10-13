@@ -24,7 +24,7 @@ module.exports = function(schema) {
       this.errors = req.getValidationErrors();
       if (this.errors) {
         this.revert();
-        return this
+        return this;
       }
 
       // 4 : convert

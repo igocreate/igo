@@ -4,19 +4,18 @@ const nodemailer  = require('nodemailer');
 
 const config      = require('./config');
 const logger      = require('./logger');
-const app         = require('./app');
 const igodust     = require('./engines/igodust');
 
 let transport     = null;
 const options     = {};
 
 //
-const DEFAULT_SUBJECT = (email, data) => {
+const DEFAULT_SUBJECT = (email) => {
   return `emails.${email}.subject`;
 };
 
 //
-const DEFAULT_TEMPLATE = (email, data) => {
+const DEFAULT_TEMPLATE = (email) => {
   return `./views/emails/${email}.dust`;
 };
 

@@ -13,7 +13,7 @@ describe('includes', () => {
       'id',
       'title'
     ]
-  }) {};
+  }) {}
 
   class Book extends Model({
     table:    'books',
@@ -28,9 +28,9 @@ describe('includes', () => {
       'created_at'
     ],
     associations: () => ([
-       ['belongs_to', 'library', Library, 'library_id', 'id'],
+      ['belongs_to', 'library', Library, 'library_id', 'id'],
     ])
-  }) {};
+  }) {}
 
 
   //
@@ -49,7 +49,7 @@ describe('includes', () => {
     });
 
     it('should set association to null if wrong id', (done) => {
-      Library.create((err, library) => {
+      Library.create(() => {
         Book.create({ library_id: 99999 }, (err, book) => {
           Book.includes('library').find(book.id, (err, book) => {
             assert.strictEqual(book.library, null);
@@ -62,8 +62,8 @@ describe('includes', () => {
     it('should list books with their libraries', (done) => {
       Library.create((err, library) => {
         Library.create((err, library2) => {
-          Book.create({ library_id: library.id }, (err, book) => {
-            Book.create({ library_id: library2.id }, (err, book) => {
+          Book.create({ library_id: library.id }, () => {
+            Book.create({ library_id: library2.id }, () => {
               Book.includes('library').list((err, books) => {
                 assert.strictEqual(books.length, 2);
                 assert.strictEqual(books[0].library.id, library.id);
@@ -94,8 +94,8 @@ describe('includes', () => {
 
     it('should find a library with its books', (done) => {
       Library.create((err, library) => {
-        Book.create({ library_id: library.id }, (err, book) => {
-          Book.create({ library_id: library.id }, (err, book) => {
+        Book.create({ library_id: library.id }, () => {
+          Book.create({ library_id: library.id }, () => {
             Library.includes('books').find(library.id, (err, library) => {
               assert.strictEqual(library.books.length, 2);
               done();
@@ -107,7 +107,7 @@ describe('includes', () => {
 
     it('should return an empty array if ref null', (done) => {
       Library.create((err, library) => {
-        Book.create({library_id: null}, (err, book1) => {
+        Book.create({library_id: null}, () => {
           Library.includes('books').find(library.id, (err, library) => {
             assert(Array.isArray(library.books));
             assert.strictEqual(library.books.length, 0);
@@ -119,7 +119,7 @@ describe('includes', () => {
 
     it('should return an empty array if wrong id', (done) => {
       Library.create((err, library) => {
-        Book.create({library_id: 99999}, (err, book1) => {
+        Book.create({library_id: 99999}, () => {
           Library.includes('books').find(library.id, (err, library) => {
             assert(Array.isArray(library.books));
             assert.strictEqual(library.books.length, 0);
@@ -132,9 +132,9 @@ describe('includes', () => {
     it('should list libraries with their books', (done) => {
       Library.create((err, library) => {
         Library.create((err, library2) => {
-          Book.create({library_id: library.id}, (err, book1) => {
-            Book.create({library_id: library.id}, (err, book2) => {
-              Book.create({library_id: library2.id}, (err, book3) => {
+          Book.create({library_id: library.id}, () => {
+            Book.create({library_id: library.id}, () => {
+              Book.create({library_id: library2.id}, () => {
                 Library.includes('books').list((err, libraries) => {
                   assert.strictEqual(libraries[0].books.length, 2);
                   assert.strictEqual(libraries[1].books.length, 1);
@@ -149,11 +149,11 @@ describe('includes', () => {
 
     schema.scopes = {
       default: q => q.includes('books')
-    }
-    class Library2 extends Model(schema) {};
+    };
+    class Library2 extends Model(schema) {}
 
     it('should ignore associations for inserts', (done) => {
-      Library2.create((err, library) => {
+      Library2.create((err) => {
         assert(!err);
         done();
       });
@@ -202,8 +202,8 @@ describe('includes', () => {
     });
 
     it('should return an empty array if ref null', (done) => {
-      Book.create((err, book1) => {
-        Book.create((err, book2) => {
+      Book.create(() => {
+        Book.create(() => {
           Library.create({books_ids: null},(err, library) => {
             Library.includes('books').find(library.id, (err, library) => {
               assert(Array.isArray(library.books));
@@ -216,8 +216,8 @@ describe('includes', () => {
     });
 
     it('should return an empty array if wrong id', (done) => {
-      Book.create((err, book1) => {
-        Book.create((err, book2) => {
+      Book.create(() => {
+        Book.create(() => {
           Library.create({books_ids: [99999]},(err, library) => {
             Library.includes('books').find(library.id, (err, library) => {
               assert(Array.isArray(library.books));
@@ -234,8 +234,8 @@ describe('includes', () => {
       Book.create((err, book1) => {
         Book.create((err, book2) => {
           Book.create((err, book3) => {
-            Library.create({books_ids:[book1.id]},(err, library) => {
-              Library.create({books_ids:[book1.id, book2.id, book3.id]},(err, library) => {
+            Library.create({books_ids:[book1.id]},() => {
+              Library.create({books_ids:[book1.id, book2.id, book3.id]},() => {
                 Library.includes('books').list((err, libraries) => {
                   assert.strictEqual(libraries[0].books.length, 1);
                   assert.strictEqual(libraries[1].books.length, 3);

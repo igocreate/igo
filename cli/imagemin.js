@@ -23,7 +23,7 @@ const s = (f) => {
     return (f/1000000).toFixed(2) + 'Mo';
   }
   return (f/1000).toFixed(2) + 'ko';
-}
+};
 
 const imageminFile = (file, destination, callback) => {
   imagemin([file], {
@@ -37,7 +37,7 @@ const imageminFile = (file, destination, callback) => {
   .then(res => callback(null, res))
   .catch(err => {
     console.dir(err);
-    callback(err)
+    callback(err);
   });
 };
 
@@ -56,7 +56,7 @@ const walk = (dir, callback) => {
         }
         
         const ext = path.extname(file);
-        if ([EXTENSIONS.indexOf(ext)] < 0) {
+        if (EXTENSIONS.indexOf(ext) < 0) {
           return callback();
         }
 
@@ -84,4 +84,4 @@ module.exports = () => {
       console.log('Done. Reduced ' + s(eco));
     }
   });
-}
+};

@@ -38,7 +38,7 @@ class Db {
     }
     // console.log('create new connection');
     driver.getConnection(pool, cls.bind(callback));
-  };
+  }
 
   //
   query(sql, params, options, callback) {
@@ -142,7 +142,7 @@ class Db {
         callback(err);
       }));
     });
-  };
+  }
 
   //
   rollbackTransaction(callback) {

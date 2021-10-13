@@ -1,6 +1,6 @@
 
 //
-module.exports.list = []
+module.exports.list = [];
 
 //
 module.exports.init = function() {
@@ -17,6 +17,6 @@ module.exports.init = function() {
     module.exports.list = plugins;
   } catch (err) {
     console.log(err);
-  };
+  }
 
 };

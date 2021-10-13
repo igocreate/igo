@@ -3,11 +3,8 @@
 require('../../src/dev/test/init');
 
 const assert    = require('assert');
-const _         = require('lodash');
 
-const Query       = require('../../src/db/Query');
 const Model       = require('../../src/db/Model');
-const cache       = require('../../src/cache');
 const CacheStats  = require('../../src/db/CacheStats');
 
 //
@@ -25,14 +22,14 @@ describe('db.CacheStats', function() {
     cache: {
       ttl: 100
     }
-  }) {};
+  }) {}
 
   //
   describe('getStats', function() {
   
     it('should save stats in cache', function(done) {
       Book.create((err, book1) => {
-        Book.find(book1.id, (err, book) => {
+        Book.find(book1.id, () => {
           setTimeout(() => {
             CacheStats.getStats((err, stats) => {
               assert.strictEqual(stats.length, 1);

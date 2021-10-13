@@ -15,7 +15,7 @@ module.exports.init = (app) => {
   IgoDust.configure(app);
   
   initHelpers();
-}
+};
 
 //
 module.exports.middleware = (req, res, next) => {
@@ -64,4 +64,4 @@ const initHelpers = () => {
   // load custom helpers
   const helpers = require(process.cwd() + '/app/helpers');
   helpers.init(IgoDust);
-}
+};
