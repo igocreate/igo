@@ -39,6 +39,7 @@ module.exports.init = function() {
       order:              [ 'querystring', 'path', 'cookie' ],
       lookupPath:         'lang',
       lookupQuerystring:  'lang',
+      lookupCookie:       'lang',
       caches:             false
     },
   };

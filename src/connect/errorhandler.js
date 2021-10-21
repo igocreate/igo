@@ -87,8 +87,8 @@ module.exports.initDomain = (app) => {
 };
 
 // handle express error
-module.exports.error = (err, req, res) => {
-  handle(err, req, res);
+module.exports.error = (err, req, res, next) => {
+  handle(err, req, res, next);
 };
 
 //
