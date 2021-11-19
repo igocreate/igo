@@ -35,7 +35,7 @@ module.exports = function(schema) {
     }
 
     // sanitize form values
-    sanitize(req, scope) {
+    sanitize(req, scope='body') {
       _.each(schema.attributes, attr => {
         const value = Sanitizer.sanitize(req[scope][attr.name], attr);
         req[scope][attr.name] = value;
@@ -50,7 +50,7 @@ module.exports = function(schema) {
     }
 
     // convert form values
-    convert(req, scope) {
+    convert(req, scope='body') {
       _.each(schema.attributes, attr => {
         const value = Converter.convert(req[scope][attr.name], attr);
         this[attr.name] = value;
