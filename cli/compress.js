@@ -2,16 +2,11 @@
 const fs      = require('fs');
 const path    = require('path');
 
+const sharp   = require('sharp');
 const async   = require('async');
 const config  = require('../src/config');
 
-// https://web.dev/use-imagemin-to-compress-images/
-const imagemin          = require('imagemin');
-const imageminJpegtran  = require('imagemin-jpegtran'); // lossless
-const imageminOptipng   = require('imagemin-optipng');  // lossless
-const imageminGifsicle  = require('imagemin-gifsicle'); // lossless
-
-const EXTENSIONS = [ '.jpg', '.jpeg', '.png', '.gif' ];
+const EXTENSIONS = [ '.jpg', '.jpeg', '.png', '.gif', '.webp' ];
 const ROOT = './public';
 
 const RESOLVE_ROOT = path.resolve(ROOT);
@@ -25,34 +20,33 @@ const s = (f) => {
   return (f/1000).toFixed(2) + 'ko';
 };
 
-const imageminFile = (file, destination, callback) => {
-  imagemin([file], {
-    destination,
-    plugins: [
-      imageminJpegtran(),
-      imageminOptipng(),
-      imageminGifsicle()
-    ]
-  })
-  .then(res => callback(null, res))
-  .catch(err => {
-    console.dir(err);
-    callback(err);
+const compress = (file, destination, callback) => {
+  // console.log('compressing ' + file);
+  sharp(file)
+  .png({ quality: 90 })
+  .jpeg({ quality: 90 })
+  .webp({ quality: 90 })
+  .toFile(destination + '/tmp', (err) => {
+    if (err) {
+      return callback(err);
+    }
+    fs.rename(destination + '/tmp', file, callback);
   });
 };
 
-
-const walk = (dir, callback) => {
-  // console.log('walk ' + dir);
+//
+const walkthrough = (dir, callback) => {
+  // console.log('walkthrough ' + dir);
   fs.readdir(dir, (err, files) => {
     async.eachSeries(files, (file, callback) => {
       const fullpath = path.resolve(dir, file);
       // console.log(file);
       
+      // console.log(fullpath);
       fs.stat(fullpath, (err, stat) => {
         if (stat.isDirectory()) {
           // recursive
-          return walk(fullpath, callback);
+          return walkthrough(fullpath, callback);
         }
         
         const ext = path.extname(file);
@@ -61,14 +55,18 @@ const walk = (dir, callback) => {
         }
 
         const ori_size = stat.size;
-        // imagemin
-        imageminFile(fullpath, dir, (err) => {
-          callback(err);
+        // compress
+        compress(fullpath, dir, (err) => {
+          if (err) {
+            return callback(err);
+          }
           fs.stat(fullpath, (err, stat) => {
+            // console.log(ori_size + ' => ' + stat.size);
             if (ori_size > stat.size) {
               console.log(ROOT + fullpath.substr(RESOLVE_ROOT.length) + ': ' + s(ori_size) + ' > ' + s(stat.size));
               eco += ori_size - stat.size;
             }
+            callback();
           });
         });
       });
@@ -78,8 +76,8 @@ const walk = (dir, callback) => {
 
 
 module.exports = () => {
-  // let's walk
-  walk(ROOT, () => {
+  // let's walkthrough
+  walkthrough(ROOT, () => {
     if (config.env !== 'test') {
       console.log('Done. Reduced ' + s(eco));
     }
