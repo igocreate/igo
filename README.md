@@ -1,4 +1,4 @@
-# Igo.js [![Build Status](https://travis-ci.org/igocreate/igo.svg?branch=master)](https://travis-ci.org/igocreate/igo)
+# Igo.js
 
 Igo is a Web Framework for Node.js that comes with:
 - Pre-configured Express, middlewares, and Dust
