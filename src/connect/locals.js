@@ -1,7 +1,7 @@
 
 const config      = require('../config');
 
-const assetsPath  = require.resolve(process.cwd() + '/public/webpack-assets.json');
+const assetsPath  = process.cwd() + '/public/webpack-assets.json';
 let   assets      = null;
 
 //
@@ -9,9 +9,11 @@ const getWebpackAssets = () => {
   if (assets && config.env === 'production') {
     return assets;
   }
-  delete require.cache[assetsPath];
+
   try {
-    assets = require(assetsPath);
+    const resolved = require.resolve(assetsPath);
+    delete require.cache[resolved];
+    assets = require(resolved);
   } catch (err) {
     // ignored
   }
