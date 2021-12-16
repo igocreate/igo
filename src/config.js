@@ -125,9 +125,4 @@ module.exports.init = function() {
     }
   });
 
-  // deprecated config
-  if (config.bodyParser) {
-    console.warn('config.bodyParser is now deprecated.');
-  }
-
 };

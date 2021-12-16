@@ -23,10 +23,11 @@ const formatMessage = (req, err) => {
     <pre>${err.stack}</pre>
     <table cellspacing="10">
       <tr><td>URL:</td><td>${req.method} ${url}</td></tr>
+      <tr><td>User-Agent:</td><td>${req.headers['user-agent']}</td></tr>
+      <tr><td>Referer:</td><td>${req.get('Referer')}</td></tr>
       <tr><td>req.body:</td><td>${JSON.stringify(req.body)}</td></tr>
       <tr><td>req.session:</td><td>${JSON.stringify(req.session)}</td></tr>
-      <tr><td>Referer:</td><td>${req.get('Referer')}</td></tr>
-      <tr><td>User-Agent:</td><td>${req.headers['user-agent']}</td></tr>
+      <tr><td>req.headers:</td><td>${JSON.stringify(req.headers)}</td></tr>
     </table>
   `;
   return message;
