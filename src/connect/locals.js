@@ -1,7 +1,7 @@
 
 const config      = require('../config');
 
-const assetsPath  = process.cwd() + '/public/webpack-assets.json';
+const assetsPath  = require.resolve(process.cwd() + '/public/webpack-assets.json');
 let   assets      = null;
 
 //

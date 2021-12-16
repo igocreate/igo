@@ -12,7 +12,7 @@ module.exports = {
     vendor: './js/vendor.js'
   },
   output: {
-    filename:   '[name]-[fullhash].js',
+    filename:   '[name]-[contenthash].js',
     path:       process.cwd() + '/public/dist',
     publicPath: '/dist/',
   },
@@ -51,8 +51,8 @@ module.exports = {
     }),
     // extract css
     new MiniCssExtractPlugin({
-      filename:       '[name]-[fullhash].css',
-      chunkFilename:  '[id]-[fullhash].css'
+      filename:       '[name]-[contenthash].css',
+      chunkFilename:  '[id]-[contenthash].css'
     }),
     // save stats
     new AssetsWebpackPlugin({
