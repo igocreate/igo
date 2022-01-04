@@ -20,7 +20,6 @@ const reinitDatabase = (db, callback) => {
   }
   
   const { dialect }   = db.driver;
-
   const database      = db.config.database;
   db.config.database  = null;
   db.init();
@@ -33,7 +32,11 @@ const reinitDatabase = (db, callback) => {
     db.query(CREATE_DATABASE, () => {
       db.config.database = database;
       db.init();
-      migrations.migrate(db, './sql', () => {
+      migrations.migrate(db, './sql', (err) => {
+        if (err) {
+          return callback('Database migration error : ' + err);
+        }
+
         logger.info('Igo dev: reinitialized test database');
         callback();
       });
