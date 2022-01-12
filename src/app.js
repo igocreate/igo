@@ -57,7 +57,18 @@ module.exports.configure = function() {
 
   app.use(flash);
   app.use(validator);
+
+  // fix crash if ?lang=cn确认
+  // manually verify the lang query param
+  app.use((req, res, next) => {
+    const { lang } = req.query;
+    if (lang && config.i18n.whitelist.indexOf(lang) < 0) {
+      req.query.lang = config.i18n.fallbackLng[0];
+    }
+    next();
+  });
   app.use(i18nMiddleware.handle(i18next));
+
   app.use(locals);
   app.use(igodust.middleware);
 
