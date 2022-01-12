@@ -41,7 +41,7 @@ module.exports.configure = function() {
   app.disable('x-powered-by');
 
   app.use(compression());
-  app.use(express.static('public'));
+  app.use(express.static('public', { redirect: false }));
   
   if (config.env !== 'test') {
     // async error handling
