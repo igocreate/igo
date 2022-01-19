@@ -6,9 +6,12 @@ const sharp   = require('sharp');
 const async   = require('async');
 const config  = require('../src/config');
 
-const EXTENSIONS = [ '.jpg', '.jpeg', '.png', '.gif', '.webp' ];
-const ROOT = './public';
+// % size reduction threshold
+const THRESHOLD   = 10;
 
+const EXTENSIONS  = [ '.jpg', '.jpeg', '.png', '.gif', '.webp' ];
+const ROOT = './public';
+const TEMPFILE = '__igo_tmp';
 const RESOLVE_ROOT = path.resolve(ROOT);
 
 let eco  = 0;
@@ -20,17 +23,21 @@ const s = (f) => {
   return (f/1000).toFixed(2) + 'ko';
 };
 
-const compress = (file, destination, callback) => {
+const compress = (file, destination, ori_size, callback) => {
   // console.log('compressing ' + file);
   sharp(file)
-  .png({ quality: 90 })
-  .jpeg({ quality: 90 })
-  .webp({ quality: 90 })
-  .toFile(destination + '/tmp', (err) => {
+  .png ({ force: false, quality: 95 })
+  .jpeg({ force: false, quality: 95 })
+  .webp({ force: false, quality: 95 })
+  .toFile(destination + '/' + TEMPFILE, (err, info) => {
     if (err) {
       return callback(err);
     }
-    fs.rename(destination + '/tmp', file, callback);
+    const ratio = Math.max(0, 100 * (ori_size - info.size) / ori_size);
+    if (ratio < THRESHOLD) {
+      return fs.rm(destination + '/' + TEMPFILE, callback);
+    }
+    fs.rename(destination + '/' + TEMPFILE, file, callback);
   });
 };
 
@@ -40,9 +47,7 @@ const walkthrough = (dir, callback) => {
   fs.readdir(dir, (err, files) => {
     async.eachSeries(files, (file, callback) => {
       const fullpath = path.resolve(dir, file);
-      // console.log(file);
       
-      // console.log(fullpath);
       fs.stat(fullpath, (err, stat) => {
         if (stat.isDirectory()) {
           // recursive
@@ -56,7 +61,7 @@ const walkthrough = (dir, callback) => {
 
         const ori_size = stat.size;
         // compress
-        compress(fullpath, dir, (err) => {
+        compress(fullpath, dir, ori_size, (err) => {
           if (err) {
             return callback(err);
           }
