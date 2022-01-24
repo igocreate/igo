@@ -366,14 +366,13 @@ module.exports = class Query {
             rows = _.map(rows, row => this.newInstance(row));
           }
 
-          //
+          if (pagination) {
+            return callback(err, { pagination, rows });
+          }
           if (query.limit === 1) {
             return callback(err, rows[0]);
           }
 
-          if (pagination) {
-            return callback(err, { pagination, rows });
-          }
           callback(err, rows);
         });
       });
