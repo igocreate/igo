@@ -1,8 +1,10 @@
 
 const _         = require('lodash');
+const moment    = require('moment');
 const validator = require('validator');
 
-
+//
+// https://github.com/validatorjs/validator.js
 //
 class Chain {
 
@@ -14,11 +16,11 @@ class Chain {
   }
 
   addError() {
-    this.errors[this.param] = {
+    _.set(this.errors, this.param, {
       param:  this.param,
       value:  this.value,
       msg:    this.msg,
-    };
+    });
   }
 
   validate(key, inverse, ...args) {
@@ -35,6 +37,20 @@ class Chain {
 
   custom(fn) {
     if (!fn(this.value)) {
+      this.addError();
+    }
+    return this;
+  }
+
+  match(re) {
+    if (!this.value.match(re)) {
+      this.addError();
+    }
+    return this;
+  }
+
+  isMoment(format) {
+    if (!moment(this.value, format).isValid()) {
       this.addError();
     }
     return this;
@@ -63,16 +79,16 @@ module.exports = (req, res, next) => {
   res.locals._errors = res.locals._errors || {};
 
   req.addError = (param, msg, value) => {
-    res.locals._errors[param] = { param, msg, value };
+    _.set(res.locals._errors, param, { param, msg, value });
   };
   req.checkBody = (param, msg) => {
-    return new Chain(param, req.body[param], msg, res.locals._errors);
+    return new Chain(param, _.get(req.body, param), msg, res.locals._errors);
   };
   req.checkParam = (param, msg) => {
-    return new Chain(param, req.params[param], msg, res.locals._errors);
+    return new Chain(param, _.get(req.params, param), msg, res.locals._errors);
   };
   req.checkQuery = (param, msg) => {
-    return new Chain(param, req.query[param], msg, res.locals._errors);
+    return new Chain(param, _.get(req.query, param), msg, res.locals._errors);
   };
   req.getValidationErrors = () => {
     return _.isEmpty(res.locals._errors) ? null : res.locals._errors;

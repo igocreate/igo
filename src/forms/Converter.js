@@ -21,11 +21,11 @@ const TYPE_CONVERTERS = {
 
 //
 const convert = module.exports.convert = (value, attr) => {
-  const { type, item_type } = attr;
+  const { type, item_type, format } = attr;
 
   if (_.isArray(value)) {
     if (item_type) {
-      return _.map(value, item => convert(item, {type: item_type}));
+      return _.map(value, v => convert(v, {type: item_type, format}));
     }
     return value;
   }
