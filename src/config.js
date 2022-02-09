@@ -36,11 +36,11 @@ module.exports.init = function() {
       loadPath:           'locales/{{lng}}/{{ns}}.json',
     },
     detection: {
-      order:              [ 'querystring', 'path', 'cookie' ],
-      lookupPath:         'lang',
+      order:              [ 'querystring', 'localStorage', 'cookie' ],
       lookupQuerystring:  'lang',
+      lookupLocalStorage: 'lang',
       lookupCookie:       'lang',
-      caches:             false
+      caches:             ['localStorage', 'cookie'],
     },
   };
 
