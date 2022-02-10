@@ -35,6 +35,7 @@ describe('db.CachedQuery', function() {
           assert.strictEqual(book.id, book1.id);
           setTimeout(() => {
             cache.get('_cached.books', key(book1.id), (err, rows) => {
+              assert.notStrictEqual(rows, undefined);
               assert.strictEqual(rows.length, 1);
               assert.strictEqual(rows[0].id, book.id);
               done();
