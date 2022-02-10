@@ -1,19 +1,18 @@
+const moment = require('moment');
+const i18next = require('i18next');
 
-const moment      = require('moment');
-const i18next     = require('i18next');
-
-const IgoDust     = require('igo-dust');
+const config = require('../config');
+const IgoDust = require('igo-dust');
 
 //
 module.exports.init = (app) => {
-  
   app.engine('dust', IgoDust.engine);
   app.set('view engine', 'dust');
-  app.set('views', './views');
+  app.set('views', config.viewsRoot);
 
   // configure
   IgoDust.configure(app);
-  
+
   initHelpers();
 };
 
@@ -60,8 +59,7 @@ const initHelpers = () => {
     return null;
   };
 
-
   // load custom helpers
-  const helpers = require(process.cwd() + '/app/helpers');
+  const helpers = require(config.projectRoot + '/app/helpers');
   helpers.init(IgoDust);
 };
