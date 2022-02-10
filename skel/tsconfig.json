@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "./build",
+    "noImplicitAny": true,
+    "sourceMap": true,
+    "allowJs": true,
+    "target": "es5",
+    "moduleResolution": "node"
+  },
+  "include": ["./app/**/*", "./app.ts"],
+  "exclude": ["node_modules", "build"]
+}

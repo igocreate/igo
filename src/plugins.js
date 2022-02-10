@@ -1,4 +1,4 @@
-
+const config = require('./config');
 //
 module.exports.list = [];
 
@@ -9,8 +9,8 @@ module.exports.init = function() {
 
   // load app plugins
   try {
-    const plugins = require(process.cwd() + '/app/plugins');
-    plugins.forEach(function(plugin) {
+    const plugins = require(config.projectRoot + '/app/plugins');
+    plugins.forEach(function (plugin) {
       // init with igo
       plugin.init(igo);
     });

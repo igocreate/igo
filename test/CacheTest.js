@@ -1,6 +1,6 @@
 
 
-require('../src/dev/test/init');
+require('./init');
 
 
 const assert    = require('assert');

@@ -16,6 +16,8 @@ module.exports.init = function() {
   config._loaded        = true;
   config.env            = process.env.NODE_ENV || 'dev';
   config.httpport       = process.env.HTTP_PORT || 3000;
+  config.projectRoot    = process.cwd();
+  config.viewsRoot      = config.projectRoot + '/views';
 
   config.cookieSecret  = 'abcdefghijklmnopqrstuvwxyz';
   config.cookieSession = {
@@ -106,7 +108,9 @@ module.exports.init = function() {
 
   //
   if (config.env === 'production') {
-    config.auto_migrate = true;
+    config.auto_migrate   = true;
+    config.projectRoot    = process.cwd() + '/build';
+
   }
 
   // load app config
@@ -116,7 +120,7 @@ module.exports.init = function() {
   ];
   configFiles.forEach((file) => {
     try {
-      require(process.cwd() + file).init(config);
+      require(config.projectRoot + file).init(config);
     } catch (err) {
       // ignore module not found error
       if (err.code !== 'MODULE_NOT_FOUND') {

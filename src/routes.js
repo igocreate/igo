@@ -1,5 +1,6 @@
+const config = require('./config');
 
-const routes = require(process.cwd() + '/app/routes');
+const routes = require(config.projectRoot + '/app/routes');
 
 //
 module.exports.init = function(app) {
