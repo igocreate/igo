@@ -4,12 +4,15 @@
   "description": "",
   "main": "app.js",
   "scripts": {
+    "build": "npm-run-all webpack-prod clean tsc-prod",
+    "clean": "rimraf build",
     "eslint": "eslint ./app ./test",
-    "nodemon": "nodemon app.js",
-    "start": "npm-run-all --parallel nodemon webpack",
+    "start": "npm-run-all --parallel webpack ts-node-dev",
+    "test": "mocha --recursive --reporter dot --exit",
+    "ts-node-dev": "ts-node-dev app.ts",
+    "tsc-prod": "tsc",
     "webpack": "webpack --mode=development --progress --watch",
-    "webpack-prod": "webpack --mode=production",
-    "test": "mocha --recursive --reporter dot --exit"
+    "webpack-prod": "webpack --mode=production"
   },
   "author": "",
   "license": "ISC",
