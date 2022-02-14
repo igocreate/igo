@@ -1,0 +1,11 @@
+{
+  "recursive": true,
+  "extension": [
+    "ts",
+    "js"
+  ],
+  "require": "ts-node/register",
+  "reporter": "dot",
+  "exit": true,
+  "timeout": 10000
+}
