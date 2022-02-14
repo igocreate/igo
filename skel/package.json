@@ -8,7 +8,7 @@
     "clean": "rimraf build",
     "eslint": "eslint ./app ./test",
     "start": "npm-run-all --parallel webpack ts-node-dev",
-    "test": "mocha --recursive --reporter dot --exit",
+    "test": "mocha",
     "ts-node-dev": "ts-node-dev app.ts",
     "tsc-prod": "tsc",
     "webpack": "webpack --mode=development --progress --watch",
