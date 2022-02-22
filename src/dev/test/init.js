@@ -6,17 +6,13 @@ const migrations  = require('../../db/migrations');
 const cache       = require('../../cache');
 const config      = require('../../config');
 const logger      = require('../../logger');
-const cls         = require('../../cls');
 const app         = require('../../app');
-
-let context = null;
 
 //
 const reinitDatabase = (db, callback) => {
   
   if (config.skip_reinit_db) {
     return callback();
-
   }
   
   const { dialect }   = db.driver;
@@ -36,7 +32,6 @@ const reinitDatabase = (db, callback) => {
         if (err) {
           return callback('Database migration error : ' + err);
         }
-
         logger.info('Igo dev: reinitialized test database');
         callback();
       });
@@ -54,19 +49,13 @@ before(function(done) {
 // begin transaction before each test
 beforeEach(function(done) {
   const db = dbs.main;
-  cls.getNamespace().run(() => {
-    this.currentTest.fn = cls.bind(this.currentTest.fn);
-    context = cls.getNamespace().active;
-    cache.flushall(() => {
-      db.beginTransaction(done);
-    });
+  cache.flushall(() => {
+    db.beginTransaction(done);
   });
 });
 
 // rollback transaction after each test
 afterEach(function(done) {
   const db = dbs.main;
-  // cls hack: restore context manually
-  cls.getNamespace().active = context;
   db.rollbackTransaction(done);
 });

@@ -3,7 +3,6 @@ const _           = require('lodash');
 const async       = require('async');
 const redis       = require('redis');
 
-const cls         = require('./cls');
 const logger      = require('./logger');
 const config      = require('./config');
 
@@ -76,27 +75,27 @@ module.exports.put = (namespace, id, value, callback, timeout) => {
   const v = serialize(value);
 
   // console.log('PUT: ' + k);
-  redisclient.set(k, v, cls.bind((err) => {
+  redisclient.set(k, v, (err) => {
     if (callback) {
       callback(err, value);
     }
     if (timeout || options.timeout) {
       redisclient.expire(k, timeout || options.timeout);
     }
-  }));
+  });
 };
 
 //
 module.exports.get = (namespace, id, callback) => {
   const k = namespace + '/' + id;
-  redisclient.get(k, cls.bind((err, value) => {
+  redisclient.get(k, (err, value) => {
     if (!value) {
       return callback('notfound');
     }
     // found obj in redis
     const obj = deserialize(value);
     callback(null, obj);
-  }));
+  });
 };
 
 // - returns object from cache if exists.
@@ -123,7 +122,7 @@ module.exports.fetch = (namespace, id, func, callback, timeout) => {
 
 //
 module.exports.info = (callback) => {
-  redisclient.info(cls.bind(callback));
+  redisclient.info(callback);
 };
 
 //
@@ -136,12 +135,12 @@ module.exports.incr = (namespace, id) => {
 module.exports.del = (namespace, id, callback) => {
   const k = namespace+'/'+id;
   // remove from redis
-  redisclient.del(k, cls.bind(callback));
+  redisclient.del(k, callback);
 };
 
 //
 module.exports.flushall = (callback) => {
-  redisclient.flushall(cls.bind(callback));
+  redisclient.flushall(callback);
   logger.info('Cache flush');
 };
 
@@ -174,7 +173,7 @@ module.exports.scan = (pattern, fn, callback) => {
 module.exports.flush = (pattern) => {
   module.exports.scan(pattern, (key, callback) => {
     // console.log('DEL: ' + key);
-    redisclient.del(key, cls.bind(callback));
+    redisclient.del(key, callback);
   });
 };
 

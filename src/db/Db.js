@@ -1,7 +1,6 @@
 
 const _             = require('lodash');
 
-const cls           = require('../cls');
 const config        = require('../config');
 const logger        = require('../logger');
 
@@ -13,31 +12,38 @@ const DRIVERS = {
   postgresql: require('./drivers/postgresql'),
 };
 
+const TEST_ENV = config.env === 'test';
+
 
 class Db {
 
   constructor(name) {
-    this.name     = name;
-    this.config   = config[name];
-    this.driver   = DRIVERS[this.config.driver];
+    this.name       = name;
+    this.config     = config[name];
+    this.driver     = DRIVERS[this.config.driver];
+    this.connection = null;
   }
 
   init() {
-    this.pool = this.driver.createPool(this.config);
+    this.pool       = this.driver.createPool(this.config);
+    this.connection = null;
   }
 
   //
   getConnection(callback) {
-    const { name, driver, pool } = this;
+    const { driver, pool } = this;
     // if connection is in local storage
-    const namespace   = cls.getNamespace();
-    const connection  = namespace && namespace.get(name);
-    if (connection) {
+    if (TEST_ENV && this.connection) {
       // console.log('keep same connection');
-      return callback(null, connection, true);
+      return callback(null, this.connection, true);
     }
     // console.log('create new connection');
-    driver.getConnection(pool, cls.bind(callback));
+    driver.getConnection(pool, (err, connection) => {
+      if (TEST_ENV) {
+        this.connection = connection;
+      }
+      callback(err, connection);
+    });
   }
 
   //
@@ -69,7 +75,7 @@ class Db {
 
         // console.log(this.name + ': ' + sql);
         // console.dir(params);
-        driver.query(connection, sql, params, cls.bind(function(err, result) {
+        driver.query(connection, sql, params, (err, result) => {
           // console.dir(result);
           if (config.debugsql || (err && !options.silent)) {
             logger.info('Db.query: ' + sql);
@@ -84,9 +90,13 @@ class Db {
             callback(err, dialect.getRows(result));
           }
           if (!keep) {
+            // console.log('query: release transaction');
             driver.release(connection);
+            if (TEST_ENV) {
+              this.connection = null;
+            }
           }
-        }));
+        });
       });
     };
 
@@ -106,62 +116,64 @@ class Db {
 
   //
   beginTransaction(callback) {
-    const { name, driver } = this;
+    const { driver } = this;
 
     this.getConnection((err, connection) => {
       if (err) {
         logger.error(err);
         return callback(err, connection);
       }
-      driver.beginTransaction(connection, cls.bind((err) => {
+      driver.beginTransaction(connection, (err) => {
         if (err) {
           logger.error(err);
-        } else {
-          cls.getNamespace().set(name, connection);
         }
         callback(err, connection);
-      }));
+      });
     });
   }
 
   //
   commitTransaction(callback) {
-    const { name, driver } = this;
+    const { driver } = this;
     this.getConnection((err, connection) => {
       if (err) {
         logger.error(err);
         return callback(err, connection);
       }
-      driver.commit(connection, cls.bind((err) => {
+      driver.commit(connection, (err) => {
         if (err) {
           logger.error(err);
         } else {
           driver.release(connection);
-          cls.getNamespace().set(name, null);
+          if (TEST_ENV) {
+            this.connection = null;
+          }
         }
         callback(err);
-      }));
+      });
     });
   }
 
   //
   rollbackTransaction(callback) {
-    const { name, driver } = this;
+    const { driver } = this;
 
     this.getConnection((err, connection) => {
       if (err) {
         logger.error(err);
         return callback(err, connection);
       }
-      driver.rollback(connection, cls.bind((err) => {
+      driver.rollback(connection, (err) => {
         if (err) {
           logger.error(err);
         } else {
           driver.release(connection);
-          cls.getNamespace().set(name, null);
+          if (TEST_ENV) {
+            this.connection = null;
+          }
         }
         callback(err);
-      }));
+      });
     });
   }
 

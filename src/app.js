@@ -9,7 +9,6 @@ const i18nMiddleware    = require('i18next-http-middleware');
 const i18next           = require('i18next');
 const igodust           = require('./engines/igodust');
 const cache             = require('./cache');
-const cls               = require('./cls');
 const config            = require('./config');
 const dbs               = require('./db/dbs');
 const errorHandler      = require('./connect/errorhandler');
@@ -25,7 +24,7 @@ const plugins           = require('./plugins');
 const app = module.exports = express();
 
 // services to initialize
-const SERVICES = [ config, igodust, logger, cache, dbs, mailer, cls, plugins ];
+const SERVICES = [ config, igodust, logger, cache, dbs, mailer, plugins ];
 
 //
 module.exports.configure = function() {

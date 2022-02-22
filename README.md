@@ -10,11 +10,11 @@ All remarks, suggestions, PRs are welcome! 💕
 
 # 🚀 Getting Started
 
-Before using Igo, you need to install Node.js (>=6.x) and Mocha.
+Before using Igo, you need to install Node.js (>=16.x).
 Then, you can easily create a new project via the `igo` CLI.
 
 ```sh
-npm install -g igo mocha
+npm install -g igo
 igo create myproject
 cd myproject
 npm install

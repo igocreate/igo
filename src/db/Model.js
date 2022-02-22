@@ -30,12 +30,21 @@ module.exports = function(schema) {
 
     // update
     update(values, callback) {
-      var _this = this;
       values.updated_at = new Date();
-      _.assign(_this, values);
-      this.beforeUpdate(values, () => {
-        newQuery(_this.constructor, 'update').unscoped().values(values).where(_this.primaryObject()).execute((err) => {
-          if (callback) callback(err, _this);
+      _.assign(this, values);
+
+      const update = (callback) => {
+        newQuery(this.constructor, 'update').unscoped().values(values).where(this.primaryObject()).execute((err) => {
+          callback(err, this);
+        });
+      };
+
+      if (callback) {
+        return update(callback);
+      }
+      return new Promise((resolve, reject) => {
+        update((err, result) => {
+          err ? reject(err) : resolve(result);
         });
       });
     }
@@ -46,9 +55,20 @@ module.exports = function(schema) {
         callback = includes;
         includes = null;
       }
-      const query = this.constructor.unscoped();
-      includes && query.includes(includes);
-      query.find(this.id, callback);
+      const reload = (callback) => {
+        const query = this.constructor.unscoped();
+        includes && query.includes(includes);
+        query.find(this.id, callback);
+      };
+
+      if (callback) {
+        return reload(callback);
+      }
+      return new Promise((resolve, reject) => {
+        reload((err, result) => {
+          err ? reject(err) : resolve(result);
+        });
+      });
     }
 
     // destroy
@@ -56,12 +76,9 @@ module.exports = function(schema) {
       newQuery(this.constructor, 'delete').unscoped().where(this.primaryObject()).execute(callback);
     }
 
-    beforeCreate(callback)          { callback(); }
-    beforeUpdate(values, callback)  { callback(); }
-
     // find by id
     static find(id, callback) {
-      newQuery(this).find(id, callback);
+      return newQuery(this).find(id, callback);
     }
 
     // create
@@ -82,8 +99,10 @@ module.exports = function(schema) {
 
       obj.created_at = obj.created_at || now;
       obj.updated_at = obj.updated_at || now;
-      obj.beforeCreate(() => {
-        newQuery(_this, 'insert').values(obj).options(options).execute((err, result) => {
+
+      const create = (callback) => {
+        const query = newQuery(_this, 'insert').values(obj).options(options);
+        query.execute((err, result) => {
           if (err) {
             return callback && callback(err, result);
           }
@@ -93,25 +112,36 @@ module.exports = function(schema) {
           }
           _this.unscoped().find(obj.primaryObject(), callback);
         });
+      };
+
+      if (callback) {
+        return create(callback);
+      }
+      return new Promise((resolve, reject) => {
+        create((err, res) => {
+          err ? reject(err) : resolve(res);
+        });
       });
+
     }
 
     // return first
     static first(callback) {
-      newQuery(this).first(callback);
+      return newQuery(this).first(callback);
     }
 
     // return last
     static last(callback) {
-      newQuery(this).last(callback);
+      return newQuery(this).last(callback);
     }
 
     // return all
     static list(callback) {
-      newQuery(this).list(callback);
+      return newQuery(this).list(callback);
     }
 
     static all(callback) {
+      console.log('* all() deprecated. Please use list() instead');
       return this.list(callback);
     }
 

@@ -39,17 +39,18 @@ module.exports = class Query {
   // UPDATE
   update(values, callback) {
     this.query.verb = 'update';
-    this.values(values).execute(callback);
+    this.values(values);
+    return this.execute(callback);
   }
 
   // DELETE
   delete(callback) {
-    this.query.verb   = 'delete';
-    this.execute(callback);
+    this.query.verb = 'delete';
+    return this.execute(callback);
   }
   
   destroy(callback) {
-    this.delete(callback);
+    return this.delete(callback);
   }
 
   // FROM
@@ -80,16 +81,14 @@ module.exports = class Query {
   first(callback) {
     this.query.limit  = 1;
     this.query.take   = 'first';
-    this.execute(callback);
-    return this;
+    return this.execute(callback);
   }
 
   // LAST
   last(callback) {
     this.query.limit  = 1;
     this.query.take   = 'last';
-    this.execute(callback);
-    return this;
+    return this.execute(callback);
   }
 
   // LIMIT
@@ -125,7 +124,7 @@ module.exports = class Query {
 
   // LIST
   list(callback) {
-    this.execute(callback);
+    return this.execute(callback);
   }
 
   // SELECT
@@ -142,8 +141,19 @@ module.exports = class Query {
     countQuery.query.limit  = 1;
     delete countQuery.query.page;
     delete countQuery.query.nb;
-    countQuery.execute((err, rows) => {
-      callback(err, rows && rows[0] && parseInt(rows[0].count, 10));
+    const count = (callback) => {
+      countQuery.execute((err, rows) => {
+        callback(err, rows && rows[0] && parseInt(rows[0].count, 10));
+      });
+    };
+
+    if (callback) {
+      return count(callback);
+    }
+    return new Promise((resolve, reject) => {
+      count((err, count) => {
+        err ? reject(err) : resolve(count);
+      });
     });
   }
 
@@ -174,14 +184,19 @@ module.exports = class Query {
   // FIND
   find(id, callback) {
     if (id === null || id === undefined || id.length === 0) {
-      return callback(null, null);
+      if (callback) {
+        return callback(null, null);
+      }
+      return new Promise((resolve) => {
+        resolve(null);
+      });
     } else if (_.isString(id) || _.isNumber(id)) {
-      this.where({ id }).first(callback);
+      return this.where({ id }).first(callback);
     } else if (_.isArray(id)) {
       id = _.compact(id);
-      this.where({ id }).first(callback);
+      return this.where({ id }).first(callback);
     } else {
-      this.where(id).first(callback);
+      return this.where(id).first(callback);
     }
   }
 
@@ -311,9 +326,20 @@ module.exports = class Query {
     });
   }
 
-
   //
   execute(callback) {
+    if (callback) {
+      return this.doExecute(callback);
+    }
+    return new Promise((resolve, reject) => {
+      this.doExecute((err, res) => {
+        err ? reject(err) : resolve(res);
+      });
+    });
+  }
+
+  //
+  doExecute(callback) {
     const { query, schema } = this;
     const db                = this.getDb();
     const { dialect }       = db.driver;

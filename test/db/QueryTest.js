@@ -17,10 +17,11 @@ describe('db.Query', function() {
 
   //
   describe('first', function() {
-    it('should return correct SQL', function() {
-      const first = new Query(Book).first();
+    it('should return correct SQL', async () => {
+      const query = new Query(Book)
+      await query.first();
       const sql = 'SELECT `books`.* FROM `books` ORDER BY `id` ASC LIMIT ?, ?';
-      assert.strictEqual(sql, first.query.generated.sql);
+      assert.strictEqual(sql, query.query.generated.sql);
     });
   });
 });

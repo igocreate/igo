@@ -147,7 +147,7 @@ describe('db.Model', function() {
           Book.create({ code: '123' }, function() {
             Book.create(function() {
               Book.where({ code: '123' }).destroy(function() {
-                Book.all(function(err, books) {
+                Book.list(function(err, books) {
                   assert(books.length, 1);
                   done();
                 });
@@ -328,7 +328,7 @@ describe('db.Model', function() {
       it('should use default scope', function(done) {
         BookWithScopes.create({code: 'a'}, function() {
           BookWithScopes.create({code: 'abc'}, function() {
-            BookWithScopes.all(function(err, books) {
+            BookWithScopes.list(function(err, books) {
               assert.strictEqual(books.length, 1);
               done();
             });

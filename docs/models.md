@@ -179,27 +179,6 @@ User.scope('validated').list(function(err, validatedUsers) {
 });
 ```
 
-### Callbacks
-
-Callbacks are special hooks functions called by Igo during the life cycle of an Igo Model.
-
-| Callback | Triggered |
-|----------|-----------|
-| `beforeCreate(callback)` | before object creation |
-| `beforeUpdate(values, callback)` | before object update (modified attributes are given in the `values` parameter) |
-
-Example:
-```js
-class User extends Model(schema) {
-
-  // hash password before creation
-  beforeCreate(callback) {
-    this.password = PasswordUtils.hash(this.password);
-    callback();
-  }
-```
-
-
 ## Model API
 
 ### Create
