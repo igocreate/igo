@@ -33,6 +33,12 @@ const formatMessage = (req, err) => {
   return message;
 };
 
+// // unhandled promise rejections  
+// process.on('unhandledRejection', (unhandledRejection) => {
+//   // console.dir({unhandledRejection});
+//   throw unhandledRejection;
+// });
+
 // log and show error
 const handle = (err, req, res) => {
 

@@ -1,72 +1,26 @@
 
 const _           = require('lodash');
-const async       = require('async');
 const redis       = require('redis');
 
 const logger      = require('./logger');
 const config      = require('./config');
 
 let options       = null;
-let redisclient   = null;
+let client        = null;
 
-const retryStrategy = (params) => {
-  if (params.error.code === 'ECONNREFUSED') {
-    logger.error('Redis connection refused on host ' + options.host + ':' + options.port);
-    return params.error;
-  }
-  logger.error('Redis error ' + params.error);
-  // retry in n seconds
-  return params.attempt * 1000;
-};
-
-//
-const serialize = (value) => {
-  if (_.isBuffer(value)) {
-    return JSON.stringify({ buffer: value.toString('base64') });
-  }
-  return JSON.stringify({ v: value });
-};
-
-//
-const deserialize = (data) => {
-  const obj = JSON.parse(data);
-  if (obj.buffer) {
-    return Buffer.from(obj.buffer, 'base64');
-  }
-  if (obj.v !== undefined) { // can be null
-    deserializeDates(obj);
-    return obj.v;
-  }
-  return obj;
-};
 
 // init cache module : create redis client
-module.exports.init = () => {
-  options     = config.redis || {};
+module.exports.init = async () => {
+  options = config.redis || {};
+  client = redis.createClient(options);
 
-  options     = _.defaultsDeep(options, {
-    timeout:        null,  // no timeout by default
-    no_ready_check: true,
-    retry_strategy: retryStrategy
-  });
+  client.on('error', (err) => { logger.error(err); });
 
-  redisclient = redis.createClient(options);
-  if (options.password) {
-    redisclient.auth(options.password);
-  }
-  redisclient.select(options.database || 0);
-  redisclient.on('error', (err) => {
-    logger.error(err);
-  });
+  await client.connect();
 
   if (config.env === 'test') {
     module.exports.flushall();
   }
-};
-
-//
-module.exports.redisclient = () => {
-  return redisclient;
 };
 
 //
@@ -75,12 +29,12 @@ module.exports.put = (namespace, id, value, callback, timeout) => {
   const v = serialize(value);
 
   // console.log('PUT: ' + k);
-  redisclient.set(k, v, (err) => {
+  client.set(k, v).then((value) => {
     if (callback) {
-      callback(err, value);
+      callback(null, value);
     }
     if (timeout || options.timeout) {
-      redisclient.expire(k, timeout || options.timeout);
+      client.expire(k, timeout || options.timeout).then();
     }
   });
 };
@@ -88,7 +42,7 @@ module.exports.put = (namespace, id, value, callback, timeout) => {
 //
 module.exports.get = (namespace, id, callback) => {
   const k = namespace + '/' + id;
-  redisclient.get(k, (err, value) => {
+  client.get(k).then((value) => {
     if (!value) {
       return callback('notfound');
     }
@@ -122,59 +76,78 @@ module.exports.fetch = (namespace, id, func, callback, timeout) => {
 
 //
 module.exports.info = (callback) => {
-  redisclient.info(callback);
+  client.info().then((info) => {
+    callback(null, info);
+    logger.info('Cache flush');
+  });
 };
 
 //
-module.exports.incr = (namespace, id) => {
-  const k = namespace+'/'+id;
-  redisclient.incr(k);
+module.exports.incr = async (namespace, id) => {
+  const k = [namespace, id].join('/');
+  await client.INCR(k);
 };
 
 //
-module.exports.del = (namespace, id, callback) => {
-  const k = namespace+'/'+id;
+module.exports.del = async (namespace, id, callback) => {
+  const k = [namespace, id].join('/');
   // remove from redis
-  redisclient.del(k, callback);
+  await client.del(k);
+  callback();
 };
 
 //
-module.exports.flushall = (callback) => {
-  redisclient.flushall(callback);
-  logger.info('Cache flush');
+module.exports.flushall = async (callback) => {
+  await client.FLUSHDB('ASYNC');
+  logger.info('Cache flushed');
+  if (callback) {
+    callback();
+  }
 };
 
 // scan keys
-// - fn is invoked with (key, callback)
-module.exports.scan = (pattern, fn, callback) => {
-  let cursor = '0';
-
-  const scan = () => {
-    redisclient.scan(cursor, 'MATCH', pattern, 'COUNT', '1', (err, res) => {
-      cursor = res[0];
-      async.eachSeries(res[1], fn, () => {
-        if (cursor === '0') {
-          // done
-          if (callback) {
-            callback();
-          }
-          return;
-        }
-        // recursive scan
-        scan();
-      });
+// - fn is invoked with (key, callback) for each key matching the pattern
+module.exports.scan = async (pattern, fn, callback) => {
+  for await (const key of client.scanIterator({ MATCH: pattern })) {
+    // use the key!
+    await new Promise((resolve) => {
+      fn(key, resolve);
     });
-  };
-
-  scan();
+  }  
+  if (callback) {
+    callback();
+  }
 };
 
 // flush with wildcard
 module.exports.flush = (pattern) => {
-  module.exports.scan(pattern, (key, callback) => {
+  module.exports.scan(pattern, async (key, callback) => {
     // console.log('DEL: ' + key);
-    redisclient.del(key, callback);
+    await client.DEL(key);
+    callback();
   });
+};
+
+
+//
+const serialize = (value) => {
+  if (_.isBuffer(value)) {
+    return JSON.stringify({ buffer: value.toString('base64') });
+  }
+  return JSON.stringify({ v: value });
+};
+
+//
+const deserialize = (data) => {
+  const obj = JSON.parse(data);
+  if (obj.buffer) {
+    return Buffer.from(obj.buffer, 'base64');
+  }
+  if (obj.v !== undefined) { // can be null
+    deserializeDates(obj);
+    return obj.v;
+  }
+  return obj;
 };
 
 const  DATE_REGEXP = /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z)/;

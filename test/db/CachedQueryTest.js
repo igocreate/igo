@@ -48,10 +48,12 @@ describe('db.CachedQuery', function() {
     it('should clear cache after update', function(done) {
       Book.create((err, book1) => {
         book1.update({ title: 'abc' }, () => {
-          cache.get('_cached.books', key(book1.id), (err, rows) => {
-            assert.strictEqual(rows, undefined);
-            done();
-          });
+          setTimeout(() => {
+            cache.get('_cached.books', key(book1.id), (err, rows) => {
+              assert.strictEqual(rows, undefined);
+              done();
+            });
+          }, 100);
         });
       });
     });

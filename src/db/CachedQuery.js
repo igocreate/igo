@@ -1,5 +1,5 @@
 
-const cache   = require('../cache');
+const cache       = require('../cache');
 
 const Query       = require('./Query');
 const CacheStats  = require('./CacheStats');
@@ -15,7 +15,8 @@ module.exports = class CachedQuery extends Query {
 
     if (query.verb !== 'select') {
       cache.flush(namespace + '/*');
-      return db.query(sqlQuery.sql, sqlQuery.params, query.options, callback);
+      db.query(sqlQuery.sql, sqlQuery.params, query.options, callback);
+      return;
     }
 
     const key = JSON.stringify(sqlQuery);

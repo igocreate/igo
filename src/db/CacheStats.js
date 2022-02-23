@@ -10,12 +10,12 @@ module.exports.incr = (key, type) => {
 
 //
 module.exports.getStats = (callback) => {
-  const redisclient = cache.redisclient();
   const statistics = {};
+
   cache.scan(`${NAMESPACE}/*`, (key, callback) => {
-    redisclient.get(key, (err, value) => {
-      key = key.substr(NAMESPACE.length + 1);
-      _.set(statistics, key, Number(value));
+    key = key.substr(NAMESPACE.length + 1);
+    cache.get(NAMESPACE, key, (err, value) => {
+      _.set(statistics, key, value);
       callback();
     });
   }, () => {

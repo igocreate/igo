@@ -95,8 +95,10 @@ module.exports.init = function() {
 
   // cache
   config.redis = {
-    host:     process.env.REDIS_HOST      || 'localhost',
-    port:     process.env.REDIS_PORT      || 6379,
+    socket: {
+      host:     process.env.REDIS_HOST      || 'localhost',
+      port:     process.env.REDIS_PORT      || 6379,
+    },
     database: process.env.REDIS_DATABASE  || 0
   };
 

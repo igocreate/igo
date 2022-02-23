@@ -72,17 +72,43 @@ describe('igo.cache', () => {
     });
   });
 
+  describe('cache.incr', () => {
+    it('should increment value', (done) => {
+      cache.incr('ns', 'key');
+      cache.incr('ns', 'key');
+      cache.get('ns', 'key', (err, value) => {
+
+        assert.strictEqual(value, 2);
+        done();
+      });
+    });
+  });
+
+  // info
+  describe('cache.info', () => {
+    it('should show info', (done) => {
+      cache.info((err, info) => {
+        assert.match(info, /redis_version/);
+        done();
+      });
+    });
+  });
+
+  // scan
   describe('cache.scan', () => {
     it('should scan for keys', (done) => {
+      cache.put('scantest', 120, 'hello');
+      cache.put('scantest', 121, 'hello');
       cache.put('scantest', 122, 'hello', () => {
         const keys = [];
+        
         cache.scan('scantest/*', (key, callback) => {
           keys.push(key);
           callback();
         });
         setTimeout(() => {
-          assert.strictEqual(keys.length, 1);
-          assert.strictEqual(keys[0], 'scantest/122');
+          assert.strictEqual(keys.length, 3);
+          assert(keys.indexOf('scantest/122') > -1);
           done();
         }, 100);
       });
