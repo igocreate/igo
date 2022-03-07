@@ -12,9 +12,7 @@ const DRIVERS = {
   postgresql: require('./drivers/postgresql'),
 };
 
-const TEST_ENV = config.env === 'test';
-
-
+//
 class Db {
 
   constructor(name) {
@@ -27,11 +25,12 @@ class Db {
   init() {
     this.pool       = this.driver.createPool(this.config);
     this.connection = null;
+    this.TEST_ENV   = config.env === 'test';
   }
 
   //
   getConnection(callback) {
-    const { driver, pool } = this;
+    const { driver, pool, TEST_ENV } = this;
     // if connection is in local storage
     if (TEST_ENV && this.connection) {
       // console.log('keep same connection');
@@ -49,7 +48,7 @@ class Db {
   //
   query(sql, params, options, callback) {
 
-    const { driver, config } = this;
+    const { driver, config, TEST_ENV } = this;
     const { dialect } = driver;
 
     params  = params  || [];
@@ -134,7 +133,7 @@ class Db {
 
   //
   commitTransaction(callback) {
-    const { driver } = this;
+    const { driver, TEST_ENV } = this;
     this.getConnection((err, connection) => {
       if (err) {
         logger.error(err);
@@ -156,7 +155,7 @@ class Db {
 
   //
   rollbackTransaction(callback) {
-    const { driver } = this;
+    const { driver, TEST_ENV } = this;
 
     this.getConnection((err, connection) => {
       if (err) {
