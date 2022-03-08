@@ -81,14 +81,21 @@ const handle = (err, req, res) => {
 // init domain for error handling
 module.exports.initDomain = (app) => {
   return (req, res, next) => {
-    const appDomain = domain.create();
-    appDomain.add(req);
-    appDomain.add(res);
-    appDomain.on('error', (err) => {
-      handle(err, req, res);
-      gracefullyShutdown(app);
+    // create per request domain instance
+    domain.create().run(() => {
+      // explicit binding
+      process.domain.add(req);
+      process.domain.add(res);
+      // save request to domain, to make it accessible everywhere
+      process.domain.req = req;
+      process.domain.res = res;
+      process.domain.on('error', function(err) {
+        // this === process.domain
+        handle(err, this.req, this.res);
+        gracefullyShutdown(app);
+      });
+      next();
     });
-    appDomain.run(next);
   };
 };
 
