@@ -290,7 +290,7 @@ describe('db.Model', function() {
     describe('update', function() {
       it('should update a book', function(done) {
         Book.create(function(err, book) {
-          book.update({ code: 'hop' }, function(err, book) {
+          book.update({ code: 'hop', hello: 'world' }, function(err, book) {
             book.reload(function(err, book) {
               assert.strictEqual(book.code, 'hop');
               done();

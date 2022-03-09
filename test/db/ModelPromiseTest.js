@@ -208,7 +208,9 @@ describe('db.Model', () => {
     describe('update', () => {
       it('should update a book', async () => {
         let book = await Book.create();
-        book = await book.update({ code: 'hop' });
+        book = await book.update({ code: 'hop', hello: 'world' });
+        assert.strictEqual(book.code, 'hop');
+        assert.notStrictEqual(book.hello, 'world');
         book = await book.reload();
         assert.strictEqual(book.code, 'hop');
       });

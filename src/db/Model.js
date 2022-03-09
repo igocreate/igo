@@ -23,6 +23,12 @@ module.exports = function(schema) {
       _.assign(this, values);
     }
 
+    // 
+    assignValues(values) {
+      const keys = _.keys(Model.schema.colsByAttr);
+      _.assign(this, _.pick(values, keys));
+    }
+
     // returns object with primary keys
     primaryObject() {
       return _.pick(this, this.constructor.schema.primary);
@@ -33,7 +39,7 @@ module.exports = function(schema) {
       values.updated_at = new Date();
       const update = (callback) => {
         newQuery(this.constructor, 'update').unscoped().values(values).where(this.primaryObject()).execute((err) => {
-          _.assign(this, values);
+          this.assignValues(values);
           callback(err, this);
         });
       };
