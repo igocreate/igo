@@ -41,6 +41,11 @@ const convert = module.exports.convert = (value, attr) => {
   }
 
   //
+  if (!value && value !== 0) {
+    value = null;
+  }
+  
+  //
   return value;
 
 };

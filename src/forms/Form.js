@@ -52,10 +52,9 @@ module.exports = function(schema) {
     // convert form values
     convert(req, scope='body') {
       _.each(schema.attributes, attr => {
-        const value = Converter.convert(req[scope][attr.name], attr);
-        this[attr.name] = value;
-        if (!this[attr.name] && this[attr.name] !== 0) {
-          this[attr.name] = attr.default || null;
+        this[attr.name] = Converter.convert(req[scope][attr.name], attr);
+        if (this[attr.name] === null && attr.default !== undefined) {
+          this[attr.name] = attr.default;
         }
       });
     }

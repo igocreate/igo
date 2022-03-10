@@ -39,7 +39,7 @@ describe('igo.Form', () => {
     const body = {
       array: 'elem',
       array2: ['elem', 'second_elem'],
-      array_int: ['2', '1 234'],
+      array_int: ['2', '1 234', ''],
       array_default: '',
       array_null: null,
     };
@@ -48,6 +48,7 @@ describe('igo.Form', () => {
     assert.strictEqual(form.array.length, 1);
     assert.strictEqual(form.array2.length, 2);
     assert.strictEqual(form.array_int[1], 1234);
+    assert.strictEqual(form.array_int[2], null);
     assert.strictEqual(form.array_default.length, 0);
     assert.strictEqual(form.array_null, null);
   });
