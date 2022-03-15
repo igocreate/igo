@@ -17,7 +17,6 @@ module.exports.init = function() {
   config.env            = process.env.NODE_ENV || 'dev';
   config.httpport       = process.env.HTTP_PORT || 3000;
   config.projectRoot    = process.cwd();
-  config.viewsRoot      = config.projectRoot + '/views';
 
   config.cookieSecret  = 'abcdefghijklmnopqrstuvwxyz';
   config.cookieSession = {
@@ -111,8 +110,6 @@ module.exports.init = function() {
   //
   if (config.env === 'production') {
     config.auto_migrate   = true;
-    config.projectRoot    = process.cwd() + '/build';
-
   }
 
   // load app config

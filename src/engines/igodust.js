@@ -8,7 +8,7 @@ const IgoDust = require('igo-dust');
 module.exports.init = (app) => {
   app.engine('dust', IgoDust.engine);
   app.set('view engine', 'dust');
-  app.set('views', config.viewsRoot);
+  app.set('views', config.projectRoot + '/views'); 
 
   // configure
   IgoDust.configure(app);
