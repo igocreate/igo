@@ -229,6 +229,20 @@ describe('db.Model', () => {
         book = await book.reload();
         assert.strictEqual(book.code, 'hop');
       });
+
+      it('should update a book with beforeUpdate', async () => {
+        class BookWithBeforeUpdate extends Model(schema) {
+          beforeUpdate(values, callback) {
+            values.title = values.code;
+            callback();
+          }
+        }
+        let book = await BookWithBeforeUpdate.create();
+        book = await book.update({ code: '234' });
+        assert.strictEqual(book.title, '234');
+        book = await book.reload();
+        assert.strictEqual(book.title, '234');
+      });
     });
 
   });

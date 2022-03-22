@@ -316,6 +316,22 @@ describe('db.Model', function() {
           });
         });
       });
+
+      it('should update a book with beforeUpdate', function(done) {
+        class BookWithBeforeUpdate extends Model(schema) {
+          beforeUpdate(values, callback) {
+            values.title = values.code;
+            callback();
+          }
+        }
+        BookWithBeforeUpdate.create({ code: '123' }, function(err, book) {
+          book.update({ code: '234'}, function(err) {
+            assert(!err);
+            assert.strictEqual(book.title, '234');
+            done();
+          });
+        });
+      });
     });
 
   });

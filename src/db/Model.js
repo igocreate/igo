@@ -38,9 +38,11 @@ module.exports = function(schema) {
     update(values, callback) {
       values.updated_at = new Date();
       const update = (callback) => {
-        newQuery(this.constructor, 'update').unscoped().values(values).where(this.primaryObject()).execute((err) => {
-          this.assignValues(values);
-          callback(err, this);
+        this.beforeUpdate(values, () => {
+          newQuery(this.constructor, 'update').unscoped().values(values).where(this.primaryObject()).execute((err) => {
+            this.assignValues(values);
+            callback(err, this);
+          });
         });
       };
 
