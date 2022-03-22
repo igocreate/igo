@@ -81,6 +81,10 @@ module.exports = function(schema) {
       newQuery(this.constructor, 'delete').unscoped().where(this.primaryObject()).execute(callback);
     }
 
+    beforeCreate(callback)          { callback(); }
+    beforeUpdate(values, callback)  { callback(); }
+
+
     // find by id
     static find(id, callback) {
       return newQuery(this).find(id, callback);
@@ -104,18 +108,20 @@ module.exports = function(schema) {
 
       obj.created_at = obj.created_at || now;
       obj.updated_at = obj.updated_at || now;
-
+      
       const create = (callback) => {
-        const query = newQuery(_this, 'insert').values(obj).options(options);
-        query.execute((err, result) => {
-          if (err) {
-            return callback && callback(err, result);
-          }
-          const { insertId } = result;
-          if (insertId) {
-            return _this.unscoped().find(insertId, callback);
-          }
-          _this.unscoped().find(obj.primaryObject(), callback);
+        obj.beforeCreate(() => {
+          const query = newQuery(_this, 'insert').values(obj).options(options);
+          query.execute((err, result) => {
+            if (err) {
+              return callback && callback(err, result);
+            }
+            const { insertId } = result;
+            if (insertId) {
+              return _this.unscoped().find(insertId, callback);
+            }
+            _this.unscoped().find(obj.primaryObject(), callback);
+          });
         });
       };
 

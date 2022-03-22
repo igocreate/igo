@@ -41,6 +41,21 @@ describe('db.Model', () => {
         assert(book && book.id);
         assert.strictEqual(book.code, '123');
       });
+
+      it('should insert a book with values and go through beforeCreate', async () => {
+        class BookWithTitle extends Model(schema) {
+          beforeCreate(callback) {
+            this.title = this.title || this.code;
+            callback();
+          }
+        }
+
+        const book = await BookWithTitle.create({code: 123});
+        assert(book && book.id);
+        assert.strictEqual(book.code, '123');
+        assert.strictEqual(book.title, '123');
+      });
+
     });
 
     //

@@ -7,6 +7,7 @@ const _         = require('lodash');
 const async     = require('async');
 
 const Model     = require('../../src/db/Model');
+const { call } = require('file-loader');
 
 describe('db.Model', function() {
 
@@ -45,6 +46,23 @@ describe('db.Model', function() {
           done();
         });
       });
+
+      it('should insert a book with values and go through beforeCreate', function(done) {
+        class BookWithTitle extends Model(schema) {
+          beforeCreate(callback) {
+            this.title = this.title || this.code;
+            callback();
+          }
+        }
+
+        BookWithTitle.create({code: 123}, function(err, book) {
+          assert(book && book.id);
+          assert.strictEqual(book.code, '123');
+          assert.strictEqual(book.title, '123');
+          done();
+        });
+      });
+
     });
 
     //
