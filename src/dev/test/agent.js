@@ -95,7 +95,15 @@ module.exports.get = (url, options, callback) => {
     options   = {};
   }
   options.method = 'GET';
-  module.exports.send(url, options, callback);
+  
+  if (callback) {
+    return module.exports.send(url, options, callback);
+  }
+  return new Promise((resolve, reject) => {
+    module.exports.send(url, options, (err, res) => {
+      err ? reject(err) : resolve(res);
+    });
+  });
 };
 
 //
@@ -105,5 +113,13 @@ module.exports.post = (url, options, callback) => {
     options   = {};
   }
   options.method = 'POST';
-  module.exports.send(url, options, callback);
+
+  if (callback) {
+    return module.exports.send(url, options, callback);
+  }
+  return new Promise((resolve, reject) => {
+    module.exports.send(url, options, (err, res) => {
+      err ? reject(err) : resolve(res);
+    });
+  });
 };

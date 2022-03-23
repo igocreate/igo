@@ -86,7 +86,7 @@ module.exports.init = function() {
     user:     process.env.POSTGRESQL_USERNAME || '',
     password: process.env.POSTGRESQL_PASSWORD || '',
     database: process.env.POSTGRESQL_DATABASE || 'igo',
-    max:      5,
+    max:      10,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
     debugsql: false
