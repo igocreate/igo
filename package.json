@@ -1,6 +1,6 @@
 {
   "name": "igo",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "homepage": "https://github.com/igocreate/igo",
   "description": "Igo is a Node.js Web Framework based on Express",
   "main": "index.js",
@@ -30,6 +30,7 @@
     "async": "3.2.3",
     "autoprefixer": "^10.4.4",
     "babel-loader": "^8.2.4",
+    "cheerio": "^1.0.0-rc.10",
     "clean-webpack-plugin": "^4.0.0",
     "compression": "1.7.4",
     "cookie-parser": "1.4.6",

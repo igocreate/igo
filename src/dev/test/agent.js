@@ -3,6 +3,8 @@
 const _       = require('lodash');
 const http    = require('http');
 
+const cheerio = require('cheerio');
+
 const url     = require('url');
 
 const app     = require('../../app');
@@ -76,20 +78,26 @@ const mockResponse = function(callback, req) {
     callback(null, res, req);
   };
 
+  res.$ = (...args) => {
+    if (!res._cached_$) {
+      res._cached_$ = cheerio.load(res.body);
+    }
+    return res._cached_$(...args);
+  };
+
   return res;
 };
 
 //
-module.exports.send = (url, options, callback) => {
+module.exports.send = (url, options={}, callback) => {
   options.url = url;
   const req = mockRequest(options);
   const res = mockResponse(callback, req);
-
   app.handle(req, res);
 };
 
 //
-module.exports.get = (url, options, callback) => {
+module.exports.get = (url, options={}, callback) => {
   if (_.isFunction(options)) {
     callback  = options;
     options   = {};
@@ -107,7 +115,7 @@ module.exports.get = (url, options, callback) => {
 };
 
 //
-module.exports.post = (url, options, callback) => {
+module.exports.post = (url, options={}, callback) => {
   if (_.isFunction(options)) {
     callback  = options;
     options   = {};
