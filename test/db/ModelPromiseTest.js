@@ -90,6 +90,29 @@ describe('db.Model', () => {
         const books2 = await Book.list();
         assert.strictEqual(nb, books2.length);
       });
+
+      it('should handle where not condition with id', async () => {
+        const book1 = await Book.create();
+        const book2 = await Book.create();
+        const books = await Book.whereNot({id: book1.id}).list();
+        assert.strictEqual(1, books.length);
+        assert.strictEqual(books[0].id, book2.id);
+      });
+
+      it('should handle where not with array', async () => {
+        const book1 = await Book.create();
+        const book2 = await Book.create();
+        const books = await Book.whereNot({id: [book1.id, book2.id]}).list();
+        assert.strictEqual(0, books.length);
+      });
+
+      it('should handle where not with empty array', async () => {
+        await Book.create();
+        await Book.create();
+        const books = await Book.whereNot({id: []}).list();
+        assert.strictEqual(2, books.length);
+      });
+
     });
 
     //

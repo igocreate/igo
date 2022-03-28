@@ -19,6 +19,7 @@ module.exports = class Query {
       select:   null,
       verb:     verb,
       where:    [],
+      whereNot: [],
       order:    [],
       distinct: null,
       group:    null,
@@ -63,6 +64,12 @@ module.exports = class Query {
   where(where, params) {
     where = params !== undefined ? [where, params] : where;
     this.query.where.push(where);
+    return this;
+  }
+
+  // WHERE NOT
+  whereNot(whereNot) {
+    this.query.whereNot.push(whereNot);
     return this;
   }
 

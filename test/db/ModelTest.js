@@ -107,6 +107,40 @@ describe('db.Model', function() {
           });
         });
       });
+
+      it('should handle where not condition with id', function(done) {
+        Book.create((err, book1) => {
+          Book.create((err, book2) => {
+            Book.whereNot({id: book1.id}).list(function(err, books) {
+              assert.strictEqual(1, books.length);
+              assert.strictEqual(books[0].id, book2.id);
+              done();
+            });
+          });
+        });
+      });
+
+      it('should handle where not with array', function(done) {
+        Book.create((err, book1) => {
+          Book.create((err, book2) => {
+            Book.whereNot({id: [book1.id, book2.id]}).list(function(err, books) {
+              assert.strictEqual(0, books.length);
+              done();
+            });
+          });
+        });
+      });
+
+      it('should handle where not with empty array', function(done) {
+        Book.create(() => {
+          Book.create(() => {
+            Book.whereNot({id: []}).list(function(err, books) {
+              assert.strictEqual(2, books.length);
+              done();
+            });
+          });
+        });
+      });
     });
 
     //

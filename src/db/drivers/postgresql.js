@@ -85,6 +85,7 @@ module.exports.dialect = {
   getRows: result => result && result.rows,
   emptyInsert: 'DEFAULT VALUES ',
   in: '= ANY',
+  notin: '!= ALL',
   getLock: () => 'SELECT pg_try_advisory_lock(123456789);',
   gotLock: res => res && res.rows && res.rows[0] && res.rows[0].pg_try_advisory_lock,
   releaseLock: () => 'SELECT pg_advisory_unlock_all();',

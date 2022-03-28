@@ -168,6 +168,11 @@ module.exports = function(schema) {
       return newQuery(this).where(where, params);
     }
 
+    // filter
+    static whereNot(whereNot) {
+      return newQuery(this).whereNot(whereNot);
+    }
+
     // limit
     static limit(offset, limit) {
       return newQuery(this).limit(offset, limit);

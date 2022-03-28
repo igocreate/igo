@@ -37,6 +37,9 @@ var Sql = function(query, dialect) {
     // where
     sql += this.whereSQL(params);
 
+    // whereNot
+    sql += this.whereNotSQL(params);
+
     // group
     sql += this.groupSQL();
 
@@ -75,6 +78,9 @@ var Sql = function(query, dialect) {
     // where
     sql += this.whereSQL(params);
 
+    // whereNot
+    sql += this.whereNotSQL(params);
+
     var ret = {
       sql: sql.trim(),
       params: params
@@ -83,7 +89,7 @@ var Sql = function(query, dialect) {
     return ret;
   };
 
-  //
+  // WHERE
   this.whereSQL = function(params) {
     var sqlwhere = [];
     _.forEach(query.where, function(where) {
@@ -119,6 +125,34 @@ var Sql = function(query, dialect) {
           }
         });
       }
+    });
+    if (sqlwhere.length) {
+      return 'WHERE ' + sqlwhere.join('AND ');
+    }
+    return '';
+  };
+
+  //
+  this.whereNotSQL = function(params) {
+    var sqlwhere = [];
+    _.forEach(query.whereNot, function(whereNot) {
+      _.forEach(whereNot, function(value, key) {
+        if (value === null) {
+          sqlwhere.push(`${esc}${key}${esc} IS NOT NULL `);
+          // sqlwhere.push('`' + key + '` IS NOT NULL ');
+        } else if (_.isArray(value) && value.length === 0) {
+          // where in empty array --> FALSE
+          sqlwhere.push('TRUE ');
+        } else if (_.isArray(value)) {
+          sqlwhere.push(`${esc}${key}${esc} ${dialect.notin} (${dialect.param(i++)}) `);
+          // sqlwhere.push('`' + key + '` NOT IN (?) ');
+          params.push(value);
+        } else {
+          sqlwhere.push(`${esc}${key}${esc} != ${dialect.param(i++)} `);
+          // sqlwhere.push('`' + key + '` != ? ');
+          params.push(value);
+        }
+      });
     });
     if (sqlwhere.length) {
       return 'WHERE ' + sqlwhere.join('AND ');
@@ -172,7 +206,11 @@ var Sql = function(query, dialect) {
 
     sql += columns.join(', ') + ' ';
 
+    // where
     sql += this.whereSQL(params);
+
+    // whereNot
+    sql += this.whereNotSQL(params);
 
     const ret = {
       sql: sql,
@@ -190,7 +228,12 @@ var Sql = function(query, dialect) {
 
     // columns
     var params = [];
+
+    // where
     sql += this.whereSQL(params);
+
+    // whereNot
+    sql += this.whereNotSQL(params);
 
     var ret = {
       sql: sql,
