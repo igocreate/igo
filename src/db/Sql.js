@@ -155,7 +155,8 @@ var Sql = function(query, dialect) {
       });
     });
     if (sqlwhere.length) {
-      return 'WHERE ' + sqlwhere.join('AND ');
+      const ret = query.where.length > 0 ? 'AND ' : 'WHERE ';
+      return ret + sqlwhere.join('AND ');
     }
     return '';
   };
