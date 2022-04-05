@@ -47,7 +47,7 @@ module.exports.configure = function() {
     app.use(errorHandler.initDomain(app));
     // does not work in test mode, because of mock requests
     app.use(cookieParser(config.cookieSecret));
-    app.use(cookieSession(config.cookieSession));
+    app.use(config.cookieSessionMiddleware || cookieSession(config.cookieSession));
     app.use(express.urlencoded(config.urlencoded));
     app.use(express.json(config.json));
     app.use(multipart);
