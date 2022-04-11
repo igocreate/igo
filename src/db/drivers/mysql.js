@@ -1,10 +1,16 @@
 
-const mysql   = require('mysql');
+const _       = require('lodash');
+const mysql   = require('mysql2');
+
+const OPTIONS = [
+  'host', 'port', 'user', 'password', 'database',
+  'charset', 'debug', 'connectionLimit'
+];
 
 
 // create pool
 module.exports.createPool = (dbconfig) => {
-  return mysql.createPool(dbconfig);
+  return mysql.createPool(_.pick(dbconfig, OPTIONS));
 };
 
 // get connection
