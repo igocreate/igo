@@ -6,19 +6,31 @@ const IgoDust = require('igo-dust');
 
 //
 module.exports.init = (app) => {
-  app.engine('dust', IgoDust.engine);
-  app.set('view engine', 'dust');
+  if (!config.igodust.stream) {
+    app.engine('dust', IgoDust.engine);
+    app.set('view engine', 'dust');
+  }
   app.set('views', config.projectRoot + '/views'); 
 
-  // configure
+  // configure with express app
   IgoDust.configure(app);
 
+  // init helpers
   initHelpers();
 };
 
 //
 module.exports.middleware = (req, res, next) => {
   res.locals.t = (params) => req.t(params.key, params);
+
+  // override render method to stream response
+  if (config.igodust.stream) {
+    res.render = (template, locals) => {
+      const data = {...res.locals, ...locals};
+      IgoDust.stream(res, template, data);
+    };
+  }
+
   next();
 };
 
@@ -30,7 +42,6 @@ module.exports.render = (template, data, callback) => {
   };
   IgoDust.engine(template, data, callback);
 };
-
 
 const initHelpers = () => {
 

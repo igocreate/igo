@@ -29,6 +29,9 @@ const mockRequest = function(options) {
   req.listeners   = function() { return []; };
   req.unpipe      = function() {};
   req.connection  = {};
+  req.socket      = {
+    destroy: () => {}
+  };
 
   return req;
 };
@@ -37,6 +40,7 @@ const mockRequest = function(options) {
 const mockResponse = function(callback, req) {
 
   const res = {
+    body: '',
     headers: {},
     _headers: {},
     _headerNames: {},
@@ -73,8 +77,20 @@ const mockResponse = function(callback, req) {
     callback(null, res, req);
   };
 
+  res.removeHeader = function() {
+    // ignore
+  };
+
+  res.write = function(data) {
+    res.body += data;
+  };
+
   res.send = function(data) {
     res.body = data;
+    callback(null, res, req);
+  };
+
+  res.end = function() {
     callback(null, res, req);
   };
 

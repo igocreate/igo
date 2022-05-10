@@ -26,6 +26,10 @@ module.exports.init = function() {
     sameSite: 'Lax'
   };
 
+  config.igodust = {
+    stream: false
+  };
+
   config.urlencoded = { limit: '10mb', extended: true };
   config.json       = { limit: '10mb' };
 

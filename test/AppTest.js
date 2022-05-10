@@ -1,6 +1,7 @@
 require('./init');
 
 const assert = require('assert');
+const config = require('../src/config');
 
 const agent = require('../src/dev/test/agent');
 
@@ -42,6 +43,16 @@ describe('controllers', function() {
   //
   describe('/template', function() {
     it('should render template', (done) => {
+      config.igodust.stream = false;
+      agent.get('/template', (err, res) => {
+        assert.strictEqual(res.statusCode, 200);
+        assert.strictEqual(res.body, 'Igo Dust OK');
+        done();
+      });
+    });
+
+    it('should render template with streaming', (done) => {
+      config.igodust.stream = true;
       agent.get('/template', (err, res) => {
         assert.strictEqual(res.statusCode, 200);
         assert.strictEqual(res.body, 'Igo Dust OK');
