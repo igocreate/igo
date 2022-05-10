@@ -27,7 +27,7 @@ module.exports.init = function() {
   };
 
   config.igodust = {
-    stream: false
+    stream: false   // experimental!
   };
 
   config.urlencoded = { limit: '10mb', extended: true };

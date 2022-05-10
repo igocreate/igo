@@ -6,10 +6,8 @@ const IgoDust = require('igo-dust');
 
 //
 module.exports.init = (app) => {
-  if (!config.igodust.stream) {
-    app.engine('dust', IgoDust.engine);
-    app.set('view engine', 'dust');
-  }
+  app.engine('dust', IgoDust.engine);
+  app.set('view engine', 'dust');
   app.set('views', config.projectRoot + '/views'); 
 
   // configure with express app
@@ -27,7 +25,10 @@ module.exports.middleware = (req, res, next) => {
   if (config.igodust.stream) {
     res.render = (template, locals) => {
       const data = {...res.locals, ...locals};
+      res.type('html');
+      // TODO: handle ETAgs and status 304
       IgoDust.stream(res, template, data);
+      res.end();
     };
   }
 
