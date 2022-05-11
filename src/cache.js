@@ -24,62 +24,52 @@ module.exports.init = async () => {
 };
 
 //
-module.exports.put = (namespace, id, value, callback, timeout) => {
+module.exports.put = async (namespace, id, value, timeout) => {
   const k = namespace + '/' + id;
   const v = serialize(value);
 
   // console.log('PUT: ' + k);
-  client.set(k, v).then((value) => {
-    if (callback) {
-      callback(null, value);
-    }
-    if (timeout || options.timeout) {
-      client.expire(k, timeout || options.timeout).then();
-    }
-  });
+  const ret = await client.set(k, v);
+  if (timeout || options.timeout) {
+    client.expire(k, timeout || options.timeout);
+  }
+  return ret;
 };
 
 //
-module.exports.get = (namespace, id, callback) => {
+module.exports.get = async (namespace, id) => {
   const k = namespace + '/' + id;
-  client.get(k).then((value) => {
-    if (!value) {
-      return callback('notfound');
-    }
-    // found obj in redis
-    const obj = deserialize(value);
-    callback(null, obj);
-  });
+  const value = await client.get(k);
+  if (!value) {
+    return value;
+  }
+  // found obj in redis
+  return deserialize(value);
 };
 
 // - returns object from cache if exists.
-// - calls func(id, callback) otherwise and put result in cache
-module.exports.fetch = (namespace, id, func, callback, timeout) => {
+// - calls func(id) otherwise and put result in cache
+module.exports.fetch = async (namespace, id, func, timeout) => {
 
-  module.exports.get(namespace, id, (err, obj) => {
-    if (err !== 'notfound') {
-      // console.log(namespace + '/' + id + ' found in cache');
-      return callback(err, obj);
-    }
+  const obj = await module.exports.get(namespace, id);
+  
+  if (obj) {
+    return obj;
+  }
 
-    // invoke
-    // console.log(namespace + '/' + id + ' not found in cache');
-    func(id, (err, result) => {
-      if (!err) {
-        // put in cache and return result obj
-        module.exports.put(namespace, id, result, null, timeout);
-      }
-      callback(err, result);
-    });
-  });
+  // invoke
+  // console.log(namespace + '/' + id + ' not found in cache');
+  const result = await func(id);
+  if (result && !result.err) {
+    // put in cache and return result obj
+    await module.exports.put(namespace, id, result, timeout);
+  }
+  return result;
 };
 
 //
-module.exports.info = (callback) => {
-  client.info().then((info) => {
-    callback(null, info);
-    logger.info('Cache flush');
-  });
+module.exports.info = async () => {
+  return client.info();
 };
 
 //
@@ -107,24 +97,18 @@ module.exports.flushall = async (callback) => {
 
 // scan keys
 // - fn is invoked with (key, callback) for each key matching the pattern
-module.exports.scan = async (pattern, fn, callback) => {
+module.exports.scan = async (pattern, fn) => {
   for await (const key of client.scanIterator({ MATCH: pattern })) {
     // use the key!
-    await new Promise((resolve) => {
-      fn(key, resolve);
-    });
+    await fn(key);
   }  
-  if (callback) {
-    callback();
-  }
 };
 
 // flush with wildcard
 module.exports.flush = (pattern) => {
-  module.exports.scan(pattern, async (key, callback) => {
+  module.exports.scan(pattern, async (key) => {
     // console.log('DEL: ' + key);
     await client.DEL(key);
-    callback();
   });
 };
 

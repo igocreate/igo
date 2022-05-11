@@ -9,26 +9,23 @@ module.exports.incr = (key, type) => {
 };
 
 //
-module.exports.getStats = (callback) => {
+module.exports.getStats = async () => {
   const statistics = {};
 
-  cache.scan(`${NAMESPACE}/*`, (key, callback) => {
+  await cache.scan(`${NAMESPACE}/*`, async (key) => {
     key = key.substr(NAMESPACE.length + 1);
-    cache.get(NAMESPACE, key, (err, value) => {
-      _.set(statistics, key, value);
-      callback();
-    });
-  }, () => {
-
-    _.each(statistics, (statistic, key) => {
-      let { hits, misses } = statistic;
-      hits            = hits || 0;
-      misses          = misses || 0;
-      statistic.table = key;
-      statistic.total = hits + misses;
-      statistic.rate  = Math.round(hits / statistic.total * 100);
-    });
-
-    callback(null, _.values(statistics));
+    const value = await cache.get(NAMESPACE, key);
+    _.set(statistics, key, value);
   });
+
+  _.each(statistics, (statistic, key) => {
+    let { hits, misses } = statistic;
+    hits            = hits || 0;
+    misses          = misses || 0;
+    statistic.table = key;
+    statistic.total = hits + misses;
+    statistic.rate  = Math.round(hits / statistic.total * 100);
+  });
+
+  return _.values(statistics);
 };

@@ -4,6 +4,8 @@ const cache       = require('../cache');
 const Query       = require('./Query');
 const CacheStats  = require('./CacheStats');
 
+
+// 
 module.exports = class CachedQuery extends Query {
   
   runQuery(callback) {
@@ -15,18 +17,29 @@ module.exports = class CachedQuery extends Query {
 
     if (query.verb !== 'select') {
       cache.flush(namespace + '/*');
-      db.query(sqlQuery.sql, sqlQuery.params, query.options, callback);
+      db.query(sqlQuery.sql, sqlQuery.params, query.options, (err, res) => {
+        callback(err, res);
+      });
       return;
     }
 
     const key = JSON.stringify(sqlQuery);
     let type  = 'hits';
-    cache.fetch(namespace, key, (id, callback) => {
+    
+    cache.fetch(namespace, key, () => {
       type  = 'misses';
-      db.query(sqlQuery.sql, sqlQuery.params, query.options, callback);
-    }, (err, result) => {
-      callback(err, result);
+      return new Promise((resolve, reject) => {
+        db.query(sqlQuery.sql, sqlQuery.params, query.options, (err, res) => {
+          return err ? reject(err) : resolve(res);
+        });
+      });
+    }, schema.cache.ttl)
+    .then(result => {
+      //
       CacheStats.incr(query.table, type);
-    }, schema.cache.ttl);
+      callback(null, result);
+    })
+    .catch(callback);
+
   }
 };

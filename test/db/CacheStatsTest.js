@@ -27,20 +27,14 @@ describe('db.CacheStats', function() {
   //
   describe('getStats', function() {
   
-    it('should save stats in cache', function(done) {
-      Book.create((err, book1) => {
-        Book.find(book1.id, () => {
-          setTimeout(() => {
-            CacheStats.getStats((err, stats) => {
-              assert.strictEqual(stats.length, 1);
-              assert.strictEqual(stats[0].hits, 1);
-              assert.strictEqual(stats[0].total, 2);
-              assert.strictEqual(stats[0].table, 'books');
-              done();
-            });  
-          }, 100);
-        });
-      });
+    it('should save stats in cache', async () => {
+      const book1 = await Book.create();
+      await Book.find(book1.id);
+      const stats = await CacheStats.getStats();
+      assert.strictEqual(stats.length, 1);
+      assert.strictEqual(stats[0].hits, 1);
+      assert.strictEqual(stats[0].total, 2);
+      assert.strictEqual(stats[0].table, 'books');
     });
   });
 });

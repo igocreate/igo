@@ -29,33 +29,22 @@ describe('db.CachedQuery', function() {
     
     const key = id => '{"sql":"SELECT `books`.* FROM `books` WHERE `id` = ? ORDER BY `id` ASC LIMIT ?, ?","params":[' + id + ',0,1]}';
 
-    it('should put rows in cache', function(done) {
-      Book.create((err, book1) => {
-        Book.find(book1.id, (err, book) => {
-          assert.strictEqual(book.id, book1.id);
-          setTimeout(() => {
-            cache.get('_cached.books', key(book1.id), (err, rows) => {
-              assert.notStrictEqual(rows, undefined);
-              assert.strictEqual(rows.length, 1);
-              assert.strictEqual(rows[0].id, book.id);
-              done();
-            });
-          }, 100);
-        });
-      });
+    it('should put rows in cache', async () => {
+      const book1 = await Book.create();
+      const book  = await Book.find(book1.id);
+      assert.strictEqual(book.id, book1.id);
+      const rows = await cache.get('_cached.books', key(book1.id));
+      assert.notStrictEqual(rows, undefined);
+      assert.strictEqual(rows.length, 1);
+      assert.strictEqual(rows[0].id, book.id);
     });
 
-    it('should clear cache after update', function(done) {
-      Book.create((err, book1) => {
-        book1.update({ title: 'abc' }, () => {
-          setTimeout(() => {
-            cache.get('_cached.books', key(book1.id), (err, rows) => {
-              assert.strictEqual(rows, undefined);
-              done();
-            });
-          }, 100);
-        });
-      });
+    it('should clear cache after update', async () => {
+      const book1 = await Book.create();
+      await book1.update({ title: 'abc' });
+      const rows = await cache.get('_cached.books', key(book1.id));
+      assert.strictEqual(rows, null);
     });
+
   });
 });
