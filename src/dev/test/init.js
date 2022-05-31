@@ -40,22 +40,22 @@ const reinitDatabase = (db, callback) => {
 };
 
 // before running tests
-before(function(done) {
+before((done) => {
   app.configure();
   // reinit main database
   reinitDatabase(dbs.main, done);
 });
 
 // begin transaction before each test
-beforeEach(function(done) {
+beforeEach((done) => {
   const db = dbs.main;
-  cache.flushall(() => {
+  cache.flushall().then(() => {
     db.beginTransaction(done);
   });
 });
 
 // rollback transaction after each test
-afterEach(function(done) {
+afterEach((done) => {
   const db = dbs.main;
   db.rollbackTransaction(done);
 });

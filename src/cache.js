@@ -69,7 +69,7 @@ module.exports.fetch = async (namespace, id, func, timeout) => {
 
 //
 module.exports.info = async () => {
-  return client.info();
+  return await client.info();
 };
 
 //
@@ -79,24 +79,26 @@ module.exports.incr = async (namespace, id) => {
 };
 
 //
-module.exports.del = async (namespace, id, callback) => {
+module.exports.del = async (namespace, id) => {
   const k = [namespace, id].join('/');
   // remove from redis
-  await client.del(k);
-  callback();
+  return await client.del(k);
 };
 
 //
-module.exports.flushall = async (callback) => {
-  await client.FLUSHDB('ASYNC');
-  logger.info('Cache flushed');
-  if (callback) {
-    callback();
-  }
+module.exports.flushdb = async () => {
+  const r = await client.flushDb();
+  logger.info('Cache flushDb: ' + r);
+};
+
+//
+module.exports.flushall = async () => {
+  const r = await client.flushAll();
+  logger.info('Cache flushAll: ' + r);
 };
 
 // scan keys
-// - fn is invoked with (key, callback) for each key matching the pattern
+// - fn is invoked with (key) parameter for each key matching the pattern
 module.exports.scan = async (pattern, fn) => {
   for await (const key of client.scanIterator({ MATCH: pattern })) {
     // use the key!
