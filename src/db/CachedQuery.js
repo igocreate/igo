@@ -38,8 +38,7 @@ module.exports = class CachedQuery extends Query {
       //
       CacheStats.incr(query.table, type);
       callback(null, result);
-    })
-    .catch(callback);
+    });
 
   }
 };
