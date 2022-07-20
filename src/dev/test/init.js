@@ -1,6 +1,7 @@
 
 process.env.NODE_ENV = 'test';
 
+const async       = require('async');
 const dbs         = require('../../db/dbs');
 const migrations  = require('../../db/migrations');
 const cache       = require('../../cache');
@@ -42,20 +43,27 @@ const reinitDatabase = (db, callback) => {
 // before running tests
 before((done) => {
   app.configure();
-  // reinit main database
-  reinitDatabase(dbs.main, done);
+  // reinit databases
+  async.eachSeries(config.databases, (database, callback) => {
+    const db = dbs[database];
+    reinitDatabase(db, callback);
+  }, done);
 });
 
 // begin transaction before each test
 beforeEach((done) => {
-  const db = dbs.main;
   cache.flushall().then(() => {
-    db.beginTransaction(done);
+    async.eachSeries(config.databases, (database, callback) => {
+      const db = dbs[database];
+      db.beginTransaction(callback);
+    }, done);
   });
 });
 
 // rollback transaction after each test
 afterEach((done) => {
-  const db = dbs.main;
-  db.rollbackTransaction(done);
+  async.eachSeries(config.databases, (database, callback) => {
+    const db = dbs[database];
+    db.rollbackTransaction(callback);
+  }, done);
 });
