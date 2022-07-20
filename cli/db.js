@@ -14,9 +14,11 @@ const verbs   = {
 
   // igo db migrate
   migrate: function(args, callback) {
-    const db = dbs.main;
-    db.config.debugsql = false;
-    migrations.migrate(db, callback);
+    async.eachSeries(config.databases, (database, callback) => {
+      const db = dbs[database];
+      db.config.debugsql = false;
+      migrations.migrate(db, callback);
+    }, callback);
   },
 
   // igo db migrations
