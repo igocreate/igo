@@ -57,12 +57,12 @@ module.exports.list = function(db, callback) {
 };
 
 //
-module.exports.migrate = function(db, sqldir, callback) {
-  if (_.isFunction(sqldir)) {
-    callback = sqldir;
-    sqldir = null;
+module.exports.migrate = function(db, rootDir, callback) {
+  if (_.isFunction(rootDir)) {
+    callback = rootDir;
+    rootDir = '.';
   }
-  sqldir        = sqldir || './sql';
+  const sqldir = `${rootDir}/${db.config.migrations_dir || 'sql'}`;
   let querybuf  = '';
 
   const executeLine = function(line, callback) {

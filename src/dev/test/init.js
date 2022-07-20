@@ -28,7 +28,7 @@ const reinitDatabase = (db, callback) => {
     db.query(CREATE_DATABASE, () => {
       db.config.database = database;
       db.init();
-      migrations.migrate(db, config.projectRoot + '/sql', (err) => {
+      migrations.migrate(db, config.projectRoot, (err) => {
         if (err) {
           return callback('Database migration error : ' + err);
         }

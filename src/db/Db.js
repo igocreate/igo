@@ -20,6 +20,7 @@ class Db {
     this.config     = config[name];
     this.driver     = DRIVERS[this.config.driver];
     this.connection = null;
+    this.config.migrations_dir = `sql/${this.name}`;
   }
 
   init() {
