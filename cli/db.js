@@ -16,6 +16,9 @@ const verbs   = {
   migrate: function(args, callback) {
     async.eachSeries(config.databases, (database, callback) => {
       const db = dbs[database];
+      if (config.databases.length > 1) {
+        console.log(`database: ${db.config.database}`);
+      }
       db.config.debugsql = false;
       migrations.migrate(db, callback);
     }, callback);
@@ -23,26 +26,42 @@ const verbs   = {
 
   // igo db migrations
   migrations: function(args, callback) {
-    const db = dbs.main;
-    db.config.debugsql = false;
-    migrations.list(db, (err, migrations) => {
-      migrations = _.reverse(migrations);
-      _.each(migrations, (migration) => {
-        console.log([
-          migration.id,
-          (migration.success ? 'OK' : 'KO'),
-          migration.file
-        ].join('  '));
+
+    async.eachSeries(config.databases, (database, callback) => {
+      const db = dbs[database];
+      db.config.debugsql = false;
+      if (config.databases.length > 1) {
+        console.log(`database: ${db.config.database}`);
+      }
+      migrations.list(db, (err, migrations) => {
+        migrations = _.reverse(migrations);
+        _.each(migrations, (migration) => {
+          console.log([
+            migration.id,
+            (migration.success ? 'OK' : 'KO'),
+            migration.file
+          ].join('  '));
+        });
+        callback(err);
       });
-      callback(err);
-    });
+    }, callback);
   },
 
   // igo db reset
   reset: function(args, callback) {
-    const db = dbs.main;
+    if (config.databases.length > 1 && !args[2]) {
+      console.log(`Please select database to reset : igo db reset [${config.databases.join('|')}]`);
+      return callback();
+    }
+
+    if (args[2] && config.databases.indexOf(args[2]) < 0) {
+      console.log('ERROR: Wrong database name');
+      return callback();
+    }
+
+    const db        = args[2] ? dbs[args[2]] : dbs.main;
     const database  = db.config.database;
-    
+
     console.log('WARNING: Database will be reset, data will be lost!');
     console.log('Confirm the database name (' + database + '):');
     const stdin = process.openStdin();
