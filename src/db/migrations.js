@@ -62,6 +62,11 @@ module.exports.migrate = function(db, rootDir, callback) {
     callback = rootDir;
     rootDir = '.';
   }
+
+  if (db.config.noMigrations) {
+    return callback();
+  }
+
   const sqldir = `${rootDir}/${db.config.migrations_dir || 'sql'}`;
   let querybuf  = '';
 

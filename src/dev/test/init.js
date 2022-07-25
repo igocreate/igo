@@ -46,6 +46,9 @@ before((done) => {
   // reinit databases
   async.eachSeries(config.databases, (database, callback) => {
     const db = dbs[database];
+    if (db.config.noMigrations) {
+      return callback();
+    }
     reinitDatabase(db, callback);
   }, done);
 });
