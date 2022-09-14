@@ -8,6 +8,31 @@ const dbs       = require('./dbs');
 const DataTypes = require('./DataTypes');
 
 
+//
+const merge = (includes, includeParam) => {
+  // console.dir({MERGE: { includes, includeParam}}, { depth: 99 });
+  if (_.isString(includeParam)) {
+    if (!includes[includeParam]) {
+      includes[includeParam] = {};
+    }
+    return;
+  }
+
+  _.each(includeParam, (value, key) => {
+    if (includes[key]) {
+      if (_.isString(includes[key])) {
+        includes[key] = {};
+      }
+      merge(includes[key], value);
+    } else {
+      includes[key] = value;
+    }
+  });
+  // console.dir({RESULT: { includes }}, { depth: 99 });
+};
+
+
+//
 module.exports = class Query {
 
   constructor(modelClass, verb = 'select') {
@@ -166,25 +191,22 @@ module.exports = class Query {
 
   // SCOPES
   applyScopes() {
-    var _this = this;
-    this.query.scopes.forEach(function(scope) {
-      if (_this.schema.scopes[scope]) {
-        _this.schema.scopes[scope](_this);
+    const { query, schema } = this;
+    query.scopes.forEach(scope => {
+      if (!schema.scopes[scope]) {
+        return;
       }
+      schema.scopes[scope](this);
     });
   }
 
   // INCLUDES
-  includes(includes) {
-    var _this = this;
-    var pushInclude = function(include) {
-      if (_.isString(include)) {
-        _this.query.includes[include] = [];
-      } else if (_.isObject(include)) {
-        _.merge(_this.query.includes, include);
-      }
+  includes(includeParams) {
+    const { query } = this;
+    const pushInclude = includeParam => {
+      merge(query.includes, includeParam);
     };
-    _.forEach(_.concat([], includes), pushInclude);
+    _.forEach(_.concat([], includeParams), pushInclude);
     return this;
   }
 

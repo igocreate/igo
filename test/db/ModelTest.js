@@ -7,7 +7,6 @@ const _         = require('lodash');
 const async     = require('async');
 
 const Model     = require('../../src/db/Model');
-const { call } = require('file-loader');
 
 describe('db.Model', function() {
 

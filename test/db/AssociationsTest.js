@@ -12,7 +12,10 @@ describe('includes', () => {
     columns: [
       'id',
       'title'
-    ]
+    ],
+    associations: () => ([
+      ['has_many', 'books', Book, 'id', 'library_id'],
+    ])
   }) {}
 
   class Book extends Model({
@@ -259,6 +262,118 @@ describe('includes', () => {
         });
       });
     });
+  });
+
+
+  describe('scopes', () => {
+
+    it('should merge default scope with string include', async () => {
+
+      class Library2 extends Model({
+        table: 'libraries',
+        primary: ['id'],
+        columns: [
+          'id',
+          'title'
+        ],
+        associations: () => ([
+          ['has_many', 'books', Book, 'id', 'library_id'],
+        ]),
+        scopes: {
+          default: q => q.includes('books')
+        }
+      }) {}
+      
+      const library = await Library2.create();
+      await Book.create({ library_id: library.id });
+      const libraries = await Library2.includes({ books: 'library' }).list();
+      assert.strictEqual(libraries.length, 1);
+      assert.strictEqual(libraries[0].books.length, 1);
+      assert.strictEqual(libraries[0].books[0].library.id, library.id);
+    });
+
+    //
+    it('should merge default scope with object include', async () => {
+
+      class Library2 extends Model({
+        table: 'libraries',
+        primary: ['id'],
+        columns: [
+          'id',
+          'title'
+        ],
+        associations: () => ([
+          ['has_many', 'books', Book, 'id', 'library_id'],
+        ]),
+        scopes: {
+          default: q => q.includes({ books: 'library' })
+        }
+      }) {}
+      
+      const library = await Library2.create();
+      await Book.create({ library_id: library.id });
+      const libraries = await Library2.includes('books').list();
+      assert.strictEqual(libraries.length, 1);
+      assert.strictEqual(libraries[0].books.length, 1);
+      assert.strictEqual(libraries[0].books[0].library.id, library.id);
+    });
+
+
+    //
+    it('should override default scope with 2-levels object includes', async () => {
+
+      class Library2 extends Model({
+        table: 'libraries',
+        primary: ['id'],
+        columns: [
+          'id',
+          'title'
+        ],
+        associations: () => ([
+          ['has_many', 'books', Book, 'id', 'library_id'],
+        ]),
+        scopes: {
+          default: q => q.includes({ books: 'library' })
+        }
+      }) {}
+      
+      const library = await Library2.create();
+      await Book.create({ library_id: library.id });
+      const libraries = await Library2.includes({ books: {library: 'books'} }).list();
+      assert.strictEqual(libraries.length, 1);
+      assert.strictEqual(libraries[0].books.length, 1);
+      assert.strictEqual(libraries[0].books[0].library.id, library.id);
+      assert.strictEqual(libraries[0].books[0].library.books.length, 1);
+    });
+
+    //
+    it('should override default scope with 4-levels object includes', async () => {
+
+      class Library2 extends Model({
+        table: 'libraries',
+        primary: ['id'],
+        columns: [
+          'id',
+          'title'
+        ],
+        associations: () => ([
+          ['has_many', 'books', Book, 'id', 'library_id'],
+        ]),
+        scopes: {
+          default: q => q.includes({ books: {library: {books: 'library'}}})
+        }
+      }) {}
+      
+      const library = await Library2.create();
+      await Book.create({ library_id: library.id });
+      const libraries = await Library2.includes({ books: 'library' }).list();
+      assert.strictEqual(libraries.length, 1);
+      assert.strictEqual(libraries[0].books.length, 1);
+      assert.strictEqual(libraries[0].books[0].library.id, library.id);
+      assert.strictEqual(libraries[0].books[0].library.books.length, 1);
+      assert.strictEqual(libraries[0].books[0].library.books[0].library.id, library.id);
+    });
+
   });
 
 });
