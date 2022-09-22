@@ -1,6 +1,4 @@
 
-const path                  = require('path'); 
-
 // plugins
 const CleanWebpackPlugin    = require('clean-webpack-plugin').CleanWebpackPlugin;
 const MiniCssExtractPlugin  = require('mini-css-extract-plugin');
@@ -76,7 +74,7 @@ const webpackConfig = {
   devServer: {
     port: 9000,
     static: {
-      directory: path.join(__dirname, 'public'),
+      directory: process.cwd() + '/public',
     },
     watchFiles: ['views/**/*.dust', 'public/**/*'],
     compress: true,

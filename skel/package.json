@@ -7,7 +7,7 @@
     "eslint": "eslint ./app ./test",
     "nodemon": "nodemon app.js",
     "start": "npm-run-all --parallel nodemon webpack",
-    "webpack": "webpack --mode=development --progress --watch",
+    "webpack": "webpack serve --mode=development",
     "webpack-prod": "webpack --mode=production",
     "test": "mocha"
   },
