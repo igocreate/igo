@@ -1,4 +1,6 @@
 
+const path                  = require('path'); 
+
 // plugins
 const CleanWebpackPlugin    = require('clean-webpack-plugin').CleanWebpackPlugin;
 const MiniCssExtractPlugin  = require('mini-css-extract-plugin');
@@ -6,17 +8,19 @@ const AssetsWebpackPlugin   = require('assets-webpack-plugin');
 
 
 // Webpack config
-module.exports = {
+const webpackConfig = {
   entry: {
     main:   './js/main.js',
     vendor: './js/vendor.js'
   },
   output: {
-    filename:   '[name]-[contenthash].js',
-    path:       process.cwd() + '/public/dist',
-    publicPath: '/dist/',
+    filename:           '[name]-[contenthash].js',
+    path:               process.cwd() + '/public/dist',
+    publicPath:         '/dist/',
+    sourceMapFilename:  '[name]-[contenthash].js.map'
   },
-  target: ['web', 'es5'], // IE 11 compatibility
+  target:   ['web', 'es5'], // IE 11 compatibility
+  devtool:  'source-map',
   stats: {
     colors: true
   },
@@ -68,5 +72,21 @@ module.exports = {
     new AssetsWebpackPlugin({
       filename: 'public/webpack-assets.json'
     })
-  ]
+  ],
+  devServer: {
+    port: 9000,
+    static: {
+      directory: path.join(__dirname, 'public'),
+    },
+    watchFiles: ['views/**/*.dust', 'public/**/*'],
+    compress: true,
+    liveReload: true,
+    client: {
+      progress: true,
+      reconnect: true,
+      overlay: true
+    }
+  }
 };
+
+module.exports = webpackConfig;
