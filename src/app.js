@@ -57,13 +57,15 @@ module.exports.configure = function() {
   app.use(flash);
   app.use(validator);
 
-  // fix crash if ?lang=cn确认
-  // manually verify the lang query param
+  // fix crash if lang is incorrect (in query or in cookies)
+  // manually fix the lang param
   app.use((req, res, next) => {
-    const { lang } = req.query;
-    if (lang && config.i18n.whitelist.indexOf(lang) < 0) {
-      req.query.lang = config.i18n.fallbackLng[0];
-    }
+    ['query', 'cookies'].forEach(src => {
+      const { lang } = req[src];
+      if (lang && config.i18n.whitelist.indexOf(lang) < 0) {
+        req[src].lang = config.i18n.fallbackLng[0];
+      }
+    });
     next();
   });
   app.use(i18nMiddleware.handle(i18next));
