@@ -269,15 +269,16 @@ module.exports = class Query {
 
   //
   paginate(callback) {
-    if (!this.query.page) {
+    const { query }     = this;
+    if (!query.page) {
       return callback();
     }
     this.count((err, count) => {
-      const nb_pages  = Math.ceil(count / this.query.nb);
-      this.query.page = Math.min(this.query.page, nb_pages);
-      this.query.page = Math.max(this.query.page, 1);
-      this.query.offset = (this.query.page - 1) * this.query.nb;
-      this.query.limit  = this.query.nb;
+      const nb_pages  = Math.ceil(count / query.nb);
+      query.page    = Math.min(query.page, nb_pages);
+      query.page    = Math.max(query.page, 1);
+      query.offset  = (query.page - 1) * query.nb;
+      query.limit   = query.nb;
 
       const links = [];
       const page  = this.query.page;
@@ -293,6 +294,8 @@ module.exports = class Query {
         nb:       this.query.nb,
         previous: page > 1 ? page - 1 : null,
         next:     page < nb_pages ? page + 1 : null,
+        start:    query.offset + 1,
+        end:      query.offset + Math.min(query.nb, count - query.offset),
         nb_pages,
         count,
         links,
