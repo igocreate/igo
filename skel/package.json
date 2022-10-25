@@ -16,7 +16,7 @@
   "dependencies": {
     "@fortawesome/fontawesome-free": "6.2.0",
     "@popperjs/core": "^2.11.6",
-    "bootstrap": "5.2.1",
+    "bootstrap": "5.2.2",
     "igo": "{igo.version}",
     "jquery": "3.6.1"
   }

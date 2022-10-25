@@ -108,7 +108,7 @@ var Sql = function(query, dialect) {
         sqlwhere.push(where + ' ');
       } else {
         _.forEach(where, function(value, key) {
-          if (value === null) {
+          if (value === null || value === undefined) {
             sqlwhere.push(`${esc}${key}${esc} IS NULL `);
             // sqlwhere.push('`' + key + '` IS NULL ');
           } else if (_.isArray(value) && value.length === 0) {
