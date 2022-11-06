@@ -17,7 +17,7 @@ var retryStrategy = function(params) {
 };
 
 config.redis = {
-  host:     process.env.REDIS_HOST      || 'localhost',
+  host:     process.env.REDIS_HOST      || '127.0.0.1',
   port:     process.env.REDIS_PORT      || 6379,
   database: process.env.REDIS_DATABASE  || 0,
   timeout:        null,  // no timeout by default

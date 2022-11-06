@@ -71,7 +71,7 @@ module.exports.init = function() {
   // mysql
   config.mysql = {
     driver:   'mysql',
-    host:     process.env.MYSQL_HOST     || 'localhost',
+    host:     process.env.MYSQL_HOST     || '127.0.0.1',
     port:     process.env.MYSQL_PORT     || 3306,
     user:     process.env.MYSQL_USERNAME || 'root',
     password: process.env.MYSQL_PASSWORD || '',
@@ -85,7 +85,7 @@ module.exports.init = function() {
   // postgresql
   config.postgresql = {
     driver:   'postgresql',
-    host:     process.env.POSTGRESQL_HOST     || 'localhost',
+    host:     process.env.POSTGRESQL_HOST     || '127.0.0.1',
     port:     process.env.POSTGRESQL_PORT     || 5432,
     user:     process.env.POSTGRESQL_USERNAME || '',
     password: process.env.POSTGRESQL_PASSWORD || '',
@@ -99,7 +99,7 @@ module.exports.init = function() {
   // cache
   config.redis = {
     socket: {
-      host:     process.env.REDIS_HOST      || 'localhost',
+      host:     process.env.REDIS_HOST      || '127.0.0.1',
       port:     process.env.REDIS_PORT      || 6379,
     },
     database: process.env.REDIS_DATABASE  || 0
@@ -119,6 +119,7 @@ module.exports.init = function() {
   // load app config
   const configFiles = [
     '/app/config',
+    '/app/config.cjs',
     '/app/config-' + config.env
   ];
   configFiles.forEach((file) => {
