@@ -2,7 +2,9 @@
 require('dotenv').config({silent: true});
 
 
-//
+/**
+ * @type Class
+ */
 const config    = {};
 module.exports  = config;
 
@@ -118,6 +120,8 @@ module.exports.init = function() {
 
   // load app config
   const configFiles = [
+    'igo.config',
+    'igo.config.cjs',
     '/app/config',
     '/app/config.cjs',
     '/app/config-' + config.env

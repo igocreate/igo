@@ -1,8 +1,9 @@
 
 const _       = require('lodash');
 
-
-//
+/**
+ * @type Class
+ */
 var Sql = function(query, dialect) {
 
   const { esc } = dialect;

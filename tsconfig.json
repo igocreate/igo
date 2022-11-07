@@ -1,0 +1,12 @@
+{
+    // Change this to match your project
+    "include": ["./**/*"],
+    "compilerOptions": {
+      "target": "ES6",
+      "allowJs": true,
+      "declaration": true,
+      "emitDeclarationOnly": true,
+      "outDir": "types",
+      "declarationMap": true
+    }
+  }
