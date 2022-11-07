@@ -1,37 +1,40 @@
-declare function _exports(schema: any): {
+import { Schema, ISchema } from "./Schema";
+import { Query } from "./Query";
+
+export function Model(schema: ISchema):  {
     new (values: any): {
         assignValues(values: any): void;
         primaryObject(): any;
-        update(values: any, callback: any): void | Promise<any>;
-        reload(includes: any, callback: any): void | Promise<any>;
-        destroy(callback: any): void;
-        beforeCreate(callback: any): void;
-        beforeUpdate(values: any, callback: any): void;
+        update(values: any, callback?: () => void): void | Promise<any>;
+        reload(includes: any, callback?: () => void): void | Promise<any>;
+        destroy(callback?: () => void): void;
+        beforeCreate(callback?: () => void): void;
+        beforeUpdate(values: any, callback?: () => void): void;
     };
-    find(id: any, callback: any): any;
-    create(values: any, options: any, callback: any): void | Promise<any>;
-    first(callback: any): void | Promise<any>;
-    last(callback: any): void | Promise<any>;
-    list(callback: any): void | Promise<any>;
-    all(callback: any): void | Promise<any>;
-    select(select: any): Query;
-    where(where: any, params: any): Query;
+
+    create(values: {[key in keyof typeof schema.columns]: string | number | boolean}, options?: any, callback?: () => void): void | Promise<any>;
+    all(callback?: () => void): void | Promise<any>;
+    destroyAll(callback?: () => void): void | Promise<any>;
+    schema: Schema;
+
+    // Same as Query
+    update(values: {[key in keyof typeof this.schema.columns]: string | number | boolean}, callback?: () => void): void | Promise<any>;
+    destroy(callback?: () => void): void | Promise<any>;
+    where(where?: string, params?: {[key in keyof typeof this.schema.columns]: string | number | boolean}): Query;
     whereNot(whereNot: any): Query;
+    first(callback?: () => void): void | Promise<any>;
+    last(callback?: () => void): void | Promise<any>;
     limit(offset: any, limit: any): Query;
     page(page: any, nb: any): Query;
-    order(order: any): Query;
-    distinct(columns: any): Query;
-    group(columns: any): Query;
-    count(callback: any): void | Promise<any>;
-    destroy(id: any, callback: any): void | Promise<any>;
-    destroyAll(callback: any): void | Promise<any>;
-    update(values: any, callback: any): void | Promise<any>;
-    includes(includes: any): Query;
-    unscoped(): Query;
     scope(scope: any): Query;
-    schema: Schema;
+    unscoped(): Query;
+    list(callback?: () => void): void | Promise<any>;
+    select(select: any): Query;
+    count(callback?: () => void): void | Promise<any>;
+    includes(includeParams: any): Query;
+    find(id: number, callback?: () => void): any;
+    order(order: string): Query;
+    distinct(columns: string): Query;
+    group(columns: string): Query;
 };
-export = _exports;
-import Query = require("./Query");
-import Schema = require("./Schema");
 //# sourceMappingURL=Model.d.ts.map

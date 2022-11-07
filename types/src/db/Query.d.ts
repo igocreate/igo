@@ -1,8 +1,8 @@
-export = Query;
-declare class Query {
+import { Schema } from './Schema'
+export class Query {
     constructor(modelClass: any, verb?: string);
     modelClass: any;
-    schema: any;
+    schema: Schema;
     query: {
         table: any;
         select: any;
@@ -16,36 +16,38 @@ declare class Query {
         options: {};
         scopes: string[];
     };
-    update(values: any, callback: any): void | Promise<any>;
-    delete(callback: any): void | Promise<any>;
-    destroy(callback: any): void | Promise<any>;
-    from(table: any): import("./Query");
-    where(where: any, params: any): import("./Query");
-    whereNot(whereNot: any): import("./Query");
-    values(values: any): import("./Query");
-    first(callback: any): void | Promise<any>;
-    last(callback: any): void | Promise<any>;
-    limit(offset: any, limit: any): import("./Query");
-    page(page: any, nb: any): import("./Query");
-    scope(scope: any): import("./Query");
-    unscoped(): import("./Query");
-    list(callback: any): void | Promise<any>;
-    select(select: any): import("./Query");
-    count(callback: any): void | Promise<any>;
-    applyScopes(): void;
-    includes(includeParams: any): import("./Query");
-    find(id: any, callback: any): any;
-    order(order: any): import("./Query");
-    distinct(columns: any): import("./Query");
-    group(columns: any): import("./Query");
-    options(options: any): import("./Query");
+    delete(callback?: () => void): void | Promise<any>;
+    options(options: any): this;
     getDb(): any;
     toSQL(): any;
-    paginate(callback: any): any;
-    loadAssociation(include: any, rows: any, callback: any): any;
-    execute(callback: any): void | Promise<any>;
-    doExecute(callback: any): void;
-    runQuery(callback: any): void;
+    paginate(callback?: () => void): any;
+    loadAssociation(include: any, rows: any, callback?: () => void): any;
+    execute(callback?: () => void): void | Promise<any>;
+    doExecute(callback?: () => void): void;
+    runQuery(callback?: () => void): void;
     newInstance(row: any): any;
+    applyScopes(): void;
+    values(values: {[key in keyof typeof this.schema.columns]: string | number | boolean}): this;
+    from(table: any): this;
+
+    // Same as Model
+    update(values: {[key in keyof typeof this.schema.columns]: string | number | boolean}, callback?: () => void): void | Promise<any>;
+    destroy(callback?: () => void): void | Promise<any>;
+    where(where?: string, params?: {[key in keyof typeof this.schema.columns]: string | number | boolean}): Query;
+    whereNot(whereNot: any): Query;
+    first(callback?: () => void): void | Promise<any>;
+    last(callback?: () => void): void | Promise<any>;
+    limit(offset: any, limit: any): Query;
+    page(page: any, nb: any): Query;
+    scope(scope: any): Query;
+    unscoped(): Query;
+    list(callback?: () => void): void | Promise<any>;
+    select(select: any): Query;
+    count(callback?: () => void): void | Promise<any>;
+    includes(includeParams: any): Query;
+    find(id: number, callback?: () => void): any;
+    order(order: string): Query;
+    distinct(columns: string): Query;
+    group(columns: string): Query;
 }
 //# sourceMappingURL=Query.d.ts.map

@@ -1,7 +1,10 @@
 /// <reference types="node" />
+import { ISchema } from './src/db/Schema'
+export { ISchema } from './src/db/Schema';
+export { Model } from './src/db/Model';
 export const cache: typeof import("./src/cache");
 export const CacheStats: typeof import("./src/db/CacheStats");
-export const config: Class;
+export const config: object;
 export const dbs: typeof import("./src/db/dbs");
 export const express: typeof import("express");
 export const i18next: any;
@@ -9,40 +12,7 @@ export const IgoDust: any;
 export const logger: any;
 export const mailer: typeof import("./src/mailer");
 export const migrations: typeof import("./src/db/migrations");
-export const Model: (schema: any) => {
-    new (values: any): {
-        assignValues(values: any): void;
-        primaryObject(): any;
-        update(values: any, callback: any): void | Promise<any>;
-        reload(includes: any, callback: any): void | Promise<any>;
-        destroy(callback: any): void;
-        beforeCreate(callback: any): void;
-        beforeUpdate(values: any, callback: any): void;
-    };
-    find(id: any, callback: any): any;
-    create(values: any, options: any, callback: any): void | Promise<any>;
-    first(callback: any): void | Promise<any>;
-    last(callback: any): void | Promise<any>;
-    list(callback: any): void | Promise<any>;
-    all(callback: any): void | Promise<any>;
-    select(select: any): import("./src/db/Query");
-    where(where: any, params: any): import("./src/db/Query");
-    whereNot(whereNot: any): import("./src/db/Query");
-    limit(offset: any, limit: any): import("./src/db/Query");
-    page(page: any, nb: any): import("./src/db/Query");
-    order(order: any): import("./src/db/Query");
-    distinct(columns: any): import("./src/db/Query");
-    group(columns: any): import("./src/db/Query");
-    count(callback: any): void | Promise<any>;
-    destroy(id: any, callback: any): void | Promise<any>;
-    destroyAll(callback: any): void | Promise<any>;
-    update(values: any, callback: any): void | Promise<any>;
-    includes(includes: any): import("./src/db/Query");
-    unscoped(): import("./src/db/Query");
-    scope(scope: any): import("./src/db/Query");
-    schema: import("./src/db/Schema");
-};
-export const Form: (schema: any) => {
+export const Form: (schema: ISchema) => {
     new (): {
         submit(req: any, scope?: string): any;
         _src: any;

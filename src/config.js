@@ -3,7 +3,7 @@ require('dotenv').config({silent: true});
 
 
 /**
- * @type Class
+ * @type object
  */
 const config    = {};
 module.exports  = config;
