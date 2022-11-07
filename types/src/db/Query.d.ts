@@ -1,0 +1,51 @@
+export = Query;
+declare class Query {
+    constructor(modelClass: any, verb?: string);
+    modelClass: any;
+    schema: any;
+    query: {
+        table: any;
+        select: any;
+        verb: string;
+        where: any[];
+        whereNot: any[];
+        order: any[];
+        distinct: any;
+        group: any;
+        includes: {};
+        options: {};
+        scopes: string[];
+    };
+    update(values: any, callback: any): void | Promise<any>;
+    delete(callback: any): void | Promise<any>;
+    destroy(callback: any): void | Promise<any>;
+    from(table: any): import("./Query");
+    where(where: any, params: any): import("./Query");
+    whereNot(whereNot: any): import("./Query");
+    values(values: any): import("./Query");
+    first(callback: any): void | Promise<any>;
+    last(callback: any): void | Promise<any>;
+    limit(offset: any, limit: any): import("./Query");
+    page(page: any, nb: any): import("./Query");
+    scope(scope: any): import("./Query");
+    unscoped(): import("./Query");
+    list(callback: any): void | Promise<any>;
+    select(select: any): import("./Query");
+    count(callback: any): void | Promise<any>;
+    applyScopes(): void;
+    includes(includeParams: any): import("./Query");
+    find(id: any, callback: any): any;
+    order(order: any): import("./Query");
+    distinct(columns: any): import("./Query");
+    group(columns: any): import("./Query");
+    options(options: any): import("./Query");
+    getDb(): any;
+    toSQL(): any;
+    paginate(callback: any): any;
+    loadAssociation(include: any, rows: any, callback: any): any;
+    execute(callback: any): void | Promise<any>;
+    doExecute(callback: any): void;
+    runQuery(callback: any): void;
+    newInstance(row: any): any;
+}
+//# sourceMappingURL=Query.d.ts.map

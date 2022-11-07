@@ -9,7 +9,7 @@ As you will notice, the syntax was very inspired by [Ruby on Rails Active Record
 This is the default MySQL configuration (`config.mysql`) defined by Igo:
 ```
 config.mysql = {
-  host     : process.env.MYSQL_HOST     || 'localhost',
+  host     : process.env.MYSQL_HOST     || '127.0.0.1',
   port     : process.env.MYSQL_PORT     || 3306,
   user     : process.env.MYSQL_USERNAME || 'root',
   password : process.env.MYSQL_PASSWORD || '',
