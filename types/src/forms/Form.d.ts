@@ -1,14 +1,24 @@
-declare function _exports(schema: any): {
+// import { Schema, type ISchema } from '../db/Schema'
+
+type ISchema = {
+    attributes : [
+        {
+            name : string,
+            type : string,
+        }[]
+    ]
+}
+
+export function FForm (schema: ISchema): {
     new (): {
-        submit(req: any, scope?: string): any;
+        submit(req: Request, scope?: string): any;
         _src: any;
         errors: any;
-        sanitize(req: any, scope?: string): void;
+        sanitize(req: Request, scope?: string): void;
         revert(): void;
-        convert(req: any, scope?: string): void;
-        getValues(): any;
+        convert(req: Request, scope?: string): void;
+        getValues(): string[];
     };
-    schema: any;
+    schema: ISchema;
 };
-export = _exports;
 //# sourceMappingURL=Form.d.ts.map

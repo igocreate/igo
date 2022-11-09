@@ -1,10 +1,6 @@
 
 require('dotenv').config({silent: true});
 
-
-/**
- * @type object
- */
 const config    = {};
 module.exports  = config;
 

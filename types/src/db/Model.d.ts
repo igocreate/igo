@@ -1,40 +1,22 @@
-import { Schema, ISchema } from "./Schema";
-import { Query } from "./Query";
+import { Schema, type ISchema } from './Schema'
+import { IQuery } from './Query'
 
-export function Model(schema: ISchema):  {
-    new (values: any): {
-        assignValues(values: any): void;
-        primaryObject(): any;
-        update(values: any, callback?: () => void): void | Promise<any>;
-        reload(includes: any, callback?: () => void): void | Promise<any>;
-        destroy(callback?: () => void): void;
-        beforeCreate(callback?: () => void): void;
-        beforeUpdate(values: any, callback?: () => void): void;
-    };
+export interface InewModel<Child> {
+    assignValues(values: Child): void;
+    primaryObject(): Child;
+    update(values: Child, callback?: () => void): void | Promise<Child>;
+    reload(includes: any, callback?: () => void): void | Promise<Child>;
+    destroy(callback?: () => void): void;
+    beforeCreate(callback?: () => void): void;
+    beforeUpdate(values: Child, callback?: () => void): void;
+}
 
-    create(values: {[key in keyof typeof schema.columns]: string | number | boolean}, options?: any, callback?: () => void): void | Promise<any>;
-    all(callback?: () => void): void | Promise<any>;
-    destroyAll(callback?: () => void): void | Promise<any>;
+export function FModel<Child, Model> (schema: ISchema<Child, Model>): {
     schema: Schema;
 
-    // Same as Query
-    update(values: {[key in keyof typeof this.schema.columns]: string | number | boolean}, callback?: () => void): void | Promise<any>;
-    destroy(callback?: () => void): void | Promise<any>;
-    where(where?: string, params?: {[key in keyof typeof this.schema.columns]: string | number | boolean}): Query;
-    whereNot(whereNot: any): Query;
-    first(callback?: () => void): void | Promise<any>;
-    last(callback?: () => void): void | Promise<any>;
-    limit(offset: any, limit: any): Query;
-    page(page: any, nb: any): Query;
-    scope(scope: any): Query;
-    unscoped(): Query;
-    list(callback?: () => void): void | Promise<any>;
-    select(select: any): Query;
-    count(callback?: () => void): void | Promise<any>;
-    includes(includeParams: any): Query;
-    find(id: number, callback?: () => void): any;
-    order(order: string): Query;
-    distinct(columns: string): Query;
-    group(columns: string): Query;
-};
-//# sourceMappingURL=Model.d.ts.map
+    new (values: Child): InewModel<Child>;
+
+    create(values: {[key in keyof Model]?: Model[key]}, options?: any, callback?: () => void): void | Promise<Model>;
+    all(callback?: () => void): void | Promise<Child>;
+    destroyAll(callback?: () => void): void | Promise<Child>;
+} & IQuery<Model>
