@@ -1,8 +1,30 @@
-export = Query;
-declare class Query {
-    constructor(modelClass: any, verb?: string);
-    modelClass: any;
-    schema: any;
+import { Schema } from "./Schema"
+
+export interface IQuery<Child> {
+    update(values: {[key in keyof Child]?: Child[key]}, callback?: () => void): void | Promise<Child>;
+    destroy(callback?: () => void): void | Promise<Child>;
+    where(where?: {[key in keyof Child]?: Child[key]}, params?: [string | number | boolean]): Query<Child>;
+    whereNot(whereNot: any): Query<Child>;
+    first(callback?: () => void): void | Promise<Child>;
+    last(callback?: () => void): void | Promise<Child>;
+    limit(offset: any, limit: any): Query<Child>;
+    page(page: any, nb: any): Query<Child>;
+    scope(scope: any): Query<Child>;
+    unscoped(): Query<Child>;
+    list(callback?: () => void): void | Promise<Child>;
+    select(select: any): Query<Child>;
+    count(callback?: () => void): void | Promise<Child>;
+    includes(includeParams: any): Query<Child>;
+    find(id: number | {[key in keyof Child]?: Child[key]}, callback?: () => void): void | Promise<Child>;
+    order(order: string): Query<Child>;
+    distinct(columns: string): Query<Child>;
+    group(columns: string): Query<Child>;
+}
+
+export interface Query<Child> extends IQuery<Child> {
+    constructor : (modelClass: string, verb?: string) => Query<Child>
+    modelClass: string;
+    schema: Schema;
     query: {
         table: any;
         select: any;
@@ -16,36 +38,17 @@ declare class Query {
         options: {};
         scopes: string[];
     };
-    update(values: any, callback: any): void | Promise<any>;
-    delete(callback: any): void | Promise<any>;
-    destroy(callback: any): void | Promise<any>;
-    from(table: any): import("./Query");
-    where(where: any, params: any): import("./Query");
-    whereNot(whereNot: any): import("./Query");
-    values(values: any): import("./Query");
-    first(callback: any): void | Promise<any>;
-    last(callback: any): void | Promise<any>;
-    limit(offset: any, limit: any): import("./Query");
-    page(page: any, nb: any): import("./Query");
-    scope(scope: any): import("./Query");
-    unscoped(): import("./Query");
-    list(callback: any): void | Promise<any>;
-    select(select: any): import("./Query");
-    count(callback: any): void | Promise<any>;
-    applyScopes(): void;
-    includes(includeParams: any): import("./Query");
-    find(id: any, callback: any): any;
-    order(order: any): import("./Query");
-    distinct(columns: any): import("./Query");
-    group(columns: any): import("./Query");
-    options(options: any): import("./Query");
+    delete(callback?: () => void): void | Promise<Query<Child>>;
+    options(options: any): Query<Child>;
     getDb(): any;
     toSQL(): any;
-    paginate(callback: any): any;
-    loadAssociation(include: any, rows: any, callback: any): any;
-    execute(callback: any): void | Promise<any>;
-    doExecute(callback: any): void;
-    runQuery(callback: any): void;
+    paginate(callback?: () => void): any;
+    loadAssociation(include: any, rows: any, callback?: () => void): any;
+    execute(callback?: () => void): void | Promise<Query<Child>>;
+    doExecute(callback?: () => void): void;
+    runQuery(callback?: () => void): void;
     newInstance(row: any): any;
+    applyScopes(): void;
+    values(values: any): Query<Child>;
+    from(table: any): Query<Child>;
 }
-//# sourceMappingURL=Query.d.ts.map
