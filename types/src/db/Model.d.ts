@@ -1,7 +1,9 @@
 import { Schema, type ISchema } from './Schema'
 import { IQuery } from './Query'
 
-export type AttributeOf<Child> = Child
+export type Error = { err?: {[key:string]: unknown}}
+export type AttributeOf<Child> = Child & Error 
+export type TypeOf<Child> = AttributeOf<Child> & IQuery<Child>
 
 export interface InewModel<Child> {
     assignValues(values: Child): void;
@@ -18,8 +20,8 @@ export function FModel<Child> (schema: ISchema<Child>): {
 
     new (values: Child): InewModel<Child >;
 
-    create(values: {[key in keyof AttributeOf<Child>]?: Child[key]}, options?: any, callback?: () => void): void | Promise<AttributeOf<Child>>;
-    all(callback?: () => void): void | Promise<Child>;
+    create(values: {[key in keyof AttributeOf<Child>]?: AttributeOf<Child>[key]}, options?: any, callback?: () => void): Promise<AttributeOf<Child>>;
+    all(callback?: () => void): void | Error | Promise<AttributeOf<Child>>;
     destroyAll(callback?: () => void): void | Promise<Child>;
 } & IQuery<Child>
 
