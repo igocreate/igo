@@ -1,21 +1,22 @@
 import { Schema } from "./Schema"
+import type { AttributeOf } from "./Model";
 
 export interface IQuery<Child> {
-    update(values: {[key in keyof Child]?: Child[key]}, callback?: () => void): void | Promise<Child>;
-    destroy(callback?: () => void): void | Promise<Child>;
-    where(where?: {[key in keyof Child]?: Child[key]}, params?: [string | number | boolean]): Query<Child>;
+    update(values: {[key in keyof AttributeOf<Child>]?: Child[key]}, callback?: () => void): void | Promise<AttributeOf<Child>>;
+    where(where?: {[key in keyof AttributeOf<Child>]?: Child[key]}, params?: [string | number | boolean]): Query<AttributeOf<Child>>;
+    find(id: number | {[key in keyof AttributeOf<Child>]?: Child[key]}, callback?: () => void): void | Promise<AttributeOf<Child>>;
+    destroy(callback?: () => void): void | Promise<AttributeOf<Child>>;
+    first(callback?: () => void): void | Promise<AttributeOf<Child>>;
+    last(callback?: () => void): void | Promise<AttributeOf<Child>>;
+    list(callback?: () => void): void | Promise<AttributeOf<Child>>;
+    count(callback?: () => void): void | Promise<AttributeOf<Child>>;
     whereNot(whereNot: any): Query<Child>;
-    first(callback?: () => void): void | Promise<Child>;
-    last(callback?: () => void): void | Promise<Child>;
     limit(offset: any, limit: any): Query<Child>;
     page(page: any, nb: any): Query<Child>;
     scope(scope: any): Query<Child>;
     unscoped(): Query<Child>;
-    list(callback?: () => void): void | Promise<Child>;
     select(select: any): Query<Child>;
-    count(callback?: () => void): void | Promise<Child>;
     includes(includeParams: any): Query<Child>;
-    find(id: number | {[key in keyof Child]?: Child[key]}, callback?: () => void): void | Promise<Child>;
     order(order: string): Query<Child>;
     distinct(columns: string): Query<Child>;
     group(columns: string): Query<Child>;

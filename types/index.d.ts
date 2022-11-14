@@ -1,9 +1,9 @@
 /// <reference types="node" />
 
-import { FModel } from './src/db/Model';
+import { Model } from './src/db/Model';
 import { FForm } from './src/forms/Form';
 export { ISchema } from './src/db/Schema'
-export const Model: typeof FModel
+export const Model: Model;
 export const cache: typeof import("./src/cache");
 export const CacheStats: typeof import("./src/db/CacheStats");
 export const config: config;

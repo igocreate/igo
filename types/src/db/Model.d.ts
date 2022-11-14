@@ -1,6 +1,8 @@
 import { Schema, type ISchema } from './Schema'
 import { IQuery } from './Query'
 
+export type AttributeOf<Child> = Child
+
 export interface InewModel<Child> {
     assignValues(values: Child): void;
     primaryObject(): Child;
@@ -11,12 +13,14 @@ export interface InewModel<Child> {
     beforeUpdate(values: Child, callback?: () => void): void;
 }
 
-export function FModel<Child, Model> (schema: ISchema<Child, Model>): {
+export function FModel<Child> (schema: ISchema<Child>): {
     schema: Schema;
 
-    new (values: Child): InewModel<Child>;
+    new (values: Child): InewModel<Child >;
 
-    create(values: {[key in keyof Model]?: Model[key]}, options?: any, callback?: () => void): void | Promise<Model>;
+    create(values: {[key in keyof AttributeOf<Child>]?: Child[key]}, options?: any, callback?: () => void): void | Promise<AttributeOf<Child>>;
     all(callback?: () => void): void | Promise<Child>;
     destroyAll(callback?: () => void): void | Promise<Child>;
-} & IQuery<Model>
+} & IQuery<Child>
+
+export type Model = typeof FModel 

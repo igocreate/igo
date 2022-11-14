@@ -1,1 +1,0 @@
-export function db(argv: any): void;
