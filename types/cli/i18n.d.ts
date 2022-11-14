@@ -1,1 +1,0 @@
-export function i18n(argv: any): void;
