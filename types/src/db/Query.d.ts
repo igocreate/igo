@@ -1,15 +1,18 @@
 import { Schema } from "./Schema"
-import type { AttributeOf } from "./Model";
+import type { AttributeOf, TypeOf } from "./Model";
+
+
+type IParams = string | number | boolean | { [key: string]: unknown; } | Date | undefined
 
 export interface IQuery<Child> {
-    update(values: {[key in keyof AttributeOf<Child>]?: Child[key]}, callback?: () => void): void | Promise<AttributeOf<Child>>;
-    where(where?: {[key in keyof AttributeOf<Child>]?: Child[key]}, params?: [string | number | boolean]): Query<AttributeOf<Child>>;
-    find(id: number | {[key in keyof AttributeOf<Child>]?: Child[key]}, callback?: () => void): void | Promise<AttributeOf<Child>>;
-    destroy(callback?: () => void): void | Promise<AttributeOf<Child>>;
-    first(callback?: () => void): void | Promise<AttributeOf<Child>>;
-    last(callback?: () => void): void | Promise<AttributeOf<Child>>;
-    list(callback?: () => void): void | Promise<AttributeOf<Child>>;
-    count(callback?: () => void): void | Promise<AttributeOf<Child>>;
+    update(values: {[key in keyof AttributeOf<Child>]?: AttributeOf<Child>[key]}, callback?: () => void): Promise<TypeOf<Child>>;
+    find(id: number | {[key in keyof AttributeOf<Child>]?: AttributeOf<Child>[key]}, callback?: () => void): Promise<TypeOf<Child>>;
+    destroy(callback?: () => void): Promise<TypeOf<Child>>;
+    first(callback?: () => void): Promise<TypeOf<Child>>;
+    last(callback?: () => void): Promise<TypeOf<Child>>;
+    list(callback?: () => void): Promise<TypeOf<Child>>;
+    count(callback?: () => void): Promise<number>;
+    where(where?: {[key in keyof AttributeOf<Child>]?: AttributeOf<Child>[key]} | string, params?: IParams[] ): Query<Child>;
     whereNot(whereNot: any): Query<Child>;
     limit(offset: any, limit: any): Query<Child>;
     page(page: any, nb: any): Query<Child>;
