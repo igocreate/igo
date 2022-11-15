@@ -116,8 +116,8 @@ module.exports.init = function() {
 
   // load app config
   const configFiles = [
-    'igo.config',
-    'igo.config.cjs',
+    '/igo.config',
+    '/igo.config.cjs',
     '/app/config',
     '/app/config.cjs',
     '/app/config-' + config.env
