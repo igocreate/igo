@@ -13,7 +13,7 @@ const app     = require('../../app');
 const mockRequest = function(options) {
   const req = {};
 
-  req.hostname    = 'test';
+  req.hostname    = options.hostname || 'test';
   req.method      = options.method || 'GET';
   req.url         = options.url;
   req.originalUrl = options.url;
