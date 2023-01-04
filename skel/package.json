@@ -18,6 +18,6 @@
     "@popperjs/core": "^2.11.6",
     "bootstrap": "5.2.3",
     "igo": "{igo.version}",
-    "jquery": "3.6.1"
+    "jquery": "3.6.3"
   }
 }
