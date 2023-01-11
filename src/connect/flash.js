@@ -8,7 +8,7 @@ const cache           = require('../cache');
 const NS              = 'cacheflash';
 
 //
-module.exports = function(req, res, next) {
+module.exports = async (req, res, next) => {
 
   req.session.flash       = req.session.flash || {};
   res.locals.flash        = req.session.flash;
@@ -33,21 +33,21 @@ module.exports = function(req, res, next) {
     req.session.cacheflash.push(uuid);
     const obj = {};
     obj[key] = value;
-    cache.put(NS, uuid, obj, null, 60); // 60s
+    cache.put(NS, uuid, obj, 60); // 60s
   };
 
   if (!cacheflash.length) {
     return next();
   }
 
-  // async load cacheflash objects
-  async.eachSeries(cacheflash, function(uuid, callback) {
-    cache.get(NS, uuid, function(err, obj) {
+  if (cacheflash) {
+    // async load cacheflash objects
+    for (const uuid of cacheflash) {
+      const obj = await cache.get(NS, uuid);
       _.merge(res.locals.flash, obj);
-      callback();
-    });
-  }, function() {
-    next();
-  });
+    }
+  }
+
+  next();
 
 };
