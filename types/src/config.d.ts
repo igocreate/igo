@@ -1,6 +1,6 @@
-declare type config = Partial<IConfig>
+export type config = Partial<IConfig>
 
-declare type IConfig = {
+export type IConfig = {
   init: () => void
   _loaded: boolean
   env: string 

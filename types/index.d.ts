@@ -1,6 +1,7 @@
 /// <reference types="node" />
 
 import { Model } from './src/db/Model';
+import { config } from './src/config';
 import { FForm } from './src/forms/Form';
 export { ISchema } from './src/db/Schema'
 export const Model: Model;

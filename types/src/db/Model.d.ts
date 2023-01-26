@@ -1,28 +1,22 @@
 import { Schema, type ISchema } from './Schema'
-import { IQuery } from './Query'
+import type { Query, IQuery } from './Query'
 
 export type Error = { err?: {[key:string]: unknown}}
-export type AttributeOf<Child> = Child & Error 
-export type TypeOf<Child> = AttributeOf<Child> & IQuery<Child>
+export type Child<T> = T & Error 
+export type ChildValues<T> = {[P in keyof T]?: T[P] extends T ? never : T[P]}
 
-export interface InewModel<Child> {
-    assignValues(values: Child): void;
-    primaryObject(): Child;
-    update(values: Child, callback?: () => void): void | Promise<Child>;
-    reload(includes: any, callback?: () => void): void | Promise<Child>;
+export type Model = <Model, T>(schema: ISchema<Model, T>) => { 
+    new (values: T): T & Error & IQuery<Model, T>;
+
+    assignValues(values: T): void;
+    primaryObject(): T;
+    update(values: T, callback?: () => void): void | Promise<Child<T>>;
+    reload(includes: any, callback?: () => void): void | Promise<Child<T>>;
     destroy(callback?: () => void): void;
     beforeCreate(callback?: () => void): void;
-    beforeUpdate(values: Child, callback?: () => void): void;
-}
-
-export function FModel<Child> (schema: ISchema<Child>): {
-    schema: Schema;
-
-    new (values: Child): InewModel<Child >;
-
-    create(values: {[key in keyof AttributeOf<Child>]?: AttributeOf<Child>[key]}, options?: any, callback?: () => void): Promise<AttributeOf<Child>>;
-    all(callback?: () => void): void | Error | Promise<AttributeOf<Child>>;
-    destroyAll(callback?: () => void): void | Promise<Child>;
-} & IQuery<Child>
-
-export type Model = typeof FModel 
+    beforeUpdate(values: T, callback?: () => void): void;
+    
+    create(values: ChildValues<T>, options?: any, callback?: () => void): Promise<Model>;
+    all(callback?: () => void): void | Error | Promise<Array<Model>>;
+    destroyAll(callback?: () => void): void;
+} & Query<Model, T>
