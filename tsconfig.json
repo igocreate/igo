@@ -1,7 +1,7 @@
 {
     // Change this to match your project
     "include": ["./**/*"],
-    "exclude": ["node_modules", "skel", "test"] ,
+    "exclude": ["node_modules", "skel", "test", "types"] ,
     "compilerOptions": {
       "target": "ES6",
       "allowJs": true,

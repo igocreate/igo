@@ -13,7 +13,7 @@ export type Schema = {
     parseTypes(row: any): void
 }
 
-export type ISchema<Child> = {
+export type ISchema<Model, T> = {
     table: string
     primary: string[]
     columns: (string | {
@@ -23,8 +23,8 @@ export type ISchema<Child> = {
     })[]
     associations?: (string | object)[][] | (() => (string | object)[][])
     scopes?: {
-        default?: (q: Query<Child>) => Query<Child>
-        [key: string]: (q: Query<Child>) => Query<Child>
+        default?: ((q: Query<Model, T>) => Query<Model, T>) | undefined
+        [key: string]: ((q: Query<Model, T>) => Query<Model, T>) | undefined
     }
     cache?: {
         ttl: number
