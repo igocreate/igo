@@ -7,7 +7,6 @@ const dbs       = require('./dbs');
 
 const DataTypes = require('./DataTypes');
 
-
 //
 const merge = (includes, includeParam) => {
   // console.dir({MERGE: { includes, includeParam}}, { depth: 99 });
@@ -187,6 +186,34 @@ module.exports = class Query {
         err ? reject(err) : resolve(count);
       });
     });
+  }
+
+  // JOIN
+  join(associationName, columns, type = 'left') {
+    const { query, schema } = this;
+    if (['left', 'inner', 'right'].indexOf(type) <0) {
+      type = 'left';
+    }
+
+    const association = _.find(schema.associations, (association) => {
+      return association[1] === associationName;
+    });
+    if (!association) {
+      return this;
+    }
+
+    const attr        = association[1];
+    const Obj         = association[2];
+    const column      = association[3] || attr + '_id';
+    const ref_column  = association[4] || 'id';
+    
+    query.join = {
+      type: type.toUpperCase(),
+      columns: columns && _.castArray(columns),
+      table: Obj.schema.table,
+      column, ref_column
+    };
+    return this;
   }
 
   // SCOPES

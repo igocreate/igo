@@ -88,7 +88,7 @@ describe('db.PostgreSql', function() {
       var params  = [];
       query.where = [{ id: 123 }];
       var sql     = new Sql(query, dialect).whereSQL(params);
-      assert.strictEqual('WHERE "id" = $1 ', sql);
+      assert.strictEqual('WHERE "books"."id" = $1 ', sql);
       assert.strictEqual(123, params[0]);
     });
   });

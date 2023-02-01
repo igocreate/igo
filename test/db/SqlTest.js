@@ -88,7 +88,7 @@ describe('db.Sql', function() {
       var params  = [];
       query.where = [{ id: 123 }];
       var sql     = new Sql(query, dialect).whereSQL(params);
-      assert.strictEqual('WHERE `id` = ? ', sql);
+      assert.strictEqual('WHERE `books`.`id` = ? ', sql);
       assert.strictEqual(123, params[0]);
     });
   });

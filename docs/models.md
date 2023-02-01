@@ -414,3 +414,22 @@ User.page(current_page, nb_limit_element).list((err, users) => {
  //}
 });
 ```
+
+### Join
+
+`join()` allows you to join 2 tables with LEFT, INNER OR RIGHT JOIN.
+| Parameter  | Type | Description | Required | Default |
+| ------------- |-------------|-------------|-------------|-------------|
+| Association name | string       |   Name of the association (the table to join need to be declared as association in Schema) | true||
+| Columns     | string or array   | Columns joined from the association table | false ||
+| Type     | string    | "left"\|"inner"\|"right| false| "left"|
+```js
+User.join('country', 'country_code', 'left').first(function(err, user) {
+  console.dir(user.country_code);
+});
+
+// Can be use combine with select()
+User.select('`user`.*, `country`.`code` AS `country_code`' ).join('country').first(function(err, user) {
+  console.dir(user.country_code);
+});
+```

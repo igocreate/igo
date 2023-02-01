@@ -203,6 +203,11 @@ module.exports = function(schema) {
       return newQuery(this).count(callback);
     }
 
+    // join
+    static join(association, columns, type) {
+      return newQuery(this).join(association, columns, type);
+    }
+
     // destroy
     static destroy(id, callback) {
       return newQuery(this, 'delete').unscoped().where({ id: id }).execute(callback);

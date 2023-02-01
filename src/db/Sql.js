@@ -25,15 +25,29 @@ var Sql = function(query, dialect) {
       sql += `${esc}${query.table}${esc}.* `;
       // sql += '`' + query.table + '`.* ';
     }
+
     // } else if (!_.isEmpty(query.group)) {
     //   sql += 'COUNT(*) AS `count`, ' + query.group.join(', ') + ' ';
     // } else {
     //   sql += '* ';
     // }
 
+    if (query.join && query.join.columns) {
+      _.forEach(query.join.columns, column => {
+        sql += `,${esc}${query.join.table}${esc}.${column} `;
+      });
+    }
+
+
     // from
     sql += `FROM ${esc}${query.table}${esc} `;
     //sql += 'FROM `' + query.table + '` ';
+
+    // join
+    if (query.join) {
+      const { type, table, column, ref_column} = query.join;
+      sql += `${type} JOIN ${esc}${table}${esc} ON ${esc}${table}${esc}.${esc}${ref_column}${esc} = ${esc}${query.table}${esc}.${esc}${column}${esc} `;
+    }
 
     // where
     sql += this.whereSQL(params);
@@ -110,17 +124,17 @@ var Sql = function(query, dialect) {
       } else {
         _.forEach(where, function(value, key) {
           if (value === null || value === undefined) {
-            sqlwhere.push(`${esc}${key}${esc} IS NULL `);
+            sqlwhere.push(`${esc}${query.table}${esc}.${esc}${key}${esc} IS NULL `);
             // sqlwhere.push('`' + key + '` IS NULL ');
           } else if (_.isArray(value) && value.length === 0) {
             // where in empty array --> FALSE
             sqlwhere.push('FALSE ');
           } else if (_.isArray(value)) {
-            sqlwhere.push(`${esc}${key}${esc} ${dialect.in} (${dialect.param(i++)}) `);
+            sqlwhere.push(`${esc}${query.table}${esc}.${esc}${key}${esc} ${dialect.in} (${dialect.param(i++)}) `);
             // sqlwhere.push('`' + key + '` IN (?) ');
             params.push(value);
           } else {
-            sqlwhere.push(`${esc}${key}${esc} = ${dialect.param(i++)} `);
+            sqlwhere.push(`${esc}${query.table}${esc}.${esc}${key}${esc} = ${dialect.param(i++)} `);
             // sqlwhere.push('`' + key + '`=? ');
             params.push(value);
           }
@@ -139,17 +153,17 @@ var Sql = function(query, dialect) {
     _.forEach(query.whereNot, function(whereNot) {
       _.forEach(whereNot, function(value, key) {
         if (value === null) {
-          sqlwhere.push(`${esc}${key}${esc} IS NOT NULL `);
+          sqlwhere.push(`${esc}${query.table}${esc}.${esc}${key}${esc} IS NOT NULL `);
           // sqlwhere.push('`' + key + '` IS NOT NULL ');
         } else if (_.isArray(value) && value.length === 0) {
           // where in empty array --> FALSE
           sqlwhere.push('TRUE ');
         } else if (_.isArray(value)) {
-          sqlwhere.push(`${esc}${key}${esc} ${dialect.notin} (${dialect.param(i++)}) `);
+          sqlwhere.push(`${esc}${query.table}${esc}.${esc}${key}${esc} ${dialect.notin} (${dialect.param(i++)}) `);
           // sqlwhere.push('`' + key + '` NOT IN (?) ');
           params.push(value);
         } else {
-          sqlwhere.push(`${esc}${key}${esc} != ${dialect.param(i++)} `);
+          sqlwhere.push(`${esc}${query.table}${esc}.${esc}${key}${esc} != ${dialect.param(i++)} `);
           // sqlwhere.push('`' + key + '` != ? ');
           params.push(value);
         }
