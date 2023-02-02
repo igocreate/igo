@@ -51,7 +51,7 @@ describe('includes', () => {
       });
     });
 
-    it.only('should load a book join with its library collection with custom select', (done) => {
+    it('should load a book join with its library collection with custom select', (done) => {
       Library.create({ title: 'A' }, (err, library) => {
         Book.create({ library_id: library.id }, (err, book) => {
           Book.select('`books`.`id`, `libraries`.`title` AS library_title').join('library').find(book.id, (err, book) => {
