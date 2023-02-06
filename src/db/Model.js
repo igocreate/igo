@@ -80,7 +80,7 @@ module.exports = function(schema) {
 
     // destroy
     destroy(callback) {
-      newQuery(this.constructor, 'delete').unscoped().where(this.primaryObject()).execute(callback);
+      return newQuery(this.constructor, 'delete').unscoped().where(this.primaryObject()).execute(callback);
     }
 
     beforeCreate(callback)          { callback(); }
