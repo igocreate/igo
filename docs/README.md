@@ -21,4 +21,3 @@
 - Other features
   - [Cache](/docs/cache.md) : Cache API
   - Igo Mailer : TODO
-  - Igo Logger : TODO

@@ -7,7 +7,6 @@ const igo = {
   express:    require('express'),
   i18next:    require('i18next'),
   IgoDust:    require('igo-dust'),
-  logger:     require('./src/logger'),
   mailer:     require('./src/mailer'),
   migrations: require('./src/db/migrations'),
   Model:      require('./src/db/Model'),

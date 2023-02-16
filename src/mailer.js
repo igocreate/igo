@@ -3,7 +3,6 @@ const i18next     = require('i18next');
 const nodemailer  = require('nodemailer');
 
 const config      = require('./config');
-const logger      = require('./logger');
 const igodust     = require('./engines/igodust');
 
 let transport     = null;
@@ -37,11 +36,11 @@ module.exports.send = function(email, data) {
   }
 
   if (!data || !data.to) {
-    logger.warn('mailer.send: no email for recipient');
+    console.warn('mailer.send: no email for recipient');
     return;
   }
   if (!transport) {
-    logger.warn('mailer.send: missing transport configuration');
+    console.warn('mailer.send: missing transport configuration');
     return;
   }
 
@@ -65,13 +64,13 @@ module.exports.send = function(email, data) {
 
   renderBody((err, html) => {
     if (err || !html) {
-      logger.error('mailer.send: error - could not render template ' + template);
-      logger.error(err);
+      console.error('mailer.send: error - could not render template ' + template);
+      console.error(err);
       return;
     }
 
     const emailLog = data.is_anonymous ? '**********' : data.to;
-    logger.info('mailer.send: Sending mail ' + email + ' to ' + emailLog + ' in ' + data.lang);
+    console.info('mailer.send: Sending mail ' + email + ' to ' + emailLog + ' in ' + data.lang);
     const headers = {};
     if (config.mailer.subaccount) {
       headers['X-MC-Subaccount'] = config.mailer.subaccount;
@@ -89,9 +88,9 @@ module.exports.send = function(email, data) {
     };
     transport.sendMail(mailOptions, function(err, res) {
       if (err) {
-        logger.error(err);
+        console.error(err);
       } else {
-        logger.info('mailer.send: Message ' + email + ' sent: ' + res.response);
+        console.info('mailer.send: Message ' + email + ' sent: ' + res.response);
       }
     });
   });

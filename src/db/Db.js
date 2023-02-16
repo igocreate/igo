@@ -2,7 +2,6 @@
 const _             = require('lodash');
 
 const config        = require('../config');
-const logger        = require('../logger');
 
 const errorhandler  = require('../connect/errorhandler');
 
@@ -69,7 +68,7 @@ class Db {
       this.getConnection((err, connection, keep) => {
         if (err) {
           console.log(err);
-          logger.error(err);
+          console.error(err);
           return callback(err);
         }
 
@@ -78,9 +77,9 @@ class Db {
         driver.query(connection, sql, params, (err, result) => {
           // console.dir(result);
           if (config.debugsql || (err && !options.silent)) {
-            logger.info('Db.query: ' + sql);
+            console.info('Db.query: ' + sql);
             if (params && params.length > 0) {
-              logger.info('With params: ' + params);
+              console.info('With params: ' + params);
             }
             if (err && !options.silent) {
               errorhandler.errorSQL(err);
@@ -104,10 +103,10 @@ class Db {
       return runquery();
     }
 
-    logger.info('Db.query: Trying to reinitialize db connection pool');
+    console.info('Db.query: Trying to reinitialize db connection pool');
     this.init();
     if (!this.pool) {
-      logger.error('could not create db connection pool');
+      console.error('could not create db connection pool');
       callback('dberror: could not create db connection pool');
     } else {
       runquery();
@@ -120,12 +119,12 @@ class Db {
 
     this.getConnection((err, connection) => {
       if (err) {
-        logger.error(err);
+        console.error(err);
         return callback(err, connection);
       }
       driver.beginTransaction(connection, (err) => {
         if (err) {
-          logger.error(err);
+          console.error(err);
         }
         callback(err, connection);
       });
@@ -137,12 +136,12 @@ class Db {
     const { driver, TEST_ENV } = this;
     this.getConnection((err, connection) => {
       if (err) {
-        logger.error(err);
+        console.error(err);
         return callback(err, connection);
       }
       driver.commit(connection, (err) => {
         if (err) {
-          logger.error(err);
+          console.error(err);
         } else {
           driver.release(connection);
           if (TEST_ENV) {
@@ -160,12 +159,12 @@ class Db {
 
     this.getConnection((err, connection) => {
       if (err) {
-        logger.error(err);
+        console.error(err);
         return callback(err, connection);
       }
       driver.rollback(connection, (err) => {
         if (err) {
-          logger.error(err);
+          console.error(err);
         } else {
           driver.release(connection);
           if (TEST_ENV) {

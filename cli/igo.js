@@ -5,9 +5,6 @@ global.IGO_CLI = true;
 const argv = require('minimist')(process.argv.slice(2));
 const args = argv._;
 
-const logger = require('../src/logger');
-logger.init();
-
 //
 const actions = {
   create:   require('./create.js'),

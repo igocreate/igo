@@ -16,7 +16,6 @@ const flash             = require('./connect/flash');
 const locals            = require('./connect/locals');
 const multipart         = require('./connect/multipart');
 const validator         = require('./connect/validator');
-const logger            = require('./logger');
 const mailer            = require('./mailer');
 const plugins           = require('./plugins');
 
@@ -24,7 +23,7 @@ const plugins           = require('./plugins');
 const app = module.exports = express();
 
 // services to initialize
-const SERVICES = [ config, igodust, logger, cache, dbs, mailer, plugins ];
+const SERVICES = [ config, igodust, cache, dbs, mailer, plugins ];
 
 //
 module.exports.configure = function() {
@@ -91,7 +90,7 @@ module.exports.run = function(configured, started) {
   configured && configured();
 
   app.server = app.listen(config.httpport, function() {
-    logger.info('Listening to port %s', config.httpport);
+    console.info('Listening to port %s', config.httpport);
     started && started();
   });
 };

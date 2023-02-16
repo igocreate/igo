@@ -8,10 +8,10 @@ This is the default Redis configuration :
 
 var retryStrategy = function(params) {
   if (params.error.code === 'ECONNREFUSED') {
-    logger.error('Redis connection refused on host ' + options.host + ':' + options.port);
+    console.error('Redis connection refused on host ' + options.host + ':' + options.port);
     return params.error;
   }
-  logger.error('Redis error ' + params.error);
+  console.error('Redis error ' + params.error);
   // retry in n seconds
   return params.attempt * 1000;
 };
