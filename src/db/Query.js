@@ -189,7 +189,7 @@ module.exports = class Query {
   }
 
   // JOIN
-  join(associationName, columns, type = 'left') {
+  join(associationName, columns, type = 'left', name) {
     const { query, schema } = this;
     if (['left', 'inner', 'right'].indexOf(type) <0) {
       type = 'left';
@@ -211,6 +211,7 @@ module.exports = class Query {
       type: type.toUpperCase(),
       columns: columns && _.castArray(columns),
       table: Obj.schema.table,
+      name: name || Obj.schema.table,
       column, ref_column
     };
     return this;

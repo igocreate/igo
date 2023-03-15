@@ -204,8 +204,8 @@ module.exports = function(schema) {
     }
 
     // join
-    static join(association, columns, type) {
-      return newQuery(this).join(association, columns, type);
+    static join(association, columns, type, name) {
+      return newQuery(this).join(association, columns, type, name);
     }
 
     // destroy
