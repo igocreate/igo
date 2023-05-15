@@ -6,6 +6,7 @@ const dbs         = require('../../db/dbs');
 const migrations  = require('../../db/migrations');
 const cache       = require('../../cache');
 const config      = require('../../config');
+const logger      = require('../../logger');
 const app         = require('../../app');
 
 //
@@ -32,7 +33,7 @@ const reinitDatabase = (db, callback) => {
         if (err) {
           return callback('Database migration error : ' + err);
         }
-        console.info('Igo dev: reinitialized test database');
+        logger.info('Igo dev: reinitialized test database');
         callback();
       });
     });

@@ -2,6 +2,7 @@
 const domain  = require('domain');
 
 const config  = require('../config');
+const logger  = require('../logger');
 const mailer  = require('../mailer');
 
 //
@@ -50,8 +51,8 @@ const handle = (err, req, res) => {
     return res.status(500).render('errors/500');
   }
 
-  console.error(`${req.method} ${getURL(req)} : ${err}`);
-  console.error(err.stack);
+  logger.error(`${req.method} ${getURL(req)} : ${err}`);
+  logger.error(err.stack);
 
   if (config.mailcrashto) {
     mailer.send('crash', {
@@ -105,7 +106,7 @@ module.exports.error = (err, req, res, next) => {
 
 //
 module.exports.errorSQL = function(err) {
-  console.error(err);
+  logger.error(err);
   if (config.mailcrashto) {
     let body = '<table cellspacing="10">';
     body += `<tr><td>code:</td><td>${err.code}</td></tr>`;

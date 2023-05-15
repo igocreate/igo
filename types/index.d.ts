@@ -12,6 +12,7 @@ export const dbs: typeof import("./src/db/dbs");
 export const express: typeof import("express");
 export const i18next: any;
 export const IgoDust: any;
+export const logger: any;
 export const mailer: typeof import("./src/mailer");
 export const migrations: typeof import("./src/db/migrations");
 export const Form: typeof FForm

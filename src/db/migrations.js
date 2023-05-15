@@ -6,6 +6,7 @@ const fs      = require('fs');
 const path    = require('path');
 
 const config  = require('../config');
+const logger  = require('../logger');
 const plugins = require('../plugins');
 
 
@@ -76,7 +77,7 @@ module.exports.migrate = function(db, rootDir, callback) {
     } else if (line.match('\\;$')) {
       querybuf += line;
       if (config.mysql.debugsql) {
-        console.info(querybuf);
+        logger.info(querybuf);
       }
       db.query(querybuf, callback);
       querybuf = '';
@@ -106,7 +107,7 @@ module.exports.migrate = function(db, rootDir, callback) {
       }, function(callback) {
         return fs.readFile(file.path, function(err, data) {
           if (err || !data) {
-            console.error(err);
+            logger.error(err);
             return callback('could not read ' + file.path);
           }
           return callback(null, data);
@@ -114,15 +115,15 @@ module.exports.migrate = function(db, rootDir, callback) {
       }, function(data, callback) {
         var lines = data.toString().split('\n');
         if (config.mysql.debugsql) {
-          console.info('Executing ' + file.path + ': ' + lines.length + ' lines to process');
+          logger.info('Executing ' + file.path + ': ' + lines.length + ' lines to process');
         }
         async.eachSeries(lines, executeLine, function(err) {
           if (err) {
-            console.error('SQL error in file %s', file.path);
+            logger.error('SQL error in file %s', file.path);
           }
           const sql = db.driver.dialect.insertMigration;
           var success = err ? 0 : 1;
-          console.info((success ? '✅ ' : '❌ ') + file.filename);
+          logger.info((success ? '✅ ' : '❌ ') + file.filename);
           err = err ? String(err) : null;
           db.query(sql, [file.filename, success, err, new Date()], () => {
             callback(err);

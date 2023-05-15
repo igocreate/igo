@@ -2,6 +2,7 @@
 const _           = require('lodash');
 const redis       = require('redis');
 
+const logger      = require('./logger');
 const config      = require('./config');
 
 let options       = null;
@@ -13,7 +14,7 @@ module.exports.init = async () => {
   options = config.redis || {};
   client = redis.createClient(options);
 
-  client.on('error', (err) => { console.error(err); });
+  client.on('error', (err) => { logger.error(err); });
 
   await client.connect();
 
@@ -87,13 +88,13 @@ module.exports.del = async (namespace, id) => {
 //
 module.exports.flushdb = async () => {
   const r = await client.flushDb();
-  console.info('Cache flushDb: ' + r);
+  logger.info('Cache flushDb: ' + r);
 };
 
 //
 module.exports.flushall = async () => {
   const r = await client.flushAll();
-  console.info('Cache flushAll: ' + r);
+  logger.info('Cache flushAll: ' + r);
 };
 
 // scan keys

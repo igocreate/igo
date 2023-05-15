@@ -107,11 +107,13 @@ module.exports.init = function() {
   if (config.env === 'test') {
     config.mysql.database       = 'test';
     config.postgresql.database  = 'test';
+    config.loglevel             = 'error';
   }
 
   //
   if (config.env === 'production') {
-    config.auto_migrate   = true;
+    config.auto_migrate         = true;
+    config.loglevel             = 'error';
   }
 
   // load app config
