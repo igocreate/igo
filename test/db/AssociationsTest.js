@@ -150,6 +150,19 @@ describe('includes', () => {
       });
     });
 
+    it('should handle default [] values correctly', (done) => {
+      Library.create(() => {
+        Library.create(() => {
+          Library.includes('books').list((err, libraries) => {
+            libraries[0].books.push({hello: 'world'});
+            assert.strictEqual(libraries[0].books.length, 1);
+            assert.strictEqual(libraries[1].books.length, 0);
+            done();
+          });
+        });
+      });
+    });
+
     schema.scopes = {
       default: q => q.includes('books')
     };

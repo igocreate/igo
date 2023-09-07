@@ -348,10 +348,10 @@ module.exports = class Query {
     const extraWhere  = association[5];
     
     const ids           = _.chain(rows).flatMap(column).uniq().compact().value();
-    const defaultValue  = (type === 'has_many' ? [] : null);
+    const defaultValue  = () => (type === 'has_many' ? [] : null);
 
     if (ids.length === 0) {
-      rows.forEach(row => row[attr] = defaultValue);
+      rows.forEach(row => row[attr] = defaultValue());
       return callback();
     }
     const where = {
@@ -376,7 +376,7 @@ module.exports = class Query {
 
       rows.forEach((row) => {
         if (!Array.isArray(row[column])) {
-          row[attr] = objsByKey[row[column]] || defaultValue;
+          row[attr] = objsByKey[row[column]] || defaultValue();
           return ;
         }
         row[attr] = _.chain(row[column]).flatMap(id => objsByKey[id]).compact().value();
