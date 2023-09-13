@@ -50,6 +50,7 @@
     "lodash": "^4.17.21",
     "mini-css-extract-plugin": "2.7.6",
     "minimist": "^1.2.8",
+    "mjml": "^4.14.1",
     "mocha": "^10.2.0",
     "moment": "2.29.4",
     "multiparty": "^4.2.3",

@@ -1,5 +1,4 @@
 const moment = require('moment');
-const i18next = require('i18next');
 
 const config = require('../config');
 const IgoDust = require('igo-dust');
@@ -35,14 +34,6 @@ module.exports.middleware = (req, res, next) => {
   next();
 };
 
-//
-module.exports.render = (template, data, callback) => {
-  data.t = (params) => {
-    params.lng = data.lang;
-    return i18next.t(params.key, params);
-  };
-  IgoDust.engine(template, data, callback);
-};
 
 const initHelpers = () => {
 
