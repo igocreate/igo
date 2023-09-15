@@ -3,6 +3,7 @@ const i18next       = require('i18next');
 const nodemailer    = require('nodemailer');
 const mjml2html     = require('mjml');
 const fs            = require('fs');
+const path          = require('path');
 
 const config        = require('./config');
 const logger        = require('./logger');
@@ -62,12 +63,8 @@ module.exports.send = async (template_name, data) => {
   };
 
   const template = data.template || options.template(template_name);
-  
   const type = template.split('.').pop();
-  
   let html = data.body;
-
-
 
   console.log({template, type});
   const render = (template, data) => {
@@ -87,12 +84,14 @@ module.exports.send = async (template_name, data) => {
     logger.error('mailer.send: error - could not render template ' + template);
     logger.error(err);
     return;
-  } else {
-    html = result;
   }
 
   if (type === 'mjml') {
-    html = mjml2html(html).html;
+    html = mjml2html(result, {
+      filePath: path.join(config.projectRoot, 'views/emails/'),    
+    }).html;
+  } else {
+    html = result;
   }
 
   const emailLog = data.is_anonymous ? '**********' : data.to;
