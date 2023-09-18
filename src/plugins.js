@@ -16,7 +16,8 @@ module.exports.init = function() {
     });
     module.exports.list = plugins;
   } catch (err) {
-    console.log(err);
+    // ignore
+    // console.log(err);
   }
 
 };
