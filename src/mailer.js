@@ -20,10 +20,10 @@ const DEFAULT_SUBJECT = (email) => {
 
 //
 const DEFAULT_TEMPLATE = (template_name) => {
-  if (fs.existsSync(`./views/emails/${template_name}.mjml`)) {
-    return `./views/emails/${template_name}.mjml`;
+  if (fs.existsSync(`${config.projectRoot}/views/emails/${template_name}.mjml`)) {
+    return `${config.projectRoot}/views/emails/${template_name}.mjml`;
   }
-  return `./views/emails/${template_name}.dust`;
+  return `${config.projectRoot}/views/emails/${template_name}.dust`;
 };
 
 //
@@ -36,7 +36,35 @@ module.exports.init = function() {
 };
 
 //
-module.exports.send = async (template_name, data) => {
+module.exports.getHtml = (template_name, data) => {
+  
+  if (data.body) {
+    return data.body;
+  }
+  
+  const template = data.template || options.template(template_name);
+
+  let html;
+
+  try {
+    html = IgoDust.engine(template, data);
+  } catch (err) {
+    logger.error('mailer.send: error - could not render template ' + template);
+    logger.error(err);
+    return null;
+  }
+
+  if (template.endsWith('.mjml')) {
+    html = mjml2html(html, {
+      filePath: path.join(config.projectRoot, 'views/emails/'),    
+    }).html;
+  }
+
+  return html;
+};
+
+//
+module.exports.send = (template_name, data) => {
 
   if (config.env === 'test') {
     // no emails in test env
@@ -62,41 +90,17 @@ module.exports.send = async (template_name, data) => {
     return i18next.t(params.key, params);
   };
 
-  const template = data.template || options.template(template_name);
-  const type = template.split('.').pop();
-  let html = data.body;
+  const html = module.exports.getHtml(template_name, data);
 
-  console.log({template, type});
-  const render = (template, data) => {
-    return new Promise((resolve, reject) => {
-      try {
-        const result = IgoDust.engine(template, data);
-        resolve([null, result]);
-      } catch (err) {
-        reject([err, null]);
-      }
-    });
-  };
-
-  const [err, result] = await render(template, data);
-
-  if (err || !result) {
-    logger.error('mailer.send: error - could not render template ' + template);
-    logger.error(err);
+  if (!html) {
+    logger.error(`mailer.send: Empty mail content (${template_name})`);
     return;
   }
 
-  if (type === 'mjml') {
-    html = mjml2html(result, {
-      filePath: path.join(config.projectRoot, 'views/emails/'),    
-    }).html;
-  } else {
-    html = result;
-  }
-
   const emailLog = data.is_anonymous ? '**********' : data.to;
-  logger.info('mailer.send: Sending mail ' + template_name + ' to ' + emailLog + ' in ' + data.lang);
+  logger.info(`mailer.send: Sending mail ${template_name} to ${emailLog} in ${data.lang}`);
   const headers = {};
+
   if (config.mailer.subaccount) {
     headers['X-MC-Subaccount'] = config.mailer.subaccount;
   }

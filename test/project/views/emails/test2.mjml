@@ -1,0 +1,7 @@
+<mjml>
+  <mj-body>
+    <mj-section>
+      Hello {world}
+    </mj-section>
+  </mj-body>
+</mjml>
