@@ -1,145 +1,80 @@
+# Igo Forms
 
-# Igo Form
+## Overview
 
-Igo Forms will allow you to manage forms more easily by sanitizing, validating and converting user input.
+Igo offers a structured approach for handling user inputs in Node.js applications using form schemas. This guide will walk you through the steps to create, validate, and manage forms with Igo.
 
+## Table of Contents
+- [Setting up the Schema](#setting-up-the-schema)
+- [Creating the Form Class](#creating-the-form-class)
+- [Using the Form in Routes](#using-the-form-in-routes)
+- [Custom Validation](#custom-validation)
+- [Error Handling](#error-handling)
+- [Validation Library](#validation-library)
 
-- [How to use Igo Form](#how-to-use-igo-form)
-- [Available datatypes](#available-datatypes)
-- [Validation functions](#validation-functions)
+## Setting up the Schema
 
-## How to use Igo Form
+Every form in Igo begins with a schema definition. The schema outlines the attributes the form will accept and their respective types.
 
-### A basic Igo Form
-
-Here is a simple IgoForm, where a schema and a Form class are declared.
-
-The schema is composed of several attributes, and each attribute must have a name and a data type.
-The data type is important as it allows the sanitization (e.g. replace , with . for a float element) and conversion (e.g. convert an int in base 10).
-
-In the following example, a FriendForm is created, where the name of the user must be present.
-
-```
-const { Form }  = require('igo');
-
+```javascript
 const schema = {
   attributes: [
-    { name: 'name', type: 'text' },
-    { name: 'age',  type: 'int' },
+    { name: 'family_id', type: 'int' },
+    { name: 'training_id', type: 'int' },
+    ...
   ]
 };
+```
 
-class FriendForm extends Form(schema) {
+## Creating the Form Class
 
-  init(query) {
-    this.name = query.name;
-    return this;
-  }
+Once the schema is defined, create a form class extending Igo's base form model. This class will also include a validation method to set validation rules for each field.
 
+```javascript
+const { Form } = require('igo');
+
+class TestForm extends Form(schema) {
   validate(req) {
-    req.checkBody('name', 'errors.user.name').notEmpty();
+    req.checkBody('family_id', 'error.products.family_id').notEmpty();
+    ...
   }
 }
-
-module.exports = FriendForm;
 ```
 
-### Use it in your controller
+## Using the Form in Routes
 
-The form object can now be used to validate a form. To use it in a controller, import the class and instantiate it using the values of the form (in the example below, those values are in `req.query`). If the values are empty, the form will initialize itself with empty values.
+With the form class ready, you can use it within your Express routes to process form data.
 
-```
-// Import the form class
-const FriendForm = require('./FriendForm');
+```javascript
+const TestForm = require('./path_to_your_form_class');
 
-module.exports.new = (req, res) => {
-  const form = res.locals.flash.form || new FriendForm().init(req.query);
+app.post('/submit', (req, res) => {
+  const form = new TestForm().submit(req);
 
-  res.render('/new', { form });
-};
-```
-
-To validate the form, you must call the function `submit` on it. This function will match the function `validate` from your class with the form.
-
-If the validation generates errors, those errors are then in `form.errors`. If there is none error, `form.errors` will be `null`.
-```
-module.exports.create = (req, res) => {
-  const form = new FriendForm().submit(req);
   if (form.errors) {
     req.flash('form', form);
-    return res.redirect('/new');
+    return res.redirect('/tt/tests/new');
   }
-  
-  Friend.create(form.getValues(), (err, friend) => {
-    res.redirect('/friends');
-  });
+
+  // Continue processing valid data here
 });
 ```
-If you want to access values from the form, they are inside the form object (e.g. the value for the input named `name` is in `form.name`).
 
-If you want to only get access to the values declared on the form, the function `form.getValues()` will only return the values declared in the form. 
+## Custom Validation
 
-#### Options
+Igo allows for extensive customization in validation to cater to specific needs. Add unique conditions, checks, and other validation rules within the `validate` method of your form class.
 
-In addition to submit, other functions can be called on an Igo Form.
+## Error Handling
 
-• ```submit```: Global function to sanitize the data, validate it (e.g. using [validator.js](https://github.com/validatorjs/validator.js)), save errors of the form, and convert the values (e.g. an input taking a number to an int). 
+When Igo detects validation errors, it captures them for easy retrieval and user feedback. If there are validation errors, the `form.errors` property will be populated. 
 
-• ```sanitize```: Sanitize the submitted data. By default called with the function submit.
-
-• ```revert```: back to the original submitted values.
-
-•```convert```: convert the values of the form in the expected data type.
-
-•```getValues```: get the values on the form using the schema defined before.
-
-### Use it in your template
-
-If you use a template engine (as [igo-dust](https://github.com/igocreate/igo-dust)), the form and the errors that the validation will generate will be saved in the form object. To render the form, simply call the attribute of the form that you want to access and render.
-```
- <div class="form-group">
-    <input type="text" name="name" value="{form.name}">
-    <div class="invalid-feedback">{#t key=form.errors.name.msg /}</div>
-  </div>
+```javascript
+if (form.errors) {
+  req.flash('form', form);
+  return res.redirect('/error_page');
+}
 ```
 
-## Available datatypes
+## Validation Library
 
-The following types are available:
-- `text`
-- `int`
-- `float`
-- `date`
-- `boolean`
-- `array`
-
-#### Specific datatypes:
-##### • _array_
-
-Igo Form allows to easily manipulate arrays in forms, by declaring them in the schema as attributes with the type `array`. 
-```
-const schema = {
-  attributes: [
-    { name: 'array_int',      type: 'array', item_type: 'int' },
-    { name: 'array_default',  type: 'array', default: [] },
-  ]
-};
-```
-Two specific fields are available for arrays:
-- `item_type` corresponds to the type of items inside an array. Those types are the same than the standard types (`text`, `int`, `date`, `float` or `boolean`).
-- `default` indicates which value will be set if the value for that parameter is either `undefined` or `null`.
-
-##### • _date_
-Igo Form also allows to easily manipulate date, by declaring them in the schema as attributes with the type `date`.
-
-```
-const schema = {
-  attributes: [
-    { name: 'created_at',   type: 'date', format: 'DD/MM/YYYY' },
-  ]
-};
-```
-
-## Validation functions
-
-The `validate` function works using [Validator.js](https://github.com/validatorjs/validator.js), and validates that the elements of the form are correct. 
+Igo's validation mechanism is built upon its internal `validator.js` file, which is based on the [validator.js library](https://github.com/validatorjs/validator.js). This provides a robust set of validators and sanitizers for strings, ensuring that form data is both accurate and secure.
