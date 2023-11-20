@@ -1,0 +1,9 @@
+
+node_modules
+
+.env
+.DS_Store
+*.log
+
+public/dist
+public/webpack-assets.json

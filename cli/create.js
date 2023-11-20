@@ -12,12 +12,13 @@ const utils   = require('../src/utils');
 // igo create
 module.exports = function(argv) {
   var args = argv._;
-
-  if (args.length !== 2) {
-    console.warn('Usage: igo create <project-directory>');
+  if (args.length !== 2 && args.length !== 3) {
+    console.warn('Usage: igo create <project-directory> [model]');
     process.exit(1);
   }
-
+  
+  const model = args.length === 3 ? args[2] : 'default';
+  
   var directory = './' + args[1];
   fs.mkdir(directory, (err) => {
     if (err && err.code !== 'EEXIST') {
@@ -30,7 +31,7 @@ module.exports = function(argv) {
     };
     // recursive copy from skel to project directory
     console.log('create project in ' + directory);
-    fse.copy(__dirname + '/../skel', directory, options, (err) => {
+    fse.copy(__dirname + '/../skel/' + model, directory, options, (err) => {
       if (err) {
         console.error(err);
         process.exit(1);

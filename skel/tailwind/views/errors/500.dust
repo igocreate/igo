@@ -1,0 +1,10 @@
+
+{> "layouts/main" /}
+
+{<content}
+
+  <div class="container mt-5">
+    <h1><i class="far fa-thumbs-down"></i> 500 - Server error</h1>
+  </div>
+
+{/content}

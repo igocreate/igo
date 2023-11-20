@@ -29,16 +29,7 @@ const webpackConfig = {
       use: [
         MiniCssExtractPlugin.loader,
         'css-loader',
-        {
-          loader: 'postcss-loader',
-          options: {
-            postcssOptions: {
-              plugins: [
-                [ 'autoprefixer' ],
-              ],
-            },
-          }
-        },
+        'postcss-loader',
         'sass-loader'
       ]
     }, {

@@ -1,0 +1,24 @@
+{
+  "name": "{project.name}",
+  "version": "0.0.1",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "eslint": "eslint ./app ./test",
+    "nodemon": "nodemon app.js",
+    "start": "npm-run-all --parallel nodemon webpack",
+    "webpack": "webpack serve --mode=development",
+    "webpack-prod": "webpack --mode=production",
+    "test": "mocha"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "igo": "{igo.version}",
+  },
+  "devDependencies": {
+    "@fortawesome/fontawesome-free": "6.4.2",
+    "daisyui": "^3.9.3",
+    "tailwindcss": "^3.3.3"
+  }
+}
