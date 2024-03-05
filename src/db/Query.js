@@ -199,7 +199,7 @@ module.exports = class Query {
       return association[1] === associationName;
     });
     if (!association) {
-      return this;
+      throw new Error('Missing association \'' + associationName + '\' on \'' + this.schema.table + '\' schema.');
     }
 
     const attr        = association[1];
