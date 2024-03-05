@@ -36,7 +36,6 @@ const getWebpackAssets = () => {
 //
 module.exports = (req, res, next) => {
 
-  res.locals.session  = req.session;
   res.locals.assets   = getWebpackAssets();
 
   // verify locale whitelist

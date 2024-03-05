@@ -106,7 +106,6 @@ it('should return user and login', function(done) {
     agent.post('/api/login', req, function(err, res) {
       assert(res.data.id);
       assert.strictEqual(res.data.login, user.login);
-      assert.strictEqual(res.locals.session.current_user.id, user.id);
       done();
     });
   });
