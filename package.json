@@ -4,7 +4,6 @@
   "homepage": "https://github.com/igocreate/igo",
   "description": "Igo is a Node.js Web Framework based on Express",
   "main": "index.js",
-  "types": "./types/index.d.ts",
   "scripts": {
     "test": "mocha --exit",
     "eslint": "eslint ./src ./test ./app ./cli"
@@ -75,8 +74,5 @@
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^5.0.2",
     "winston": "^3.12.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.3.3"
   }
 }
