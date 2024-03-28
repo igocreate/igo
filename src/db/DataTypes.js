@@ -9,8 +9,8 @@ module.exports = {
     get:  _.identity,
   },
   boolean: {
-    set:  value => !!value,
-    get:  value => !!value,
+    set:  value => (value === null || value === undefined) ? null : !!value,
+    get:  value => (value === null || value === undefined) ? null : !!value,
   },
   json: {
     set:  value => utils.toJSON(value),

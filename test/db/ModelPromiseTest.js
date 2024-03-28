@@ -34,6 +34,7 @@ describe('db.Model', () => {
       it('should insert a book', async () => {
         const book = await Book.create();
         assert(book && book.id);
+        assert.strictEqual(book.is_available, null);
       });
 
       it('should insert a book with values', async () => {

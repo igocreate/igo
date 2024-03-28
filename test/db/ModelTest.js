@@ -34,6 +34,7 @@ describe('db.Model', function() {
       it('should insert a book', function(done) {
         Book.create(function(err, book) {
           assert(book && book.id);
+          assert.strictEqual(book.is_available, null);
           done();
         });
       });
