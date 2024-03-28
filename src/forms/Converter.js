@@ -7,7 +7,7 @@ const moment    = require('moment');
 // converters by type
 const TYPE_CONVERTERS = {
   date: (v, attr) => {
-    const m = moment(v, attr.format);
+    const m = moment(v, attr.format || 'YYYY-MM-DD');
     if (!m.isValid()) {
       return null;
     }
@@ -15,17 +15,20 @@ const TYPE_CONVERTERS = {
   },
   int:      v => parseInt(v, 10),
   float:    v => parseFloat(v),
+  number:   v => Number(v),
   boolean:  v => !!v,
+  text:     v => v || null,
+  array:    v => v || null,
 };
 
 
 //
-const convert = module.exports.convert = (value, attr) => {
+module.exports.convert = (value, attr) => {
   const { type, item_type, format } = attr;
 
   if (_.isArray(value)) {
     if (item_type) {
-      return _.map(value, v => convert(v, {type: item_type, format}));
+      return _.map(value, v => module.exports.convert(v, {type: item_type, format}));
     }
     return value;
   }
@@ -38,10 +41,12 @@ const convert = module.exports.convert = (value, attr) => {
   // convert by type
   if (TYPE_CONVERTERS[type]) {
     value = TYPE_CONVERTERS[type](value, attr);
+  } else {
+    console.error(`Unknown type ${type} (attribute ${attr.name})`);
   }
 
   //
-  if (!value && value !== 0) {
+  if (value === undefined || value === '' || isNaN(value)) {
     value = null;
   }
   
