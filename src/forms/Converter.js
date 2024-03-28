@@ -46,7 +46,7 @@ module.exports.convert = (value, attr) => {
   }
 
   //
-  if (value === undefined || value === '' || isNaN(value)) {
+  if (!value && value !== 0 && value !== false) {
     value = null;
   }
   
