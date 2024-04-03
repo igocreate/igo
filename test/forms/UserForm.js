@@ -11,8 +11,10 @@ const schema = {
     { name: 'price',    type: 'float' },
     { name: 'password', type: 'text' },
     { name: 'check',    type: 'boolean' },
+    { name: 'yesno',    type: 'boolean', allownull: true },
     { name: 'date',     type: 'date', format: 'DD/MM/YYYY' },
     { name: 'array',    type: 'array' },
+    { name: 'lower',    type: 'custom', convert: v => v && v.toLowerCase() }
   ]
 };
 

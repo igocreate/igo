@@ -21,10 +21,12 @@ describe('igo.Form', () => {
 
   it('should validate form', () => {
     const body = {
-      email: 'noooo@nooo.fr',
-      int: '1 234',
-      float: '1234,56',
-      date: '24/12/2000'
+      email:  'noooo@nooo.fr',
+      int:    '1 234',
+      float:  '1234,56',
+      date:   '24/12/2000',
+      check:  'on',
+      yesno:  'yes'
     };
     const form = new UserForm().submit(reqWithBody(body));
     assert.strictEqual(form.errors, null);
@@ -33,6 +35,34 @@ describe('igo.Form', () => {
     assert.strictEqual(form.age, null);
     assert.strictEqual(form.float, 1234.56);
     assert.strictEqual(form.price, null);
+    assert.strictEqual(form.check, true);
+    assert.strictEqual(form.yesno, true);
+  });
+
+  it('should handle allownull param', () => {
+    const body = {
+      email:  'noooo@nooo.fr',
+      int:    '1 234',
+      float:  '1234,56',
+      date:   '24/12/2000',
+    };
+    const form = new UserForm().submit(reqWithBody(body));
+    assert.strictEqual(form.errors, null);
+    assert.strictEqual(form.check, false);
+    assert.strictEqual(form.yesno, null);
+  });
+
+  it('should handle custom converters', () => {
+    const body = {
+      email:  'noooo@nooo.fr',
+      int:    '1 234',
+      float:  '1234,56',
+      date:   '24/12/2000',
+      lower:  'ABC',
+    };
+    const form = new UserForm().submit(reqWithBody(body));
+    assert.strictEqual(form.errors, null);
+    assert.strictEqual(form.lower, 'abc');
   });
 
   it('should validate with array', () => {

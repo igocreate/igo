@@ -16,9 +16,20 @@ const TYPE_CONVERTERS = {
   int:      v => parseInt(v, 10),
   float:    v => parseFloat(v),
   number:   v => Number(v),
-  boolean:  v => (v === undefined || v === null) ? null : !!v,
+  boolean:  (v, attr) => {
+    if (v === undefined || v === null) {
+      return attr.allownull ? null : false;
+    }
+    return !!v;
+  },
   text:     v => v || null,
   array:    v => v || null,
+  custom:  (v, attr) => {
+    if (attr.convert) {
+      return attr.convert(v, attr);
+    }
+    return v || null;
+  }
 };
 
 
