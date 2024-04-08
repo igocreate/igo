@@ -1,5 +1,7 @@
 # Igo.js
 
+![Build Status](https://github.com/igocreate/igo/actions/workflows/node.js.yml/badge.svg)
+
 Igo is a Web Framework for Node.js that comes with:
 - Pre-configured Express, middlewares, and Dust
 - Pre-configured [Webpack](https://webpack.js.org) and [Nodemon](https://nodemon.io/)
