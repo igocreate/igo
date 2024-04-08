@@ -10,7 +10,7 @@ module.exports.init = (app) => {
   app.set('views', config.projectRoot + '/views'); 
 
   // configure with express app
-  IgoDust.configure(app);
+  IgoDust.configure(app.settings);
 
   // init helpers
   initHelpers();
@@ -26,7 +26,7 @@ module.exports.middleware = (req, res, next) => {
       const data = {...res.locals, ...locals};
       res.type('html');
       // TODO: handle ETAgs and status 304
-      IgoDust.stream(res, template, data);
+      IgoDust.renderFile(template + '.dust', data, res);
       res.end();
     };
   }
