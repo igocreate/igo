@@ -43,7 +43,7 @@ class Chain {
   }
 
   match(re) {
-    if (!this.value.match(re)) {
+    if (!this.value || !this.value.match(re)) {
       this.addError();
     }
     return this;
