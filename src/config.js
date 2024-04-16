@@ -113,7 +113,6 @@ module.exports.init = function() {
   //
   if (config.env === 'production') {
     config.auto_migrate         = true;
-    config.loglevel             = 'error';
   }
 
   // load app config
