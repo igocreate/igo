@@ -2,6 +2,8 @@ const _           = require('lodash');
 const qs          = require('qs');
 const multiparty  = require('multiparty');
 
+const config      = require('../config');
+
 const RE_MIME = /^(?:multipart\/.+)$/i;
 const mime = function(req) {
   let str = req.headers['content-type'] || '';
@@ -28,9 +30,14 @@ module.exports = function(req, res, next) {
   if (req.method !== 'POST' || !RE_MIME.test(mime(req))) {
     return next();
   }
-  const form = new multiparty.Form();
+
+  const form = new multiparty.Form(config.multiparty || {});
 
   form.parse(req, function(err, fields, files) {
+    if (err) {
+      req.upload_err = err;
+      return next();
+    }
     req.files = format(files, true);
     req.body  = format(fields);
     next();
