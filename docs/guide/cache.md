@@ -34,10 +34,9 @@ Use `require('igo').cache` to access the Igo.js Cache API.
 
 var cache = require('igo').cache;
 var id    = 123;
-cache.put('namespace', id, 'hello', function() {
-  cache.get('namespace', 124, function(err, value) {
-    assert(value === 'hello');
-  });
+cache.put('namespace', id, 'hello', () => {
+  const value = await cache.get('namespace', 124);
+  assert(value === 'hello');
 });
 
 ```

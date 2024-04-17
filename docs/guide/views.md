@@ -1,7 +1,7 @@
 
 # Igo Views
 
-Igo.js uses the [Dust](http://www.dustjs.com/) templating engine. This module is maintained by LinkedIn (https://github.com/linkedin/dustjs).
+Igo.js uses the [Igo Dust.js](https://github.com/igocreate/igo-dust) templating engine.
 
 The templates files are located in the `/views` directory.
 
@@ -12,7 +12,7 @@ res.render('users/show');
 
 ## Template syntax
 
-The Dust.js documentation can be found on http://www.dustjs.com/
+The Igo Dust.js documentation can be found [here](https://igocreate.github.io/igo-dust/).
 
 ## i18n
 
@@ -57,19 +57,18 @@ Igo.js allows to define custom Dust Helpers in the `/app/helpers.js` file.
 module.exports.init = function(dust) {
 
   // define your dust helpers here
-  // (example taken from http://www.dustjs.com/docs/helper-api/)
-  dust.helpers.period = function(chunk, context, bodies, params) {
-    var location = params.location, body = bodies.block;
-    if (location === 'start') {
-      chunk.write('.');
-      chunk.render(body, context);
-    } else if (location === 'end') {
-      chunk.render(body, context);
-      chunk.write('.');
-    } else {
-      dust.log('WARN', 'missing parameter "location" in period helper');
-    }
-    return chunk;
+  // (example taken from https://igocreate.github.io/igo-dust/#/guide/helpers?id=custom-helpers)
+  // @nl2br helper
+  igodust.helpers.nl2br = (params, locals) => {
+    if (params.value) {
+      return params.value.replace(/(\r\n|\n\r|\r|\n)/g, '<br/>');
+    };
+  };
+
+  // @boolean helper
+  igodust.helpers.boolean = (params, locals) => {
+    const color = params.value ? 'success' : 'danger';
+    return `<div class="bullet bullet-sm bullet-${color}"></div>`;
   };
 
 };

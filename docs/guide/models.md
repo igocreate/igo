@@ -263,9 +263,9 @@ users.destroy();
 ### List
 
 ```js
-User.list(function(err, users) {
-  // users is an array of User objects
-});
+const users =  await User.list();
+// users is an array of User objects
+
 ```
 
 #### Where
@@ -274,30 +274,28 @@ Examples:
 ```js
 
 // filter with attribute values
-User.where({type: 'foo', sub_type: 'bar'}).list(function(err, users) { ... });
+const users = await User.where({type: 'foo', sub_type: 'bar'}).list();
 
 // filter with sql
-User.where('`last_name` IS NOT NULL').list(function(err, users) { ... });
+const users = await User.where('`last_name` IS NOT NULL').list();
 
 // filter with sql and params
-User.where('`created_at` BETWEEN ? AND ?', [date1, date2]).list(function(err, users) { ... });
+const users = await User.where('`created_at` BETWEEN ? AND ?', [date1, date2]).list();
 ```
 
 #### Limit
 
 ```js
-User.limit(10).list(function(err, users) {
-  // first ten users
-  console.dir(users);
-});
+const users = await User.limit(10).list();
+// first ten users
+console.dir(users);
 ```
 
 #### Order
 
 ```js
-User.order('`last_name` DESC').list(function(err, users) {
-  console.dir(users);
-});
+const users = await User.order('`last_name` DESC').list();
+console.dir(users);
 ```
 
 ### Associations loading
@@ -323,29 +321,26 @@ User.includes(['country', {projects: ['lead', 'tasks']}]).first( ... );
 `count()` allows you to count rows.
 
 ```js
-User.count(function(err, count) {
-  // count all users
-  console.dir(count);
-});
+const count = await User.count();
+// count all users
+console.dir(count);
 
-User.where({first_name: 'john'}).count(function(err, count) {
-  // count all users named John
-  console.dir(count);
-});
+
+const count = await User.where({first_name: 'john'}).count();
+// count all users named John
+console.dir(count);
 ```
 
 ### Distinct
 
 ```js
-User.distinct('first_name').list(function(err, first_names) {
-  // list all distinct user first names
-  console.dir(first_names);
-});
+const first_names = await User.distinct('first_name').list();
+// list all distinct user first names
+console.dir(first_names);
 
-User.distinct([ 'first_name', 'last_name' ]).list(function(err, first_names) {
-  // list all distinct user first and last names combinations
-  console.dir(first_names);
-});
+const first_names = await User.distinct([ 'first_name', 'last_name' ]).list();
+// list all distinct user first and last names combinations
+console.dir(first_names);
 ```
 
 ### Select
@@ -353,52 +348,50 @@ User.distinct([ 'first_name', 'last_name' ]).list(function(err, first_names) {
 `select()` allows you to customize `SELECT` (set by default to `SELECT *`).
 
 ```js
-User.select('id, first_name').list(function(err, users) {
-  // select only id and first_name columns
-  console.dir(users);
-});
+const users = await User.select('id, first_name').list();
+// select only id and first_name columns
+console.dir(users);
 
-User.select('*, YEAR(created_at) AS `year`').list(function(err, users) {
-  // add year (from created_at column) in user
-  console.dir(users);
-});
+const users = await User.select('*, YEAR(created_at) AS `year`').list();
+// add year (from created_at column) in user
+console.dir(users);
 ```
 
 ### Group
 
 ```js
-User.select('COUNT(*) AS `count`, YEAR(created_at) AS `year`').group('year').list(function(err, groups) {
-  // return users count by creation year
-  console.dir(groups);
-});
+const groups = await User.select('COUNT(*) AS `count`, YEAR(created_at) AS `year`').group('year').list();
+// return users count by creation year
+console.dir(groups);
 ```
 
 ### Pagin
 
 ```js
-User.page(current_page, nb_limit_element).list((err, users) => {
-  // return pagin of users
-  console.dir(users);
- // {
- // pagination: {
- //   page: 1,
- //   nb: 10,
- //   previous: null,
- //   next: null,
- //   nb_pages: 1,
- //   count: '1',
- //   links: [ [Object] ]
- // },
- // rows: [
- //   User {
- //     id: 1,
- //     first_name: "edouard"
- //     updated_at: 2021-07-07T07:33:31.457Z,
- //     created_at: 2021-07-07T07:33:31.457Z,
- //   }
- // ]
- //}
-});
+const users = await User.page(current_page, nb_limit_element).list();
+// return pagin of users
+console.dir(users);
+
+// Output
+{
+  pagination: {
+    page: 1,
+    nb: 10,
+    previous: null,
+    next: null,
+    nb_pages: 1,
+    count: '1',
+    links: [ [Object] ]
+  },
+  rows: [
+    User {
+      id: 1,
+      first_name: "edouard"
+      updated_at: 2021-07-07T07:33:31.457Z,
+      created_at: 2021-07-07T07:33:31.457Z,
+    }
+  ]
+}
 ```
 
 ### Join
@@ -412,12 +405,10 @@ User.page(current_page, nb_limit_element).list((err, users) => {
 | Type     | string    | "left"\|"inner"\|"right| false| "left"|
 
 ```js
-User.join('country', 'country_code', 'left').first(function(err, user) {
-  console.dir(user.country_code);
-});
+const user = await User.join('country', 'country_code', 'left').first();
+console.dir(user.country_code);
 
 // Can be use combine with select()
-User.select('`user`.*, `country`.`code` AS `country_code`' ).join('country').first(function(err, user) {
-  console.dir(user.country_code);
-});
+const user = await User.select('`user`.*, `country`.`code` AS `country_code`' ).join('country').first();
+console.dir(user.country_code);
 ```

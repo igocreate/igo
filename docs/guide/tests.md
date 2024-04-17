@@ -80,11 +80,10 @@ The HTML response is set in `res.body`.
 ```js
 //...
 it('should show form', async () => {
-  agent.get('/foo', function(err, res) {
-    assert.strictEqual(res.statusCode, 200);
-    assert(res.body.match(/<form /));
-    done();
-  });
+  const res = await agent.get('/foo');
+  assert.strictEqual(res.statusCode, 200);
+  assert(res.body.match(/<form /));
+  done();
 });
 //...
 ```
@@ -96,17 +95,16 @@ The JSON response is set in `res.data`.
 ```js
 //...
 it('should return user and login', async () => {
-  User.create({login: 'John'}, function(err, user) {
-    var req = {
-      body: {
-        login: user.login,
-      }
-    };
-    agent.post('/api/login', req, function(err, res) {
-      assert(res.data.id);
-      assert.strictEqual(res.data.login, user.login);
-      done();
-    });
-  });
+  const user = await User.create({login: 'John'});
+  var req = {
+    body: {
+      login: user.login,
+    }
+  };
+  const res = await agent.post('/api/login', req);
+  assert(res.data.id);
+  assert.strictEqual(res.data.login, user.login);
+  done();
+});
 //...
 ```

@@ -26,7 +26,7 @@ After several months spent duplicating the same configuration and the same techn
 # install mocha
 npm install -g mocha
 
-# install igo
+# install igo.js
 npm install -g igo
 ```
 
@@ -44,15 +44,17 @@ npm start
 ```
 
 ## Configuration
-The Igo configuration is located in `/app/config.js`.
+The Igo.js configuration is located in `/app/config.js`.
 The configuration is initialized at startup, and can be retrieved through igo module:
 ```js
 var config = require('igo').config`;
 ```
 
-Some configuration parameters can be defined with environment variables. Igo uses [dotenv](https://github.com/motdotla/dotenv), so you can just add/override variables in the `/.env` file.
+Some configuration parameters can be defined with environment variables. Igo.js uses [dotenv](https://github.com/motdotla/dotenv), so you can just add/override variables in the `/.env` file.
 E.g:
 ```txt
 # development database
 MYSQL_DATABASE=mydatabase
 ```
+
+---

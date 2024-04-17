@@ -5,14 +5,6 @@
 
 Igo.js offers a structured approach for handling user inputs in Node.js applications using form schemas. This guide will walk you through the steps to create, validate, and manage forms with Igo.js.
 
-## Table of Contents
-- [Setting up the Schema](#setting-up-the-schema)
-- [Creating the Form Class](#creating-the-form-class)
-- [Using the Form in Routes](#using-the-form-in-routes)
-- [Custom Validation](#custom-validation)
-- [Error Handling](#error-handling)
-- [Validation Library](#validation-library)
-
 ## Setting up the Schema
 
 Every form in Igo.js begins with a schema definition. The schema outlines the attributes the form will accept and their respective types.

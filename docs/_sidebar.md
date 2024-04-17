@@ -1,4 +1,4 @@
-- [Introduction](/#igojs)
+- [Introduction](/#igojs "Igo.js")
 - [Models](/guide/models "Igo.js | Models")
 - [Views](/guide/views "Igo.js | Views")
 - [Controllers](/guide/controllers "Igo.js | Controllers")
