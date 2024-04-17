@@ -1,12 +1,12 @@
 
-# Igo Model API
+# Igo.js Model API
 
-The Igo Model API for MySQL is the only part of Igo that is not just the integration of another module.
+The Igo.js Model API for MySQL is the only part of Igo.js that is not just the integration of another module.
 As you will notice, the syntax was very inspired by [Ruby on Rails Active Record](http://guides.rubyonrails.org/active_record_basics.html).
 
 ## MySQL Configuration
 
-This is the default MySQL configuration (`config.mysql`) defined by Igo:
+This is the default MySQL configuration (`config.mysql`) defined by Igo.js:
 ```
 config.mysql = {
   host     : process.env.MYSQL_HOST     || '127.0.0.1',
@@ -45,7 +45,7 @@ When a migration file has run successfully, it is saved in a `__db_migrations` t
 
 ### CLI
 
-The Igo CLI provides convenient functions to deal with the database migrations.
+The Igo.js CLI provides convenient functions to deal with the database migrations.
 
 ```sh
 # run migrations
@@ -185,17 +185,15 @@ User.scope('validated').list(function(err, validatedUsers) {
 
 ```js
 // create default user
-User.create(function(err, user) {
-  //
-});
+const user = await User.create();
+// => User { id: null, first_name: null, last_name: null, ... }
 
 // create with specified attributes
-User.create({
+const user = await User.create({
   first_name: 'John',
-  last_name:  'John',
-}, function(err, user) {
-  console.log('Hi ' + user.first_name);
+  last_name:  'Doe',
 });
+// => User { id: null, first_name: 'John', last_name: 'Doe', ... }
 ```
 
 If the primary key is an `AUTO_INCREMENT` field, it will be set automatically in the object returned in the callback.
@@ -203,9 +201,8 @@ If the primary key is an `AUTO_INCREMENT` field, it will be set automatically in
 ### Find
 
 ```js
-User.find(id, function(err, user) {
-  console.log('Hi ' + user.first_name);
-});
+const user = await User.find(id);
+console.log('Hi ' + user.first_name);
 ```
 
 ### Update
@@ -213,35 +210,25 @@ User.find(id, function(err, user) {
 To update a specific object:
 
 ```js
-User.find(id, function(err, user) {
-  user.update({
-    first_name: 'Jim'
-  }, function(err, user) {
-    console.log('Hi ' + user.first_name);
-  });
-});
+const user = await User.find(id);
+user.update({ first_name: 'Jim' });
+console.log('Hi ' + user.first_name);
 ```
 
 To update several objects:
 
 ```js
-User.where({
-  country: 'France'
-}). update({
-  language: 'French'
-}, function(err) {
-  // Users are updated
-});
+const users = await User.where({ country: 'France' })
+users.update({ language: 'French' });
+// Users are updated
 ```
 
 To update all objects:
 
 ```js
-User.update({
-  first_name: 'Jim'
-}, function(err) {
-  // all users are now named Jim
-});
+User.update({ first_name: 'Jim' })
+// all users are now named Jim
+
 ```
 
 ### Delete
@@ -249,29 +236,28 @@ User.update({
 To delete a specific object:
 
 ```js
-User.destroy(id, function(err) {
-  // user was deleted
-});
+User.destroy(id);
+// user was deleted
 ```
 
 ```js
-User.find(id, function(err, user) {
-  user.destroy(function(err) {
-    // user was deleted
-  });
-});
+const user = await User.find(id);
+user.destroy();
+// user was deleted
+
 ```
 
 ```js
-User.destroyAll(function(err) {
-  // all users were deleted
-});
+User.destroyAll();
+// all users were deleted
+
 ```
 
 ```js
-User.where({first_name: 'Jim'}).destroy(function(err) {
-  // all users named Jim were deleted
-});
+const users = await User.where({ first_name: 'Jim' });
+users.destroy();
+// all users named Jim were deleted
+
 ```
 
 ### List
@@ -418,11 +404,13 @@ User.page(current_page, nb_limit_element).list((err, users) => {
 ### Join
 
 `join()` allows you to join 2 tables with LEFT, INNER OR RIGHT JOIN.
+
 | Parameter  | Type | Description | Required | Default |
 | ------------- |-------------|-------------|-------------|-------------|
 | Association name | string       |   Name of the association (the table to join need to be declared as association in Schema) | true||
 | Columns     | string or array   | Columns joined from the association table | false ||
 | Type     | string    | "left"\|"inner"\|"right| false| "left"|
+
 ```js
 User.join('country', 'country_code', 'left').first(function(err, user) {
   console.dir(user.country_code);

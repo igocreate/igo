@@ -1,7 +1,7 @@
 
-# Igo cache
+# Igo.js cache
 
-Igo uses Redis as a distributed cache.
+Igo.js uses Redis as a distributed cache.
 
 This is the default Redis configuration :
 ```js
@@ -28,7 +28,7 @@ config.redis = {
 
 This configuration object is directly transmitted to the redis client: `redisclient = redis.createClient(config.redis);`
 
-Use `require('igo').cache` to access the Igo Cache API.
+Use `require('igo').cache` to access the Igo.js Cache API.
 
 ```js
 
@@ -52,4 +52,4 @@ Available functions are:
 - `flushall(callback)`
 
 ## Special note about Dates
-Since javascript Dates are ISO_8601 formatted and stored as strings in Redis, Igo automatically parses dates when they are retrieved from the cache.
+Since javascript Dates are ISO_8601 formatted and stored as strings in Redis, Igo.js automatically parses dates when they are retrieved from the cache.

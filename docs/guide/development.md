@@ -1,7 +1,7 @@
 
 # Development
 
-Igo uses npm scripts, [Webpack 2](https://webpack.js.org) and [Nodemon](https://nodemon.io/).
+Igo.js uses npm scripts, [Webpack 2](https://webpack.js.org) and [Nodemon](https://nodemon.io/).
 
 ## Default npm scripts
 
@@ -31,7 +31,7 @@ module.exports = webpackConfig;
 ```
 
 You can override this default config as you like.
-Here is [the default config](/src/dev/webpack.config.js), embedded with Igo.
+Here is [the default config](/src/dev/webpack.config.js), embedded with Igo.js.
 
 ### Nodemon
 

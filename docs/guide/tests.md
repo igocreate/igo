@@ -1,4 +1,5 @@
 
+
 # Testing Igo Applications
 
 Testing your application is super important. Igo helps to write efficient tests easily.
@@ -36,9 +37,9 @@ require('igo').dev.test();
 var assert    = require('assert');
 var DateUtils = require('../../app/utils/DateUtils');
 
-describe('utils/DateUtils', function() {
-  describe('startOfDay', function() {
-    it('should return start of day', function() {
+describe('utils/DateUtils', () => {
+  describe('startOfDay', () => {
+    it('should return start of day', async () => {
       var d     = new Date();
       var start = DateUtils.startOfDay(d);
       assert.strictEqual(start.getHours(), 0);
@@ -61,15 +62,13 @@ require('igo').dev.test();
 var assert = require('assert');
 var agent = require('igo').dev.agent;
 
-describe('controllers/IndexController', function() {
-  describe('/', function() {
+describe('controllers/IndexController', () => {
+  describe('/', () => {
     // redirection test
-    it('should redirect to /foo', function(done) {
-      agent.get('/', function(err, res) {
-        assert.strictEqual(res.statusCode, 302);
-        assert.strictEqual(res.redirectUrl, '/foo');
-        done();
-      });
+    it('should redirect to /foo', async () => {
+      const res = await agent.get('/');
+      assert.strictEqual(res.statusCode, 302);
+      assert.strictEqual(res.redirectUrl, '/foo');
     });
   });
 });
@@ -80,7 +79,7 @@ The HTML response is set in `res.body`.
 
 ```js
 //...
-it('should show form', function(done) {
+it('should show form', async () => {
   agent.get('/foo', function(err, res) {
     assert.strictEqual(res.statusCode, 200);
     assert(res.body.match(/<form /));
@@ -96,7 +95,7 @@ The JSON response is set in `res.data`.
 
 ```js
 //...
-it('should return user and login', function(done) {
+it('should return user and login', async () => {
   User.create({login: 'John'}, function(err, user) {
     var req = {
       body: {

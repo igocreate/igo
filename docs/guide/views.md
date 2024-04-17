@@ -1,7 +1,7 @@
 
 # Igo Views
 
-Igo uses the [Dust](http://www.dustjs.com/) templating engine. This module is maintained by LinkedIn (https://github.com/linkedin/dustjs).
+Igo.js uses the [Dust](http://www.dustjs.com/) templating engine. This module is maintained by LinkedIn (https://github.com/linkedin/dustjs).
 
 The templates files are located in the `/views` directory.
 
@@ -16,7 +16,7 @@ The Dust.js documentation can be found on http://www.dustjs.com/
 
 ## i18n
 
-Igo uses [i18next](http://i18next.com/), which is a great module so make sure that your read their [documentation](http://i18next.com/docs).
+Igo.js uses [i18next](http://i18next.com/), which is a great module so make sure that your read their [documentation](http://i18next.com/docs).
 Here is the default configuration:
 
 ```js
@@ -51,7 +51,7 @@ Translations are defined in the `/locales/{LANG}/translation.json` files.
 
 ## View helpers
 
-Igo allows to define custom Dust Helpers in the `/app/helpers.js` file.
+Igo.js allows to define custom Dust Helpers in the `/app/helpers.js` file.
 
 ```js
 module.exports.init = function(dust) {
@@ -75,12 +75,10 @@ module.exports.init = function(dust) {
 };
 ```
 
-Igo have one predefined helper :
+Igo.js have one predefined helper :
 
   Dateformat, it take a timestamp and format it with the help of momentjs [momentjs](https://momentjs.com/)
   
 ```js  
-
   {@dateformat date=date format="calendar" /}
-
 ```
