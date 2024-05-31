@@ -103,6 +103,9 @@ module.exports.init = function() {
     database: process.env.REDIS_DATABASE  || 0
   };
 
+  // logger
+  config.loglevel = process.env.LOG_LEVEL || 'info';
+
   //
   if (config.env === 'test') {
     config.mysql.database       = 'test';

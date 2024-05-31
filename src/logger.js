@@ -30,9 +30,7 @@ module.exports.init = () => {
   //   filename: `logs/${config.env}.log`
   // }));
 
-  if (config.loglevel) {
-    logger.level = config.loglevel;
-  }
+  logger.level = config.loglevel;
 
   // if (process.env.PAPERTRAIL_HOST && config.env !== 'test') {
   //   logger.add(new winston.transports.Papertrail({
