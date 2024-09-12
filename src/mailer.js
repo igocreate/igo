@@ -36,7 +36,7 @@ module.exports.init = function() {
 };
 
 //
-module.exports.getHtml = (template_name, data) => {
+module.exports.getHtml = async (template_name, data) => {
   
   if (data.body) {
     return data.body;
@@ -55,16 +55,17 @@ module.exports.getHtml = (template_name, data) => {
   }
 
   if (template.endsWith('.mjml')) {
-    html = mjml2html(html, {
+    const result = await mjml2html(html, {
       filePath: path.join(config.projectRoot, 'views/emails/'),    
-    }).html;
+    });
+    html = result.html;
   }
 
   return html;
 };
 
 //
-module.exports.send = (template_name, data) => {
+module.exports.send = async (template_name, data) => {
 
   if (config.env === 'test') {
     // no emails in test env
@@ -90,7 +91,7 @@ module.exports.send = (template_name, data) => {
     return i18next.t(params.key, params);
   };
 
-  const html = module.exports.getHtml(template_name, data);
+  const html = await module.exports.getHtml(template_name, data);
 
   if (!html) {
     logger.error(`mailer.send: Empty mail content (${template_name})`);

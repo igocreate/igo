@@ -10,22 +10,19 @@ describe('mailer', function() {
   //
   describe('getHtml', function() {
 
-    it('should return data.body', (done) => {
-      const html = mailer.getHtml('test', { body: 'Hello Igo' });
+    it('should return data.body', async () => {
+      const html = await mailer.getHtml('test', { body: 'Hello Igo' });
       assert.strictEqual(html, 'Hello Igo');
-      done();
     });
 
-    it('should render dust template', (done) => {
-      const html = mailer.getHtml('test1', { world: 'Igo' });
+    it('should render dust template', async () => {
+      const html = await mailer.getHtml('test1', { world: 'Igo' });
       assert.strictEqual(html, 'Hello Igo');
-      done();
     });
 
-    it('should render mjml template', (done) => {
-      const html = mailer.getHtml('test2', { world: 'Igo' });
+    it('should render mjml template', async () => {
+      const html = await mailer.getHtml('test2', { world: 'Igo' });
       assert(html.startsWith('<!doctype html>'));
-      done();
     });
 
 
