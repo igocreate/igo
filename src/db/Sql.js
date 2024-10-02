@@ -26,7 +26,7 @@ var Sql = function(query, dialect) {
 
     if (query.join && query.join.columns) {
       _.forEach(query.join.columns, column => {
-        sql += `,${esc}${query.join.name}${esc}.${column} `;
+        sql += `,${esc}${query.join.name}${esc}.${esc}${column}${esc} `;
       });
     }
 
@@ -36,7 +36,7 @@ var Sql = function(query, dialect) {
     // join
     if (query.join) {
       const { type, table, column, ref_column, name } = query.join;
-      sql += `${type} JOIN ${esc}${table}${esc} as ${esc}${name}${esc} ON ${esc}${name}${esc}.${esc}${ref_column}${esc} = ${esc}${query.table}${esc}.${esc}${column}${esc} `;
+      sql += `${type.toUpperCase()} JOIN ${esc}${table}${esc} as ${esc}${name}${esc} ON ${esc}${name}${esc}.${esc}${ref_column}${esc} = ${esc}${query.table}${esc}.${esc}${column}${esc} `;
     }
 
     // where
