@@ -26,7 +26,8 @@ var Sql = function(query, dialect) {
 
     if (query.join && query.join.columns) {
       _.forEach(query.join.columns, column => {
-        sql += `,${esc}${query.join.name}${esc}.${esc}${column}${esc} `;
+        const col = column.indexOf('`') > -1 || column.indexOf(' as ') > -1 ? column : `${esc}${column}${esc}`;
+        sql += `,${esc}${query.join.name}${esc}.${col} `;
       });
     }
 
