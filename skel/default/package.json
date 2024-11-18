@@ -6,7 +6,7 @@
   "scripts": {
     "eslint": "eslint ./app ./test",
     "nodemon": "nodemon app.js",
-    "start": "npm-run-all --parallel nodemon webpack",
+    "start": "npm run nodemon & npm run webpack",
     "webpack": "webpack serve --mode=development",
     "webpack-prod": "webpack --mode=production",
     "test": "mocha"

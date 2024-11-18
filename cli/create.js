@@ -1,17 +1,17 @@
 
 
 const fs      = require('fs');
+const path    = require('path');
 
 const _       = require('lodash');
 const fse     = require('fs-extra');
-const replace = require('replace-in-file');
 
 const utils   = require('../src/utils');
 
 
 // igo create
 module.exports = function(argv) {
-  var args = argv._;
+  const args = argv._;
   if (args.length !== 2 && args.length !== 3) {
     console.warn('Usage: igo create <project-directory> [model]');
     process.exit(1);
@@ -19,14 +19,14 @@ module.exports = function(argv) {
   
   const model = args.length === 3 ? args[2] : 'default';
   
-  var directory = './' + args[1];
+  const directory = './' + args[1];
   fs.mkdir(directory, (err) => {
     if (err && err.code !== 'EEXIST') {
       console.error('mkdir error: ' + err);
       process.exit(1);
     }
 
-    var options = {
+    const options = {
       overwrite: false // do not overwrite
     };
     // recursive copy from skel to project directory
@@ -38,25 +38,40 @@ module.exports = function(argv) {
       }
 
       // replace in files
-      var packagejson = require('../package.json');
-      var replacements = {
+      const packagejson = require('../package.json');
+      const replacements = {
         '{igo.version}':  packagejson.version,
         '{project.name}': args[1],
         '{RANDOM_1}':     utils.randomString(40),
         '{RANDOM_2}':     utils.randomString(40),
         '{RANDOM_3}':     utils.randomString(40)
       };
-      _.forEach(replacements, function(replacement, regexp) {
-        replace.sync({
-          files:      [
-            directory + '/**/*.*',
-            directory + '/**/.*'
-          ],
-          from:       new RegExp(regexp, 'g'),
-          to:         replacement,
-          ignore:     directory + '/node_modules/**/*'
+
+      const replaceInDirectory = (dir) => {
+        fs.readdirSync(dir).forEach((file) => {
+          const fullPath = path.join(dir, file);
+          if (fs.lstatSync(fullPath).isDirectory() && file !== 'node_modules') {
+            replaceInDirectory(fullPath);
+          } else if (fs.lstatSync(fullPath).isFile()) {
+            let content = fs.readFileSync(fullPath, 'utf8');
+            let updated = false;
+
+            _.forEach(replacements, (replacement, regexp) => {
+              const regex = new RegExp(regexp, 'g');
+              if (regex.test(content)) {
+                content = content.replace(regex, replacement);
+                updated = true;
+              }
+            });
+
+            if (updated) {
+              fs.writeFileSync(fullPath, content, 'utf8');
+            }
+          }
         });
-      });
+      };
+
+      replaceInDirectory(directory);
 
       console.log('done!');
     });
