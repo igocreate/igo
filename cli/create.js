@@ -17,7 +17,7 @@ module.exports = function(argv) {
     process.exit(1);
   }
   
-  const model = args.length === 3 ? args[2] : 'default';
+  const model = args.length === 3 ? args[2] : 'tailwind';
   
   const directory = './' + args[1];
   fs.mkdir(directory, (err) => {
