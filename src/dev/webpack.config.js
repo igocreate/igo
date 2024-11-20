@@ -30,7 +30,15 @@ const webpackConfig = {
         MiniCssExtractPlugin.loader,
         'css-loader',
         'postcss-loader',
-        'sass-loader'
+        {
+          loader: 'sass-loader',
+          options: {
+            sassOptions: {
+              quietDeps: true,
+              silenceDeprecations: ['import'],
+            }
+          }
+        }
       ]
     }, {
       test: /\.(js|jsx)$/,
