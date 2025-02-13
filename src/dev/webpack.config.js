@@ -3,7 +3,7 @@
 const CleanWebpackPlugin    = require('clean-webpack-plugin').CleanWebpackPlugin;
 const MiniCssExtractPlugin  = require('mini-css-extract-plugin');
 const AssetsWebpackPlugin   = require('assets-webpack-plugin');
-
+const CssMinimizerPlugin    = require('css-minimizer-webpack-plugin');
 
 // Webpack config
 const webpackConfig = {
@@ -28,8 +28,19 @@ const webpackConfig = {
       exclude: /node_modules/,
       use: [
         MiniCssExtractPlugin.loader,
-        'css-loader',
-        'postcss-loader',
+        {
+          loader: 'css-loader',
+          options: {
+            sourceMap: true,
+            importLoaders: 2
+          },
+        },
+        {
+          loader: 'postcss-loader',
+          options: {
+            sourceMap: true,
+          },
+        },
         {
           loader: 'sass-loader',
           options: {
@@ -53,6 +64,13 @@ const webpackConfig = {
       test: /\.(png|gif|jpg|jpeg|woff|woff2|eot|ttf|svg|otf)(\?v=\d+\.\d+\.\d+)?$/,
       type: 'asset/resource'
     }]
+  },
+  optimization: {
+    minimize: true,
+    minimizer: [
+      '...',
+      new CssMinimizerPlugin(),
+    ],
   },
   plugins: [
     // clean dist folder before building
