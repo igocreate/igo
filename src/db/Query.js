@@ -4,6 +4,7 @@ const async     = require('async');
 
 const Sql       = require('./Sql');
 const dbs       = require('./dbs');
+const logger    = require('../logger');
 
 const DataTypes = require('./DataTypes');
 
@@ -102,7 +103,14 @@ module.exports = class Query {
     this.query.values = _.transform(values, (result, value, key) => {
       const column = this.schema.colsByAttr[key];
       if (column) {
-        result[column.name] = DataTypes[column.type].set(value);
+        if (DataTypes[column.type]) {
+          result[column.name] = DataTypes[column.type].set(value);
+        } else {
+          // unknown type
+          logger.warn(`Unknown type '${column.type}' for column '${column.name}'`);
+        }
+      } else {
+        // unknown column (ignore)
       }
     }, {});
     return this;
