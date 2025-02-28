@@ -5,6 +5,8 @@ const MiniCssExtractPlugin  = require('mini-css-extract-plugin');
 const AssetsWebpackPlugin   = require('assets-webpack-plugin');
 const CssMinimizerPlugin    = require('css-minimizer-webpack-plugin');
 
+const production = process.env.NODE_ENV === 'production';
+
 // Webpack config
 const webpackConfig = {
   entry: {
@@ -65,13 +67,6 @@ const webpackConfig = {
       type: 'asset/resource'
     }]
   },
-  optimization: {
-    minimize: true,
-    minimizer: [
-      '...',
-      new CssMinimizerPlugin(),
-    ],
-  },
   plugins: [
     // clean dist folder before building
     new CleanWebpackPlugin({
@@ -108,5 +103,17 @@ const webpackConfig = {
     }
   }
 };
+
+// Production
+if (production) {
+  // optimization
+  webpackConfig.optimization = {
+    minimize: true,
+    minimizer: [
+      '...',
+      new CssMinimizerPlugin(),
+    ],
+  };
+}
 
 module.exports = webpackConfig;
