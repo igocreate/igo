@@ -1,8 +1,10 @@
 
 const igo = {
+  app:        require('./src/app'),
   cache:      require('./src/cache'),
   CacheStats: require('./src/db/CacheStats'),
   config:     require('./src/config'),
+  dev:        require('./src/dev/index'),
   dbs:        require('./src/db/dbs'),
   express:    require('express'),
   i18next:    require('i18next'),
@@ -12,13 +14,6 @@ const igo = {
   migrations: require('./src/db/migrations'),
   Model:      require('./src/db/Model'),
   Form:       require('./src/forms/Form'),
-  app:        require('./src/app')
 };
-
-const env = process.env.NODE_ENV || 'dev';
-// dev
-if (!global.IGO_CLI && env === 'dev') {
-  igo.dev = require('./src/dev/index');
-}
 
 module.exports = igo;
