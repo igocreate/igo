@@ -24,21 +24,22 @@ var Sql = function(query, dialect) {
       sql += `${esc}${query.table}${esc}.* `;
     }
 
-    if (query.join && query.join.columns) {
-      _.forEach(query.join.columns, column => {
+    // joins columns
+    _.each(query.joins, join => {
+      _.each(join.columns, column => {
         const col = column.indexOf('`') > -1 || column.indexOf(' as ') > -1 ? column : `${esc}${column}${esc}`;
-        sql += `,${esc}${query.join.name}${esc}.${col} `;
+        sql += `,${esc}${join.name}${esc}.${col} `;
       });
-    }
+    });
 
     // from
     sql += `FROM ${esc}${query.table}${esc} `;
 
-    // join
-    if (query.join) {
-      const { type, table, column, ref_column, name } = query.join;
+    // joins
+    _.each(query.joins, join => {
+      const { type, table, column, ref_column, name } = join;
       sql += `${type.toUpperCase()} JOIN ${esc}${table}${esc} as ${esc}${name}${esc} ON ${esc}${name}${esc}.${esc}${ref_column}${esc} = ${esc}${query.table}${esc}.${esc}${column}${esc} `;
-    }
+    });
 
     // where
     sql += this.whereSQL(params);

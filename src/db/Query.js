@@ -45,6 +45,7 @@ module.exports = class Query {
       verb:     verb,
       where:    [],
       whereNot: [],
+      joins:    [],
       order:    [],
       distinct: null,
       group:    null,
@@ -197,11 +198,8 @@ module.exports = class Query {
   }
 
   // JOIN
-  join(associationName, columns, type = 'left', name) {
+  join(associationName, columns, type = 'LEFT', name) {
     const { query, schema } = this;
-    if (['left', 'inner', 'right'].indexOf(type) <0) {
-      type = 'left';
-    }
 
     const association = _.find(schema.associations, (association) => {
       return association[1] === associationName;
@@ -215,13 +213,14 @@ module.exports = class Query {
     const column      = association[3] || attr + '_id';
     const ref_column  = association[4] || 'id';
     
-    query.join = {
-      type: type.toUpperCase(),
-      columns: columns && _.castArray(columns),
-      table: Obj.schema.table,
-      name: name || Obj.schema.table,
-      column, ref_column
-    };
+    query.joins.push({
+      type:     type.toUpperCase(),
+      columns:  columns && _.castArray(columns),
+      table:    Obj.schema.table,
+      name:     name || Obj.schema.table,
+      column,
+      ref_column
+    });
     return this;
   }
 
