@@ -201,26 +201,41 @@ module.exports = class Query {
   join(associationName, columns, type = 'LEFT', name) {
     const { query, schema } = this;
 
-    const association = _.find(schema.associations, (association) => {
-      return association[1] === associationName;
-    });
-    if (!association) {
-      throw new Error('Missing association \'' + associationName + '\' on \'' + this.schema.table + '\' schema.');
-    }
+    if (_.isString(associationName)) {
+        
+      const association = _.find(schema.associations, (association) => association[1] === associationName);
+      if (!association) {
+        throw new Error('Missing association \'' + associationName + '\' on \'' + this.schema.table + '\' schema.');
+      }
 
-    const attr        = association[1];
-    const Obj         = association[2];
-    const column      = association[3] || attr + '_id';
-    const ref_column  = association[4] || 'id';
-    
-    query.joins.push({
-      type:     type.toUpperCase(),
-      columns:  columns && _.castArray(columns),
-      table:    Obj.schema.table,
-      name:     name || Obj.schema.table,
-      column,
-      ref_column
-    });
+      const attr        = association[1];
+      const Obj         = association[2];
+      const src_column  = association[3] || attr + '_id';
+      const column      = association[4] || 'id';
+      const src_table   = this.schema.table;
+      
+      query.joins.push({
+        type:     type.toUpperCase(),
+        columns:  columns && _.castArray(columns),
+        table:    Obj.schema.table,
+        name:     name || Obj.schema.table,
+        column,
+        src_table,
+        src_column,
+      });
+
+    } else {
+      // custom join
+      query.joins.push({
+        type:     type.toUpperCase(),
+        columns:    columns && _.castArray(columns),
+        table:      associationName.table,
+        name:       associationName.name || associationName.table,
+        column:     associationName.column,
+        src_table:  associationName.src_table || this.schema.table,
+        src_column: associationName.src_column || 'id',
+      });
+    }
     return this;
   }
 
