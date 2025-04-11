@@ -22,19 +22,16 @@ module.exports.createPool = (dbconfig) => {
 };
 
 // get connection
-module.exports.getConnection = (pool, callback) => {
-  pool.connect((err, client, release) => {
-    if (client) {
-      fixClient(client);
-    }
-    callback(err, { client, release });
-  });
+module.exports.getConnection =  async (pool) => {
+  const { client, release } = await pool.connect();
+  fixClient(client);
+  return { client, release };
 };
 
 // query
-module.exports.query = (connection, sql, params, callback) => {
+module.exports.query = async (connection, sql, params) => {
   const { client } = connection;
-  client.query(sql, params, callback);
+  return await client.query(sql, params);
 };
 
 // release
@@ -43,21 +40,21 @@ module.exports.release = (connection) => {
 };
 
 // begin transaction
-module.exports.beginTransaction = (connection, callback) => {
+module.exports.beginTransaction = async (connection) => {
   const { client } = connection;
-  client.query('BEGIN', callback);
+  return await client.query('BEGIN');
 };
 
 // commit transaction
-module.exports.commit = (connection, callback) => {
+module.exports.commit = async (connection) => {
   const { client } = connection;
-  client.query('COMMIT', callback);
+  return await client.query('COMMIT');
 };
 
 // rollback transaction
-module.exports.rollback = (connection, callback) => {
+module.exports.rollback = async (connection) => {
   const { client } = connection;
-  client.query('ROLLBACK', callback);
+  return await client.query('ROLLBACK');
 };
 
 // dialect

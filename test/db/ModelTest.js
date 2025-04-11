@@ -4,11 +4,10 @@ require('../../src/dev/test/init');
 
 const assert    = require('assert');
 const _         = require('lodash');
-const async     = require('async');
 
 const Model     = require('../../src/db/Model');
 
-describe('db.Model', function() {
+describe('db.Model', () => {
 
   var schema = {
     table:    'books',
@@ -26,351 +25,256 @@ describe('db.Model', function() {
 
   class Book extends Model(schema) {}
 
-  describe('standard crud operations', function() {
+  describe('standard crud operations', () => {
 
     //
-    describe('insert', function() {
+    describe('insert', () => {
 
-      it('should insert a book', function(done) {
-        Book.create(function(err, book) {
-          assert(book && book.id);
-          assert.strictEqual(book.is_available, null);
-          done();
-        });
+      it('should insert a book', async () => {
+        const book = await Book.create();
+        assert(book && book.id);
+        assert.strictEqual(book.is_available, null);
       });
 
-      it('should insert a book with values', function(done) {
-        Book.create({code: 123}, function(err, book) {
-          assert(book && book.id);
-          assert.strictEqual(book.code, '123');
-          done();
-        });
+      it('should insert a book with values', async () => {
+        const book = await Book.create({code: 123});
+        assert(book && book.id);
+        assert.strictEqual(book.code, '123');
       });
 
-      it('should insert a book with values and go through beforeCreate', function(done) {
+      it('should insert a book with values and go through beforeCreate', async () => {
         class BookWithTitle extends Model(schema) {
-          beforeCreate(callback) {
+          beforeCreate() {
             this.title = this.title || this.code;
-            callback();
           }
         }
 
-        BookWithTitle.create({code: 123}, function(err, book) {
-          assert(book && book.id);
-          assert.strictEqual(book.code, '123');
-          assert.strictEqual(book.title, '123');
-          done();
-        });
+        const book = await BookWithTitle.create({code: 123});
+        assert(book && book.id);
+        assert.strictEqual(book.code, '123');
+        assert.strictEqual(book.title, '123');
       });
 
     });
 
     //
-    describe('find', function() {
-      it('should find book by id', function(done) {
-        Book.create(function(err, first) {
-          Book.find(first.id, function(err, book) {
-            assert.strictEqual(book.id, first.id);
-            done();
-          });
-        });
+    describe('find', () => {
+      it('should find book by id', async () => {
+        const first = await Book.create();
+        const book  = await Book.find(first.id);
+        assert.strictEqual(book.id, first.id);
       });
 
-      it('should not find book if id is null', function(done) {
-        Book.create(function() {
-          Book.find(null, function(err, book) {
-            assert.strictEqual(book, null);
-            done();
-          });
-        });
+      it('should not find book if id is null', async () => {
+        await Book.create();
+        const book  = await Book.find(null);
+        assert.strictEqual(book, null);
       });
     });
 
     //
-    describe('list', function() {
-      it('should handle empty arrays in where conditions', function(done) {
-        Book.where({id: []}).list(function(err, books) {
-          assert.strictEqual(0, books.length);
-          done();
-        });
+    describe('list', () => {
+
+      it('should handle empty arrays in where conditions', async () => {
+        const books = await Book.where({id: []}).list();
+        assert.strictEqual(0, books.length);
       });
 
-      it('should handle 1k elements', function(done) {
+      it('should handle 1k elements', async () => {
         const nb = 1000;
-        async.timesSeries(nb, function(n, next) {
-          Book.create(next);
-        }, function(err, books) {
-          assert.strictEqual(nb, books.length);
-          Book.list(function(err, books) {
-            assert.strictEqual(nb, books.length);
-            done();
-          });
-        });
+        const books = [];
+        for (let n = 0; n < nb; n++) {
+          const book = await Book.create();
+          books.push(book);
+        }
+        // const books = await Book.create(next)
+        assert.strictEqual(nb, books.length);
+        const books2 = await Book.list();
+        assert.strictEqual(nb, books2.length);
       });
 
-      it('should handle where not condition with id', function(done) {
-        Book.create((err, book1) => {
-          Book.create((err, book2) => {
-            Book.whereNot({id: book1.id}).list(function(err, books) {
-              assert.strictEqual(1, books.length);
-              assert.strictEqual(books[0].id, book2.id);
-              done();
-            });
-          });
-        });
+      it('should handle where not condition with id', async () => {
+        const book1 = await Book.create();
+        const book2 = await Book.create();
+        const books = await Book.whereNot({id: book1.id}).list();
+        assert.strictEqual(1, books.length);
+        assert.strictEqual(books[0].id, book2.id);
       });
 
-      it('should handle where not with array', function(done) {
-        Book.create((err, book1) => {
-          Book.create((err, book2) => {
-            Book.whereNot({id: [book1.id, book2.id]}).list(function(err, books) {
-              assert.strictEqual(0, books.length);
-              done();
-            });
-          });
-        });
+      it('should handle where not with array', async () => {
+        const book1 = await Book.create();
+        const book2 = await Book.create();
+        const books = await Book.whereNot({id: [book1.id, book2.id]}).list();
+        assert.strictEqual(0, books.length);
       });
 
-      it('should handle where not with empty array', function(done) {
-        Book.create(() => {
-          Book.create(() => {
-            Book.whereNot({id: []}).list(function(err, books) {
-              assert.strictEqual(2, books.length);
-              done();
-            });
-          });
-        });
+      it('should handle where not with empty array', async () => {
+        await Book.create();
+        await Book.create();
+        const books = await Book.whereNot({id: []}).list();
+        assert.strictEqual(2, books.length);
+      });
+
+    });
+
+    //
+    describe('first', () => {
+      it('should select first book', async () => {
+        const first   = await Book.create();
+        const hibook  = await Book.create({title: 'hi'});
+        await Book.create();
+        const book = await Book.unscoped().first();
+        assert.strictEqual(first.id, book.id);
+        assert.strictEqual('hi', hibook.title);
       });
     });
 
     //
-    describe('first', function() {
-      it('should select first book', function(done) {
-        Book.create(function(err, first) {
-          Book.create({title: 'hi'}, function(err, hibook) {
-            Book.create(function() {
-              Book.unscoped().first(function(err, book) {
-                assert.strictEqual(first.id, book.id);
-                assert.strictEqual('hi', hibook.title);
-                done();
-              });
-            });
-          });
-        });
+    describe('last', () => {
+      it('should select last book', async () => {
+        await Book.create();
+        await Book.create();
+        const last = await Book.create();
+        const book = await Book.unscoped().last();
+        assert.strictEqual(last.id, book.id);
       });
     });
 
     //
-    describe('last', function() {
-      it('should select last book', function(done) {
-        Book.create(function() {
-          Book.create(function() {
-            Book.create(function(err, last) {
-              Book.unscoped().last(function(err, book) {
-                assert.strictEqual(last.id, book.id);
-                done();
-              });
-            });
-          });
-        });
+    describe('destroy', () => {
+      it('should destroy a book', async () => {
+        const first = await Book.create();
+        await Book.create();
+        await Book.create();
+        await Book.destroy(first.id);
+        const book = await Book.find(first.id);
+        assert(!book);
+      });
+
+      it('should destroy selected books', async () => {
+        await Book.create({ code: '123' });
+        await Book.create({ code: '123' });
+        await Book.create();
+        await Book.where({ code: '123' }).destroy();
+        const books = await Book.list();
+        assert(books.length, 1);
       });
     });
 
     //
-    describe('destroy', function() {
-      it('should destroy a book', function(done) {
-        Book.create(function(err, first) {
-          Book.create(function() {
-            Book.create(function() {
-              Book.destroy(first.id, function() {
-                Book.find(first.id, function(err, book) {
-                  assert(!err);
-                  assert(!book);
-                  done();
-                });
-              });
-            });
-          });
-        });
+    describe('update', () => {
+      it('should update books', async () => {
+        await Book.create({ code: '123' });
+        await Book.create({ code: '123' });
+        await Book.create();
+        await Book.where({ code: '123' }).update({ title: 'undeuxtrois'});
+        const books = await Book.where({ title: 'undeuxtrois'}).list();
+        assert.strictEqual(books.length, 2);
       });
 
-      it('should destroy selected books', function(done) {
-        Book.create({ code: '123' }, function() {
-          Book.create({ code: '123' }, function() {
-            Book.create(function() {
-              Book.where({ code: '123' }).destroy(function() {
-                Book.list(function(err, books) {
-                  assert(books.length, 1);
-                  done();
-                });
-              });
-            });
-          });
-        });
-      });
-    });
-
-    //
-    describe('update', function() {
-      it('should update books', function(done) {
-        Book.create({ code: '123' }, function() {
-          Book.create({ code: '123' }, function() {
-            Book.create(function() {
-              Book.where({ code: '123' }).update({ title: 'undeuxtrois'}, function(err) {
-                assert(!err);
-                Book.where({ title: 'undeuxtrois'}).list(function(err, books) {
-                  assert.strictEqual(books.length, 2);
-                  done();
-                });
-              });
-            });
-          });
-        });
+      it('should update all books', async () => {
+        await Book.create({ code: '123' });
+        await Book.create({ code: '123' });
+        await Book.create();
+        await Book.update({ title: 'undeuxtrois'});
+        const books = await Book.where({ title: 'undeuxtrois'}).list();
+        assert.strictEqual(books.length, 3);
       });
 
-      it('should update all books', function(done) {
-        Book.create({ code: '123' }, function() {
-          Book.create({ code: '123' }, function() {
-            Book.create(function() {
-              Book.update({ title: 'undeuxtrois'}, function(err) {
-                assert(!err);
-                Book.where({ title: 'undeuxtrois'}).list(function(err, books) {
-                  assert.strictEqual(books.length, 3);
-                  done();
-                });
-              });
-            });
-          });
-        });
+      it('should load distinct codes', async () => {
+        await Book.create({ code: '000' });
+        await Book.create({ code: '111' });
+        await Book.create({ code: '111' });
+        const codes = await Book.distinct('code').list();
+        assert.strictEqual(codes.length, 2);
       });
 
-      it('should load distinct codes', function(done) {
-        Book.create({ code: '000' }, function() {
-          Book.create({ code: '111' }, function() {
-            Book.create({ code: '111' }, function() {
-              Book.distinct('code').list(function(err, codes) {
-                assert(!err);
-                assert.strictEqual(codes.length, 2);
-                done();
-              });
-            });
-          });
-        });
-      });
-
-      it('should load distinct codes and titles', function(done) {
-        Book.create({ code: '000' }, function() {
-          Book.create({ code: '111', title: '111' }, function() {
-            Book.create({ code: '111', title: '111' }, function() {
-              Book.create({ code: '222', title: '111' }, function() {
-                Book.where({title: '111' }).distinct([ 'code', 'title' ]).list(function(err, res) {
-                  assert(!err);
-                  assert.strictEqual(res.length, 2);
-                  done();
-                });
-              });
-            });
-          });
-        });
+      it('should load distinct codes and titles', async () => {
+        await Book.create({ code: '000' });
+        await Book.create({ code: '111', title: '111' });
+        await Book.create({ code: '111', title: '111' });
+        await Book.create({ code: '222', title: '111' });
+        const res = await Book.where({title: '111' }).distinct([ 'code', 'title' ]).list();
+        assert.strictEqual(res.length, 2);
       });
     });
 
     //
-    describe('select', function() {
-      it('should use custom select', function(done) {
-        Book.create({ code: '123', title: 'title' }, function() {
-          Book.select('title').list(function(err, books) {
-            assert(!err);
-            assert(books[0].title, 'title');
-            assert(!books[0].code);
-            done();
-          });
-        });
+    describe('select', () => {
+      it('should use custom select', async () => {
+        await Book.create({ code: '123', title: 'title' });
+        const books = await Book.select('title').list();
+        assert(books[0].title, 'title');
+        assert(!books[0].code);
       });
 
-      it('should use custom select', function(done) {
-        Book.create({ code: '123', title: 'title' }, function() {
-          Book.select('*, EXTRACT(YEAR FROM created_at) AS "year"').list(function(err, books) {
-            const currentYear = new Date().getFullYear();
-            assert(!err);
-            assert(books[0].title, 'title');
-            assert(books[0].year, currentYear);
-            done();
-          });
-        });
+      it('should use custom select', async () => {
+        await Book.create({ code: '123', title: 'title' });
+        const books = await Book.select('*, EXTRACT(YEAR FROM created_at) AS "year"').list();
+        const currentYear = new Date().getFullYear();
+        assert(books[0].title, 'title');
+        assert(books[0].year, currentYear);
       });
     });
 
     //
-    describe('count', function() {
-      it('should count elements', function(done) {
+    describe('count', () => {
+      it('should count elements', async () => {
         const nb = 100;
-        async.timesSeries(nb, function(n, next) {
-          Book.create(next);
-        }, function(err, books) {
-          assert.strictEqual(nb, books.length);
-          Book.count(function(err, count) {
-            assert.strictEqual(nb, count);
-            done();
-          });
-        });
+        const books = [];
+        for (let n = 0; n < nb; n++) {
+          const book = await Book.create();
+          books.push(book);
+        }
+
+        assert.strictEqual(nb, books.length);
+        const { count } = await Book.count();
+        assert.strictEqual(nb, count);
       });
     });
   });
 
 
-  describe('instance operations', function() {
+  describe('instance operations', () => {
 
-    describe('destroy', function() {
-      it('should destroy a book', function(done) {
-        Book.create(function() {
-          Book.create(function() {
-            Book.create(function(err, last) {
-              last.destroy(function() {
-                Book.find(last.id, function(err, book) {
-                  assert(!err);
-                  assert(!book);
-                  done();
-                });
-              });
-            });
-          });
-        });
+    describe('delete', () => {
+      it('should delete a book', async () => {
+        await Book.create();
+        await Book.create();
+        const last = await Book.create();
+        await last.destroy();
+        const book = await Book.find(last.id);
+        assert(!book);
       });
     });
 
-    describe('update', function() {
-      it('should update a book', function(done) {
-        Book.create(function(err, book) {
-          book.update({ code: 'hop', hello: 'world' }, function(err, book) {
-            book.reload(function(err, book) {
-              assert.strictEqual(book.code, 'hop');
-              done();
-            });
-          });
-        });
+    describe('update', () => {
+      it('should update a book', async () => {
+        let book = await Book.create();
+        book = await book.update({ code: 'hop', hello: 'world' });
+        assert.strictEqual(book.code, 'hop');
+        assert.notStrictEqual(book.hello, 'world');
+        book = await book.reload();
+        assert.strictEqual(book.code, 'hop');
       });
 
-      it('should update a book with beforeUpdate', function(done) {
+      it('should update a book with beforeUpdate', async () => {
         class BookWithBeforeUpdate extends Model(schema) {
-          beforeUpdate(values, callback) {
+          beforeUpdate(values) {
             values.title = values.code;
-            callback();
           }
         }
-        BookWithBeforeUpdate.create({ code: '123' }, function(err, book) {
-          book.update({ code: '234'}, function(err) {
-            assert(!err);
-            assert.strictEqual(book.title, '234');
-            done();
-          });
-        });
+        let book = await BookWithBeforeUpdate.create();
+        book = await book.update({ code: '234' });
+        assert.strictEqual(book.title, '234');
+        book = await book.reload();
+        assert.strictEqual(book.title, '234');
       });
     });
 
   });
 
-  describe('scopes', function() {
+  describe('scopes', () => {
 
     var schema = {
       table:    'books',
@@ -392,170 +296,121 @@ describe('db.Model', function() {
 
     class BookWithScopes extends Model(schema) {}
 
-    describe('default scope', function() {
-      it('should use default scope', function(done) {
-        BookWithScopes.create({code: 'a'}, function() {
-          BookWithScopes.create({code: 'abc'}, function() {
-            BookWithScopes.list(function(err, books) {
-              assert.strictEqual(books.length, 1);
-              done();
-            });
-          });
-        });
-      });
+    it('should use default scope', async () => {
+      await BookWithScopes.create({code: 'a'});
+      await BookWithScopes.create({code: 'abc'});
+      const books = await BookWithScopes.list();
+      assert.strictEqual(books.length, 1);
     });
 
-    describe('specified scope', function() {
-      it('should use a scope', function(done) {
-        BookWithScopes.create({code: 'a'}, function() {
-          BookWithScopes.create({code: 'abc'}, function() {
-            BookWithScopes.unscoped().scope('a').list(function(err, books) {
-              assert.strictEqual(books.length, 1);
-              done();
-            });
-          });
-        });
-      });
+    it('should use a scope', async () => {
+      await BookWithScopes.create({code: 'a'});
+      await BookWithScopes.create({code: 'abc'});
+      const books = await BookWithScopes.unscoped().scope('a').list();
+      assert.strictEqual(books.length, 1);
     });
   });
 
-  describe('count', function() {
-    it('should count rows', function(done) {
-      async.timesSeries(10, function(n, next) {
-        Book.create({ code: 'first' }, next);
-      }, function() {
-        async.timesSeries(20, function(n, next) {
-          Book.create({ code: 'second' }, next);
-        }, function() {
+  describe('count', () => {
+    it('should count rows', async () => {
+      for (let n = 0; n < 10; n++) {
+        await Book.create({ code: 'first' });
+      }
+      for (let n = 0; n < 20; n++) {
+        await Book.create({ code: 'second' });
+      }
+  
+      let count = await Book.where({code: 'first'}).count();
+      assert.strictEqual(count.count, 10);
 
-          Book.where({code: 'first'}).count(function(err, count) {
-            assert.strictEqual(count, 10);
-
-            Book.count(function(err, count) {
-              assert.strictEqual(count, 30);
-
-              done();
-            });
-          });
-        });
-      });
+      count = await Book.count();
+      assert.strictEqual(count.count, 30);
     });
   });
 
 
-  describe('group', function() {
-    it('should group by code', function(done) {
-      async.timesSeries(10, function(n, next) {
-        Book.create({ code: 'first' }, next);
-      }, function() {
-        async.timesSeries(20, function(n, next) {
-          Book.create({ code: 'second' }, next);
-        }, function() {
+  describe('group', () => {
+    it('should group by code', async () => {
+      for (let n = 0; n < 10; n++) {
+        await Book.create({ code: 'first' });
+      }
+      for (let n = 0; n < 20; n++) {
+        await Book.create({ code: 'second' });
+      }
 
-          Book.select('COUNT(*) AS "count", code').group('code').list(function(err, groups) {
-            const firsts  = _.find(groups, {code: 'first'});
-            const seconds = _.find(groups, {code: 'second'});
-            assert.strictEqual(firsts.count, 10);
-            assert.strictEqual(seconds.count, 20);
-            // [{ count: 10, code: 'first' },
-            //  { count: 20, code: 'second' }]
-            done();
-          });
-        });
-      });
+      const groups = await Book.select('COUNT(*) AS "count", code').group('code').list();
+      const firsts  = _.find(groups, {code: 'first'});
+      const seconds = _.find(groups, {code: 'second'});
+      assert.strictEqual(firsts.count, 10);
+      assert.strictEqual(seconds.count, 20);
     });
 
-    it('should group by year', function(done) {
-      async.timesSeries(10, function(n, next) {
-        Book.create({ code: 'first' }, next);
-      }, function() {
-        async.timesSeries(20, function(n, next) {
-          Book.create({ code: 'second' }, next);
-        }, function() {
+    it('should group by year', async () => {
+      for (let n = 0; n < 10; n++) {
+        await Book.create({ code: 'first' });
+      }
+      for (let n = 0; n < 20; n++) {
+        await Book.create({ code: 'second' });
+      }
 
-          Book.select('COUNT(*) AS "count", EXTRACT(YEAR FROM created_at) AS "year"').group('year').list(function(err, groups) {
-            const currentYear = new Date().getFullYear();
-            assert.strictEqual(groups[0].count, 30);
-            assert.strictEqual(groups[0].year, currentYear);
-            //[ { count: 30, year: 2018 } ]
-            done();
-          });
-        });
-      });
+      const groups = await Book.select('COUNT(*) AS "count", EXTRACT(YEAR FROM created_at) AS "year"').group('year').list();
+      const currentYear = new Date().getFullYear();
+      assert.strictEqual(groups[0].count, 30);
+      assert.strictEqual(groups[0].year, currentYear);
     });
   });
 
 
-  describe('json columns', function() {
+  describe('json columns', () => {
 
     const details = { a: 'hello', b: 'world', c: { d: '!' } };
 
-    it('should stringify on insert', function(done) {
-      Book.create({ details }, (err, book) => {
-        assert.strictEqual(book.details.a, 'hello');
-        Book.find(book.id, (err, book) => {
-          assert.strictEqual(book.details.a, 'hello');
-          done();
-        });
-      });
+    it('should stringify on insert', async () => {
+      let book = await Book.create({ details });
+      assert.strictEqual(book.details.a, 'hello');
+      book = await Book.find(book.id);
+      assert.strictEqual(book.details.a, 'hello');
     });
 
-    it('should stringify on update', function(done) {
-      Book.create({ details }, (err, book) => {
-        book.update({ details: { a: 'world' }}, (err, book) => {
-          assert.strictEqual(book.details.a, 'world');
-          Book.find(book.id, (err, book) => {
-            assert.strictEqual(book.details.a, 'world');
-            done();
-          });
-        });
-      });
+    it('should stringify on update', async () => {
+      let book = await Book.create({ details });
+      book = await book.update({ details: { a: 'world' }});
+      assert.strictEqual(book.details.a, 'world');
+      book = await Book.find(book.id);
+      assert.strictEqual(book.details.a, 'world');
     });
 
-    it('should stringify on global update', function(done) {
-      Book.create({ details }, (err, book) => {
-        Book.update({ details: { a: 'world' }}, () => {
-          Book.find(book.id, (err, book) => {
-            assert.strictEqual(book.details.a, 'world');
-            done();
-          });
-        });
-      });
+    it('should stringify on global update', async () => {
+      let book = await Book.create({ details });
+      await Book.update({ details: { a: 'world' }});
+      book = await Book.find(book.id);
+      assert.strictEqual(book.details.a, 'world');
     });
 
-    it('should parsejson on reload', function(done) {
-      Book.create({ details }, (err, book) => {
-        book.reload((err, book) => {
-          assert.strictEqual(book.details.a, 'hello');
-          done();
-        });
-      });
+    it('should parsejson on reload', async () => {
+      let book = await Book.create({ details });
+      book = await book.reload();
+      assert.strictEqual(book.details.a, 'hello');
     });
   });
 
-  describe('bool columns', function() {
-    it('should handle true booleans', function(done) {
-      Book.create({ is_available: 'true' }, (err, book) => {
-        assert.strictEqual(book.is_available, true);
-        done();
-      });
+  describe('bool columns', () => {
+    it('should handle true booleans', async () => {
+      const book = await Book.create({ is_available: 'true' });
+      assert.strictEqual(book.is_available, true);
     });
-    it('should handle false booleans', function(done) {
-      Book.create({ is_available: '' }, (err, book) => {
-        assert.strictEqual(book.is_available, false);
-        done();
-      });
+    it('should handle false booleans', async () => {
+      const book = await Book.create({ is_available: '' });
+      assert.strictEqual(book.is_available, false);
     });
-    it.skip('should let boolean to null', function(done) {
-      Book.create({ is_available: null }, (err, book) => {
-        assert.strictEqual(book.is_available, null);
-        done();
-      });
+    it.skip('should let boolean to null', async () => {
+      const book = await Book.create({ is_available: null });
+      assert.strictEqual(book.is_available, null);
     });
   });
 
-  describe('array columns', function() {
 
+  describe('array columns', () => {
     var schema = {
       table:    'books',
       primary: ['id'],
@@ -571,23 +426,17 @@ describe('db.Model', function() {
     };
     class Book extends Model(schema) {}
 
-    it('should handle array', function(done) {
-      Book.create({ details: [1, 2] }, (err, book) => {
-        assert(Array.isArray(book.details));
-        assert.strictEqual(book.details.length, 2);
-        done();
-      });
+    it('should handle array', async () => {
+      const book = await Book.create({ details: [1, 2] });
+      assert(Array.isArray(book.details));
+      assert.strictEqual(book.details.length, 2);
     });
 
-    it('should handle array', function(done) {
-      Book.create({ details: '' }, (err, book) => {
-        assert(Array.isArray(book.details));
-        assert.strictEqual(book.details.length, 0);
-        done();
-      });
+    it('should handle array', async () => {
+      const book = await Book.create({ details: '' });
+      assert(Array.isArray(book.details));
+      assert.strictEqual(book.details.length, 0);
     });
   });
-
-  
 
 });

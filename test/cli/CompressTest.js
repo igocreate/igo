@@ -3,10 +3,10 @@ require('../../src/dev/test/init');
 
 const compress = require('../../cli/compress');
 
-describe('cli/compress', function() {
+describe('cli/compress', function () {
 
-  it('should run', () => {
-    compress();
+  it('should run', async () => {
+    await compress();
   });
 
 });

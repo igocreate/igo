@@ -1,7 +1,6 @@
 
 process.env.NODE_ENV = 'test';
 
-const async       = require('async');
 const dbs         = require('../../db/dbs');
 const migrations  = require('../../db/migrations');
 const cache       = require('../../cache');
@@ -10,10 +9,10 @@ const logger      = require('../../logger');
 const app         = require('../../app');
 
 //
-const reinitDatabase = (db, callback) => {
+const reinitDatabase = async (db) => {
   
   if (config.skip_reinit_db) {
-    return callback();
+    return;
   }
   
   const { dialect }   = db.driver;
@@ -24,49 +23,52 @@ const reinitDatabase = (db, callback) => {
   const DROP_DATABASE   = dialect.dropDb(database);
   const CREATE_DATABASE = dialect.createDb(database);
 
-  // console.log(DROP_DATABASE);
-  db.query(DROP_DATABASE, () => {
-    db.query(CREATE_DATABASE, () => {
-      db.config.database = database;
-      db.init();
-      migrations.migrate(db, config.projectRoot, (err) => {
-        if (err) {
-          return callback('Database migration error : ' + err);
-        }
-        logger.info('Igo dev: reinitialized test database');
-        callback();
-      });
-    });
-  });
+  await db.query(DROP_DATABASE);
+  await db.query(CREATE_DATABASE);
+  db.config.database = database;
+  db.init();
+
+  try {
+    await migrations.migrate(db, config.projectRoot);
+    logger.info('✅ Reinitialized test database');
+  } catch (err) {
+    logger.error('❌ Failed to migrate database:', err);
+  }
 };
 
 // before running tests
-before((done) => {
+before( async () => {
   app.configure();
   // reinit databases
-  async.eachSeries(config.databases, (database, callback) => {
+  for (const database of config.databases) {
     const db = dbs[database];
     if (db.config.noMigrations) {
-      return callback();
+      continue;
     }
-    reinitDatabase(db, callback);
-  }, done);
+    await reinitDatabase(db);
+  }
 });
 
 // begin transaction before each test
-beforeEach((done) => {
-  cache.flushall().then(() => {
-    async.eachSeries(config.databases, (database, callback) => {
-      const db = dbs[database];
-      db.beginTransaction(callback);
-    }, done);
-  });
+beforeEach(async () => {
+  await cache.flushall();
+
+  for (const database of config.databases) {
+    const db = dbs[database];
+    if (db.config.noMigrations) {
+      continue;
+    }
+    await db.beginTransaction();
+  }
 });
 
 // rollback transaction after each test
-afterEach((done) => {
-  async.eachSeries(config.databases, (database, callback) => {
+afterEach(async() => {
+  for (const database of config.databases) {
     const db = dbs[database];
-    db.rollbackTransaction(callback);
-  }, done);
+    if (db.config.noMigrations) {
+      continue;
+    }
+    await db.rollbackTransaction();
+  }
 });

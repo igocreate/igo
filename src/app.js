@@ -83,8 +83,8 @@ module.exports.configure = function() {
   }
 };
 
-// configured: callback function invoked when app is configured
-// started: callback function invoked when server is started
+// configured: function invoked when app is configured
+// started:y' function invoked when server is started
 module.exports.run = function(configured, started) {
 
   module.exports.configure();

@@ -4,11 +4,10 @@ const cache       = require('../cache');
 const Query       = require('./Query');
 const CacheStats  = require('./CacheStats');
 
-
 // 
 module.exports = class CachedQuery extends Query {
   
-  runQuery(callback) {
+  async runQuery() {
     const { query, schema } = this;
     const sqlQuery  = this.toSQL();
     const db        = this.getDb();
@@ -17,28 +16,24 @@ module.exports = class CachedQuery extends Query {
 
     if (query.verb !== 'select') {
       cache.flush(namespace + '/*');
-      db.query(sqlQuery.sql, sqlQuery.params, query.options, (err, res) => {
-        callback(err, res);
-      });
-      return;
+      const result = await db.query(sqlQuery.sql, sqlQuery.params, query.options);
+      return result;
     }
 
     const key = JSON.stringify(sqlQuery);
     let type  = 'hits';
-    
-    cache.fetch(namespace, key, () => {
-      type  = 'misses';
-      return new Promise((resolve, reject) => {
-        db.query(sqlQuery.sql, sqlQuery.params, query.options, (err, res) => {
-          return err ? reject(err) : resolve(res);
-        });
-      });
-    }, schema.cache.ttl)
-    .then(result => {
-      //
-      CacheStats.incr(query.table, type);
-      callback(null, result);
-    });
 
+    const result = await cache.fetch(
+      namespace, 
+      key, 
+      async () => {
+        type = 'misses';
+        return await db.query(sqlQuery.sql, sqlQuery.params, query.options);
+      }, 
+      schema.cache.ttl
+    );
+
+    CacheStats.incr(query.table, type);
+    return result;
   }
 };

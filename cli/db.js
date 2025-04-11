@@ -1,8 +1,6 @@
 
 const _           = require('lodash');
-const async       = require('async');
-
-const fs          = require('fs');
+const fs          = require('fs/promises');
 
 const config      = require('../src/config');
 const dbs          = require('../src/db/dbs');
@@ -13,126 +11,120 @@ const plugins     = require('../src/plugins');
 const verbs   = {
 
   // igo db migrate
-  migrate: function(args, callback) {
-    async.eachSeries(config.databases, (database, callback) => {
+  migrate: async function(args) {
+    for (const database of config.databases) {
       const db = dbs[database];
+      db.config.debugsql = false;
       if (config.databases.length > 1) {
         console.log(`database: ${db.config.database}`);
       }
-      db.config.debugsql = false;
-      migrations.migrate(db, callback);
-    }, callback);
+      await migrations.migrate(db);
+    }
   },
 
   // igo db migrations
-  migrations: function(args, callback) {
-
-    async.eachSeries(config.databases, (database, callback) => {
+  migrations: async function(args) {
+    for (const database of config.databases) {
       const db = dbs[database];
       db.config.debugsql = false;
       if (config.databases.length > 1) {
         console.log(`database: ${db.config.database}`);
       }
-      migrations.list(db, (err, migrations) => {
-        migrations = _.reverse(migrations);
-        _.each(migrations, (migration) => {
-          console.log([
-            migration.id,
-            (migration.success ? 'OK' : 'KO'),
-            migration.file
-          ].join('  '));
-        });
-        callback(err);
+      const migrationsList = await migrations.list(db);
+      const migrations = _.reverse(migrationsList);
+
+      migrations.forEach((migration) => {
+        console.log([
+          migration.id,
+          (migration.success ? 'OK' : 'KO'),
+          migration.file
+        ].join('  '));
       });
-    }, callback);
+    }
   },
 
   // igo db reset
-  reset: function(args, callback) {
+  reset: async function(args) {
     if (config.databases.length > 1 && !args[2]) {
       console.log(`Please select database to reset : igo db reset [${config.databases.join('|')}]`);
-      return callback();
+      return;
     }
 
     if (args[2] && config.databases.indexOf(args[2]) < 0) {
       console.log('ERROR: Wrong database name');
-      return callback();
+      return;
     }
 
-    const db        = args[2] ? dbs[args[2]] : dbs.main;
-    const database  = db.config.database;
+    const db = args[2] ? dbs[args[2]] : dbs.main;
+    const database = db.config.database;
 
     console.log('WARNING: Database will be reset, data will be lost!');
     console.log('Confirm the database name (' + database + '):');
     const stdin = process.openStdin();
-    stdin.addListener('data', function(d) {
+    stdin.addListener('data', async function(d) {
       d = d.toString().trim();
       if (d !== database) {
-        return callback('Cancelled.');
+        return;
       }
 
       db.config.debugsql = false;
       db.config.database = null;
-      db.init();
+      await db.init();
 
       const { dialect }     = db.driver;
       const DROP_DATABASE   = dialect.dropDb(database);
       const CREATE_DATABASE = dialect.createDb(database);
 
-      db.query(DROP_DATABASE, () => {
-        db.query(CREATE_DATABASE, () => {
-          db.config.database = database;
-          db.init();
-          migrations.migrate(db, callback);
-        });
-      });
+      await db.query(DROP_DATABASE);
+      await db.query(CREATE_DATABASE);
+      db.config.database = database;
+      await db.init();
+      await migrations.migrate(db);
     });
   },
 
-  reverse: function(args, callback) {
+  reverse: async function(args) {
     const db = dbs.main;
-    db.query('show tables', function(err, tables) {
-      async.eachSeries(tables, function(table, callback) {
-        table = _.values(table)[0];
-        if (table === '__db_migrations') {
-          return callback();
-        }
-        const object = _.capitalize(table.substring(0, table.length - 1));
-        db.query(`explain ${table}`, (err, fields) => {
-          const primary = _.chain(fields).filter({ Key: 'PRI' }).map('Field').join('\', \'');
-          let lines = [
-            '',
-            'const { Model } = require(\'igo\');',
-            '',
-            'const schema = {',
-            '  table: \'' + table + '\',',
-            '  primary: [ \'' + primary + '\' ],',
-            '  columns: ['
-          ];
-          fields.forEach((field) => {
-            lines.push(`    '${field.Field}',`);
-          });
-          lines = lines.concat([
-            '  ],',
-            '  associations: () => [',
-            '  ], ',
-            '  scopes: {',
-            '  }',
-            '};',
-            '', '',
-            `class ${object} extends Model(schema) {`,
-            '}', '', '',
-            `module.exports = ${object};`
-          ]);
+    const tables = await db.query('show tables');
+    for (const table of tables) {
+      const tableName = _.values(table)[0];
+      if (tableName === '__db_migrations') {
+        continue;
+      }
+      const object = _.capitalize(tableName.substring(0, tableName.length - 1));
+      const fields = await db.query(`explain ${tableName}`);
+      const primary = _.chain(fields).filter({ Key: 'PRI' }).map('Field').join('\', \'');
+      let lines = [
+        '',
+        'const { Model } = require(\'igo\');',
+        '',
+        'const schema = {',
+        '  table: \'' + tableName + '\',',
+        '  primary: [ \'' + primary + '\' ],',
+        '  columns: ['
+      ];
+      fields.forEach((field) => {
+        lines.push(`    '${field.Field}',`);
+      });
+      lines = lines.concat([
+        '  ],',
+        '  associations: () => [',
+        '  ], ',
+        '  scopes: {',
+        '  }',
+        '};',
+        '', '',
+        `class ${object} extends Model(schema) {`,
+        '}',
+        '', '',
+        `module.exports = ${object};`
+      ]);
 
-          const file = `./app/models/${object}.js`;
-          console.log('wrote ' + file);
-          fs.writeFile(file, lines.join('\n'), callback);
-        });
-      }, callback);
-    });
+      const file = `./app/models/${object}.js`;
+      console.log('wrote ' + file);
+      await fs.writeFile(file, lines.join('\n'));
+    }
   }
-
 };
 
 // igo db
@@ -145,13 +137,11 @@ module.exports = function(argv) {
   plugins.init();
 
   if (args.length > 1 && verbs[args[1]]) {
-    verbs[args[1]](args, function(err) {
-      console.log(err || 'Done.');
-      process.exit(0);
-    });
+    verbs[args[1]](args)
+    console.log('Done.');
+    process.exit(0);
   } else {
     console.error('ERROR: Wrong options');
     console.error('Usage: igo db [migrate|migrations|reverse|reset]');
   }
-
 };

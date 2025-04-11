@@ -10,76 +10,63 @@ describe('controllers', function() {
 
   //
   describe('/', function() {
-    it('should return text', (done) => {
-      agent.get('/', (err, res) => {
-        assert.strictEqual(res.statusCode, 200);
-        assert.strictEqual(res.body, 'Hello Igo');
-        done();
-      });
+    it('should return text', async () => {
+      const res = await agent.get('/');
+      assert.strictEqual(res.statusCode, 200);
+      assert.strictEqual(res.body, 'Hello Igo');
     });
   });
 
   //
   describe('/error', function() {
     // error handling is disabled in test mode
-    it.skip('should handle sync error', (done) => {
-      agent.get('/error', (err, res) => {
-        assert.strictEqual(res.statusCode, 500);
-        assert(res.body.match(/missingfunction is not defined/));
-        done();
-      });
+    it.skip('should handle sync error', async () => {
+      const res = await agent.get('/error');
+      assert.strictEqual(res.statusCode, 500);
+      assert(res.body.match(/missingfunction is not defined/));
     });
     
     // error handling is disabled in test mode
-    it.skip('should handle async error', (done) => {
-      agent.get('/asyncerror', (err, res) => {
-        assert.strictEqual(res.statusCode, 500);
-        assert(res.body.match(/missingfunction is not defined/));
-        done();
-      });
+    it.skip('should handle async error', async () => {
+      const res = await agent.get('/asyncerror');
+      assert.strictEqual(res.statusCode, 500);
+      assert(res.body.match(/missingfunction is not defined/));
     });
   });
 
   //
   describe('/template', function() {
-    it('should render template', (done) => {
+    it('should render template', async () => {
       config.igodust.stream = false;
-      agent.get('/template', (err, res) => {
-        assert.strictEqual(res.statusCode, 200);
-        assert.strictEqual(res.body, 'Igo Dust OK');
-        done();
-      });
+      const res = await agent.get('/template');
+      assert.strictEqual(res.statusCode, 200);
+      assert.strictEqual(res.body, 'Igo Dust OK');
     });
 
-    it('should render template with streaming', (done) => {
+    it('should render template with streaming', async () => {
       config.igodust.stream = true;
-      agent.get('/template', (err, res) => {
-        assert.strictEqual(res.statusCode, 200);
-        assert.strictEqual(res.body, 'Igo Dust OK');
-        done();
-      });
+      const res = await agent.get('/template');
+      assert.strictEqual(res.statusCode, 200);
+      assert.strictEqual(res.body, 'Igo Dust OK');
     });
 
     // error handling is disabled in test mode
-    it.skip('should handle missing template error', (done) => {
-      agent.get('/missingtemplate', (err, res) => {
-        assert.strictEqual(res.statusCode, 500);
-        assert(res.body.match(/Internal Server Error/));
-        done();
-      });
+    it.skip('should handle missing template error', async () => {
+      const res = await agent.get('/missingtemplate');
+      assert.strictEqual(res.statusCode, 500);
+      assert(res.body.match(/Internal Server Error/));
     });
   });
 
   //
   describe('/notfound', function() {
-    it('should handle 404 error', (done) => {
-      agent.get('/notfound', (err, res) => {
-        assert.strictEqual(res.statusCode, 404);
-        assert.strictEqual(res.body, 'Not Found');
-        done();
-      });
+    it('should handle 404 error', async () => {
+      const res = await agent.get('/notfound');
+      assert.strictEqual(res.statusCode, 404);
+      assert.strictEqual(res.body, 'Not Found');
     });
   });
+
   
 });
 

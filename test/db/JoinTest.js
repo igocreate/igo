@@ -1,9 +1,7 @@
-
 require('../../src/dev/test/init');
-const assert    = require('assert');
-const Model     = require('../../src/db/Model');
+const assert = require('assert');
+const Model = require('../../src/db/Model');
 
-//
 describe('includes', () => {
 
   class Library extends Model({
@@ -20,14 +18,14 @@ describe('includes', () => {
   }) {}
 
   class Book extends Model({
-    table:    'books',
+    table: 'books',
     primary: ['id'],
     columns: [
       'id',
       'code',
       'title',
-      {name: 'details_json', type: 'json', attr: 'details'},
-      {name:'is_available', type: 'boolean'},
+      { name: 'details_json', type: 'json', attr: 'details' },
+      { name: 'is_available', type: 'boolean' },
       'library_id',
       'created_at'
     ],
@@ -36,50 +34,43 @@ describe('includes', () => {
     ])
   }) {}
 
-
-  //
   describe('join', () => {
 
-    it('should load a book join with its library collection', (done) => {
-      Library.create({ collection: 'A' }, (err, library) => {
-        Book.create({ library_id: library.id }, (err, book) => {
-          Book.join('library', 'collection').find(book.id, (err, book) => {
-            assert.strictEqual(book.collection, library.collection);
-            done();
-          });
-        });
-      });
+    it('should load a book join with its library collection', async () => {
+      const library = await Library.create({ collection: 'A' });
+      const book = await Book.create({ library_id: library.id });
+      const foundBook = await Book.join('library', 'collection').find(book.id);
+      assert.strictEqual(foundBook.collection, library.collection);
     });
 
-    it('should load a book join with its library collection with custom select', (done) => {
-      Library.create({ title: 'A' }, (err, library) => {
-        Book.create({ library_id: library.id }, (err, book) => {
-          Book.select('`books`.`id`, `libraries`.`title` AS library_title').join('library').find(book.id, (err, book) => {
-            assert.strictEqual(book.library_title, library.title);
-            done();
-          });
-        });
-      });
+    it('should load a book join with its library collection with custom select', async () => {
+      const library = await Library.create({ title: 'A' });
+      const book = await Book.create({ library_id: library.id });
+      const foundBook = await Book
+        .select('`books`.`id`, `libraries`.`title` AS library_title')
+        .join('library')
+        .find(book.id);
+      assert.strictEqual(foundBook.library_title, library.title);
     });
 
-    it('should load a book even if no library', (done) => {
-      Book.create({}, (err, book) => {
-        Book.select('`books`.`id`, `libraries`.`collection`').join('library').find(book.id, (err, book) => {
-          assert(book);
-          done();
-        });
-      });
+    it('should load a book even if no library', async () => {
+      const book = await Book.create({});
+      const foundBook = await Book
+        .select('`books`.`id`, `libraries`.`collection`')
+        .join('library')
+        .find(book.id);
+      assert(foundBook);
     });
 
-    it('should join even with has_many', (done) => {
-      Library.create({ collection: 'A' }, (err, library) => {
-        Book.create({ library_id: library.id, title: 'title' }, (err, book) => {
-          Library.join('books', 'title').find(library.id, (err, library) => {
-            assert.strictEqual(library.title, book.title);
-            done();
-          });
-        });
-      });
+    it('should join even with has_many', async () => {
+      const library = await Library.create({ collection: 'A' });
+      const book = await Book.create({ library_id: library.id, title: 'title' });
+      const foundLibrary = await Library
+        .join('books', 'title')
+        .find(library.id);
+      assert.strictEqual(foundLibrary.title, book.title);
     });
+
   });
+
 });

@@ -196,7 +196,7 @@ const user = await User.create({
 // => User { id: null, first_name: 'John', last_name: 'Doe', ... }
 ```
 
-If the primary key is an `AUTO_INCREMENT` field, it will be set automatically in the object returned in the callback.
+If the primary key is an `AUTO_INCREMENT` field, it will be set automatically in the object returned.
 
 ### Find
 

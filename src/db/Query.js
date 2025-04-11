@@ -1,6 +1,5 @@
 
 const _         = require('lodash');
-const async     = require('async');
 
 const Sql       = require('./Sql');
 const dbs       = require('./dbs');
@@ -64,20 +63,20 @@ module.exports = class Query {
   }
 
   // UPDATE
-  update(values, callback) {
+  async update(values) {
     this.query.verb = 'update';
     this.values(values);
-    return this.execute(callback);
+    return await this.execute();
   }
 
   // DELETE
-  delete(callback) {
+  async delete() {
     this.query.verb = 'delete';
-    return this.execute(callback);
+    return await this.execute();
   }
   
-  destroy(callback) {
-    return this.delete(callback);
+  async destroy() {
+    return await this.delete();
   }
 
   // FROM
@@ -118,17 +117,17 @@ module.exports = class Query {
   }
 
   // FIRST
-  first(callback) {
+  async first() {
     this.query.limit  = 1;
     this.query.take   = 'first';
-    return this.execute(callback);
+    return await this.execute();
   }
 
   // LAST
-  last(callback) {
+  async last() {
     this.query.limit  = 1;
     this.query.take   = 'last';
-    return this.execute(callback);
+    return await this.execute();
   }
 
   // LIMIT
@@ -163,8 +162,8 @@ module.exports = class Query {
   }
 
   // LIST
-  list(callback) {
-    return this.execute(callback);
+  async list() {
+    return await this.execute();
   }
 
   // SELECT
@@ -174,27 +173,21 @@ module.exports = class Query {
   }
 
   // COUNT
-  count(callback) {
+  async count() {
     const countQuery = new Query(this.modelClass);
     countQuery.query = _.cloneDeep(this.query);
     countQuery.query.verb   = 'count';
     countQuery.query.limit  = 1;
     delete countQuery.query.page;
     delete countQuery.query.nb;
-    const count = (callback) => {
-      countQuery.execute((err, rows) => {
-        callback(err, rows && rows[0] && parseInt(rows[0].count, 10));
-      });
-    };
-
-    if (callback) {
-      return count(callback);
+  
+    try {
+      const rows = await countQuery.execute();
+      const count = rows && rows[0] && parseInt(rows[0].count, 10);
+      return { count };
+    } catch (err) {
+      return { err };
     }
-    return new Promise((resolve, reject) => {
-      count((err, count) => {
-        err ? reject(err) : resolve(count);
-      });
-    });
   }
 
   // JOIN
@@ -261,22 +254,20 @@ module.exports = class Query {
   }
 
   // FIND
-  find(id, callback) {
+  async find(id) {
     if (id === null || id === undefined || id.length === 0) {
-      if (callback) {
-        return callback(null, null);
-      }
-      return new Promise((resolve) => {
-        resolve(null);
-      });
-    } else if (_.isString(id) || _.isNumber(id)) {
-      return this.where({ id }).first(callback);
-    } else if (_.isArray(id)) {
-      id = _.compact(id);
-      return this.where({ id }).first(callback);
-    } else {
-      return this.where(id).first(callback);
+      return null;
     }
+
+    if (_.isString(id) || _.isNumber(id)) {
+      return await this.where({ id }).first();
+    }
+
+    if (_.isArray(id)) {
+      id = _.compact(id);
+      return await this.where({ id }).first();
+    }
+    return await this.where(id).first();
   }
 
   // ORDER BY
@@ -318,18 +309,20 @@ module.exports = class Query {
   }
 
   //
-  paginate(callback) {
-    const { query }     = this;
+  async paginate() {
+    const { query } = this;
     if (!query.page) {
-      return callback();
+      return;
     }
-    this.count((err, count) => {
+  
+    try {
+      const count = await this.count();
       const nb_pages  = Math.ceil(count / query.nb);
-      query.page    = Math.min(query.page, nb_pages);
-      query.page    = Math.max(query.page, 1);
-      query.offset  = (query.page - 1) * query.nb;
-      query.limit   = query.nb;
-
+      query.page      = Math.min(query.page, nb_pages);
+      query.page      = Math.max(query.page, 1);
+      query.offset    = (query.page - 1) * query.nb;
+      query.limit     = query.nb;
+  
       const links = [];
       const page  = this.query.page;
       const start = Math.max(1, page - 5);
@@ -339,7 +332,7 @@ module.exports = class Query {
           links.push({ page: p, current: page === p });
         }
       }
-      callback(err, {
+      return {
         page:     this.query.page,
         nb:       this.query.nb,
         previous: page > 1 ? page - 1 : null,
@@ -349,42 +342,44 @@ module.exports = class Query {
         nb_pages,
         count,
         links,
-      });
-    });
+      };
+    } catch (err) {
+      throw err;
+    }
   }
-
+  
   //
-  loadAssociation(include, rows, callback) {
-    const association = _.find(this.schema.associations, function(association) {
+  async loadAssociation(include, rows) {
+    const association = _.find(this.schema.associations, (association) => {
       return association[1] === include;
     });
+  
     if (!association) {
-      throw new Error('Missing association \'' + include + '\' on \'' + this.schema.table + '\' schema.');
+      throw new Error(`Missing association '${include}' on '${this.schema.table}' schema.`);
     }
-
-    const type        = association[0];
-    const attr        = association[1];
-    const Obj         = association[2];
-    const column      = association[3] || attr + '_id';
-    const ref_column  = association[4] || 'id';
-    const extraWhere  = association[5];
-    
+  
+    const [type, attr, Obj, column = attr + '_id', ref_column = 'id', extraWhere] = association;
+  
     const ids           = _.chain(rows).flatMap(column).uniq().compact().value();
     const defaultValue  = () => (type === 'has_many' ? [] : null);
-
+  
     if (ids.length === 0) {
-      rows.forEach(row => row[attr] = defaultValue());
-      return callback();
+      rows.forEach((row) => row[attr] = defaultValue());
+      return;
     }
-    const where = {
-      [ref_column]: ids
+  
+    const where = { 
+      [ref_column]: ids 
     };
     const subincludes = this.query.includes[include];
-    const query = Obj.includes(subincludes).where(where);
+    let query = Obj.includes(subincludes).where(where);
     if (extraWhere) {
       query.where(extraWhere);
     }
-    query.list((err, objs) => {
+  
+    try {
+      const objs = await query.list();
+  
       const objsByKey = {};
       _.forEach(objs, (obj) => {
         const key = obj[ref_column];
@@ -395,103 +390,87 @@ module.exports = class Query {
           objsByKey[key] = obj;
         }
       });
-
+  
       rows.forEach((row) => {
         if (!Array.isArray(row[column])) {
           row[attr] = objsByKey[row[column]] || defaultValue();
-          return ;
+          return;
         }
         row[attr] = _.chain(row[column]).flatMap(id => objsByKey[id]).compact().value();
       });
-
-      callback();
-    });
+  
+    } catch (err) {
+      throw err;
   }
-
+}
   //
-  execute(callback) {
-    if (callback) {
-      return this.doExecute(callback);
-    }
-    return new Promise((resolve, reject) => {
-      this.doExecute((err, res) => {
-        err ? reject(err) : resolve(res);
-      });
-    });
-  }
-
-  //
-  doExecute(callback) {
+  async execute() {
     const { query, schema } = this;
     const db                = this.getDb();
     const { dialect }       = db.driver;
     const { esc }           = dialect;
-
+  
     if (schema.scopes) {
       this.applyScopes();
     }
-
-    if (query.order.length === 0 &&
-        (query.take === 'first' || query.take === 'last')) {
+  
+    if (query.order.length === 0 && 
+      (query.take === 'first' || query.take === 'last')) {
       const order = query.take === 'first' ? 'ASC' : 'DESC';
-      // default sort by primary key
-      schema.primary.forEach(function(key) {
+      // Default sort by primary key
+      schema.primary.forEach(function (key) {
         query.order.push(`${esc}${key}${esc} ${order}`);
-        // _this.query.order.push('`' + key + '` ' + order);
       });
     }
-
-
-    this.paginate((err, pagination) => {
+  
+    try {
+      const pagination = await this.paginate();
+      let rows = await this.runQuery();
+  
+      if (query.verb === 'insert') {
+        const insertId = dialect.insertId(rows);
+        return { insertId };
+      } else if (query.verb !== 'select') {
+        return rows;
+      }
+  
+      if (query.distinct || query.group) {
+        return rows;
+      } else if (query.limit === 1 && (!rows || rows.length === 0)) {
+        return null;
+      } else if (query.verb === 'select') {
+        rows = _.each(rows, row => schema.parseTypes(row));
+      }
       
-      this.runQuery((err, rows) => {
-        if (err) {
-          // console.log(err);
-          return callback && callback(err);
-        }
-        if (!callback) {
-          return;
-        }
-        if (query.verb === 'insert') {
-          const insertId = dialect.insertId(rows);
-          return callback(null, { insertId });
-        } else if (query.verb !== 'select') {
-          return callback(null, rows);
-        }
-
-        if (query.distinct || query.group) {
-          return callback(null, rows);
-        } else if (query.limit === 1 && (!rows || rows.length === 0 )) {
-          return callback(null, null);
-        } else if (query.verb === 'select') {
-          rows = _.each(rows, row => schema.parseTypes(row));
-        }
-
-        async.eachSeries(_.keys(query.includes), (include, callback) => {
-          this.loadAssociation(include, rows, callback);
-        }, (err) => {
-          if (query.verb === 'select') {
-            rows = _.map(rows, row => this.newInstance(row));
-          }
-
-          if (pagination) {
-            return callback(err, { pagination, rows });
-          }
-          if (query.limit === 1) {
-            return callback(err, rows[0]);
-          }
-
-          callback(err, rows);
-        });
-      });
-    });
+      // Load associations
+      for (let include of _.keys(query.includes)) {
+        await this.loadAssociation(include, rows);
+      }
+  
+      if (query.verb === 'select') {
+        rows = _.map(rows, row => this.newInstance(row));
+      }
+  
+      if (pagination) {
+        return { pagination, rows };
+      }
+  
+      if (query.limit === 1) {
+        return rows[0];
+      }
+  
+      return rows;
+    } catch (err) {
+      throw err;
+    }
   }
+  
 
-  runQuery(callback) {
+  async runQuery() {
     const { query } = this;
     const sqlQuery  = this.toSQL();
     const db        = this.getDb();
-    db.query(sqlQuery.sql, sqlQuery.params, query.options, callback);
+    return await db.query(sqlQuery.sql, sqlQuery.params, query.options);
   }
 
   newInstance(row) {
