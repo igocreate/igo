@@ -1,12 +1,18 @@
 
 require('../../src/dev/test/init');
 
-const compress = require('../../cli/compress');
+const fs        = require('fs');
 
-describe('cli/compress', function() {
+const compress  = require('../../cli/compress');
 
-  it('should run', () => {
-    compress();
+describe('cli/compress', function () {
+
+  it('should run', async () => {
+    // create ./public directory if not exists
+    if (!fs.existsSync('./public')) {
+      fs.mkdirSync('./public');
+    }
+    await compress();
   });
 
 });

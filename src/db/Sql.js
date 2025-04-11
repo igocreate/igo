@@ -185,7 +185,6 @@ var Sql = function(query, dialect) {
     }
 
     sql += dialect.returning;
-    // console.dir({ sql, params });
     return { sql, params };
   };
 

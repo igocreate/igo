@@ -1,16 +1,14 @@
 
 const https       = require('https');
-const fs          = require('fs');
+const fs          = require('fs/promises');
 const _           = require('lodash');
-const async       = require('async');
 const csvWriter   = require('csv-write-stream');
 
 const config      = require('../src/config');
 
-const readJson = (path, callback) => {
-  fs.readFile(path, (err, data) => {
-    callback(err, JSON.parse(data)); 
-  });
+const readJson = async(path) => {
+  const data = await fs.readFile(path)
+  return JSON.parse(data);
 };
 
 //
@@ -41,11 +39,12 @@ const parseJson = (json) => {
   return translations;
 };
 
-const writeTranslationFiles = (translations) => {
+const writeTranslationFiles = async (translations) => {
   // write translation files
-  config.i18n.whitelist.forEach((lang) => {
+  for (const lang of config.i18n.whitelist) {
     const dir = `./locales/${lang}`;
-    if (!fs.existsSync(dir)) {
+    const exists = await fs.exists(dir);
+    if (!exists) {
       console.warn('Missing directory: ' + dir);
       return;
     }
@@ -55,9 +54,8 @@ const writeTranslationFiles = (translations) => {
     const data = JSON.stringify(translations[lang], null, 2);
     const filename = `${dir}/translation.json`;
     console.log(`Writing ${filename}`);
-    
-    fs.writeFileSync(filename, data );
-  });
+    await fs.writeFile(filename, data);
+  }
 };
 
 
@@ -65,9 +63,9 @@ const writeTranslationFiles = (translations) => {
 const verbs   = {
 
   // igo i18n update
-  update: function(args, callback) {
+  update: async function(args) {
     if (!config.i18n.spreadsheet_id) {
-      return callback('Missing config.i18n.spreadsheet_id');
+      return console.error('Missing config.i18n.spreadsheet_id');
     }
 
     const url = `https://docs.google.com/spreadsheets/d/${config.i18n.spreadsheet_id}/gviz/tq?tqx=out:json`;
@@ -81,59 +79,57 @@ const verbs   = {
         body.push(chunk);
       });
 
-      resp.on('end', () => {
+      resp.on('end', async () => {
         const buffer = Buffer.concat(body);
         const text = buffer.toString();
         const json = JSON.parse(text.substr(47).slice(0, -2));
         const translations = parseJson(json);
-        writeTranslationFiles(translations);
-
-        callback();
+        await writeTranslationFiles(translations);
       });
-
-    }).on('error', callback);
+    })
   },
 
   // igo i18n csv
-  csv: function(args, callback) {
+  csv: async function(args) {
+
     const langs = config.i18n.whitelist;
-    async.mapSeries(langs, (lang, callback) => {
-      readJson(`./locales/${lang}/translation.json`, callback);
-    }, (err, translations) => {
-      const keys    = [];
+    const translations = [];
+
+    for (const lang of langs) {
+      translations.push(await readJson(`./locales/${lang}/translation.json`));
+    }
+
+    const keys    = [];
       
-      // build keys
-      const traverse = (obj, parents) => {
-        for (const key in obj) {
-          const val = obj[key];
-          if (_.isObject(val)) {
-            traverse(obj[key], parents.concat([key]));
-          } else if (_.isString(val)) {
-            keys.push(parents.concat([key]).join('.'));
-          }
+    // build keys
+    const traverse = (obj, parents) => {
+      for (const key in obj) {
+        const val = obj[key];
+        if (_.isObject(val)) {
+          traverse(obj[key], parents.concat([key]));
+        } else if (_.isString(val)) {
+          keys.push(parents.concat([key]).join('.'));
         }
-      };
-      translations.forEach(translation => {
-        traverse(translation, []);
-      });
-      
+      }
+    };
 
-      // build csv
-      const writer = csvWriter({ headers: [ 'key' ].concat(langs) });
-
-      const file = './translations.csv';
-      writer.pipe(fs.createWriteStream(file));
-      _.uniq(keys).forEach(key => {
-        const row =  _.map(translations, translation => _.get(translation, key));
-        writer.write([ key ].concat(row));
-      });
-      
-      writer.end();
-      console.log(keys.length + ' lines written in ' + file);
-      callback();
+    translations.forEach(translation => {
+      traverse(translation, []);
     });
-  }
 
+    // build csv  
+    const writer = csvWriter({ headers: ['key'].concat(langs) });
+    const file = './translations.csv';
+    writer.pipe(fs.createWriteStream(file));
+
+    _.uniq(keys).forEach(key => {
+      const row = _.map(translations, translation => _.get(translation, key));
+      writer.write([key].concat(row));
+    });
+
+    writer.end();
+    console.log(`${keys.length} lines written in ${file}`);
+  }
 };
 
 // igo i18n
@@ -142,14 +138,10 @@ module.exports = function(argv) {
   config.init();
 
   if (args.length > 1 && verbs[args[1]]) {
-    verbs[args[1]](args, function(err) {
-      console.log(err || 'Done.');
-      // process.exit(0);
-    });
+    verbs[args[1]](args)
+    // process.exit(0);
   } else {
     console.error('ERROR: Wrong options');
     console.error('Usage: igo i18n [update|csv]');
   }
-
-
 };

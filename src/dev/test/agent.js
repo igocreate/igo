@@ -37,7 +37,8 @@ const mockRequest = function(options) {
 };
 
 //
-const mockResponse = function(callback, req) {
+const mockResponse = function(req) {
+  let resolveResponse;
 
   const res = {
     body: '',
@@ -49,6 +50,10 @@ const mockResponse = function(callback, req) {
     }
   };
 
+  const done = new Promise((resolve) => {
+    resolveResponse = resolve;
+  });
+
   res.getHeader = function(name) {
     return res.headers[name];
   };
@@ -57,25 +62,24 @@ const mockResponse = function(callback, req) {
     res.headers[name] = value;
   };
 
-  // http hacks
   // console.dir(http.OutgoingMessage.prototype.end.toString());
-  http.OutgoingMessage.prototype.setHeader = res.setHeader;
-  http.OutgoingMessage.prototype._writeRaw = function _writeRaw(data, encoding, callback) {
-    res.send(data, encoding, callback);
-  };
-  http.OutgoingMessage.prototype.end = function end(chunk) {
-    res.send(chunk);
-  };
+    http.OutgoingMessage.prototype.setHeader = res.setHeader;
+    http.OutgoingMessage.prototype._writeRaw = function _writeRaw(data, encoding, callback) {
+      res.send(data, encoding, callback);
+    };
+    http.OutgoingMessage.prototype.end = function(chunk) {
+      res.send(chunk);
+    };
 
-  res.redirect = function(statusCode, redirectUrl) {
-    if (!_.isInteger(statusCode)) {
-      redirectUrl = statusCode;
-      statusCode  = 302;
-    }
-    res.statusCode  = statusCode;
-    res.redirectUrl = redirectUrl;
-    callback(null, res, req);
-  };
+    res.redirect = function(statusCode, redirectUrl) {
+      if (!_.isInteger(statusCode)) {
+        redirectUrl = statusCode;
+        statusCode  = 302;
+      }
+      res.statusCode  = statusCode;
+      res.redirectUrl = redirectUrl;
+      resolveResponse(res);
+    };
 
   res.removeHeader = function() {
     // ignore
@@ -87,12 +91,16 @@ const mockResponse = function(callback, req) {
 
   res.send = function(data) {
     res.body = data;
-    callback(null, res, req);
+    resolveResponse(res);
   };
 
-  res.end = function() {
-    callback(null, res, req);
+  res.end = function(chunk) {
+    if (chunk) {
+      res.body += chunk;
+    }
+    resolveResponse(res);
   };
+
 
   res.$ = (...args) => {
     if (!res._cached_$) {
@@ -101,49 +109,23 @@ const mockResponse = function(callback, req) {
     return res._cached_$(...args);
   };
 
-  return res;
+  return { res, done };
 };
 
-//
-module.exports.send = (url, options={}, callback) => {
+const send = async (url, options = {}) => {
   options.url = url;
   const req = mockRequest(options);
-  const res = mockResponse(callback, req);
+  const { res, done } = mockResponse(req);
   app.handle(req, res);
+  return await done;
 };
 
 //
-module.exports.get = (url, options={}, callback) => {
-  if (_.isFunction(options)) {
-    callback  = options;
-    options   = {};
-  }
-  options.method = 'GET';
-  
-  if (callback) {
-    return module.exports.send(url, options, callback);
-  }
-  return new Promise((resolve, reject) => {
-    module.exports.send(url, options, (err, res) => {
-      err ? reject(err) : resolve(res);
-    });
-  });
+module.exports.get = async (url, options = {}) => {
+  return await send(url, { ...options, method: 'GET' });
 };
 
 //
-module.exports.post = (url, options={}, callback) => {
-  if (_.isFunction(options)) {
-    callback  = options;
-    options   = {};
-  }
-  options.method = 'POST';
-
-  if (callback) {
-    return module.exports.send(url, options, callback);
-  }
-  return new Promise((resolve, reject) => {
-    module.exports.send(url, options, (err, res) => {
-      err ? reject(err) : resolve(res);
-    });
-  });
+module.exports.post = async (url, options = {}) => {
+  return await send(url, { ...options, method: 'POST' });
 };

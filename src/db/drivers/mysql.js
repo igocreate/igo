@@ -1,7 +1,6 @@
 
 const _       = require('lodash');
-const mysql   = require('mysql2');
-
+const mysql   = require('mysql2/promise');
 const OPTIONS = [
   'host', 'port', 'user', 'password', 'database',
   'charset', 'debug', 'connectionLimit'
@@ -14,13 +13,13 @@ module.exports.createPool = (dbconfig) => {
 };
 
 // get connection
-module.exports.getConnection = (pool, callback) => {
-  pool.getConnection(callback);
+module.exports.getConnection = async (pool) => {
+  return await pool.getConnection();
 };
 
 // query
-module.exports.query = (connection, sql, params, callback) => {
-  connection.query(sql, params, callback);
+module.exports.query = async (connection, sql, params) => {
+  return await connection.query(sql, params);
 };
 
 // release
@@ -29,18 +28,18 @@ module.exports.release = (connection) => {
 };
 
 // begin transaction
-module.exports.beginTransaction = (connection, callback) => {
-  connection.beginTransaction(callback);
+module.exports.beginTransaction = async (connection) => {
+  return await connection.beginTransaction();
 };
 
 // commit transaction
-module.exports.commit = (connection, callback) => {
-  connection.commit(callback);
+module.exports.commit = async (connection) => {
+  return await connection.commit();
 };
 
 // rollback transaction
-module.exports.rollback = (connection, callback) => {
-  connection.rollback(callback);
+module.exports.rollback = async (connection) => {
+  return await connection.rollback();
 };
 
 // dialect
@@ -56,14 +55,14 @@ module.exports.dialect = {
     PRIMARY KEY (\`id\`)
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`,
   listMigrations: 'SELECT * FROM `__db_migrations` ORDER BY `id` DESC',
-  findMigration:  'SELECT id from  `__db_migrations` WHERE `file`=? AND `success`=1',
+  findMigration:  'SELECT `id` from  `__db_migrations` WHERE `file`=? AND `success`=1',
   insertMigration: 'INSERT INTO `__db_migrations` (file, success, err, creation) VALUES(?, ?, ?, ?)',
   esc: '`',
   param: () => '?',
   limit: () => 'LIMIT ?, ? ',
   returning: '',
   insertId: result => result && result.insertId,
-  getRows: result => result,
+  getRows: result => result[0],
   emptyInsert: null,
   in: 'IN',
   notin: 'NOT IN',

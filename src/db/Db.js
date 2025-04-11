@@ -23,31 +23,32 @@ class Db {
     this.config.migrations_dir = `sql/${this.name}`;
   }
 
-  init() {
-    this.pool       = this.driver.createPool(this.config);
+  async init() {
+    this.pool       = await this.driver.createPool(this.config);
     this.connection = null;
     this.TEST_ENV   = config.env === 'test';
   }
 
   //
-  getConnection(callback) {
+  async getConnection() {
     const { driver, pool, TEST_ENV } = this;
     // if connection is in local storage
     if (TEST_ENV && this.connection) {
       // console.log('keep same connection');
-      return callback(null, this.connection, true);
+      return { connection: this.connection, keep: true };
     }
-    // console.log('create new connection');
-    driver.getConnection(pool, (err, connection) => {
-      if (TEST_ENV) {
-        this.connection = connection;
-      }
-      callback(err, connection);
-    });
+
+    const connection = await driver.getConnection(pool);
+
+    if (TEST_ENV) {
+      this.connection = connection;
+    }
+    return { connection, keep: false };
+
   }
 
   //
-  query(sql, params, options, callback) {
+  async query(sql, params, options) {
 
     const { driver, config, TEST_ENV } = this;
     const { dialect } = driver;
@@ -55,128 +56,96 @@ class Db {
     params  = params  || [];
     options = options || {};
     if (_.isFunction(params)) {
-      callback  = params;
       params    = [];
       options   = {};
     }
     if (_.isFunction(options)) {
-      callback  = options;
       options   = {};
     }
 
-    const runquery = () => {
+    const runquery = async() => {
 
-      this.getConnection((err, connection, keep) => {
-        if (err) {
-          console.log(err);
-          logger.error(err);
-          return callback(err);
+      const {err, connection, keep} = await this.getConnection();
+      const result = await this.driver.query(connection, sql, params, options);
+      if (config.debugsql || (err && !options.silent)) {
+        logger.info('Db.query: ' + sql);
+        if (params && params.length > 0) {
+          logger.info('With params: ' + params);
         }
+        if (err && !options.silent) {
+          errorhandler.errorSQL(err);
+        }
+      }
+      const rows = dialect.getRows(result);
+      if (!keep) {
+        // console.log('query: release transaction');
+        driver.release(connection);
+        if (TEST_ENV) {
+          this.connection = null;
+        }
+      }
 
-        // console.log(this.name + ': ' + sql);
-        // console.dir(params);
-        driver.query(connection, sql, params, (err, result) => {
-          // console.dir(result);
-          if (config.debugsql || (err && !options.silent)) {
-            logger.info('Db.query: ' + sql);
-            if (params && params.length > 0) {
-              logger.info('With params: ' + params);
-            }
-            if (err && !options.silent) {
-              errorhandler.errorSQL(err);
-            }
-          }
-          if (callback) {
-            callback(err, dialect.getRows(result));
-          }
-          if (!keep) {
-            // console.log('query: release transaction');
-            driver.release(connection);
-            if (TEST_ENV) {
-              this.connection = null;
-            }
-          }
-        });
-      });
+      return rows;
     };
 
     if (this.pool) {
-      return runquery();
+      return await runquery();
     }
 
     logger.info('Db.query: Trying to reinitialize db connection pool');
-    this.init();
+    await this.init();
     if (!this.pool) {
       logger.error('could not create db connection pool');
-      callback('dberror: could not create db connection pool');
     } else {
-      runquery();
+      return await runquery();
+    }
+  }
+  
+  
+
+  //
+  async beginTransaction() {
+    const { driver } = this;
+
+    const { err, connection } = await this.getConnection();
+    if (err) {
+      logger.error(err);
+      return;
+    }
+    await driver.beginTransaction(connection);
+  }
+
+  //
+  async commitTransaction() {
+    const { driver, TEST_ENV } = this;
+
+    const { err, connection } = await this.getConnection();
+    if (err) {
+      logger.error(err);
+      return;
+    }
+    await driver.commit(connection);
+    driver.release(connection);
+    if (TEST_ENV) {
+      this.connection = null;
     }
   }
 
   //
-  beginTransaction(callback) {
-    const { driver } = this;
-
-    this.getConnection((err, connection) => {
-      if (err) {
-        logger.error(err);
-        return callback(err, connection);
-      }
-      driver.beginTransaction(connection, (err) => {
-        if (err) {
-          logger.error(err);
-        }
-        callback(err, connection);
-      });
-    });
-  }
-
-  //
-  commitTransaction(callback) {
-    const { driver, TEST_ENV } = this;
-    this.getConnection((err, connection) => {
-      if (err) {
-        logger.error(err);
-        return callback(err, connection);
-      }
-      driver.commit(connection, (err) => {
-        if (err) {
-          logger.error(err);
-        } else {
-          driver.release(connection);
-          if (TEST_ENV) {
-            this.connection = null;
-          }
-        }
-        callback(err);
-      });
-    });
-  }
-
-  //
-  rollbackTransaction(callback) {
+  async rollbackTransaction() {
     const { driver, TEST_ENV } = this;
 
-    this.getConnection((err, connection) => {
-      if (err) {
-        logger.error(err);
-        return callback(err, connection);
-      }
-      driver.rollback(connection, (err) => {
-        if (err) {
-          logger.error(err);
-        } else {
-          driver.release(connection);
-          if (TEST_ENV) {
-            this.connection = null;
-          }
-        }
-        callback(err);
-      });
-    });
+    const { err, connection } = await this.getConnection();
+    if (err) {
+      logger.error(err);
+      return;
+    }
+    await driver.rollback(connection);
+    driver.release(connection);
+    if (TEST_ENV) {
+      this.connection = null;
+    }
   }
-
 }
 
 module.exports = Db;

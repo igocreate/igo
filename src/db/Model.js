@@ -1,5 +1,3 @@
-
-
 const _         = require('lodash');
 const CachedQuery = require('./CachedQuery');
 
@@ -35,127 +33,97 @@ module.exports = function(schema) {
     }
 
     // update
-    update(values, callback) {
+    async update(values) {
       values.updated_at = new Date();
-      const update = (callback) => {
-        this.beforeUpdate(values, () => {
-          newQuery(this.constructor, 'update').unscoped().values(values).where(this.primaryObject()).execute((err) => {
-            this.assignValues(values);
-            callback(err, this);
-          });
-        });
-      };
-
-      if (callback) {
-        return update(callback);
-      }
-      return new Promise((resolve, reject) => {
-        update((err, result) => {
-          err ? reject(err) : resolve(result);
-        });
-      });
+      await this.beforeUpdate(values);
+    
+      await newQuery(this.constructor, 'update')
+      .unscoped()
+      .values(values)
+      .where(this.primaryObject())
+      .execute();
+    
+    this.assignValues(values);
+    return this;
     }
 
     // reload
-    reload(includes, callback) {
-      if (!callback) {
-        callback = includes;
-        includes = null;
-      }
-      const reload = (callback) => {
-        const query = this.constructor.unscoped();
-        includes && query.includes(includes);
-        query.find(this.id, callback);
-      };
+    async reload(includes) {
 
-      if (callback) {
-        return reload(callback);
-      }
-      return new Promise((resolve, reject) => {
-        reload((err, result) => {
-          err ? reject(err) : resolve(result);
-        });
-      });
+      const query = this.constructor.unscoped();
+      includes && query.includes(includes);
+      return await query.find(this.id);
+
     }
 
     // destroy
-    destroy(callback) {
-      return newQuery(this.constructor, 'delete').unscoped().where(this.primaryObject()).execute(callback);
+    destroy() {
+      return newQuery(this.constructor, 'delete').unscoped().where(this.primaryObject()).execute();
     }
 
-    beforeCreate(callback)          { callback(); }
-    beforeUpdate(values, callback)  { callback(); }
+    async beforeCreate() { }
+    async beforeUpdate(values) { }
 
 
     // find by id
-    static find(id, callback) {
-      return newQuery(this).find(id, callback);
+    static async find(id) {
+      return await newQuery(this).find(id);
     }
 
     // create
-    static create(values, options, callback) {
-      const _this       = this;
-
-      if (_.isFunction(values)) {
-        callback = values;
-      }
-      if (_.isFunction(options)) {
-        callback = options;
-      }
+    static async create(values, options) {
+      const _this = this;
+    
       const now = new Date();
       const obj = new this(values);
+    
       if (this.schema.subclasses && !obj[this.schema.subclass_column]) {
         obj[this.schema.subclass_column] = _.findKey(this.schema.subclasses, { name: this.name });
       }
-
+    
       obj.created_at = obj.created_at || now;
       obj.updated_at = obj.updated_at || now;
-      
-      const create = (callback) => {
-        obj.beforeCreate(() => {
-          const query = newQuery(_this, 'insert').values(obj).options(options);
-          query.execute((err, result) => {
-            if (err) {
-              return callback && callback(err, result);
-            }
-            const { insertId } = result;
-            if (insertId) {
-              return _this.unscoped().find(insertId, callback);
-            }
-            _this.unscoped().find(obj.primaryObject(), callback);
-          });
-        });
+    
+      const create = async () => {
+        await obj.beforeCreate();
+    
+        const query = newQuery(_this, 'insert').values(obj).options(options);
+        const result = await query.execute();
+    
+        if (result.err) {
+          throw result.err;
+        }
+    
+        const { insertId } = result;
+        if (insertId) {
+          return _this.unscoped().find(insertId);
+        }
+        return _this.unscoped().find(obj.primaryObject());
       };
-
-      if (callback) {
-        return create(callback);
-      }
-      return new Promise((resolve, reject) => {
-        create((err, res) => {
-          err ? reject(err) : resolve(res);
-        });
-      });
-
+    
+      return await create();
     }
+    
+    
 
     // return first
-    static first(callback) {
-      return newQuery(this).first(callback);
+    static first() {
+      return newQuery(this).first();
     }
 
     // return last
-    static last(callback) {
-      return newQuery(this).last(callback);
+    static last() {
+      return newQuery(this).last();
     }
 
     // return all
-    static list(callback) {
-      return newQuery(this).list(callback);
+    static list() {
+      return newQuery(this).list();
     }
 
-    static all(callback) {
+    static all() {
       console.log('* all() deprecated. Please use list() instead');
-      return this.list(callback);
+      return this.list();
     }
 
     //
@@ -199,8 +167,8 @@ module.exports = function(schema) {
     }
 
     // count
-    static count(callback) {
-      return newQuery(this).count(callback);
+    static count() {
+      return newQuery(this).count();
     }
 
     // join
@@ -209,19 +177,19 @@ module.exports = function(schema) {
     }
 
     // destroy
-    static destroy(id, callback) {
-      return newQuery(this, 'delete').unscoped().where({ id: id }).execute(callback);
+    static destroy(id, ) {
+      return newQuery(this, 'delete').unscoped().where({ id: id }).execute();
     }
 
     // destroy all
-    static destroyAll(callback) {
-      return newQuery(this, 'delete').unscoped().execute(callback);
+    static destroyAll() {
+      return newQuery(this, 'delete').unscoped().execute();
     }
 
     //
-    static update(values, callback) {
+    static update(values, ) {
       values.updated_at = new Date();
-      return newQuery(this).unscoped().update(values, callback);
+      return newQuery(this).unscoped().update(values, );
     }
 
     // includes
