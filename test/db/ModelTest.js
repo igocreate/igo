@@ -9,7 +9,7 @@ const Model     = require('../../src/db/Model');
 
 describe('db.Model', () => {
 
-  var schema = {
+  const schema = {
     table:    'books',
     primary: ['id'],
     columns: [
@@ -24,6 +24,25 @@ describe('db.Model', () => {
   };
 
   class Book extends Model(schema) {}
+
+  const schema2 = {
+    table:    'books',
+    primary: ['id'],
+    columns: [
+      'id',
+      'code',
+      'title',
+      {name: 'details_json', type: 'json', attr: 'details'},
+      {name:'is_available', type: 'boolean'},
+      'library_id',
+      'created_at'
+    ],
+    scopes: {
+      default:  query => query.limit(2)
+    }
+  };
+
+  class Book2 extends Model(schema2) {}
 
   describe('standard crud operations', () => {
 
@@ -115,6 +134,16 @@ describe('db.Model', () => {
         assert.strictEqual(2, books.length);
       });
 
+      it.skip('should allow override default scope limit', async () => {
+        await Book2.create({ code: '123', title: 'title' });
+        await Book2.create({ code: '12345', title: 'title 2' });
+        const books = await Book2.list();
+        assert.strictEqual(books.length, 2);
+
+        const one = await Book2.limit(1).list();
+        assert.strictEqual(one.id, 1);
+      });
+
     });
 
     //
@@ -124,6 +153,15 @@ describe('db.Model', () => {
         const hibook  = await Book.create({title: 'hi'});
         await Book.create();
         const book = await Book.unscoped().first();
+        assert.strictEqual(first.id, book.id);
+        assert.strictEqual('hi', hibook.title);
+      });
+
+      it('should allow a limit in the default scope and select first book', async () => {
+        const first   = await Book2.create();
+        const hibook  = await Book2.create({title: 'hi'});
+        await Book2.create();
+        const book = await Book2.first();
         assert.strictEqual(first.id, book.id);
         assert.strictEqual('hi', hibook.title);
       });

@@ -17,6 +17,6 @@
     "igo": "{igo.version}"
   },
   "devDependencies": {
-    "tailwindcss": "^3.4.15"
+    "tailwindcss": "^4.1.5"
   }
 }

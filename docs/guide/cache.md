@@ -43,12 +43,12 @@ cache.put('namespace', id, 'hello', () => {
 
 ## API
 Available functions are:
-- `get(namespace, id, callback);`
-- `put(namespace, id, value, callback);`
-- `fetch(namespace, id, fn, callback);`  (where fn(id, callback) is called only if key is not found in cache)
-- `info(callback)`
-- `del(namespace, id, callback)`
-- `flushall(callback)`
+- `async get(namespace, id);`
+- `async put(namespace, id, value);`
+- `async fetch(namespace, id, fn);`  (where fn(id) is called only if key is not found in cache)
+- `async info()`
+- `async del(namespace, id)`
+- `async flushall()`
 
 ## Special note about Dates
 Since javascript Dates are ISO_8601 formatted and stored as strings in Redis, Igo.js automatically parses dates when they are retrieved from the cache.
