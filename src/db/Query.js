@@ -441,6 +441,10 @@ module.exports = class Query {
       });
     }
 
+    // force limit to 1 for first/last
+    if (query.take === 'first' || query.take === 'last') {
+      query.limit = 1;
+    }
 
     this.paginate((err, pagination) => {
       
