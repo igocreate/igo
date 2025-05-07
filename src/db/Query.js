@@ -183,8 +183,8 @@ module.exports = class Query {
     delete countQuery.query.nb;
   
     const rows    = await countQuery.execute();
-    const count   = rows && rows[0] && parseInt(rows[0].count, 10);
-    return { count };
+    const count   = rows && rows[0] && Number(rows[0].count) || 0;
+    return count;
   }
 
   // JOIN

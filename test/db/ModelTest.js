@@ -264,9 +264,9 @@ describe('db.Model', () => {
           const book = await Book.create();
           books.push(book);
         }
-
         assert.strictEqual(nb, books.length);
-        const { count } = await Book.count();
+        
+        const count = await Book.count();
         assert.strictEqual(nb, count);
       });
     });
@@ -359,10 +359,10 @@ describe('db.Model', () => {
       }
   
       let count = await Book.where({code: 'first'}).count();
-      assert.strictEqual(count.count, 10);
+      assert.strictEqual(count, 10);
 
       count = await Book.count();
-      assert.strictEqual(count.count, 30);
+      assert.strictEqual(count, 30);
     });
   });
 
