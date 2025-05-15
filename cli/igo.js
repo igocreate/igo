@@ -25,4 +25,8 @@ if (args.length === 0 || !actions[args[0]]) {
 }
 
 // invoke action
-actions[args[0]](argv);
+const run = async () => {
+  await actions[args[0]](argv);
+};
+
+run();

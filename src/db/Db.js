@@ -48,24 +48,14 @@ class Db {
   }
 
   //
-  async query(sql, params, options) {
+  async query(sql, params=[], options={}) {
 
     const { driver, config, TEST_ENV } = this;
     const { dialect } = driver;
 
-    params  = params  || [];
-    options = options || {};
-    if (_.isFunction(params)) {
-      params    = [];
-      options   = {};
-    }
-    if (_.isFunction(options)) {
-      options   = {};
-    }
-
     const runquery = async() => {
 
-      const {err, connection, keep} = await this.getConnection();
+      const { err, connection, keep } = await this.getConnection();
       const result = await this.driver.query(connection, sql, params, options);
       if (config.debugsql || (err && !options.silent)) {
         logger.info('Db.query: ' + sql);

@@ -11,7 +11,7 @@ const plugins     = require('../src/plugins');
 const verbs   = {
 
   // igo db migrate
-  migrate: async function(args) {
+  migrate: async (args) => {
     for (const database of config.databases) {
       const db = dbs[database];
       db.config.debugsql = false;
@@ -23,20 +23,20 @@ const verbs   = {
   },
 
   // igo db migrations
-  migrations: async function(args) {
+  migrations: async (args) => {
+
     for (const database of config.databases) {
       const db = dbs[database];
       db.config.debugsql = false;
       if (config.databases.length > 1) {
         console.log(`database: ${db.config.database}`);
       }
-      const migrationsList = await migrations.list(db);
-      const migrations = _.reverse(migrationsList);
-
-      migrations.forEach((migration) => {
+      let migrationsList  = await migrations.list(db);
+      migrationsList      = _.reverse(migrationsList);
+      migrationsList.forEach((migration) => {
         console.log([
           migration.id,
-          (migration.success ? 'OK' : 'KO'),
+          (migration.success ? '✅' : '❌'),
           migration.file
         ].join('  '));
       });
@@ -44,7 +44,7 @@ const verbs   = {
   },
 
   // igo db reset
-  reset: async function(args) {
+  reset: async (args) => {
     if (config.databases.length > 1 && !args[2]) {
       console.log(`Please select database to reset : igo db reset [${config.databases.join('|')}]`);
       return;
@@ -60,36 +60,45 @@ const verbs   = {
 
     console.log('WARNING: Database will be reset, data will be lost!');
     console.log('Confirm the database name (' + database + '):');
-    const stdin = process.openStdin();
-    stdin.addListener('data', async function(d) {
-      d = d.toString().trim();
-      if (d !== database) {
-        return;
-      }
 
-      db.config.debugsql = false;
-      db.config.database = null;
-      await db.init();
+    await new Promise((resolve) => {
+      process.stdin.resume();
+      process.stdin.setEncoding('utf8');
+      
+      process.stdin.on('data', async (data) => {
+        const input = data.toString().trim();
+        if (input !== database) {
+          
+          return resolve();
+        }
 
-      const { dialect }     = db.driver;
-      const DROP_DATABASE   = dialect.dropDb(database);
-      const CREATE_DATABASE = dialect.createDb(database);
+        db.config.debugsql = false;
+        db.config.database = null;
+        await db.init();
 
-      await db.query(DROP_DATABASE);
-      await db.query(CREATE_DATABASE);
-      db.config.database = database;
-      await db.init();
-      await migrations.migrate(db);
+        const { dialect }     = db.driver;
+        const DROP_DATABASE   = dialect.dropDb(database);
+        const CREATE_DATABASE = dialect.createDb(database);
+
+        await db.query(DROP_DATABASE);
+        await db.query(CREATE_DATABASE);
+        db.config.database = database;
+        await db.init();
+        await migrations.migrate(db);
+        
+        resolve();
+      });
     });
   },
 
-  reverse: async function(args) {
+  reverse: async (args) => {
     const db = dbs.main;
     const tables = await db.query('show tables');
+    console.dir(tables);
     for (const table of tables) {
       const tableName = _.values(table)[0];
       if (tableName === '__db_migrations') {
-        continue;
+        // continue;
       }
       const object = _.capitalize(tableName.substring(0, tableName.length - 1));
       const fields = await db.query(`explain ${tableName}`);
@@ -128,16 +137,16 @@ const verbs   = {
 };
 
 // igo db
-module.exports = function(argv) {
+module.exports = async (argv) => {
   
   const args = argv._;
 
   config.init();
-  dbs.init();
+  await dbs.init();
   plugins.init();
 
   if (args.length > 1 && verbs[args[1]]) {
-    verbs[args[1]](args)
+    await verbs[args[1]](args)
     console.log('Done.');
     process.exit(0);
   } else {

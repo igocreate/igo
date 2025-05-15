@@ -9,7 +9,7 @@ const logger  = require('../logger');
 const plugins = require('../plugins');
 
 //
-module.exports.init = async function(db) {
+module.exports.init = async (db) => {
   if (!config.auto_migrate) return;
 
   try {
@@ -39,20 +39,21 @@ module.exports.init = async function(db) {
 
 
 //
-module.exports.initmigrations = async function(db) {
+module.exports.initmigrations = async (db) => {
   const sql = db.driver.dialect.createMigrationsTable;
-  await db.query(sql);
+  await await db.query(sql);
 };
 
 //
-module.exports.list = async function(db) {
+module.exports.list = async (db) => {
   await module.exports.initmigrations(db);
   const sql = db.driver.dialect.listMigrations;
   return db.query(sql);
+  return await db.query(sql);
 };
 
 //
-module.exports.migrate = async function(db, rootDir = '.') {
+module.exports.migrate = async (db, rootDir = '.') => {
 
   if (db.config.noMigrations) {
     return;
@@ -61,6 +62,10 @@ module.exports.migrate = async function(db, rootDir = '.') {
   const sqldir = `${rootDir}/${db.config.migrations_dir || 'sql'}`;
   let querybuf  = '';
 
+  // create directory if it does not exist
+  await fs.mkdir(sqldir, { recursive: true });
+
+  // execute SQL line
   const executeLine = async (line) => {
     line = line.replace('\r', '').trim();
     if (line.match('^--')) return;
@@ -77,18 +82,17 @@ module.exports.migrate = async function(db, rootDir = '.') {
     }
   };
 
+  // execute SQL migration file
   const executeFile = async (file) => {
     if (!file.filename.match('[0-9]{8}.*\\.sql$')) {
+      logger.warn('File %s does not match migration pattern, skipping', file.filename);
       return;
     }
-    try {
-      const sql = db.driver.dialect.findMigration;
-      const result = await db.query(sql, [file.filename]);
-      if (result && result.length > 0) {
-        return 'alreadyplayed';
-      }
-    } catch (err) {
-      logger.error(err);
+  
+    // find if file has already been played
+    const result  = await db.query(db.driver.dialect.findMigration, [file.filename]);
+    if (result && result.length > 0) {
+      return 'alreadyplayed';
     }
 
     try {
@@ -100,20 +104,21 @@ module.exports.migrate = async function(db, rootDir = '.') {
       for (const line of lines) {
         await executeLine(line);
       }
-      const sql = db.driver.dialect.insertMigration;
-      const success = 'alreadyplayed' ? 0 : 1;
-      logger.info((success ? '✅ ' : '❌ ') + file.filename);
-      const err = 'alreadyplayed' ? String('alreadyplayed') : null;
+      
+      // no error
+      await db.query(db.driver.dialect.insertMigration, [file.filename, true, null, new Date()]);
+      logger.info('✅ ' + file.filename);
 
-      await db.query(sql, [file.filename, success, err, new Date()]);
     } catch (err) {
+      await db.query(db.driver.dialect.insertMigration, [file.filename, false, err, new Date()]);
+      logger.info('❌ ' + file.filename);
       logger.error('SQL error in file %s', file.path);
       logger.error(err);
     }
   }
 
   let files = [];
-  const filenames = await fs.readdir(sqldir)
+  const filenames = await fs.readdir(sqldir);
   _.forEach(filenames, (filename) => {
     files.push({ filename, path: path.join(sqldir, filename) });
   })
