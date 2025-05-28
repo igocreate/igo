@@ -81,6 +81,9 @@ module.exports = (req, res, next) => {
   req.addError = (param, msg, value) => {
     _.set(res.locals._errors, param, { param, msg, value });
   };
+  req.hasError = (param) => {
+    return !!_.get(res.locals._errors, param);
+  };
   req.checkBody = (param, msg) => {
     return new Chain(param, _.get(req.body, param), msg, res.locals._errors);
   };
