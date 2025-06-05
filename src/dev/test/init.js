@@ -18,7 +18,7 @@ const reinitDatabase = async (db) => {
   const { dialect }   = db.driver;
   const database      = db.config.database;
   db.config.database  = null;
-  db.init();
+  await db.init();
 
   const DROP_DATABASE   = dialect.dropDb(database);
   const CREATE_DATABASE = dialect.createDb(database);
@@ -26,7 +26,7 @@ const reinitDatabase = async (db) => {
   await db.query(DROP_DATABASE);
   await db.query(CREATE_DATABASE);
   db.config.database = database;
-  db.init();
+  await db.init();
 
   try {
     await migrations.migrate(db, config.projectRoot);
@@ -37,8 +37,8 @@ const reinitDatabase = async (db) => {
 };
 
 // before running tests
-before( async () => {
-  app.configure();
+before(async () => {
+  await app.configure();
   // reinit databases
   for (const database of config.databases) {
     const db = dbs[database];

@@ -94,7 +94,6 @@ const verbs   = {
   reverse: async (args) => {
     const db = dbs.main;
     const tables = await db.query('show tables');
-    console.dir(tables);
     for (const table of tables) {
       const tableName = _.values(table)[0];
       if (tableName === '__db_migrations') {

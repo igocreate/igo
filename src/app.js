@@ -27,9 +27,11 @@ const app = module.exports = express();
 const SERVICES = [ config, igodust, logger, cache, dbs, mailer, plugins ];
 
 //
-module.exports.configure = function() {
+module.exports.configure = async () => {
 
-  SERVICES.forEach(service => service.init(app));
+  for (const service of SERVICES) {
+    await service.init(app);
+  }
 
   i18next
   .use(i18nMiddleware.LanguageDetector)
@@ -85,9 +87,9 @@ module.exports.configure = function() {
 
 // configured: function invoked when app is configured
 // started:y' function invoked when server is started
-module.exports.run = function(configured, started) {
+module.exports.run = async (configured, started) => {
 
-  module.exports.configure();
+  await module.exports.configure();
   configured && configured();
 
   app.server = app.listen(config.httpport, function() {
