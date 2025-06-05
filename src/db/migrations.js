@@ -113,7 +113,7 @@ module.exports.migrate = async (db, rootDir = '.') => {
       await db.query(db.driver.dialect.insertMigration, [file.filename, false, String(err), new Date()]);
       logger.info('❌ ' + file.filename);
       logger.error('SQL error in file %s', file.path);
-      logger.error(err);
+      throw err;
     }
   }
 
@@ -132,7 +132,11 @@ module.exports.migrate = async (db, rootDir = '.') => {
 
   files = _.sortBy(files, 'filename');
   await module.exports.initmigrations(db);
-  for (const file of files) {
-    await executeFile(file);
+  try {
+    for (const file of files) {
+      await executeFile(file);
+    }
+  } catch (err) {
+    logger.error(err);
   }
 };
