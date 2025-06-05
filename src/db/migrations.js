@@ -13,7 +13,7 @@ module.exports.init = async (db) => {
   if (!config.auto_migrate) return;
 
   try {
-    const connection = await db.getConnection();
+    const { connection } = await db.getConnection();
     const { dialect } = db.driver;
     const lock = db.config.database + '.__db_migrations';
     const getLock = dialect.getLock(lock);
