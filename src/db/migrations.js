@@ -110,7 +110,7 @@ module.exports.migrate = async (db, rootDir = '.') => {
       logger.info('✅ ' + file.filename);
 
     } catch (err) {
-      await db.query(db.driver.dialect.insertMigration, [file.filename, false, err, new Date()]);
+      await db.query(db.driver.dialect.insertMigration, [file.filename, false, String(err), new Date()]);
       logger.info('❌ ' + file.filename);
       logger.error('SQL error in file %s', file.path);
       logger.error(err);
