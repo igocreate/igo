@@ -15,10 +15,9 @@ module.exports.init = async (db) => {
   try {
     const { connection } = await db.getConnection();
     const { dialect } = db.driver;
-    const lock = db.config.database + '.__db_migrations';
-    const getLock = dialect.getLock(lock);
-    const res = await db.driver.query(connection, getLock, []);
-
+    const lock        = db.config.database + '.__db_migrations';
+    const getLock     = dialect.getLock(lock);
+    const [res]       = await db.driver.query(connection, getLock, []);
     if (!dialect.gotLock(res)) {
       // could not get lock, skip migration
       return db.driver.release(connection);
@@ -26,9 +25,10 @@ module.exports.init = async (db) => {
     // got lock, migrate!
     await module.exports.migrate(db);
 
-    const releaseLock = dialect.releaseLock(lock);
+    // release lock
     setTimeout(async () => {
-      await db.query(releaseLock);
+      const releaseLock = dialect.releaseLock(lock);
+      await db.driver.query(connection, releaseLock);
       db.driver.release(connection);
     }, 10000);
 
