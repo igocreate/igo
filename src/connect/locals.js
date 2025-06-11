@@ -2,7 +2,7 @@
 const _           = require('lodash');
 const config      = require('../config');
 
-const assetsPath  = process.cwd() + '/public/webpack-assets.json';
+const assetsPath  = process.cwd() + '/webpack-assets.json';
 let   assets      = null;
 
 const DEV_SERVER  = 'http://localhost:9000';

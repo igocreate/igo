@@ -80,7 +80,7 @@ const webpackConfig = {
     }),
     // save stats
     new AssetsWebpackPlugin({
-      filename: 'public/webpack-assets.json'
+      filename: 'webpack-assets.json'
     })
   ],
   devServer: {
