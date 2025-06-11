@@ -78,10 +78,11 @@ var Sql = function(query, dialect) {
     // from
     sql += `FROM ${esc}${query.table}${esc} `;
 
-    if (query.join) {
-      const { type, table, column, ref_column, name } = query.join;
-      sql += `${type} JOIN ${esc}${table}${esc} as ${esc}${name}${esc} ON ${esc}${name}${esc}.${esc}${ref_column}${esc} = ${esc}${query.table}${esc}.${esc}${column}${esc} `;
-    }
+    // joins
+    _.each(query.joins, join => {
+      const { type, table, column, src_table, src_column, name } = join;
+      sql += `${type.toUpperCase()} JOIN ${esc}${table}${esc} as ${esc}${name}${esc} ON ${esc}${name}${esc}.${esc}${column}${esc} = ${esc}${src_table}${esc}.${esc}${src_column}${esc} `;
+    });
 
     // where
     sql += this.whereSQL(params);
