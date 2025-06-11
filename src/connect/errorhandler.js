@@ -105,7 +105,7 @@ module.exports.error = (err, req, res, next) => {
 };
 
 //
-module.exports.errorSQL = function(err) {
+module.exports.errorSQL = (err) => {
   logger.error(err);
   if (config.mailcrashto) {
     let body = '<table cellspacing="10">';
@@ -129,7 +129,7 @@ module.exports.errorSQL = function(err) {
 };
 
 // https://nodejs.org/api/domain.html
-const gracefullyShutdown = function(app) {
+const gracefullyShutdown = (app) => {
 
   try {
     // make sure we close down within N seconds

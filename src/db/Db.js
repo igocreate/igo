@@ -13,6 +13,19 @@ const DRIVERS = {
 };
 
 //
+const logQuery = (sql, params, err) => {
+  const _log = err ? logger.error : logger.info;
+  _log('Db.query: ' + sql);
+  if (params?.length) {
+    _log('With params: ' + params);
+  }
+  if (err) {
+    errorhandler.errorSQL(err);
+  }
+}
+
+
+//
 class Db {
 
   constructor(name) {
@@ -54,28 +67,33 @@ class Db {
     const { dialect } = driver;
 
     const runquery = async() => {
+      
+      const { connection, keep } = await this.getConnection();
 
-      const { err, connection, keep } = await this.getConnection();
-      const result = await this.driver.query(connection, sql, params, options);
-      if (config.debugsql || (err && !options.silent)) {
-        logger.info('Db.query: ' + sql);
-        if (params && params.length > 0) {
-          logger.info('With params: ' + params);
+      try {
+
+        const result = await this.driver.query(connection, sql, params, options);
+        if (config.debugsql) {
+          logQuery(sql, params);
         }
-        if (err && !options.silent) {
-          errorhandler.errorSQL(err);
+        return dialect.getRows(result);
+
+      } catch (err) {
+        if (!options.silent) {
+          logQuery(sql, params, err);
+        }
+        // rethrow error after logging
+        throw err;
+
+      } finally {
+        if (!keep) {
+          // console.log('query: release transaction');
+          driver.release(connection);
+          if (TEST_ENV) {
+            this.connection = null;
+          }
         }
       }
-      const rows = dialect.getRows(result);
-      if (!keep) {
-        // console.log('query: release transaction');
-        driver.release(connection);
-        if (TEST_ENV) {
-          this.connection = null;
-        }
-      }
-
-      return rows;
     };
 
     if (this.pool) {
