@@ -7,6 +7,7 @@ const assert    = require('assert');
 const _         = require('lodash');
 
 const cache     = require('../src/cache');
+const utils     = require('../src/utils');
 
 describe('igo.cache', () => {
 
@@ -83,10 +84,9 @@ describe('igo.cache', () => {
       cache.scan('scantest/*', async (key) => {
         keys.push(key);
       });
-      setTimeout(() => {
-        assert.strictEqual(keys.length, 3);
-        assert(keys.indexOf('scantest/122') > -1);
-      }, 100);
+      await utils.wait(100);
+      assert.strictEqual(keys.length, 3);
+      assert(keys.indexOf('scantest/122') > -1);
     });
   });
 });

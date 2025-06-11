@@ -27,3 +27,11 @@ module.exports.randomString = (length) => {
   }
   return result;
 };
+
+module.exports.wait = (ms) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, ms);
+  });
+};

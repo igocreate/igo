@@ -7,6 +7,7 @@ const path    = require('path');
 const config  = require('../config');
 const logger  = require('../logger');
 const plugins = require('../plugins');
+const utils   = require('../utils');
 
 //
 module.exports.init = async (db) => {
@@ -26,11 +27,11 @@ module.exports.init = async (db) => {
     await module.exports.migrate(db);
 
     // release lock
-    setTimeout(async () => {
-      const releaseLock = dialect.releaseLock(lock);
-      await db.driver.query(connection, releaseLock);
-      db.driver.release(connection);
-    }, 10000);
+    await utils.wait(10000);
+    
+    const releaseLock = dialect.releaseLock(lock);
+    await db.driver.query(connection, releaseLock);
+    db.driver.release(connection);
 
   } catch (err) {
     console.error(err);

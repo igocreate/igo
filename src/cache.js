@@ -9,6 +9,8 @@ let options       = null;
 let client        = null;
 
 
+const key = (namespace, id) => `${namespace}/${id}`;
+
 // init cache module : create redis client
 module.exports.init = async () => {
   options = config.redis || {};
@@ -19,26 +21,26 @@ module.exports.init = async () => {
   await client.connect();
 
   if (config.env === 'test') {
-    module.exports.flushall();
+    await module.exports.flushall();
   }
 };
 
 //
 module.exports.put = async (namespace, id, value, timeout) => {
-  const k = namespace + '/' + id;
+  const k = key(namespace, id);
   const v = serialize(value);
 
   // console.log('PUT: ' + k);
   const ret = await client.set(k, v);
   if (timeout || options.timeout) {
-    client.expire(k, timeout || options.timeout);
+    await client.expire(k, timeout || options.timeout);
   }
   return ret;
 };
 
 //
 module.exports.get = async (namespace, id) => {
-  const k = namespace + '/' + id;
+  const k = key(namespace, id);
   const value = await client.get(k);
   if (!value) {
     return value;
@@ -52,13 +54,13 @@ module.exports.get = async (namespace, id) => {
 module.exports.fetch = async (namespace, id, func, timeout) => {
 
   const obj = await module.exports.get(namespace, id);
-  
+
+  // if found in cache, return it
   if (obj) {
     return obj;
   }
 
   // invoke
-  // console.log(namespace + '/' + id + ' not found in cache');
   const result = await func(id);
   if (result && !result.err) {
     // put in cache and return result obj
@@ -74,13 +76,13 @@ module.exports.info = async () => {
 
 //
 module.exports.incr = async (namespace, id) => {
-  const k = [namespace, id].join('/');
-  await client.INCR(k);
+  const k = key(namespace, id);
+  return await client.incr(k);
 };
 
 //
 module.exports.del = async (namespace, id) => {
-  const k = [namespace, id].join('/');
+  const k = key(namespace, id);
   // remove from redis
   return await client.del(k);
 };
@@ -100,17 +102,28 @@ module.exports.flushall = async () => {
 // scan keys
 // - fn is invoked with (key) parameter for each key matching the pattern
 module.exports.scan = async (pattern, fn) => {
-  for await (const key of client.scanIterator({ MATCH: pattern })) {
-    // use the key!
-    await fn(key);
-  }  
+  let cursor = '0';
+
+  do {
+    const result = await client.scan(cursor, {
+      MATCH: pattern,
+      COUNT: 100,
+    });
+
+    cursor = result.cursor;
+    const keys = result.keys;
+
+    for (const key of keys) {
+      await fn(key);
+    }
+  } while (cursor !== '0');
 };
 
 // flush with wildcard
-module.exports.flush = (pattern) => {
-  module.exports.scan(pattern, async (key) => {
+module.exports.flush = async (pattern) => {
+  await module.exports.scan(pattern, async (key) => {
     // console.log('DEL: ' + key);
-    await client.DEL(key);
+    await client.del(key);
   });
 };
 
