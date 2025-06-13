@@ -137,7 +137,7 @@ module.exports = class Query {
       limit   = offset;
       offset  = 0;
     }
-    this.query.offset = 0;
+    this.query.offset = offset;
     this.query.limit  = limit;
     return this;
   }
