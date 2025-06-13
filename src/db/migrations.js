@@ -42,14 +42,13 @@ module.exports.init = async (db) => {
 //
 module.exports.initmigrations = async (db) => {
   const sql = db.driver.dialect.createMigrationsTable;
-  await await db.query(sql);
+  await db.query(sql);
 };
 
 //
 module.exports.list = async (db) => {
   await module.exports.initmigrations(db);
   const sql = db.driver.dialect.listMigrations;
-  return db.query(sql);
   return await db.query(sql);
 };
 
