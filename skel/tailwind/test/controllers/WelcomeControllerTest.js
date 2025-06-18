@@ -11,12 +11,10 @@ describe('controllers/WelcomeController', function() {
 
   //
   describe('/', function() {
-    it('should show welcome page', function(done) {
-      agent.get('/', function(err, res) {
-        assert.strictEqual(res.statusCode, 200);
-        assert(res.body.match(/running/));
-        done();
-      });
+    it('should show welcome page', async () => {
+      const res = await agent.get('/');
+      assert.strictEqual(res.statusCode, 200);
+      assert(res.body.match(/running/));
     });
   });
 });
