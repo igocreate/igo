@@ -142,8 +142,13 @@ module.exports = function(schema) {
     }
 
     // limit
-    static limit(offset, limit) {
-      return newQuery(this).limit(offset, limit);
+    static limit(limit) {
+      return newQuery(this).limit(limit);
+    }
+
+    // offset
+    static offset(offset) {
+      return newQuery(this).offset(offset);
     }
 
     // page

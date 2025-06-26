@@ -131,13 +131,17 @@ module.exports = class Query {
   }
 
   // LIMIT
-  limit(offset, limit) {
-    if (limit === undefined) {
-      limit   = offset;
-      offset  = 0;
-    }
-    this.query.offset = 0;
+  limit(limit, offset) {
     this.query.limit  = limit;
+    if (offset) {
+      logger.warn('Query.limit: offset is deprecated, use offset() instead');
+    }
+    return this;
+  }
+
+  // OFFSET
+  offset(offset) {
+    this.query.offset = offset;
     return this;
   }
 
