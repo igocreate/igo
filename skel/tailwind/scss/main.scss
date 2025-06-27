@@ -1,4 +1,8 @@
 
-@use 'tailwindcss/base';
-@use 'tailwindcss/components';
-@use 'tailwindcss/utilities';
+@import 'tailwindcss';
+
+@source '../views';
+@source not '../webpack-assets.json'
+@source not '../sql'
+
+@plugin '@tailwindcss/forms';

@@ -88,7 +88,7 @@ const webpackConfig = {
     static: {
       directory: process.cwd() + '/public',
     },
-    watchFiles: ['views/**/*.dust', 'public/**/*'],
+    watchFiles: ['views/**/*.dust', 'public/**/*', 'scss/**/*', 'js/**/*'],
     compress: true,
     liveReload: true,
     client: {
