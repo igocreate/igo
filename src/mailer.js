@@ -38,7 +38,7 @@ const getHtml = async (templateName, data) => {
 
   let html;
   try {
-    html = IgoDust.engine(template, data);
+    html = await IgoDust.renderFile(template, data);
   } catch (err) {
     logger.error(`mailer.send: error - could not render template ${template}`);
     logger.error(err);

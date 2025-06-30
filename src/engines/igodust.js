@@ -22,11 +22,11 @@ module.exports.middleware = (req, res, next) => {
 
   // override render method to stream response
   if (config.igodust.stream) {
-    res.render = (template, locals) => {
+    res.render = async (template, locals) => {
       const data = {...res.locals, ...locals};
       res.type('html');
       // TODO: handle ETAgs and status 304
-      IgoDust.renderFile(template + '.dust', data, res);
+      await IgoDust.renderFile(template + '.dust', data, res);
       res.end();
     };
   }
