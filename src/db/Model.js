@@ -42,6 +42,11 @@ module.exports = function(schema) {
       .values(values)
       .where(this.primaryObject())
       .execute();
+
+      if (this.constructor.schema.cache) {
+        const cache = require('../cache');
+        await cache.del('_cached.' + this.constructor.schema.table);
+      }
     
     this.assignValues(values);
     return this;
@@ -200,6 +205,19 @@ module.exports = function(schema) {
     // includes
     static includes(includes) {
       return newQuery(this).includes(includes);
+    }
+
+    // includes
+    static join(associationName, columns, type='LEFT') {
+      const query = newQuery(this);
+      if (_.isString(associationName)) {
+        return query.joinOne(associationName, columns, type);
+      } else if (_.isArray(associationName)) {
+        return query.joinMany(associationName, columns, type);
+      } else if (_.isObject(associationName)) {
+        return query.joinNested(associationName);
+      }
+      throw new Error('Invalid join argument for Model.join(). Must be a string, array, or object.');
     }
 
     //unscoped

@@ -35,12 +35,16 @@ module.exports = class Schema {
     });
   }
 
-  parseTypes(row) {
+  parseTypes(row, prefix='') {
     _.forOwn(row, (value, key) => {
+      if (prefix && !key.startsWith(prefix)) {
+        return; // skip if not prefixed
+      }
+      key = key.slice(prefix.length);
       const column  = this.colsByName[key];
       const type    = column && DataTypes[column.type];
-      if (column && type) {
-        row[column.attr] = type.get(value);
+      if (type) {
+        row[prefix + column.attr] = type.get(value);
       }
     });
   }

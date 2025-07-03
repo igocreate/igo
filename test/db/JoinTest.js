@@ -4,16 +4,30 @@ const Model = require('../../src/db/Model');
 
 describe('includes', () => {
 
+  class City extends Model({
+    table: 'cities',
+    primary: ['id'],
+    columns: [
+      'id',
+      'name',
+    ],
+    associations: () => ([
+      ['has_many', 'libraries', Library, 'id', 'city_id'],
+    ])
+  }) {}
+
   class Library extends Model({
     table: 'libraries',
     primary: ['id'],
     columns: [
       'id',
       'title',
-      'collection'
+      'collection',
+      'city_id'
     ],
     associations: () => ([
       ['has_many', 'books', Book, 'id', 'library_id'],
+      ['belongs_to', 'city', City, 'city_id', 'id'],
     ])
   }) {}
 
@@ -37,10 +51,12 @@ describe('includes', () => {
   describe('join', () => {
 
     it('should load a book join with its library collection', async () => {
-      const library = await Library.create({ collection: 'A' });
-      const book = await Book.create({ library_id: library.id });
-      const foundBook = await Book.join('library', 'collection').find(book.id);
-      assert.strictEqual(foundBook.collection, library.collection);
+      const library   = await Library.create({ title: 'the big library', collection: 'A' });
+      const book      = await Book.create({ library_id: library.id });
+
+      const foundBook = await Book.join('library').find(book.id);
+      assert.strictEqual(foundBook.id, book.id);
+      assert.strictEqual(foundBook.library.collection, library.collection);
     });
 
     it('should load a book join with its library collection with custom select', async () => {
@@ -53,23 +69,38 @@ describe('includes', () => {
       assert.strictEqual(foundBook.library_title, library.title);
     });
 
-    it('should load a book even if no library', async () => {
-      const book = await Book.create({});
-      const foundBook = await Book
-        .select('`books`.`id`, `libraries`.`collection`')
-        .join('library')
-        .find(book.id);
-      assert(foundBook);
+    // count with join
+    it('should count books with join and where condition', async () => {
+      const libraryA = await Library.create({ title: 'A' });
+      const libraryB = await Library.create({ title: 'B' });
+      await Book.create({ library_id: libraryA.id });
+      await Book.create({ library_id: libraryA.id });
+      await Book.create({ library_id: libraryB.id });
+
+      const count = await Book.join('library').where('`libraries`.`title` = \'B\'').count();
+
+      assert.strictEqual(count, 1);
     });
 
-    it('should join even with has_many', async () => {
-      const library = await Library.create({ collection: 'A' });
-      const book = await Book.create({ library_id: library.id, title: 'title' });
-      const foundLibrary = await Library
-        .join('books', 'title')
-        .find(library.id);
-      assert.strictEqual(foundLibrary.title, book.title);
+    // cascade joins
+    it('should load books with libraries and cities', async () => {
+      const city      = await City.create({ name: 'Paris' });
+      const library   = await Library.create({ title: 'A', city_id: city.id });
+      await Book.create({ library_id: library.id });
+      await Book.create({ library_id: library.id });
+
+      const books = await Book.join({library: 'city'}).list();
+
+      assert.strictEqual(books.length, 2);
+      assert.strictEqual(books[0].library.city.id, city.id);
     });
+
+    it('should load a book even if no library', async () => {
+      const book = await Book.create({});
+      const foundBook = await Book.join('library').find(book.id);
+      assert(foundBook);
+      assert.strictEqual(foundBook.library, null);
+    });    
 
   });
 

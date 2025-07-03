@@ -22,7 +22,7 @@ describe('db.CachedQuery', function () {
 
   describe('find', function () {
 
-    const key = id => '{"sql":"SELECT `books`.* FROM `books` WHERE `books`.`id` = ? ORDER BY `id` ASC LIMIT ?, ?","params":[' + id + ',0,1]}';
+    const key = id => '{"sql":"SELECT `books`.* FROM `books` WHERE `books`.`id` = ? ORDER BY `books`.`id` ASC LIMIT ?, ?","params":[' + id + ',0,1]}';
 
     it('should put rows in cache', async () => {
       const book1 = await Book.create();

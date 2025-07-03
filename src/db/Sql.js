@@ -9,6 +9,18 @@ var Sql = function(query, dialect) {
   const { esc } = dialect;
   let i = 1;
 
+  this.addJoins = function() {
+    let sql = '';
+    _.each(query.joins, join => {
+      const { src_schema, type, association, src_alias } = join;
+      const [ assoc_type, name, Obj, src_column, column] = association;
+      const src_table_alias = src_alias || src_schema.table;
+      const table       = Obj.schema.table;
+      sql += `${type.toUpperCase()} JOIN ${esc}${table}${esc} ${esc}${name}${esc} ON ${esc}${name}${esc}.${esc}${column}${esc} = ${esc}${src_table_alias}${esc}.${esc}${src_column}${esc} `;
+    });
+    return sql;
+  }
+
   // SELECT SQL
   this.selectSQL = function() {
 
@@ -19,27 +31,32 @@ var Sql = function(query, dialect) {
       const joined = query.distinct.join(`${esc},${esc}`);
       sql += `DISTINCT ${esc}${joined}${esc} `;
     } else if (query.select) {
-      sql += query.select + ' ';
-    } else {
-      sql += `${esc}${query.table}${esc}.* `;
-    }
-
-    // joins columns
-    _.each(query.joins, join => {
-      _.each(join.columns, column => {
-        const col = column.indexOf('`') > -1 || column.indexOf(' as ') > -1 ? column : `${esc}${column}${esc}`;
-        sql += `,${esc}${join.name}${esc}.${col} `;
+      let select_sql = query.select;
+      _.each(query.joins, join => {
+        const [assoc_type, name, Obj] = join.association;
+        select_sql = select_sql.replace(new RegExp(`\\b${Obj.schema.table}\\b`, 'g'), name);
       });
-    });
+      sql += select_sql + ' ';
+    } else {
+      sql += `${esc}${query.table}${esc}.*`;
+
+      _.each(query.joins, join => {
+        const { src_schema, association } = join;
+        const [ assoc_type, name, Obj, src_column, column] = association;
+        const table_alias = name;
+        sql += ', ';
+        sql += _.map(Obj.schema.columns, (column) => {
+          return `${esc}${table_alias}${esc}.${esc}${column.name}${esc} as ${esc}${table_alias}__${column.name}${esc}`;
+        }).join(', ');
+      });
+      sql += ' ';
+    }
 
     // from
     sql += `FROM ${esc}${query.table}${esc} `;
 
     // joins
-    _.each(query.joins, join => {
-      const { type, table, column, src_table, src_column, name } = join;
-      sql += `${type.toUpperCase()} JOIN ${esc}${table}${esc} as ${esc}${name}${esc} ON ${esc}${name}${esc}.${esc}${column}${esc} = ${esc}${src_table}${esc}.${esc}${src_column}${esc} `;
-    });
+    sql += this.addJoins();
 
     // where
     sql += this.whereSQL(params);
@@ -79,10 +96,7 @@ var Sql = function(query, dialect) {
     sql += `FROM ${esc}${query.table}${esc} `;
 
     // joins
-    _.each(query.joins, join => {
-      const { type, table, column, src_table, src_column, name } = join;
-      sql += `${type.toUpperCase()} JOIN ${esc}${table}${esc} as ${esc}${name}${esc} ON ${esc}${name}${esc}.${esc}${column}${esc} = ${esc}${src_table}${esc}.${esc}${src_column}${esc} `;
-    });
+    sql += this.addJoins();
 
     // where
     sql += this.whereSQL(params);
@@ -104,6 +118,11 @@ var Sql = function(query, dialect) {
     _.forEach(query.where, function(where) {
       if (_.isArray(where)) {
         let s = where[0];
+        // Replace table name with alias if it's a joined table
+        _.each(query.joins, join => {
+          const [assoc_type, name, Obj] = join.association;
+          s = s.replace(new RegExp(`\\b${Obj.schema.table}\\b`, 'g'), name);
+        });
         while (s.indexOf('$?') > -1) {
           s = s.replace('$?', dialect.param(i++));
         }
@@ -114,19 +133,30 @@ var Sql = function(query, dialect) {
           params.push(where[1]);
         }
       } else if (_.isString(where)) {
-        sqlwhere.push(where + ' ');
+        let s = where;
+        _.each(query.joins, join => {
+          const [assoc_type, name, Obj] = join.association;
+          s = s.replace(new RegExp(`\\b${Obj.schema.table}\\b`, 'g'), name);
+        });
+        sqlwhere.push(s + ' ');
       } else {
         _.forEach(where, function(value, key) {
+          let table_alias = esc + query.table + esc;
+          const foundJoin = _.find(query.joins, join => join.association[1] === key);
+          if (foundJoin) {
+            table_alias = esc + foundJoin.association[1] + esc;
+          }
+
           if (value === null || value === undefined) {
-            sqlwhere.push(`${esc}${query.table}${esc}.${esc}${key}${esc} IS NULL `);
+            sqlwhere.push(`${table_alias}.${esc}${key}${esc} IS NULL `);
           } else if (_.isArray(value) && value.length === 0) {
             // where in empty array --> FALSE
             sqlwhere.push('FALSE ');
           } else if (_.isArray(value)) {
-            sqlwhere.push(`${esc}${query.table}${esc}.${esc}${key}${esc} ${dialect.in} (${dialect.param(i++)}) `);
+            sqlwhere.push(`${table_alias}.${esc}${key}${esc} ${dialect.in} (${dialect.param(i++)}) `);
             params.push(value);
           } else {
-            sqlwhere.push(`${esc}${query.table}${esc}.${esc}${key}${esc} = ${dialect.param(i++)} `);
+            sqlwhere.push(`${table_alias}.${esc}${key}${esc} = ${dialect.param(i++)} `);
             params.push(value);
           }
         });
@@ -143,16 +173,22 @@ var Sql = function(query, dialect) {
     var sqlwhere = [];
     _.forEach(query.whereNot, function(whereNot) {
       _.forEach(whereNot, function(value, key) {
+        let table_alias = esc + query.table + esc;
+        const foundJoin = _.find(query.joins, join => join.association[1] === key);
+        if (foundJoin) {
+          table_alias = esc + foundJoin.association[1] + esc;
+        }
+
         if (value === null) {
-          sqlwhere.push(`${esc}${query.table}${esc}.${esc}${key}${esc} IS NOT NULL `);
+          sqlwhere.push(`${table_alias}.${esc}${key}${esc} IS NOT NULL `);
         } else if (_.isArray(value) && value.length === 0) {
           // where in empty array --> FALSE
           sqlwhere.push('TRUE ');
         } else if (_.isArray(value)) {
-          sqlwhere.push(`${esc}${query.table}${esc}.${esc}${key}${esc} ${dialect.notin} (${dialect.param(i++)}) `);
+          sqlwhere.push(`${table_alias}.${esc}${key}${esc} ${dialect.notin} (${dialect.param(i++)}) `);
           params.push(value);
         } else {
-          sqlwhere.push(`${esc}${query.table}${esc}.${esc}${key}${esc} != ${dialect.param(i++)} `);
+          sqlwhere.push(`${table_alias}.${esc}${key}${esc} != ${dialect.param(i++)} `);
           params.push(value);
         }
       });

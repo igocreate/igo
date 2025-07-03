@@ -192,45 +192,74 @@ module.exports = class Query {
   }
 
   // JOIN
-  join(associationName, columns, type = 'LEFT', name) {
-    const { query, schema } = this;
+  join(join, columns, type) {
+    if (_.isString(join)) {
+      return this.joinOne(join, columns, type);
+    } else if (_.isArray(join)) {
+      return this.joinMany(join, columns, type);
+    } else if (_.isObject(join)) {
+      return this.joinNested(join);
+    }
+    throw new Error('Invalid join argument. Must be a string, array, or object.');
+  }
 
-    if (_.isString(associationName)) {
-        
-      const association = _.find(schema.associations, (association) => association[1] === associationName);
-      if (!association) {
-        throw new Error('Missing association \'' + associationName + '\' on \'' + this.schema.table + '\' schema.');
+  // JOIN ONE
+  joinOne(associationName, columns, type = 'LEFT') {
+    const { query } = this;
+    const association = this._findAssociation(associationName, this.schema);
+    query.joins.push({ src_schema: this.schema, association, columns, type, src_alias: this.schema.table });
+    return this;
+  }
+
+  // JOIN MANY
+  joinMany(associationNames, columns, type = 'LEFT') {
+    associationNames.forEach(name => this.joinOne(name, columns, type));
+    return this;
+  }
+
+  // JOIN NESTED
+  joinNested(nestedAssociations) {
+    const processJoin = (join, current_schema, current_alias) => {
+      if (_.isString(join)) {
+        this._addJoin(join, null, 'LEFT', current_schema, current_alias);
+        return;
       }
 
-      const attr        = association[1];
-      const Obj         = association[2];
-      const src_column  = association[3] || attr + '_id';
-      const column      = association[4] || 'id';
-      const src_table   = this.schema.table;
-      
-      query.joins.push({
-        type:     type.toUpperCase(),
-        columns:  columns && _.castArray(columns),
-        table:    Obj.schema.table,
-        name:     name || Obj.schema.table,
-        column,
-        src_table,
-        src_column,
-      });
+      if (_.isArray(join)) {
+        join.forEach(j => processJoin(j, current_schema, current_alias));
+        return;
+      }
 
-    } else {
-      // custom join
-      query.joins.push({
-        type:     type.toUpperCase(),
-        columns:    columns && _.castArray(columns),
-        table:      associationName.table,
-        name:       associationName.name || associationName.table,
-        column:     associationName.column,
-        src_table:  associationName.src_table || this.schema.table,
-        src_column: associationName.src_column || 'id',
-      });
-    }
+      if (_.isObject(join)) {
+        _.each(join, (value, key) => {
+          const new_join_alias = key;
+          const association = this._addJoin(key, null, 'LEFT', current_schema, current_alias);
+          const next_schema = association[2].schema;
+          processJoin(value, next_schema, new_join_alias);
+        });
+      }
+    };
+    processJoin(nestedAssociations, this.schema, this.schema.table);
     return this;
+  }
+
+  // Helper to find association
+  _findAssociation(associationName, src_schema) {
+    const association = _.find(src_schema.associations, assoc => assoc[1] === associationName);
+    if (!association) {
+      throw new Error(`Missing association '${associationName}' on '${src_schema.table}' schema.`);
+    }
+    if (association[0] !== 'belongs_to') {
+      throw new Error(`Association '${associationName}' on '${src_schema.table}' schema is not a 'belongs_to' association.`);
+    }
+    return association;
+  }
+
+  // Helper to add join to query.joins
+  _addJoin(associationName, columns, type, src_schema, src_alias_for_join) {
+    const association = this._findAssociation(associationName, src_schema);
+    this.query.joins.push({ src_schema, association, columns, type, src_alias: src_alias_for_join });
+    return association;
   }
 
   // SCOPES
@@ -303,8 +332,7 @@ module.exports = class Query {
   toSQL() {
     const { query } = this;
     const db        = this.getDb();
-    const sql = new Sql(this.query, db.driver.dialect)[this.query.verb + 'SQL']();
-    // console.log(sql);
+    const sql       = new Sql(this.query, db.driver.dialect)[this.query.verb + 'SQL']();
     query.generated = sql;
     return sql;
   }
@@ -411,7 +439,7 @@ module.exports = class Query {
       const order = query.take === 'first' ? 'ASC' : 'DESC';
       // Default sort by primary key
       schema.primary.forEach(function (key) {
-        query.order.push(`${esc}${key}${esc} ${order}`);
+        query.order.push(`${esc}${schema.table}${esc}.${esc}${key}${esc} ${order}`);
       });
     }
   
@@ -435,7 +463,16 @@ module.exports = class Query {
     } else if (query.limit === 1 && (!rows || rows.length === 0)) {
       return null;
     } else if (query.verb === 'select') {
-      rows = _.each(rows, row => schema.parseTypes(row));
+      rows = _.each(rows, row => {
+        schema.parseTypes(row)
+
+        // parse joins values
+        this.query.joins.forEach(join => {
+          const { src_schema, association } = join;
+          const [assoc_type, name, Obj, src_column, column] = association;
+          Obj.schema.parseTypes(row, `${name}__`);
+        });
+      });
     }
     
     // Load associations
@@ -444,7 +481,42 @@ module.exports = class Query {
     }
 
     if (query.verb === 'select') {
-      rows = _.map(rows, row => this.newInstance(row));
+      rows = _.map(rows, row => {
+        const instance = this.newInstance(row);
+        
+        if (this.query.joins.length === 0) {
+          return instance;
+        }
+        
+        const createdInstances = new Map();
+        createdInstances.set(this.schema, instance);
+
+        this.query.joins.forEach(join => {
+          const { src_schema, association } = join;
+          const [assoc_type, name, Obj, src_column, column] = association;
+          const table_alias = name;
+          
+          const params = {};
+          Obj.schema.columns.forEach(col => {
+            const alias = `${table_alias}__${col.name}`;
+            params[col.name] = row[alias];
+            delete instance[alias];
+          });
+
+          const joinInstance = this.newInstance(params, Obj);
+
+          const parentInstance = createdInstances.get(src_schema);
+          
+          if (parentInstance) {
+            parentInstance[name] = joinInstance || null;
+            if (joinInstance) {
+              createdInstances.set(Obj.schema, joinInstance);
+            }
+          }
+        });
+
+        return instance;
+      });
     }
 
     if (pagination) {
@@ -468,9 +540,12 @@ module.exports = class Query {
   }
 
   // new instance of model object
-  newInstance(row) {
-    let instanceClass = this.modelClass;
-    const type        = row[this.schema.subclass_column];
+  newInstance(row, instanceClass=this.modelClass) {
+    // let instanceClass = this.modelClass;
+    if (_.every(this.schema.primary, key => row[key] === null)) {
+      return null; // no primary key, no instance
+    }
+    const type = row[this.schema.subclass_column];
     if (this.schema.subclasses && type) {
       instanceClass = this.schema.subclasses[type];
     }

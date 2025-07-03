@@ -20,7 +20,7 @@ describe('db.Query', function() {
     it('should return correct SQL', async () => {
       const query = new Query(Book)
       await query.first();
-      const sql = 'SELECT `books`.* FROM `books` ORDER BY `id` ASC LIMIT ?, ?';
+      const sql = 'SELECT `books`.* FROM `books` ORDER BY `books`.`id` ASC LIMIT ?, ?';
       assert.strictEqual(sql, query.query.generated.sql);
     });
   });

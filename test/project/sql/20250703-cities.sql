@@ -1,14 +1,12 @@
 
 --
 
-CREATE TABLE `libraries` (
+CREATE TABLE `cities` (
   `id`              INT NOT NULL AUTO_INCREMENT,
-  `title`           VARCHAR(100),
-  `collection`      VARCHAR(100),
-  `books_ids_json`  VARCHAR(100),
+  `name`            VARCHAR(100),
   `created_at`      DATETIME,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
+ALTER TABLE `libraries` ADD COLUMN `city_id` INT NULL;
 
