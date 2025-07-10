@@ -153,6 +153,56 @@ describe('includes', () => {
       assert.strictEqual(foundBook.library.city.name, city.name);
     });
 
+    it('should load a book and its library with its books', async () => {
+      const library = await Library.create({ title: 'London Library' });
+      const book    = await Book.create({ library_id: library.id });
+      const book2   = await Book.create({ library_id: library.id });
+
+      const foundBook = await Book.join('library').includes('library.books').find(book.id);
+      assert.strictEqual(foundBook.id, book.id);
+      assert.strictEqual(foundBook.library.books.length, 2);
+      assert.strictEqual(foundBook.library.books[0].id, book.id);
+      assert.strictEqual(foundBook.library.books[1].id, book2.id);
+    });
+
+    it('should load a book and the city\'s libraries (nested includes)', async () => {
+      const country = await Country.create({ name: 'France' });
+      const city = await City.create({ name: 'Paris', country_id: country.id });
+      const library1 = await Library.create({ title: 'Paris Library 1', city_id: city.id });
+      const library2 = await Library.create({ title: 'Paris Library 2', city_id: city.id });
+      const library3 = await Library.create({ title: 'Other Library', city_id: null }); // Not associated with Paris
+      const book = await Book.create({ library_id: library1.id });
+
+      const foundBook = await Book.join({library: 'city'}).includes('library.city.libraries').find(book.id);
+
+      assert.strictEqual(foundBook.id, book.id);
+      assert.strictEqual(foundBook.library.id, library1.id);
+      assert.strictEqual(foundBook.library.city.id, city.id);
+      assert(Array.isArray(foundBook.library.city.libraries));
+      assert.strictEqual(foundBook.library.city.libraries.length, 2);
+      assert.strictEqual(foundBook.library.city.libraries[0].id, library1.id);
+      assert.strictEqual(foundBook.library.city.libraries[1].id, library2.id);
+    });
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+  
+
+    
+
+
+  
+
   });
 
 });

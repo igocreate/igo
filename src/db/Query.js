@@ -378,11 +378,11 @@ module.exports = class Query {
 
     let schema      = this.schema;
     let association = null;
-    let path        = null; 
+    let parts, path = null; 
 
     if (include.indexOf('.') !== -1) {
       // nested include
-      const parts = include.split('.');
+      parts = include.split('.');
       path = parts.slice(0, parts.length - 1).join('.') + '.';
       for (const part of parts) {
         association = _.find(schema.associations, (assoc) => {
@@ -402,7 +402,20 @@ module.exports = class Query {
   
     const [type, attr, Obj, column = attr + '_id', ref_column = 'id', extraWhere] = association;
     
-    const column_path   = path ? path + column : column;
+    let column_path     = column;
+    if (path) {
+      if (type === 'has_many') {
+        column_path = parts.slice(0, parts.length - 2).join('.');
+        if (column_path) {
+          column_path += '.';
+        }
+        column_path += ref_column;
+      } else {
+        column_path = path + column;
+      }
+      
+    }
+
     const ids           = _.chain(rows).flatMap(column_path).uniq().compact().value();
     const defaultValue  = () => (type === 'has_many' ? [] : null);
   
