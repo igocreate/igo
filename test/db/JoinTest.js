@@ -4,15 +4,29 @@ const Model = require('../../src/db/Model');
 
 describe('includes', () => {
 
-  class City extends Model({
-    table: 'cities',
+  class Country extends Model({
+    table: 'countries',
     primary: ['id'],
     columns: [
       'id',
       'name',
     ],
     associations: () => ([
+      ['has_many', 'cities', City, 'id', 'country_id'],
+    ])
+  }) {}
+
+  class City extends Model({
+    table: 'cities',
+    primary: ['id'],
+    columns: [
+      'id',
+      'name',
+      'country_id',
+    ],
+    associations: () => ([
       ['has_many', 'libraries', Library, 'id', 'city_id'],
+      ['belongs_to', 'country', Country, 'country_id', 'id'],
     ])
   }) {}
 
@@ -113,6 +127,17 @@ describe('includes', () => {
       assert.strictEqual(foundBook.id, book.id);
       assert.strictEqual(foundBook.library.title, library.title);
       assert.strictEqual(foundBook.original_library.title, originalLibrary.title);
+    });
+
+    it('should load a book with a three-level join', async () => {
+      const country = await Country.create({ name: 'France' });
+      const city    = await City.create({ name: 'Paris', country_id: country.id });
+      const library = await Library.create({ title: 'the big library', city_id: city.id });
+      const book    = await Book.create({ library_id: library.id });
+
+      const foundBook = await Book.join({ library: { city: 'country' } }).find(book.id);
+      assert.strictEqual(foundBook.id, book.id);
+      assert.strictEqual(foundBook.library.city.country.name, country.name);
     });
 
   });

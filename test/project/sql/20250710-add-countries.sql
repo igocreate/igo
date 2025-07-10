@@ -1,0 +1,2 @@
+CREATE TABLE `countries` (`id` INT NOT NULL AUTO_INCREMENT, `name` VARCHAR(100), PRIMARY KEY (`id`));
+ALTER TABLE `cities` ADD COLUMN `country_id` INT NULL;
