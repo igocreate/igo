@@ -1,0 +1,1 @@
+ALTER TABLE "books" ADD COLUMN "original_library_id" INT NULL;

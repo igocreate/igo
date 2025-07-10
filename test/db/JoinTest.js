@@ -41,10 +41,12 @@ describe('includes', () => {
       { name: 'details_json', type: 'json', attr: 'details' },
       { name: 'is_available', type: 'boolean' },
       'library_id',
+      'original_library_id',
       'created_at'
     ],
     associations: () => ([
       ['belongs_to', 'library', Library, 'library_id', 'id'],
+      ['belongs_to', 'original_library', Library, 'original_library_id', 'id'],
     ])
   }) {}
 
@@ -101,6 +103,17 @@ describe('includes', () => {
       assert(foundBook);
       assert.strictEqual(foundBook.library, null);
     });    
+
+    it('should load a book with a double join', async () => {
+      const library         = await Library.create({ title: 'the big library' });
+      const originalLibrary = await Library.create({ title: 'the original one' });
+      const book            = await Book.create({ library_id: library.id, original_library_id: originalLibrary.id });
+
+      const foundBook = await Book.join(['library', 'original_library']).find(book.id);
+      assert.strictEqual(foundBook.id, book.id);
+      assert.strictEqual(foundBook.library.title, library.title);
+      assert.strictEqual(foundBook.original_library.title, originalLibrary.title);
+    });
 
   });
 
