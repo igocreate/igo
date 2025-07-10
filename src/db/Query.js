@@ -375,17 +375,35 @@ module.exports = class Query {
   
   //
   async loadAssociation(include, rows) {
-    const association = _.find(this.schema.associations, (association) => {
-      return association[1] === include;
-    });
+
+    let schema      = this.schema;
+    let association = null;
+    let path        = null; 
+
+    if (include.indexOf('.') !== -1) {
+      // nested include
+      const parts = include.split('.');
+      path = parts.slice(0, parts.length - 1).join('.') + '.';
+      for (const part of parts) {
+        association = _.find(schema.associations, (assoc) => {
+          return assoc[1] === part;
+        });
+        schema = association ? association[2].schema : null;
+      }
+    } else {
+      association = _.find(schema.associations, (association) => {
+        return association[1] === include;
+      });
+    }
   
     if (!association) {
-      throw new Error(`Missing association '${include}' on '${this.schema.table}' schema.`);
+      throw new Error(`Missing association '${include}' on '${schema.table}' schema.`);
     }
   
     const [type, attr, Obj, column = attr + '_id', ref_column = 'id', extraWhere] = association;
-  
-    const ids           = _.chain(rows).flatMap(column).uniq().compact().value();
+    
+    const column_path   = path ? path + column : column;
+    const ids           = _.chain(rows).flatMap(column_path).uniq().compact().value();
     const defaultValue  = () => (type === 'has_many' ? [] : null);
   
     if (ids.length === 0) {
@@ -415,12 +433,14 @@ module.exports = class Query {
       }
     });
 
+    const attr_path = path ? path + attr : attr;
     rows.forEach((row) => {
-      if (!Array.isArray(row[column])) {
-        row[attr] = objsByKey[row[column]] || defaultValue();
+      const value = _.get(row, column_path)
+      if (!Array.isArray(value)) {
+        _.set(row, attr_path, objsByKey[value] || defaultValue());
         return;
       }
-      row[attr] = _.chain(row[column]).flatMap(id => objsByKey[id]).compact().value();
+      row[attr] = _.chain(value).flatMap(id => objsByKey[id]).compact().value();
     });
 }
   //
@@ -474,11 +494,6 @@ module.exports = class Query {
         });
       });
     }
-    
-    // Load associations
-    for (let include of _.keys(query.includes)) {
-      await this.loadAssociation(include, rows);
-    }
 
     if (query.verb === 'select') {
       rows = _.map(rows, row => {
@@ -517,6 +532,11 @@ module.exports = class Query {
 
         return instance;
       });
+    }
+        
+    // Load associations
+    for (let include of _.keys(query.includes)) {
+      await this.loadAssociation(include, rows);
     }
 
     if (pagination) {

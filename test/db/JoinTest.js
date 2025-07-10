@@ -42,7 +42,10 @@ describe('includes', () => {
     associations: () => ([
       ['has_many', 'books', Book, 'id', 'library_id'],
       ['belongs_to', 'city', City, 'city_id', 'id'],
-    ])
+    ]),
+    scopes: {
+      default: query => query.includes('city')
+    }
   }) {}
 
   class Book extends Model({
@@ -138,6 +141,16 @@ describe('includes', () => {
       const foundBook = await Book.join({ library: { city: 'country' } }).find(book.id);
       assert.strictEqual(foundBook.id, book.id);
       assert.strictEqual(foundBook.library.city.country.name, country.name);
+    });
+
+    it('should load a book and its library with includes city', async () => {
+      const city    = await City.create({ name: 'London' });
+      const library = await Library.create({ title: 'London Library', city_id: city.id });
+      const book    = await Book.create({ library_id: library.id });
+
+      const foundBook = await Book.join('library').includes('library.city').find(book.id);
+      assert.strictEqual(foundBook.id, book.id);
+      assert.strictEqual(foundBook.library.city.name, city.name);
     });
 
   });
