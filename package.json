@@ -32,7 +32,7 @@
     "babel-loader": "^9.2.1",
     "cheerio": "^1.0.0",
     "clean-webpack-plugin": "^4.0.0",
-    "compression": "1.8.0",
+    "compression": "1.8.1",
     "concurrently": "^9.1.2",
     "cookie-parser": "1.4.7",
     "cookie-session": "^2.1.0",
