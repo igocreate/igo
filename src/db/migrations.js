@@ -27,11 +27,11 @@ module.exports.init = async (db) => {
     await module.exports.migrate(db);
 
     // release lock
-    await utils.wait(10000);
-    
-    const releaseLock = dialect.releaseLock(lock);
-    await db.driver.query(connection, releaseLock);
-    db.driver.release(connection);
+    setTimeout(async () => {
+      const releaseLock = dialect.releaseLock(lock);
+      await db.driver.query(connection, releaseLock);
+      db.driver.release(connection);
+    }, 10000);
 
   } catch (err) {
     console.error(err);

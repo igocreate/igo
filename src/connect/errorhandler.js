@@ -131,6 +131,7 @@ module.exports.errorSQL = (err) => {
 // https://nodejs.org/api/domain.html
 const gracefullyShutdown = (app) => {
 
+  console.warn('Gracefully shutting down...');
   try {
     // make sure we close down within N seconds
     const killtimer = setTimeout(() => {
