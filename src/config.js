@@ -1,5 +1,5 @@
 
-require('dotenv').config({silent: true});
+require('dotenv').config({ quiet: true });
 
 const config    = {};
 module.exports  = config;
