@@ -1,28 +1,19 @@
 
 const _       = require('lodash');
 
-/**
- * @type Class
- */
-var Sql = function(query, dialect) {
-
-  const { esc } = dialect;
-  let i = 1;
-
-  this.addJoins = function() {
-    let sql = '';
-    _.each(query.joins, join => {
-      const { src_schema, type, association, src_alias } = join;
-      const [ assoc_type, name, Obj, src_column, column] = association;
-      const src_table_alias = src_alias || src_schema.table;
-      const table       = Obj.schema.table;
-      sql += `${type.toUpperCase()} JOIN ${esc}${table}${esc} AS ${esc}${name}${esc} ON ${esc}${name}${esc}.${esc}${column}${esc} = ${esc}${src_table_alias}${esc}.${esc}${src_column}${esc} `;
-    });
-    return sql;
+module.exports = class Sql {
+  
+  constructor(query, dialect) {
+    this.query    = query;
+    this.dialect  = dialect;
+    this.i        = 1;
   }
 
   // SELECT SQL
-  this.selectSQL = function() {
+  selectSQL() {
+    const { query, dialect } = this;
+    const { esc } = dialect;
+    let { i }     = this;
 
     let sql       = 'SELECT ';
     const params  = [];
@@ -99,7 +90,10 @@ var Sql = function(query, dialect) {
   };
 
   // COUNT SQL
-  this.countSQL = function() {
+  countSQL() {
+    const { query, dialect } = this;
+    const { esc } = dialect;
+
     // select
     let sql = `SELECT COUNT(0) as ${esc}count${esc} `;
     const params = [];
@@ -124,11 +118,37 @@ var Sql = function(query, dialect) {
     return ret;
   };
 
+  // JOINS
+  addJoins() {
+    const { query, dialect } = this;
+    const { esc }   = dialect;
+
+    let sql = '';
+    _.each(query.joins, join => {
+      const { src_schema, type, association, src_alias } = join;
+      const [ assoc_type, name, Obj, src_column, column] = association;
+      const src_table_alias = src_alias || src_schema.table;
+      const table       = Obj.schema.table;
+      sql += `${type.toUpperCase()} JOIN ${esc}${table}${esc} AS ${esc}${name}${esc} ON ${esc}${name}${esc}.${esc}${column}${esc} = ${esc}${src_table_alias}${esc}.${esc}${src_column}${esc} `;
+    });
+    return sql;
+  }
+
   // WHERE
-  this.whereSQL = function(params) {
-    var sqlwhere = [];
-    _.forEach(query.where, function(where) {
+  whereSQL(params, not) {
+    const { query, dialect } = this;
+    const { esc } = dialect;
+    let { i }     = this;
+
+    const sqlwhere = [];
+    const wheres = not ? query.whereNot : query.where;
+    _.forEach(wheres, (where) => {
       if (_.isArray(where)) {
+        // where is an array with sql string and params
+        if (not) {
+          console.warn('Where clause contains a string with whereNot, this is not supported');
+          return;
+        }
         // where is an array
         let s = where[0];
         while (s.indexOf('$?') > -1) {
@@ -142,10 +162,14 @@ var Sql = function(query, dialect) {
         }
       } else if (_.isString(where)) {
         // where is a string
+        if (not) {
+          console.warn('Where clause is a string with whereNot, this is not supported');
+          return;
+        }
         sqlwhere.push(where + ' ');
       } else {
         // where is an object
-        _.forEach(where, function(value, key) {
+        _.forEach(where, (value, key) =>{
           let column_alias;
           if (key.indexOf('.') > -1 && key.indexOf('`') === -1) {
             column_alias = _.map(key.split('.'), (part) => (`${esc}${part}${esc}`)).join('.');
@@ -153,60 +177,38 @@ var Sql = function(query, dialect) {
             column_alias = `${esc}${query.table}${esc}.${esc}${key}${esc}`
           }
           if (value === null || value === undefined) {
-            sqlwhere.push(`${column_alias} IS NULL `);
+            sqlwhere.push(`${column_alias} IS ${not ? 'NOT NULL' : 'NULL'} `);
           } else if (_.isArray(value) && value.length === 0) {
-            // where in empty array --> FALSE
-            sqlwhere.push('FALSE ');
+            // where in empty array
+            sqlwhere.push(not ? 'TRUE ': 'FALSE ');
           } else if (_.isArray(value)) {
-            sqlwhere.push(`${column_alias} ${dialect.in} (${dialect.param(i++)}) `);
+            sqlwhere.push(`${column_alias} ${not ? dialect.notin : dialect.in} (${dialect.param(i++)}) `);
             params.push(value);
           } else {
-            sqlwhere.push(`${column_alias} = ${dialect.param(i++)} `);
+            sqlwhere.push(`${column_alias} ${not ? '!=' : '='} ${dialect.param(i++)} `);
             params.push(value);
           }
         });
       }
     });
+    
     if (sqlwhere.length) {
-      return 'WHERE ' + sqlwhere.join('AND ');
-    }
-    return '';
-  };
-
-  //
-  this.whereNotSQL = function(params) {
-    var sqlwhere = [];
-    _.forEach(query.whereNot, function(whereNot) {
-      _.forEach(whereNot, function(value, key) {
-        let table_alias = esc + query.table + esc;
-        const foundJoin = _.find(query.joins, join => join.association[1] === key);
-        if (foundJoin) {
-          table_alias = esc + foundJoin.association[1] + esc;
-        }
-
-        if (value === null) {
-          sqlwhere.push(`${table_alias}.${esc}${key}${esc} IS NOT NULL `);
-        } else if (_.isArray(value) && value.length === 0) {
-          // where in empty array --> FALSE
-          sqlwhere.push('TRUE ');
-        } else if (_.isArray(value)) {
-          sqlwhere.push(`${table_alias}.${esc}${key}${esc} ${dialect.notin} (${dialect.param(i++)}) `);
-          params.push(value);
-        } else {
-          sqlwhere.push(`${table_alias}.${esc}${key}${esc} != ${dialect.param(i++)} `);
-          params.push(value);
-        }
-      });
-    });
-    if (sqlwhere.length) {
-      const ret = query.where.length > 0 ? 'AND ' : 'WHERE ';
+      const ret = (not && query.where.length > 0) ? 'AND ' : 'WHERE ';
       return ret + sqlwhere.join('AND ');
     }
     return '';
   };
 
+  //
+  whereNotSQL(params) {
+    return this.whereSQL(params, true);
+  };
+
   // INSERT SQL
-  this.insertSQL = function() {
+  insertSQL() {
+    const { query, dialect } = this;
+    const { esc } = dialect;
+    let { i }     = this;
 
     // insert into
     let sql = `INSERT INTO ${esc}${query.table}${esc}`;
@@ -231,14 +233,17 @@ var Sql = function(query, dialect) {
   };
 
   // UPDATE SQL
-  this.updateSQL = function() {
+  updateSQL() {
+    const { query, dialect } = this;
+    const { esc } = dialect;
+    let { i }     = this;
 
     // update set
     let sql = `UPDATE ${esc}${query.table}${esc} SET `;
 
     // columns
     const columns = [], params = [];
-    _.forEach(query.values, function(value, key) {
+    _.forEach(query.values, (value, key) => {
       columns.push(`${esc}${key}${esc} = ${dialect.param(i++)}`);
       params.push(value);
     });
@@ -259,7 +264,9 @@ var Sql = function(query, dialect) {
   };
 
   // DELETE SQL
-  this.deleteSQL = function() {
+  deleteSQL() {
+    const { query, dialect } = this;
+    const { esc }   = dialect;
 
     // delete
     let sql = `DELETE FROM ${esc}${query.table}${esc} `;
@@ -281,7 +288,8 @@ var Sql = function(query, dialect) {
   };
 
   // ORDER BY SQL
-  this.orderSQL = function() {
+  orderSQL() {
+    const { query } = this;
 
     if (!query.order || !query.order.length) {
       return '';
@@ -294,7 +302,9 @@ var Sql = function(query, dialect) {
 
 
   // GROUP BY SQL
-  this.groupSQL = function() {
+  groupSQL() {
+    const { query } = this;
+    
     if (_.isEmpty(query.group )) {
       return '';
     }
@@ -303,5 +313,3 @@ var Sql = function(query, dialect) {
     return sql;
   };
 };
-
-module.exports = Sql;

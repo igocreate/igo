@@ -112,6 +112,22 @@ describe('db.Model', () => {
         assert.strictEqual(nb, books2.length);
       });
 
+      it('should handle a simple where condition as string', async () => {
+        const book1 = await Book.create();
+        const book2 = await Book.create();
+        const books = await Book.where('`id` > ' + book1.id).list();
+        assert.strictEqual(1, books.length);
+        assert.strictEqual(books[0].id, book2.id);
+      });
+
+      it('should handle a simple where condition with param', async () => {
+        const book1 = await Book.create();
+        const book2 = await Book.create();
+        const books = await Book.where('`id` > ?', book1.id).list();
+        assert.strictEqual(1, books.length);
+        assert.strictEqual(books[0].id, book2.id);
+      });
+
       it('should handle where not condition with id', async () => {
         const book1 = await Book.create();
         const book2 = await Book.create();
@@ -132,6 +148,20 @@ describe('db.Model', () => {
         await Book.create();
         const books = await Book.whereNot({id: []}).list();
         assert.strictEqual(2, books.length);
+      });
+
+      it('should handle two where / whereNot conditions', async () => {
+        const book1 = await Book.create();
+        const book2 = await Book.create();
+        const books = await Book.where('`id` > ?', book1.id).whereNot({ id: book2.id }).list();
+        assert.strictEqual(0, books.length);
+      });
+
+      it('should handle two whereNoy / where conditions', async () => {
+        const book1 = await Book.create();
+        const book2 = await Book.create();
+        const books = await Book.whereNot({ id: book2.id }).where('`id` > ?', book1.id).list();
+        assert.strictEqual(0, books.length);
       });
 
       it.skip('should allow override default scope limit', async () => {
