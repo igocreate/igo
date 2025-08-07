@@ -88,6 +88,15 @@ describe('includes', () => {
       assert.strictEqual(foundBook.library_title, library.title);
     });
 
+    it('should load a book join with specified columns, and a filter', async () => {
+      const library = await Library.create({ title: 'A' });
+      const book = await Book.create({ library_id: library.id });
+      const foundBook = await Book.join('library', ['title'])
+      .where({ 'library.title': library.title })
+      .find(book.id);
+      assert.strictEqual(foundBook.library.title, library.title);
+    });
+
     // count with join
     it('should count books with join and where condition', async () => {
       const libraryA = await Library.create({ title: 'A' });
@@ -96,7 +105,7 @@ describe('includes', () => {
       await Book.create({ library_id: libraryA.id });
       await Book.create({ library_id: libraryB.id });
 
-      const count = await Book.join('library').where('`libraries`.`title` = \'B\'').count();
+      const count = await Book.join('library').where('`library`.`title` = \'B\'').count();
 
       assert.strictEqual(count, 1);
     });

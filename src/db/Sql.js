@@ -16,7 +16,7 @@ var Sql = function(query, dialect) {
       const [ assoc_type, name, Obj, src_column, column] = association;
       const src_table_alias = src_alias || src_schema.table;
       const table       = Obj.schema.table;
-      sql += `${type.toUpperCase()} JOIN ${esc}${table}${esc} ${esc}${name}${esc} ON ${esc}${name}${esc}.${esc}${column}${esc} = ${esc}${src_table_alias}${esc}.${esc}${src_column}${esc} `;
+      sql += `${type.toUpperCase()} JOIN ${esc}${table}${esc} AS ${esc}${name}${esc} ON ${esc}${name}${esc}.${esc}${column}${esc} = ${esc}${src_table_alias}${esc}.${esc}${src_column}${esc} `;
     });
     return sql;
   }
@@ -45,9 +45,21 @@ var Sql = function(query, dialect) {
         const [ assoc_type, name, Obj, src_column, column] = association;
         const table_alias = name;
         sql += ', ';
-        sql += _.map(Obj.schema.columns, (column) => {
-          return `${esc}${table_alias}${esc}.${esc}${column.name}${esc} as ${esc}${table_alias}__${column.name}${esc}`;
-        }).join(', ');
+        if (join.columns) {
+          // add only specified columns
+          sql += _.map(join.columns, (column) => {
+            if (column.indexOf('.') > -1 || column.toLowerCase().indexOf(' as ') > -1) {
+              return column; // already qualified or aliased
+            }
+            // 
+            return `${esc}${table_alias}${esc}.${esc}${column}${esc} as ${esc}${table_alias}__${column}${esc}`;
+          }).join(', ');
+        } else {
+          // add all columns from joined table          
+          sql += _.map(Obj.schema.columns, (column) => {
+            return `${esc}${table_alias}${esc}.${esc}${column.name}${esc} as ${esc}${table_alias}__${column.name}${esc}`;
+          }).join(', ');
+        }
       });
       sql += ' ';
     }
@@ -117,12 +129,8 @@ var Sql = function(query, dialect) {
     var sqlwhere = [];
     _.forEach(query.where, function(where) {
       if (_.isArray(where)) {
+        // where is an array
         let s = where[0];
-        // Replace table name with alias if it's a joined table
-        _.each(query.joins, join => {
-          const [assoc_type, name, Obj] = join.association;
-          s = s.replace(new RegExp(`\\b${Obj.schema.table}\\b`, 'g'), name);
-        });
         while (s.indexOf('$?') > -1) {
           s = s.replace('$?', dialect.param(i++));
         }
@@ -133,30 +141,27 @@ var Sql = function(query, dialect) {
           params.push(where[1]);
         }
       } else if (_.isString(where)) {
-        let s = where;
-        _.each(query.joins, join => {
-          const [assoc_type, name, Obj] = join.association;
-          s = s.replace(new RegExp(`\\b${Obj.schema.table}\\b`, 'g'), name);
-        });
-        sqlwhere.push(s + ' ');
+        // where is a string
+        sqlwhere.push(where + ' ');
       } else {
+        // where is an object
         _.forEach(where, function(value, key) {
-          let table_alias = esc + query.table + esc;
-          const foundJoin = _.find(query.joins, join => join.association[1] === key);
-          if (foundJoin) {
-            table_alias = esc + foundJoin.association[1] + esc;
+          let column_alias;
+          if (key.indexOf('.') > -1 && key.indexOf('`') === -1) {
+            column_alias = _.map(key.split('.'), (part) => (`${esc}${part}${esc}`)).join('.');
+          } else {
+            column_alias = `${esc}${query.table}${esc}.${esc}${key}${esc}`
           }
-
           if (value === null || value === undefined) {
-            sqlwhere.push(`${table_alias}.${esc}${key}${esc} IS NULL `);
+            sqlwhere.push(`${column_alias} IS NULL `);
           } else if (_.isArray(value) && value.length === 0) {
             // where in empty array --> FALSE
             sqlwhere.push('FALSE ');
           } else if (_.isArray(value)) {
-            sqlwhere.push(`${table_alias}.${esc}${key}${esc} ${dialect.in} (${dialect.param(i++)}) `);
+            sqlwhere.push(`${column_alias} ${dialect.in} (${dialect.param(i++)}) `);
             params.push(value);
           } else {
-            sqlwhere.push(`${table_alias}.${esc}${key}${esc} = ${dialect.param(i++)} `);
+            sqlwhere.push(`${column_alias} = ${dialect.param(i++)} `);
             params.push(value);
           }
         });
