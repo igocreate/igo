@@ -37,7 +37,8 @@ describe('includes', () => {
       'id',
       'title',
       'collection',
-      'city_id'
+      'city_id',
+      { name: 'details_json', type: 'json', attr: 'details' },
     ],
     associations: () => ([
       ['has_many', 'books', Book, 'id', 'library_id'],
@@ -68,7 +69,6 @@ describe('includes', () => {
   }) {}
 
   describe('join', () => {
-
     it('should load a book join with its library collection', async () => {
       const library   = await Library.create({ title: 'the big library', collection: 'A' });
       const book      = await Book.create({ library_id: library.id });
@@ -82,9 +82,9 @@ describe('includes', () => {
       const library = await Library.create({ title: 'A' });
       const book = await Book.create({ library_id: library.id });
       const foundBook = await Book
-        .select('`books`.`id`, `libraries`.`title` AS library_title')
-        .join('library')
-        .find(book.id);
+      .select('`books`.`id`, `libraries`.`title` AS library_title')
+      .join('library')
+      .find(book.id);
       assert.strictEqual(foundBook.library_title, library.title);
     });
 
@@ -179,7 +179,7 @@ describe('includes', () => {
       const city = await City.create({ name: 'Paris', country_id: country.id });
       const library1 = await Library.create({ title: 'Paris Library 1', city_id: city.id });
       const library2 = await Library.create({ title: 'Paris Library 2', city_id: city.id });
-      const library3 = await Library.create({ title: 'Other Library', city_id: null }); // Not associated with Paris
+      await Library.create({ title: 'Other Library', city_id: null }); // Not associated with Paris
       const book = await Book.create({ library_id: library1.id });
 
       const foundBook = await Book.join({library: 'city'}).includes('library.city.libraries').find(book.id);
@@ -193,25 +193,15 @@ describe('includes', () => {
       assert.strictEqual(foundBook.library.city.libraries[1].id, library2.id);
     });
 
-    
+    it('should load a book join with its library and details', async () => {
+      const library   = await Library.create({ title: 'the big library', collection: 'A', details: { description: 'A big library' } });
+      const book      = await Book.create({ library_id: library.id });
 
-    
-
-    
-
-    
-
-    
-
-    
-
-  
-
-    
-
-
-  
-
+      const foundBook = await Book.join('library').find(book.id);
+      assert.strictEqual(foundBook.id, book.id);
+      assert.strictEqual(foundBook.library.collection, library.collection);
+      assert.strictEqual(foundBook.library.details.description, library.details.description);
+    });
   });
 
 });

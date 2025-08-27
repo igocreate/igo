@@ -448,14 +448,14 @@ module.exports = class Query {
 
     const attr_path = path ? path + attr : attr;
     rows.forEach((row) => {
-      const value = _.get(row, column_path)
+      const value = _.get(row, column_path);
       if (!Array.isArray(value)) {
         _.set(row, attr_path, objsByKey[value] || defaultValue());
         return;
       }
       row[attr] = _.chain(value).flatMap(id => objsByKey[id]).compact().value();
     });
-}
+  }
   //
   async execute() {
     const { query, schema } = this;
@@ -497,7 +497,7 @@ module.exports = class Query {
       return null;
     } else if (query.verb === 'select') {
       rows = _.each(rows, row => {
-        schema.parseTypes(row)
+        schema.parseTypes(row);
 
         // parse joins values
         this.query.joins.forEach(join => {
@@ -523,11 +523,11 @@ module.exports = class Query {
           const { src_schema, association } = join;
           const [assoc_type, name, Obj, src_column, column] = association;
           const table_alias = name;
-          
+
           const params = {};
           Obj.schema.columns.forEach(col => {
-            const alias = `${table_alias}__${col.name}`;
-            params[col.name] = row[alias];
+            const alias = `${table_alias}__${col.attr}`;
+            params[col.attr] = row[alias];
             delete instance[alias];
           });
 
