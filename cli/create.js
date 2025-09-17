@@ -38,7 +38,7 @@ const replaceInDirectory = async (dir, replacements) => {
       let content = await fs.readFile(fullPath, 'utf8');
       let updated = false;
 
-      _.forEach(replacements, (replacement, regexp) => {
+      _.forOwn(replacements, (replacement, regexp) => {
         const regex = new RegExp(regexp, 'g');
         if (regex.test(content)) {
           content = content.replace(regex, replacement);

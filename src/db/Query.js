@@ -213,7 +213,7 @@ module.exports = class Query {
 
   // JOIN MANY
   joinMany(associationNames, columns, type = 'LEFT') {
-    associationNames.forEach(name => this.joinOne(name, columns, type));
+    _.forEach(associationNames, name => this.joinOne(name, columns, type));
     return this;
   }
 
@@ -265,7 +265,7 @@ module.exports = class Query {
   // SCOPES
   applyScopes() {
     const { query, schema } = this;
-    query.scopes.forEach(scope => {
+    _.forOwn(query.scopes, (scope) => {
       if (!schema.scopes[scope]) {
         return;
       }
@@ -420,7 +420,7 @@ module.exports = class Query {
     const defaultValue  = () => (type === 'has_many' ? [] : null);
   
     if (ids.length === 0) {
-      rows.forEach((row) => row[attr] = defaultValue());
+      _.forEach(rows, (row) => row[attr] = defaultValue());
       return;
     }
   
@@ -447,7 +447,7 @@ module.exports = class Query {
     });
 
     const attr_path = path ? path + attr : attr;
-    rows.forEach((row) => {
+    _.forEach(rows, (row) => {
       const value = _.get(row, column_path);
       if (!Array.isArray(value)) {
         _.set(row, attr_path, objsByKey[value] || defaultValue());
@@ -471,7 +471,7 @@ module.exports = class Query {
       (query.take === 'first' || query.take === 'last')) {
       const order = query.take === 'first' ? 'ASC' : 'DESC';
       // Default sort by primary key
-      schema.primary.forEach(function (key) {
+      _.forEach(schema.primary, (key) => {
         query.order.push(`${esc}${schema.table}${esc}.${esc}${key}${esc} ${order}`);
       });
     }
@@ -500,7 +500,7 @@ module.exports = class Query {
         schema.parseTypes(row);
 
         // parse joins values
-        this.query.joins.forEach(join => {
+        _.forEach(this.query.joins, (join) => {
           const { src_schema, association } = join;
           const [assoc_type, name, Obj, src_column, column] = association;
           Obj.schema.parseTypes(row, `${name}__`);
@@ -519,7 +519,7 @@ module.exports = class Query {
         const createdInstances = new Map();
         createdInstances.set(this.schema, instance);
 
-        this.query.joins.forEach(join => {
+        _.forEach(this.query.joins, (join) => {
           const { src_schema, association } = join;
           const [assoc_type, name, Obj, src_column, column] = association;
           const table_alias = name;

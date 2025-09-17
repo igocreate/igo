@@ -169,7 +169,7 @@ module.exports = class Sql {
         sqlwhere.push(where + ' ');
       } else {
         // where is an object
-        _.forEach(where, (value, key) =>{
+        _.forOwn(where, (value, key) =>{
           let column_alias;
           if (key.indexOf('.') > -1 && key.indexOf('`') === -1) {
             column_alias = _.map(key.split('.'), (part) => (`${esc}${part}${esc}`)).join('.');
@@ -215,7 +215,7 @@ module.exports = class Sql {
 
     // columns
     const columns = [], values = [], params = [];
-    _.forEach(query.values, function(value, key) {
+    _.forOwn(query.values, function(value, key) {
       columns.push(`${esc}${key}${esc}`);
       values.push(dialect.param(i++));
       params.push(value);
@@ -243,7 +243,7 @@ module.exports = class Sql {
 
     // columns
     const columns = [], params = [];
-    _.forEach(query.values, (value, key) => {
+    _.forOwn(query.values, (value, key) => {
       columns.push(`${esc}${key}${esc} = ${dialect.param(i++)}`);
       params.push(value);
     });
