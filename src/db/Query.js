@@ -76,6 +76,7 @@ module.exports = class Query {
   }
   
   async destroy() {
+    console.log('Query.destroy is deprecated, use Query.delete instead');
     return await this.delete();
   }
 
