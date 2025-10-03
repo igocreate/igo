@@ -46,8 +46,8 @@ module.exports = class Sql {
             return `${esc}${table_alias}${esc}.${esc}${column}${esc} as ${esc}${table_alias}__${column}${esc}`;
           }).join(', ');
         } else {
-          // add all columns from joined table          
-          sql += _.map(Obj.schema.columns, (column) => {
+          // add all columns from joined table
+          sql += _.map(Obj.getSchema().columns, (column) => {
             return `${esc}${table_alias}${esc}.${esc}${column.name}${esc} as ${esc}${table_alias}__${column.name}${esc}`;
           }).join(', ');
         }

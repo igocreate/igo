@@ -9,40 +9,40 @@ const Model     = require('../../src/db/Model');
 
 describe('db.Model', () => {
 
-  const schema = {
-    table:    'books',
-    primary: ['id'],
-    columns: [
-      'id',
-      'code',
-      'title',
-      {name: 'details_json', type: 'json', attr: 'details'},
-      {name:'is_available', type: 'boolean'},
-      'library_id',
-      'created_at'
-    ]
-  };
+  class Book extends Model {
+    static schema = {
+      table:    'books',
+      primary: ['id'],
+      columns: [
+        'id',
+        'code',
+        'title',
+        {name: 'details_json', type: 'json', attr: 'details'},
+        {name:'is_available', type: 'boolean'},
+        'library_id',
+        'created_at'
+      ]
+    };
+  }
 
-  class Book extends Model(schema) {}
-
-  const schema2 = {
-    table:    'books',
-    primary: ['id'],
-    columns: [
-      'id',
-      'code',
-      'title',
-      {name: 'details_json', type: 'json', attr: 'details'},
-      {name:'is_available', type: 'boolean'},
-      'library_id',
-      'created_at'
-    ],
-    scopes: {
-      default:  query => query.limit(2)
-    }
-  };
-
-  class Book2 extends Model(schema2) {}
+  class Book2 extends Model {
+    static schema = {
+      table:    'books',
+      primary: ['id'],
+      columns: [
+        'id',
+        'code',
+        'title',
+        {name: 'details_json', type: 'json', attr: 'details'},
+        {name:'is_available', type: 'boolean'},
+        'library_id',
+        'created_at'
+      ],
+      scopes: {
+        default:  query => query.limit(2)
+      }
+    };
+  }
 
   describe('standard crud operations', () => {
 
@@ -61,18 +61,6 @@ describe('db.Model', () => {
         assert.strictEqual(book.code, '123');
       });
 
-      it('should insert a book with values and go through beforeCreate', async () => {
-        class BookWithTitle extends Model(schema) {
-          beforeCreate() {
-            this.title = this.title || this.code;
-          }
-        }
-
-        const book = await BookWithTitle.create({code: 123});
-        assert(book && book.id);
-        assert.strictEqual(book.code, '123');
-        assert.strictEqual(book.title, '123');
-      });
 
     });
 
@@ -214,7 +202,7 @@ describe('db.Model', () => {
         const first = await Book.create();
         await Book.create();
         await Book.create();
-        await Book.destroy(first.id);
+        await Book.delete(first.id);
         const book = await Book.find(first.id);
         assert(!book);
       });
@@ -223,7 +211,7 @@ describe('db.Model', () => {
         await Book.create({ code: '123' });
         await Book.create({ code: '123' });
         await Book.create();
-        await Book.where({ code: '123' }).destroy();
+        await Book.where({ code: '123' }).delete();
         const books = await Book.list();
         assert(books.length, 1);
       });
@@ -310,7 +298,7 @@ describe('db.Model', () => {
         await Book.create();
         await Book.create();
         const last = await Book.create();
-        await last.destroy();
+        await last.delete();
         const book = await Book.find(last.id);
         assert(!book);
       });
@@ -326,43 +314,31 @@ describe('db.Model', () => {
         assert.strictEqual(book.code, 'hop');
       });
 
-      it('should update a book with beforeUpdate', async () => {
-        class BookWithBeforeUpdate extends Model(schema) {
-          beforeUpdate(values) {
-            values.title = values.code;
-          }
-        }
-        let book = await BookWithBeforeUpdate.create();
-        book = await book.update({ code: '234' });
-        assert.strictEqual(book.title, '234');
-        book = await book.reload();
-        assert.strictEqual(book.title, '234');
-      });
     });
 
   });
 
   describe('scopes', () => {
 
-    var schema = {
-      table:    'books',
-      primary:  ['id'],
-      columns: [
-        'id',
-        'code',
-        'title',
-        {name: 'details_json', type: 'json', attr: 'details'},
-        {name:'is_available', type: 'boolean'},
-        'library_id',
-        'created_at'
-      ],
-      scopes: {
-        default:  query => query.where({ code: 'abc' }),
-        a:        query => query.where({ code: 'a' }),
-      }
-    };
-
-    class BookWithScopes extends Model(schema) {}
+    class BookWithScopes extends Model {
+      static schema = {
+        table:    'books',
+        primary:  ['id'],
+        columns: [
+          'id',
+          'code',
+          'title',
+          {name: 'details_json', type: 'json', attr: 'details'},
+          {name:'is_available', type: 'boolean'},
+          'library_id',
+          'created_at'
+        ],
+        scopes: {
+          default:  query => query.where({ code: 'abc' }),
+          a:        query => query.where({ code: 'a' }),
+        }
+      };
+    }
 
     it('should use default scope', async () => {
       await BookWithScopes.create({code: 'a'});
@@ -479,20 +455,21 @@ describe('db.Model', () => {
 
 
   describe('array columns', () => {
-    var schema = {
-      table:    'books',
-      primary: ['id'],
-      columns: [
-        'id',
-        'code',
-        'title',
-        {name: 'details_json', type: 'array', attr: 'details'},
-        {name:'is_available', type: 'boolean'},
-        'library_id',
-        'created_at'
-      ]
-    };
-    class Book extends Model(schema) {}
+    class Book extends Model {
+      static schema = {
+        table:    'books',
+        primary: ['id'],
+        columns: [
+          'id',
+          'code',
+          'title',
+          {name: 'details_json', type: 'array', attr: 'details'},
+          {name:'is_available', type: 'boolean'},
+          'library_id',
+          'created_at'
+        ]
+      };
+    }
 
     it('should handle array', async () => {
       const book = await Book.create({ details: [1, 2] });

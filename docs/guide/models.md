@@ -236,26 +236,26 @@ User.update({ first_name: 'Jim' })
 To delete a specific object:
 
 ```js
-User.destroy(id);
+User.delete(id);
 // user was deleted
 ```
 
 ```js
 const user = await User.find(id);
-user.destroy();
+user.delete();
 // user was deleted
 
 ```
 
 ```js
-User.destroyAll();
+await User.deleteAll();
 // all users were deleted
 
 ```
 
 ```js
 const users = await User.where({ first_name: 'Jim' });
-users.destroy();
+await users.delete();
 // all users named Jim were deleted
 
 ```

@@ -36,10 +36,10 @@ module.exports = class Query {
 
   constructor(modelClass, verb = 'select') {
     this.modelClass = modelClass;
-    this.schema     = modelClass.schema;
+    this.schema     = modelClass.getSchema();
 
     this.query      = {
-      table:    modelClass.schema.table,
+      table:    this.schema.table,
       select:   null,
       verb:     verb,
       where:    [],
@@ -75,8 +75,9 @@ module.exports = class Query {
     return await this.execute();
   }
   
+  // DESTROY
   async destroy() {
-    console.log('Query.destroy is deprecated, use Query.delete instead');
+    console.log('Query.destroy() is deprecated, use Query.delete() instead');
     return await this.delete();
   }
 
@@ -235,7 +236,7 @@ module.exports = class Query {
         _.each(join, (value, key) => {
           const new_join_alias = key;
           const association = this._addJoin(key, null, 'LEFT', current_schema, current_alias);
-          const next_schema = association[2].schema;
+          const next_schema = association[2].getSchema();
           processJoin(value, next_schema, new_join_alias);
         });
       }
@@ -248,7 +249,8 @@ module.exports = class Query {
   _findAssociation(associationName, src_schema) {
     const association = _.find(src_schema.associations, assoc => assoc[1] === associationName);
     if (!association) {
-      throw new Error(`Missing association '${associationName}' on '${src_schema.table}' schema.`);
+      const available = src_schema.associations.map(a => a[1]).join(', ');
+      throw new Error(`Missing association '${associationName}' on '${src_schema.table}' schema. Available: ${available}`);
     }
     if (association[0] !== 'belongs_to') {
       throw new Error(`Association '${associationName}' on '${src_schema.table}' schema is not a 'belongs_to' association.`);
@@ -389,7 +391,7 @@ module.exports = class Query {
         association = _.find(schema.associations, (assoc) => {
           return assoc[1] === part;
         });
-        schema = association ? association[2].schema : null;
+        schema = association ? association[2].getSchema() : null;
       }
     } else {
       association = _.find(schema.associations, (association) => {
@@ -504,7 +506,7 @@ module.exports = class Query {
         _.forEach(this.query.joins, (join) => {
           const { src_schema, association } = join;
           const [assoc_type, name, Obj, src_column, column] = association;
-          Obj.schema.parseTypes(row, `${name}__`);
+          Obj.getSchema().parseTypes(row, `${name}__`);
         });
       });
     }
@@ -526,7 +528,7 @@ module.exports = class Query {
           const table_alias = name;
 
           const params = {};
-          Obj.schema.columns.forEach(col => {
+          Obj.getSchema().columns.forEach(col => {
             const alias = `${table_alias}__${col.attr}`;
             params[col.attr] = row[alias];
             delete instance[alias];
@@ -535,11 +537,11 @@ module.exports = class Query {
           const joinInstance = this.newInstance(params, Obj);
 
           const parentInstance = createdInstances.get(src_schema);
-          
+
           if (parentInstance) {
             parentInstance[name] = joinInstance || null;
             if (joinInstance) {
-              createdInstances.set(Obj.schema, joinInstance);
+              createdInstances.set(Obj.getSchema(), joinInstance);
             }
           }
         });

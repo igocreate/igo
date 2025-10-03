@@ -4,69 +4,75 @@ const Model = require('../../src/db/Model');
 
 describe('includes', () => {
 
-  class Country extends Model({
-    table: 'countries',
-    primary: ['id'],
-    columns: [
-      'id',
-      'name',
-    ],
-    associations: () => ([
-      ['has_many', 'cities', City, 'id', 'country_id'],
-    ])
-  }) {}
+  class Country extends Model {
+    static schema = {
+      table: 'countries',
+      primary: ['id'],
+      columns: [
+        'id',
+        'name',
+      ],
+      associations: () => ([
+        ['has_many', 'cities', 'City', 'id', 'country_id'],
+      ])
+    };
+  }
 
-  class City extends Model({
-    table: 'cities',
-    primary: ['id'],
-    columns: [
-      'id',
-      'name',
-      'country_id',
-    ],
-    associations: () => ([
-      ['has_many', 'libraries', Library, 'id', 'city_id'],
-      ['belongs_to', 'country', Country, 'country_id', 'id'],
-    ])
-  }) {}
+  class City extends Model {
+    static schema = {
+      table: 'cities',
+      primary: ['id'],
+      columns: [
+        'id',
+        'name',
+        'country_id',
+      ],
+      associations: () => ([
+        ['has_many', 'libraries', Library, 'id', 'city_id'],
+        ['belongs_to', 'country', Country, 'country_id', 'id'],
+      ])
+    };
+  }
 
-  class Library extends Model({
-    table: 'libraries',
-    primary: ['id'],
-    columns: [
-      'id',
-      'title',
-      'collection',
-      'city_id',
-      { name: 'details_json', type: 'json', attr: 'details' },
-    ],
-    associations: () => ([
-      ['has_many', 'books', Book, 'id', 'library_id'],
-      ['belongs_to', 'city', City, 'city_id', 'id'],
-    ]),
-    scopes: {
-      default: query => query.includes('city')
-    }
-  }) {}
+  class Library extends Model {
+    static schema = {
+      name: 'JoinTest/Library',  // Nom unique pour éviter conflits
+      table: 'libraries',
+      primary: ['id'],
+      columns: [
+        'id',
+        'title',
+        'collection',
+        'city_id',
+        { name: 'details_json', type: 'json', attr: 'details' },
+      ],
+      associations: () => ([
+        ['has_many', 'books', Book, 'id', 'library_id'],
+        ['belongs_to', 'city', City, 'city_id', 'id'],
+      ])
+    };
+  }
 
-  class Book extends Model({
-    table: 'books',
-    primary: ['id'],
-    columns: [
-      'id',
-      'code',
-      'title',
-      { name: 'details_json', type: 'json', attr: 'details' },
-      { name: 'is_available', type: 'boolean' },
-      'library_id',
-      'original_library_id',
-      'created_at'
-    ],
-    associations: () => ([
-      ['belongs_to', 'library', Library, 'library_id', 'id'],
-      ['belongs_to', 'original_library', Library, 'original_library_id', 'id'],
-    ])
-  }) {}
+  class Book extends Model {
+    static schema = {
+      table: 'books',
+      primary: ['id'],
+      columns: [
+        'id',
+        'code',
+        'title',
+        { name: 'details_json', type: 'json', attr: 'details' },
+        { name: 'is_available', type: 'boolean' },
+        'library_id',
+        'original_library_id',
+        'created_at'
+      ],
+      associations: () => ([
+        ['belongs_to', 'library', Library, 'library_id', 'id'],
+        ['belongs_to', 'original_library', Library, 'original_library_id', 'id'],
+      ])
+    };
+  }
 
   describe('join', () => {
     it('should load a book join with its library collection', async () => {

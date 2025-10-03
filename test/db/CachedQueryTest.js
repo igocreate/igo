@@ -6,19 +6,21 @@ const cache  = require('../../src/cache');
 
 describe('db.CachedQuery', function () {
 
-  class Book extends Model({
-    table:   'books',
-    primary: ['id'],
-    columns: [
-      'id',
-      'code',
-      'title',
-      'created_at'
-    ],
-    cache: {
-      ttl: 100
-    }
-  }) {}
+  class Book extends Model {
+    static schema = {
+      table:   'books',
+      primary: ['id'],
+      columns: [
+        'id',
+        'code',
+        'title',
+        'created_at'
+      ],
+      cache: {
+        ttl: 100
+      }
+    };
+  }
 
   describe('find', function () {
 

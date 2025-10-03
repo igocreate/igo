@@ -6,22 +6,22 @@ const Model = require('../../src/db/Model');
 const NB = 10000;
 
 describe('PerfTest', function () {
-  const schema = {
-    table: 'books',
-    primary: ['id'],
-    columns: [
-      'id',
-      'code',
-      'title',
-      { name: 'details_json', type: 'json', attr: 'details' },
-      { name: 'tags_array', type: 'array', attr: 'tags' },
-      { name: 'is_available', type: 'boolean' },
-      'library_id',
-      'created_at'
-    ]
-  };
-
-  class Book extends Model(schema) {}
+  class Book extends Model {
+    static schema = {
+      table: 'books',
+      primary: ['id'],
+      columns: [
+        'id',
+        'code',
+        'title',
+        { name: 'details_json', type: 'json', attr: 'details' },
+        { name: 'tags_array', type: 'array', attr: 'tags' },
+        { name: 'is_available', type: 'boolean' },
+        'library_id',
+        'created_at'
+      ]
+    };
+  }
 
   const createBook = async () => {
     await Book.create({

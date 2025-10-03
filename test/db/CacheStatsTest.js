@@ -10,19 +10,21 @@ const CacheStats  = require('../../src/db/CacheStats');
 //
 describe('db.CacheStats', function() {
 
-  class Book extends Model({
-    table:    'books',
-    primary:  ['id'],
-    columns: [
-      'id',
-      'code',
-      'title',
-      'created_at'
-    ],
-    cache: {
-      ttl: 100
-    }
-  }) {}
+  class Book extends Model {
+    static schema = {
+      table:    'books',
+      primary:  ['id'],
+      columns: [
+        'id',
+        'code',
+        'title',
+        'created_at'
+      ],
+      cache: {
+        ttl: 100
+      }
+    };
+  }
 
   //
   describe('getStats', function() {

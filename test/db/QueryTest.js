@@ -10,10 +10,12 @@ const Model     = require('../../src/db/Model');
 //
 describe('db.Query', function() {
 
-  class Book extends Model({
-    table:    'books',
-    primary:  ['id']
-  }) {}
+  class Book extends Model {
+    static schema = {
+      table:    'books',
+      primary:  ['id']
+    };
+  }
 
   //
   describe('first', function() {

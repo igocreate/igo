@@ -4,34 +4,38 @@ const Model = require('../../src/db/Model');
 
 describe('includes', () => {
 
-  class Library extends Model({
-    table: 'libraries',
-    primary: ['id'],
-    columns: [
-      'id',
-      'title'
-    ],
-    associations: () => ([
-      ['has_many', 'books', Book, 'id', 'library_id'],
-    ])
-  }) {}
+  class Library extends Model {
+    static schema = {
+      table: 'libraries',
+      primary: ['id'],
+      columns: [
+        'id',
+        'title'
+      ],
+      associations: () => ([
+        ['has_many', 'books', 'Book', 'id', 'library_id'],
+      ])
+    };
+  }
 
-  class Book extends Model({
-    table: 'books',
-    primary: ['id'],
-    columns: [
-      'id',
-      'code',
-      'title',
-      { name: 'details_json', type: 'json', attr: 'details' },
-      { name: 'is_available', type: 'boolean' },
-      'library_id',
-      'created_at'
-    ],
-    associations: () => ([
-      ['belongs_to', 'library', Library, 'library_id', 'id'],
-    ])
-  }) {}
+  class Book extends Model {
+    static schema = {
+      table: 'books',
+      primary: ['id'],
+      columns: [
+        'id',
+        'code',
+        'title',
+        { name: 'details_json', type: 'json', attr: 'details' },
+        { name: 'is_available', type: 'boolean' },
+        'library_id',
+        'created_at'
+      ],
+      associations: () => ([
+        ['belongs_to', 'library', 'Library', 'library_id', 'id'],
+      ])
+    };
+  }
 
   describe('belongs_to', () => {
 
@@ -64,15 +68,16 @@ describe('includes', () => {
 
   describe('has_many', () => {
 
-    const schema = {
-      table: 'libraries',
-      primary: ['id'],
-      columns: ['id', 'title'],
-      associations: () => [
-        ['has_many', 'books', Book, 'id', 'library_id'],
-      ]
-    };
-    class Library extends Model(schema) {}
+    class Library extends Model {
+      static schema = {
+        table: 'libraries',
+        primary: ['id'],
+        columns: ['id', 'title'],
+        associations: () => [
+          ['has_many', 'books', 'Book', 'id', 'library_id'],
+        ]
+      };
+    }
 
     it('should find a library with its books', async () => {
       const library = await Library.create();
@@ -118,10 +123,19 @@ describe('includes', () => {
       assert.strictEqual(libraries[1].books.length, 0);
     });
 
-    schema.scopes = {
-      default: q => q.includes('books')
-    };
-    class Library2 extends Model(schema) {}
+    class Library2 extends Model {
+      static schema = {
+        table: 'libraries',
+        primary: ['id'],
+        columns: ['id', 'title'],
+        associations: () => [
+          ['has_many', 'books', 'Book', 'id', 'library_id'],
+        ],
+        scopes: {
+          default: q => q.includes('books')
+        }
+      };
+    }
 
     // it.only('should ignore associations for inserts', async () => {
     //   const err = await Library2.create();
@@ -136,19 +150,20 @@ describe('includes', () => {
 
   describe('has_many from array', () => {
 
-    const schema = {
-      table: 'libraries',
-      primary: ['id'],
-      columns: [
-        'id',
-        'title',
-        { name: 'books_ids_json', type: 'json', attr: 'books_ids' },
-      ],
-      associations: () => [
-        ['has_many', 'books', Book, 'books_ids', 'id'],
-      ]
-    };
-    class Library extends Model(schema) {}
+    class Library extends Model {
+      static schema = {
+        table: 'libraries',
+        primary: ['id'],
+        columns: [
+          'id',
+          'title',
+          { name: 'books_ids_json', type: 'json', attr: 'books_ids' },
+        ],
+        associations: () => [
+          ['has_many', 'books', 'Book', 'books_ids', 'id'],
+        ]
+      };
+    }
 
     it('should find a library with its books', async () => {
       const book1 = await Book.create();
@@ -199,20 +214,22 @@ describe('includes', () => {
   describe('scopes', () => {
 
     it('should merge default scope with string include', async () => {
-      class Library2 extends Model({
-        table: 'libraries',
-        primary: ['id'],
-        columns: [
-          'id',
-          'title'
-        ],
-        associations: () => ([
-          ['has_many', 'books', Book, 'id', 'library_id'],
-        ]),
-        scopes: {
-          default: q => q.includes('books')
-        }
-      }) {}
+      class Library2 extends Model {
+        static schema = {
+          table: 'libraries',
+          primary: ['id'],
+          columns: [
+            'id',
+            'title'
+          ],
+          associations: () => ([
+            ['has_many', 'books', 'Book', 'id', 'library_id'],
+          ]),
+          scopes: {
+            default: q => q.includes('books')
+          }
+        };
+      }
 
       const library = await Library2.create();
       await Book.create({ library_id: library.id });
@@ -223,20 +240,22 @@ describe('includes', () => {
     });
 
     it('should merge default scope with object include', async () => {
-      class Library2 extends Model({
-        table: 'libraries',
-        primary: ['id'],
-        columns: [
-          'id',
-          'title'
-        ],
-        associations: () => ([
-          ['has_many', 'books', Book, 'id', 'library_id'],
-        ]),
-        scopes: {
-          default: q => q.includes({ books: 'library' })
-        }
-      }) {}
+      class Library2 extends Model {
+        static schema = {
+          table: 'libraries',
+          primary: ['id'],
+          columns: [
+            'id',
+            'title'
+          ],
+          associations: () => ([
+            ['has_many', 'books', 'Book', 'id', 'library_id'],
+          ]),
+          scopes: {
+            default: q => q.includes({ books: 'library' })
+          }
+        };
+      }
 
       const library = await Library2.create();
       await Book.create({ library_id: library.id });
@@ -247,20 +266,22 @@ describe('includes', () => {
     });
 
     it('should override default scope with 2-levels object includes', async () => {
-      class Library2 extends Model({
-        table: 'libraries',
-        primary: ['id'],
-        columns: [
-          'id',
-          'title'
-        ],
-        associations: () => ([
-          ['has_many', 'books', Book, 'id', 'library_id'],
-        ]),
-        scopes: {
-          default: q => q.includes({ books: 'library' })
-        }
-      }) {}
+      class Library2 extends Model {
+        static schema = {
+          table: 'libraries',
+          primary: ['id'],
+          columns: [
+            'id',
+            'title'
+          ],
+          associations: () => ([
+            ['has_many', 'books', 'Book', 'id', 'library_id'],
+          ]),
+          scopes: {
+            default: q => q.includes({ books: 'library' })
+          }
+        };
+      }
 
       const library = await Library2.create();
       await Book.create({ library_id: library.id });
@@ -272,20 +293,22 @@ describe('includes', () => {
     });
 
     it('should override default scope with 4-levels object includes', async () => {
-      class Library2 extends Model({
-        table: 'libraries',
-        primary: ['id'],
-        columns: [
-          'id',
-          'title'
-        ],
-        associations: () => ([
-          ['has_many', 'books', Book, 'id', 'library_id'],
-        ]),
-        scopes: {
-          default: q => q.includes({ books: { library: { books: 'library' } } })
-        }
-      }) {}
+      class Library2 extends Model {
+        static schema = {
+          table: 'libraries',
+          primary: ['id'],
+          columns: [
+            'id',
+            'title'
+          ],
+          associations: () => ([
+            ['has_many', 'books', 'Book', 'id', 'library_id'],
+          ]),
+          scopes: {
+            default: q => q.includes({ books: { library: { books: 'library' } } })
+          }
+        };
+      }
 
       const library = await Library2.create();
       await Book.create({ library_id: library.id });
