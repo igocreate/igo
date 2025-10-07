@@ -13,7 +13,6 @@ module.exports = class Sql {
   selectSQL() {
     const { query, dialect } = this;
     const { esc } = dialect;
-    let { i }     = this;
 
     let sql       = 'SELECT ';
     const params  = [];
@@ -76,7 +75,7 @@ module.exports = class Sql {
 
     // limit
     if (query.limit) {
-      sql += dialect.limit(i++, i++);
+      sql += dialect.limit(this.i++, this.i++);
       params.push(query.offset || 0);
       params.push(query.limit);
     }
@@ -138,7 +137,6 @@ module.exports = class Sql {
   whereSQL(params, not) {
     const { query, dialect } = this;
     const { esc } = dialect;
-    let { i }     = this;
 
     const sqlwhere = [];
     const wheres = not ? query.whereNot : query.where;
@@ -152,7 +150,7 @@ module.exports = class Sql {
         // where is an array
         let s = where[0];
         while (s.indexOf('$?') > -1) {
-          s = s.replace('$?', dialect.param(i++));
+          s = s.replace('$?', dialect.param(this.i++));
         }
         sqlwhere.push(s + ' ');
         if (_.isArray(where[1])) {
@@ -182,10 +180,10 @@ module.exports = class Sql {
             // where in empty array
             sqlwhere.push(not ? 'TRUE ': 'FALSE ');
           } else if (_.isArray(value)) {
-            sqlwhere.push(`${column_alias} ${not ? dialect.notin : dialect.in} (${dialect.param(i++)}) `);
+            sqlwhere.push(`${column_alias} ${not ? dialect.notin : dialect.in} (${dialect.param(this.i++)}) `);
             params.push(value);
           } else {
-            sqlwhere.push(`${column_alias} ${not ? '!=' : '='} ${dialect.param(i++)} `);
+            sqlwhere.push(`${column_alias} ${not ? '!=' : '='} ${dialect.param(this.i++)} `);
             params.push(value);
           }
         });
@@ -208,7 +206,6 @@ module.exports = class Sql {
   insertSQL() {
     const { query, dialect } = this;
     const { esc } = dialect;
-    let { i }     = this;
 
     // insert into
     let sql = `INSERT INTO ${esc}${query.table}${esc}`;
@@ -217,9 +214,9 @@ module.exports = class Sql {
     const columns = [], values = [], params = [];
     _.forOwn(query.values, function(value, key) {
       columns.push(`${esc}${key}${esc}`);
-      values.push(dialect.param(i++));
+      values.push(dialect.param(this.i++));
       params.push(value);
-    });
+    }.bind(this));
 
     if (!columns.length && dialect.emptyInsert) {
       sql += dialect.emptyInsert;
@@ -236,7 +233,6 @@ module.exports = class Sql {
   updateSQL() {
     const { query, dialect } = this;
     const { esc } = dialect;
-    let { i }     = this;
 
     // update set
     let sql = `UPDATE ${esc}${query.table}${esc} SET `;
@@ -244,7 +240,7 @@ module.exports = class Sql {
     // columns
     const columns = [], params = [];
     _.forOwn(query.values, (value, key) => {
-      columns.push(`${esc}${key}${esc} = ${dialect.param(i++)}`);
+      columns.push(`${esc}${key}${esc} = ${dialect.param(this.i++)}`);
       params.push(value);
     });
 

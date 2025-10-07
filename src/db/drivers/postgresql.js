@@ -2,20 +2,6 @@
 const { Pool }  = require('pg');
 
 
-// HACK : fix client for missing activeQuery in handleCommandComplete
-// https://github.com/brianc/node-postgres/issues/1872
-const fixClient = (client) => {
-  client.connection.removeAllListeners('commandComplete');
-  client._handleCommandComplete = (msg) => {
-    if (!this.activeQuery) {
-      return;
-    }
-    this.activeQuery.handleCommandComplete(msg, this.connection);
-  };
-  client.connection.on('commandComplete', client._handleCommandComplete);
-};
-
-
 // create pool
 module.exports.createPool = (dbconfig) => {
   return new Pool(dbconfig);
@@ -23,15 +9,12 @@ module.exports.createPool = (dbconfig) => {
 
 // get connection
 module.exports.getConnection =  async (pool) => {
-  const { client, release } = await pool.connect();
-  fixClient(client);
-  return { client, release };
+  return await pool.connect();
 };
 
 // query
 module.exports.query = async (connection, sql, params) => {
-  const { client } = connection;
-  return await client.query(sql, params);
+  return await connection.query(sql, params);
 };
 
 // release
@@ -41,20 +24,17 @@ module.exports.release = (connection) => {
 
 // begin transaction
 module.exports.beginTransaction = async (connection) => {
-  const { client } = connection;
-  return await client.query('BEGIN');
+  return await connection.query('BEGIN');
 };
 
 // commit transaction
 module.exports.commit = async (connection) => {
-  const { client } = connection;
-  return await client.query('COMMIT');
+  return await connection.query('COMMIT');
 };
 
 // rollback transaction
 module.exports.rollback = async (connection) => {
-  const { client } = connection;
-  return await client.query('ROLLBACK');
+  return await connection.query('ROLLBACK');
 };
 
 // dialect
@@ -64,13 +44,13 @@ module.exports.dialect = {
   createMigrationsTable: `CREATE TABLE IF NOT EXISTS "__db_migrations"(
     "id" SERIAL,
     "file" VARCHAR(100),
-    "success" SMALLINT,
+    "success" BOOLEAN,
     "err" VARCHAR(255),
     "creation" TIMESTAMP,
     PRIMARY KEY ("id")
    );`,
   listMigrations:   'SELECT * FROM "__db_migrations" ORDER BY "id" DESC',
-  findMigration:    'SELECT "id" from  "__db_migrations" WHERE "file"=$1 AND "success"=1',
+  findMigration:    'SELECT "id" from  "__db_migrations" WHERE "file"=$1 AND "success"=TRUE',
   insertMigration:  'INSERT INTO "__db_migrations" (file, success, err, creation) VALUES($1, $2, $3, $4)',
   esc: '"',
   param: i => `$${i}`,
