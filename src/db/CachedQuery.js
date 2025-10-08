@@ -15,7 +15,7 @@ module.exports = class CachedQuery extends Query {
     const namespace = '_cached.' + query.table;
 
     if (query.verb !== 'select') {
-      cache.flush(namespace + '/*');
+      cache.flush(namespace + '/*'); // non-blocking flush for performance
       const result = await db.query(sqlQuery.sql, sqlQuery.params, query.options);
       return result;
     }

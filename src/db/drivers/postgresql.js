@@ -63,8 +63,8 @@ module.exports.dialect = {
   emptyInsert: 'DEFAULT VALUES ',
   in: '= ANY',
   notin: '!= ALL',
-  getLock: () => 'SELECT pg_try_advisory_lock(123456789);',
+  getLock: lock => `SELECT pg_try_advisory_lock(hashtext('${lock}')::bigint);`,
   gotLock: res => res && res.rows && res.rows[0] && res.rows[0].pg_try_advisory_lock,
-  releaseLock: () => 'SELECT pg_advisory_unlock_all();',
+  releaseLock: lock => `SELECT pg_advisory_unlock(hashtext('${lock}')::bigint);`,
 
 };

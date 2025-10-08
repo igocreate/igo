@@ -114,24 +114,14 @@ class Db {
   //
   async beginTransaction() {
     const { driver } = this;
-
-    const { err, connection } = await this.getConnection();
-    if (err) {
-      logger.error(err);
-      return;
-    }
+    const { connection } = await this.getConnection();
     await driver.beginTransaction(connection);
   }
 
   //
   async commitTransaction() {
     const { driver, TEST_ENV } = this;
-
-    const { err, connection } = await this.getConnection();
-    if (err) {
-      logger.error(err);
-      return;
-    }
+    const { connection } = await this.getConnection();
     await driver.commit(connection);
     driver.release(connection);
     if (TEST_ENV) {
@@ -142,12 +132,7 @@ class Db {
   //
   async rollbackTransaction() {
     const { driver, TEST_ENV } = this;
-
-    const { err, connection } = await this.getConnection();
-    if (err) {
-      logger.error(err);
-      return;
-    }
+    const { connection } = await this.getConnection();
     await driver.rollback(connection);
     driver.release(connection);
     if (TEST_ENV) {

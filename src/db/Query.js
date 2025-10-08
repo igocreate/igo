@@ -286,7 +286,7 @@ module.exports = class Query {
 
   // FIND
   async find(id) {
-    if (id === null || id === undefined || id.length === 0) {
+    if (id === null || id === undefined) {
       return null;
     }
 
@@ -296,6 +296,9 @@ module.exports = class Query {
 
     if (_.isArray(id)) {
       id = _.compact(id);
+      if (id.length === 0) {
+        return null;
+      }
       return await this.where({ id }).first();
     }
     return await this.where(id).first();

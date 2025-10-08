@@ -16,13 +16,23 @@ module.exports.init = function() {
   config.httpport       = process.env.HTTP_PORT || 3000;
   config.projectRoot    = process.cwd();
 
-  config.cookieSecret  = 'abcdefghijklmnopqrstuvwxyz';
+  config.cookieSecret  = process.env.COOKIE_SECRET || 'abcdefghijklmnopqrstuvwxyz';
   config.cookieSession = {
     name: 'app',
-    keys: [ 'aaaaaaaaaaa' ],
+    keys: process.env.COOKIE_SESSION_KEYS ? process.env.COOKIE_SESSION_KEYS.split(',') : [ 'aaaaaaaaaaa' ],
     maxAge: 31 * 24 * 60 * 60 * 1000, // 31 days
     sameSite: 'Lax'
   };
+
+  // Security check: warn if using default secrets in production
+  if (config.env === 'production') {
+    if (config.cookieSecret === 'abcdefghijklmnopqrstuvwxyz') {
+      console.warn('⚠️  SECURITY WARNING: Default cookieSecret detected in production. Please set COOKIE_SECRET environment variable.');
+    }
+    if (!process.env.COOKIE_SESSION_KEYS) {
+      console.warn('⚠️  SECURITY WARNING: Default cookie session keys detected in production. Please set COOKIE_SESSION_KEYS environment variable.');
+    }
+  }
 
   config.igodust = {
     stream: false   // experimental!
