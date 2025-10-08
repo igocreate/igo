@@ -1,6 +1,5 @@
 
 // plugins
-const CleanWebpackPlugin    = require('clean-webpack-plugin').CleanWebpackPlugin;
 const MiniCssExtractPlugin  = require('mini-css-extract-plugin');
 const AssetsWebpackPlugin   = require('assets-webpack-plugin');
 const CssMinimizerPlugin    = require('css-minimizer-webpack-plugin');
@@ -17,9 +16,9 @@ const webpackConfig = {
     filename:           '[name]-[contenthash].js',
     path:               process.cwd() + '/public/dist',
     publicPath:         '/dist/',
-    sourceMapFilename:  '[name]-[contenthash].js.map'
+    sourceMapFilename:  '[name]-[contenthash].js.map',
+    clean:              true // Webpack 5 native clean (replaces CleanWebpackPlugin)
   },
-  target:   ['web', 'es5'], // IE 11 compatibility
   devtool:  'source-map',
   stats: {
     colors: true
@@ -59,11 +58,6 @@ const webpackConfig = {
     }]
   },
   plugins: [
-    // clean dist folder before building
-    new CleanWebpackPlugin({
-      cleanStaleWebpackAssets: false,
-      verbose: true
-    }),
     // extract css
     new MiniCssExtractPlugin({
       filename:       '[name]-[contenthash].css',

@@ -1,0 +1,5 @@
+# Dependabot configuration
+# To disable Dependabot, this file disables all update checks
+
+version: 2
+updates: []

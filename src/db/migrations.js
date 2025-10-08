@@ -6,7 +6,6 @@ const path    = require('path');
 
 const config  = require('../config');
 const logger  = require('../logger');
-const plugins = require('../plugins');
 const utils   = require('../utils');
 
 //
@@ -122,13 +121,6 @@ module.exports.migrate = async (db, rootDir = '.') => {
   _.forEach(filenames, (filename) => {
     files.push({ filename, path: path.join(sqldir, filename) });
   })
-
-  for (const plugin of plugins.list) {
-    const filenames = await fs.readdir(plugin.dirname + '/sql');
-    _.forEach(filenames, (filename) => {
-      files.push({ filename, path: path.join(plugin.dirname, '/sql', filename) });
-    })
-  }
 
   files = _.sortBy(files, 'filename');
   await module.exports.initmigrations(db);

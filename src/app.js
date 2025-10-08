@@ -18,22 +18,42 @@ const multipart         = require('./connect/multipart');
 const validator         = require('./connect/validator');
 const logger            = require('./logger');
 const mailer            = require('./mailer');
-const plugins           = require('./plugins');
 
 //
 const app = module.exports = express();
 
-// services to initialize
-const SERVICES = [ config, igodust, logger, cache, dbs, mailer, plugins ];
 
-//
+// Language validation middleware
+const validateLang = (whitelist, fallbackLng) => {
+  return (req, res, next) => {
+    ['query', 'cookies'].forEach(src => {
+      const { lang } = req[src];
+      if (lang && !whitelist.has(lang)) {
+        req[src].lang = fallbackLng;
+      }
+    });
+    next();
+  };
+};
+
+
+// Configure the Express app
 module.exports.configure = async () => {
 
-  for (const service of SERVICES) {
-    await service.init(app);
-  }
+  // Config must be initialized first
+  await config.init(app);
 
-  i18next
+  // Parallel initialization of services
+  await Promise.all([
+    igodust.init(app),
+    logger.init(app),
+    cache.init(app),
+    dbs.init(app),
+    mailer.init(app)
+  ]);
+
+  // Await i18next initialization
+  await i18next
   .use(i18nMiddleware.LanguageDetector)
   .use(i18nFsBackend)
   .init(config.i18n);
@@ -41,9 +61,30 @@ module.exports.configure = async () => {
   app.enable('trust proxy');
   app.disable('x-powered-by');
 
-  app.use(compression());
-  app.use(express.static('public', { redirect: false }));
-  
+  // Enable view caching in production
+  if (config.env === 'production') {
+    app.enable('view cache');
+  }
+
+  // Compression with threshold
+  app.use(compression({
+    filter: (req, res) => {
+      if (req.headers['x-no-compression']) {
+        return false;
+      }
+      return compression.filter(req, res);
+    },
+    threshold: 1024 // Only compress if > 1KB
+  }));
+
+  // Static files with caching in production
+  app.use(express.static('public', {
+    redirect:     false,
+    maxAge:       config.env === 'production' ? '1y' : 0,
+    etag:         true,
+    lastModified: true
+  }));
+
   if (config.env !== 'test') {
     // async error handling
     app.use(errorHandler.initDomain(app));
@@ -60,16 +101,9 @@ module.exports.configure = async () => {
   app.use(validator);
 
   // fix crash if lang is incorrect (in query or in cookies)
-  // manually fix the lang param
-  app.use((req, res, next) => {
-    ['query', 'cookies'].forEach(src => {
-      const { lang } = req[src];
-      if (lang && config.i18n.whitelist.indexOf(lang) < 0) {
-        req[src].lang = config.i18n.fallbackLng[0];
-      }
-    });
-    next();
-  });
+  // Use Set for O(1) lookup instead of Array.indexOf O(n)
+  const whitelist = new Set(config.i18n.whitelist);
+  app.use(validateLang(whitelist, config.i18n.fallbackLng));
   app.use(i18nMiddleware.handle(i18next));
 
   app.use(locals);

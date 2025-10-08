@@ -7,3 +7,4 @@
 - [Tests](/guide/tests "Igo.js | Tests")
 - [Production](/guide/productions "Igo.js | Production")
 - [Cache](/guide/cache "Igo.js | Cache")
+- [Changelog](../CHANGELOG "Igo.js | Changelog")

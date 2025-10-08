@@ -1,7 +1,7 @@
 
 # Development
 
-Igo.js uses npm scripts, [Webpack 2](https://webpack.js.org) and [Nodemon](https://nodemon.io/).
+Igo.js uses npm scripts, [Webpack 5](https://webpack.js.org) and [Nodemon](https://nodemon.io/).
 
 ## Default npm scripts
 
@@ -12,11 +12,12 @@ The default `npm start` script will actually run two scripts in parallel:
 ```js
 [...]
 "scripts": {
-  "jshint": "jshint --reporter=node_modules/jshint-stylish ./app/**/*.js || true",
+  "eslint": "eslint ./src ./test ./app ./cli",
   "nodemon": "nodemon app.js",
-  "start": "npm-run-all --parallel nodemon webpack",
-  "webpack": "webpack -p --progress --watch",
-  "test": "mocha"
+  "start": "concurrently \"npm run nodemon\" \"npm run webpack\"",
+  "webpack": "webpack --mode development --progress --watch",
+  "test": "mocha",
+  "compress": "npm run compress"
 },
 [...]
 ```
@@ -35,7 +36,7 @@ Here is [the default config](/src/dev/webpack.config.js), embedded with Igo.js.
 
 ### Nodemon
 
-Copy this `nodemon.json` file if you want to run `jshint` automatically.
+Copy this `nodemon.json` file if you want to run `eslint` automatically.
 ```json
 {
   "watch": [
@@ -44,7 +45,7 @@ Copy this `nodemon.json` file if you want to run `jshint` automatically.
   "ignore": [],
   "ext": "js json",
   "events": {
-    "start": "npm run jshint"
+    "start": "npm run eslint"
   }
 }
 ```

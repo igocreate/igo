@@ -47,7 +47,7 @@ module.exports = (req, res, next) => {
   // fix locale (not in whitelist)
   let lang = req.locale.substring(0, 2);
   if (config.i18n.whitelist.indexOf(lang) < 0) {
-    lang = config.i18n.fallbackLng[0];
+    lang = config.i18n.fallbackLng;
   }
   req.i18n.changeLanguage(lang);
   req.locale      = lang;

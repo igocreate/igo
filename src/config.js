@@ -78,30 +78,30 @@ module.exports.init = function() {
 
   // mysql
   config.mysql = {
-    driver:   'mysql',
-    host:     process.env.MYSQL_HOST     || '127.0.0.1',
-    port:     process.env.MYSQL_PORT     || 3306,
-    user:     process.env.MYSQL_USERNAME || 'root',
-    password: process.env.MYSQL_PASSWORD || '',
-    database: process.env.MYSQL_DATABASE || 'igo',
-    charset:  process.env.MYSQL_CHARSET  || 'utf8mb4',
-    debug:    false,
-    connectionLimit: 5,
-    debugsql: false
+    driver:             'mysql',
+    host:               process.env.MYSQL_HOST     || '127.0.0.1',
+    port:               process.env.MYSQL_PORT     || 3306,
+    user:               process.env.MYSQL_USERNAME || 'root',
+    password:           process.env.MYSQL_PASSWORD || '',
+    database:           process.env.MYSQL_DATABASE || 'igo',
+    charset:            process.env.MYSQL_CHARSET  || 'utf8mb4',
+    connectionLimit:    Number(process.env.MYSQL_MAX_CONNECTIONS) || (config.env === 'production' ? 10 : 5),
+    debug:              false,
+    debugsql:           false
   };
 
   // postgresql
   config.postgresql = {
-    driver:   'postgresql',
-    host:     process.env.POSTGRESQL_HOST     || '127.0.0.1',
-    port:     process.env.POSTGRESQL_PORT     || 5432,
-    user:     process.env.POSTGRESQL_USERNAME || '',
-    password: process.env.POSTGRESQL_PASSWORD || '',
-    database: process.env.POSTGRESQL_DATABASE || 'igo',
-    max:      10,
-    idleTimeoutMillis: 30000,
+    driver:             'postgresql',
+    host:               process.env.POSTGRESQL_HOST     || '127.0.0.1',
+    port:               process.env.POSTGRESQL_PORT     || 5432,
+    user:               process.env.POSTGRESQL_USERNAME || '',
+    password:           process.env.POSTGRESQL_PASSWORD || '',
+    database:           process.env.POSTGRESQL_DATABASE || 'igo',
+    max:                Number(process.env.POSTGRESQL_MAX_CONNECTIONS) || (config.env === 'production' ? 10 : 5),
+    idleTimeoutMillis:  30000,
     connectionTimeoutMillis: 2000,
-    debugsql: false
+    debugsql:           false
   };
 
   // cache

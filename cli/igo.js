@@ -13,7 +13,6 @@ const actions = {
   create:   require('./create.js'),
   db:       require('./db.js'),
   i18n:     require('./i18n.js'),
-  compress: require('./compress.js'),
 };
 
 console.log('igo version: ' + require('../package.json').version);
