@@ -61,9 +61,15 @@ module.exports = function(schema) {
 
     }
 
+    // delete
+    delete() {
+      return newQuery(this.constructor, 'delete').unscoped().where(this.primaryObject()).execute();
+    }
+
     // destroy
     destroy() {
-      return newQuery(this.constructor, 'delete').unscoped().where(this.primaryObject()).execute();
+      console.log('* Model.destroy() deprecated. Please use Model.delete() instead');
+      return this.delete();
     }
 
     async beforeCreate() { }
@@ -121,13 +127,14 @@ module.exports = function(schema) {
       return newQuery(this).last();
     }
 
-    // return all
+    // return list
     static list() {
       return newQuery(this).list();
     }
 
+    // all (deprecated)
     static all() {
-      console.log('* all() deprecated. Please use list() instead');
+      console.log('* Model. all() deprecated. Please use Model.list() instead');
       return this.list();
     }
 
@@ -186,14 +193,25 @@ module.exports = function(schema) {
       return newQuery(this).join(association, columns, type, name);
     }
 
+    // delete
+    static delete(id, ) {
+      return newQuery(this, 'delete').unscoped().where({ id: id }).execute();
+    }
+
     // destroy
     static destroy(id, ) {
-      return newQuery(this, 'delete').unscoped().where({ id: id }).execute();
+      console.log('* Model.destroy() deprecated. Please use Model.delete() instead');
+      return this.delete(id);
+    }
+
+    // delete all
+    static async deleteAll() {
+      return newQuery(this, 'delete').unscoped().execute();
     }
 
     // destroy all
     static destroyAll() {
-      return newQuery(this, 'delete').unscoped().execute();
+      return this.deleteAll();
     }
 
     //

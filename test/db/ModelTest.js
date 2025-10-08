@@ -209,21 +209,21 @@ describe('db.Model', () => {
     });
 
     //
-    describe('destroy', () => {
-      it('should destroy a book', async () => {
+    describe('delete', () => {
+      it('should delete a book', async () => {
         const first = await Book.create();
         await Book.create();
         await Book.create();
-        await Book.destroy(first.id);
+        await Book.delete(first.id);
         const book = await Book.find(first.id);
         assert(!book);
       });
 
-      it('should destroy selected books', async () => {
+      it('should delete selected books', async () => {
         await Book.create({ code: '123' });
         await Book.create({ code: '123' });
         await Book.create();
-        await Book.where({ code: '123' }).destroy();
+        await Book.where({ code: '123' }).delete();
         const books = await Book.list();
         assert(books.length, 1);
       });
@@ -310,7 +310,7 @@ describe('db.Model', () => {
         await Book.create();
         await Book.create();
         const last = await Book.create();
-        await last.destroy();
+        await last.delete();
         const book = await Book.find(last.id);
         assert(!book);
       });
