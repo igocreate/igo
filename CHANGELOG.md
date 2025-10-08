@@ -1,6 +1,10 @@
 # Changelog
 
-## 5.2.0 - 2025-09
+## 5.2.1 - 2025-09-08
+
+- Upgrade Igo Dust
+
+## 5.2.0 - 2025-09-08
 
 - Parallel service initialization for faster startup
 - Language validation now uses Set for O(1) lookup performance

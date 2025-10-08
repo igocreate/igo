@@ -1,6 +1,6 @@
 {
   "name": "igo",
-  "version": "5.2.0",
+  "version": "5.2.1",
   "homepage": "https://github.com/igocreate/igo",
   "description": "Igo is a Node.js Web Framework based on Express",
   "main": "index.js",
@@ -40,7 +40,7 @@
     "i18next": "25.5.3",
     "i18next-fs-backend": "^2.6.0",
     "i18next-http-middleware": "^3.8.1",
-    "igo-dust": "0.4.1",
+    "igo-dust": "0.5.0",
     "lodash": "^4.17.21",
     "mini-css-extract-plugin": "2.9.4",
     "minimist": "^1.2.8",
