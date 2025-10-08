@@ -1,33 +1,40 @@
-
-
-const _       = require('lodash');
-const http    = require('http');
-
-const cheerio = require('cheerio');
-
-const url     = require('url');
-
 const app     = require('../../app');
 
 //
-const mockRequest = function(options) {
+const mockRequest = (options) => {
   const req = {};
+
+  // Parse URL and query string
+  let pathname = options.url;
+  let query = options.query || {};
+
+  if (options.url.includes('?')) {
+    const [path, queryString] = options.url.split('?');
+    pathname = path;
+    if (!options.query) {
+      const params = new URLSearchParams(queryString);
+      query = {};
+      for (const [key, value] of params) {
+        query[key] = value;
+      }
+    }
+  }
 
   req.hostname    = options.hostname || 'test';
   req.method      = options.method || 'GET';
   req.url         = options.url;
   req.originalUrl = options.url;
-  req.path        = url.parse(options.url).pathname;
-  req.query       = options.query;
+  req.path        = pathname;
+  req.query       = query;
   req.params      = options.params  || {};
   req.cookies     = options.cookies || {};
   req.session     = options.session || {};
   req.body        = options.body    || {};
   req.headers     = options.headers || {};
   req.files       = options.files   || {};
-  req.resume      = function() {};
-  req.listeners   = function() { return []; };
-  req.unpipe      = function() {};
+  req.resume      = () => {};
+  req.listeners   = () => { return []; };
+  req.unpipe      = () => {};
   req.connection  = {};
   req.socket      = {
     destroy: () => {}
@@ -37,95 +44,118 @@ const mockRequest = function(options) {
 };
 
 //
-const mockResponse = function(req) {
+const mockResponse = () => {
   let resolveResponse;
+  let timeoutId;
 
   const res = {
     body: '',
     headers: {},
-    _headers: {},
-    _headerNames: {},
     locals: {
       flash: {}
     }
   };
 
-  const done = new Promise((resolve) => {
-    resolveResponse = resolve;
+  const done = new Promise((resolve, reject) => {
+    resolveResponse = (value) => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      resolve(value);
+    };
+
+    // Timeout après 10 secondes
+    timeoutId = setTimeout(() => {
+      const error = new Error('Request timeout after 10s');
+      res.error = error;
+      res.statusCode = 408;
+      reject(error);
+    }, 10000);
   });
 
-  res.getHeader = function(name) {
+  res.getHeader = (name) => {
     return res.headers[name];
   };
 
-  res.setHeader = function(name, value) {
+  res.setHeader = (name, value) => {
     res.headers[name] = value;
   };
 
-  // console.dir(http.OutgoingMessage.prototype.end.toString());
-    http.OutgoingMessage.prototype.setHeader = res.setHeader;
-    http.OutgoingMessage.prototype._writeRaw = function _writeRaw(data, encoding, callback) {
-      res.send(data, encoding, callback);
-    };
-    http.OutgoingMessage.prototype.end = function(chunk) {
-      res.send(chunk);
-    };
+  res.redirect = (statusCode, redirectUrl) => {
+    if (!Number.isInteger(statusCode)) {
+      redirectUrl = statusCode;
+      statusCode  = 302;
+    }
+    res.statusCode  = statusCode;
+    res.redirectUrl = redirectUrl;
+    resolveResponse(res);
+  };
 
-    res.redirect = function(statusCode, redirectUrl) {
-      if (!_.isInteger(statusCode)) {
-        redirectUrl = statusCode;
-        statusCode  = 302;
-      }
-      res.statusCode  = statusCode;
-      res.redirectUrl = redirectUrl;
-      resolveResponse(res);
-    };
-
-  res.removeHeader = function() {
+  res.removeHeader = () => {
     // ignore
   };
 
-  res.write = function(data) {
+  res.write = (data) => {
     res.body += data;
   };
 
-  res.send = function(data) {
+  res.send = (data) => {
     res.body = data;
     resolveResponse(res);
   };
 
-  res.end = function(chunk) {
+  res.end = (chunk) => {
     if (chunk) {
       res.body += chunk;
     }
     resolveResponse(res);
   };
 
-
-  res.$ = (...args) => {
-    if (!res._cached_$) {
-      res._cached_$ = cheerio.load(res.body);
-    }
-    return res._cached_$(...args);
-  };
-
   return { res, done };
 };
 
-const send = async (url, options = {}) => {
+//
+module.exports.send = async (url, options = {}) => {
+  if (!url) {
+    throw new Error('URL is required');
+  }
+
   options.url = url;
   const req = mockRequest(options);
-  const { res, done } = mockResponse(req);
-  app.handle(req, res);
+  const { res, done } = mockResponse();
+
+  try {
+    app.handle(req, res);
+  } catch (error) {
+    res.error = error;
+    res.statusCode = 500;
+    res.end();
+  }
+
   return await done;
 };
 
 //
 module.exports.get = async (url, options = {}) => {
-  return await send(url, { ...options, method: 'GET' });
+  return await module.exports.send(url, { ...options, method: 'GET' });
 };
 
 //
 module.exports.post = async (url, options = {}) => {
-  return await send(url, { ...options, method: 'POST' });
+  return await module.exports.send(url, { ...options, method: 'POST' });
+};
+
+//
+module.exports.put = async (url, options = {}) => {
+  return await module.exports.send(url, { ...options, method: 'PUT' });
+};
+
+//
+module.exports.patch = async (url, options = {}) => {
+  return await module.exports.send(url, { ...options, method: 'PATCH' });
+};
+
+//
+module.exports.delete = async (url, options = {}) => {
+  return await module.exports.send(url, { ...options, method: 'DELETE' });
 };
