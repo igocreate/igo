@@ -4,21 +4,11 @@
 
 ## Introduction
 
-Igo.js is a full-featured Node.js web framework for developing web applications.
+Igo.js is a full-featured Node.js web framework that gives you a production-ready application with a complete development environment in seconds.
 
-Igo.js is not a boilerplate to help you start with Node.js. It embeds and leverages on the most used frameworks and libraries in the Node.js ecosystem.
+Built on top of Express, Igo.js integrates the most popular Node.js libraries and tools: Webpack 5 for asset bundling, an ORM for MySQL/PostgreSQL, Redis caching, Mocha for testing, and more.
 
-In a few seconds it can give you a production-ready application and a 100% working development environment.
-
-We love Node.js, it's a fantastic and easy technology to build and run web applications. But after building several projects, we found that it was a pain to duplicate these many technical files:
-
-app.js for Express and its bunch of middlewares, plus the configuration for these middlewares,
-Gulpfile.js or webpack.config.js to setup a nice development environment,
-MySQL, Redis, SMTP configurations and connections,
-package.json with so many dependencies,
-Mocha configuration and tools to write good tests,
-...etc.
-After several months spent duplicating the same configuration and the same technical stack over and over, well, it appeared clearly that all this had very little added value. That's how Igo.js was born.
+After building several Node.js projects, we realized we were duplicating the same technical stack over and over: Express configuration, Webpack setup, database connections, test helpers, and countless dependencies. Igo.js packages all of this into a single framework, letting you focus on building your application instead of configuring tools.
 
 ## Installation
 

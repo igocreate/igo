@@ -1,6 +1,6 @@
 ![logo](_media/icon.png)
 
-# Igo.js <small>4.4.4</small>
+# Igo.js <small>5.2.0</small>
 
 > Web Framework for [Node.js](https://nodejs.org/en).
 
