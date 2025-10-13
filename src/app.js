@@ -87,7 +87,7 @@ module.exports.configure = async () => {
 
   if (config.env !== 'test') {
     // async error handling
-    app.use(errorHandler.initDomain(app));
+    app.use(errorHandler.initContext(app));
     // does not work in test mode, because of mock requests
     app.use(cookieParser(config.cookieSecret));
     app.use(config.cookieSessionMiddleware || cookieSession(config.cookieSession));
