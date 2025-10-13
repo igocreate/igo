@@ -1,5 +1,7 @@
-
-require('dotenv').config({ quiet: true });
+// Load .env file in development/test, not in production
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config({ quiet: true });
+}
 
 const config    = {};
 module.exports  = config;
