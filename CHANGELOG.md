@@ -1,5 +1,10 @@
 # Changelog
 
+## 5.2.2 - 2025-10-13
+
+- **Important**: Migrated error handler from deprecated `domain` module to `AsyncLocalStorage`
+- Express 5 compatibility preparation
+
 ## 5.2.1 - 2025-09-08
 
 - Upgrade Igo Dust
