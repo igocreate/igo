@@ -60,19 +60,50 @@ Request validation is made with [Validator.js](https://github.com/validatorjs/va
 
 The Flash scope allows data to be stored in session during only 2 requests. Very useful when performing redirects.
 
-The Flash scope is a middleware as simple as this:
+#### Usage
+
+**Basic flash for small data:**
 
 ```js
-module.exports = function(req, res, next) {
-  req.session.flash = req.session.flash || {};
-  res.locals.flash  = req.session.flash;
-  if (req.method === 'GET') {
-    // clear flash scope
-    req.session.flash = {};
-  }
-  req.flash = function(key, value) {
-    req.session.flash[key] = value;
-  };
-  next();
-};
+app.post('/login', (req, res) => {
+  req.flash('message', 'Login successful');
+  req.flash('user', { id: 1, name: 'John' });
+  res.redirect('/dashboard');
+});
 ```
+
+Data is automatically cleared after the next GET request and available in views via `res.locals.flash`.
+
+#### Smart Storage
+
+The flash middleware automatically handles large objects to prevent cookie overflow issues:
+
+- **Small objects (< 1KB)**: Stored in session cookie (fast, no Redis dependency)
+- **Large objects (> 1KB)**: Automatically switched to Redis-backed `cacheflash`
+- **Very large objects (> 10KB)**: Warning logged to help identify potential design issues
+
+**Example with automatic handling:**
+
+```js
+// Small data - stays in cookie
+req.flash('message', 'Hello');
+
+// Large array - automatically uses Redis
+req.flash('items', largeArray); // > 1KB, Redis used transparently
+```
+
+**Explicit Redis storage for large data:**
+
+```js
+// For very large objects, you can explicitly use cacheflash
+req.cacheflash('bigdata', veryLargeObject);
+```
+
+#### How it works
+
+The Flash middleware provides two methods:
+
+- `req.flash(key, value)` - Smart storage with automatic Redis fallback
+- `req.cacheflash(key, value)` - Explicit Redis storage (for large data)
+
+Objects > 1KB are automatically stored in Redis with only a UUID in the session cookie, preventing "header too large" errors from nginx or browsers.

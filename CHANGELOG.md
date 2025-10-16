@@ -1,5 +1,12 @@
 # Changelog
 
+## 5.2.3 - 2025-10-16
+
+- **Flash middleware improvements**:
+  - Automatic fallback to Redis-backed `cacheflash` for large objects (>1KB)
+  - Warning logs for very large flash objects (>10KB)
+  - Parallel loading of cacheflash objects for better performance
+
 ## 5.2.2 - 2025-10-13
 
 - **Important**: Migrated error handler from deprecated `domain` module to `AsyncLocalStorage`
