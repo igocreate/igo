@@ -56,13 +56,13 @@ const replaceInDirectory = async (dir, replacements) => {
 // igo create
 module.exports = async function (argv) {
   const args = argv._;
-  if (args.length !== 2 && args.length !== 3) {
-    console.warn('Usage: igo create <project-directory> [model]');
+  if (args.length !== 2) {
+    console.warn('Usage: igo create <project-directory>');
     process.exit(1);
   }
   
   const directory = './' + args[1];
-  const model     = args.length === 3 ? args[2] : 'tailwind';
+  const model     = 'tailwind';
 
   await fs.mkdir(directory)
 
