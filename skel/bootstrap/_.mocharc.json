@@ -1,9 +1,0 @@
-{
-  "recursive": true,
-  "extension": [
-    "js"
-  ],
-  "reporter": "dot",
-  "exit": true,
-  "timeout": 10000
-}
