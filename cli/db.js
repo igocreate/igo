@@ -5,7 +5,6 @@ const fs          = require('fs/promises');
 const config      = require('../src/config');
 const dbs          = require('../src/db/dbs');
 const migrations  = require('../src/db/migrations');
-const plugins     = require('../src/plugins');
 
 // db verbs
 const verbs   = {
@@ -142,7 +141,6 @@ module.exports = async (argv) => {
 
   config.init();
   await dbs.init();
-  plugins.init();
 
   if (args.length > 1 && verbs[args[1]]) {
     await verbs[args[1]](args)

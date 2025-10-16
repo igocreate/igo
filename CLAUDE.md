@@ -71,7 +71,7 @@ igo compress
 ### Application Lifecycle
 
 1. **Initialization** (`app.configure()`):
-   - Services initialized in order: config, igodust, logger, cache, dbs, mailer, plugins
+   - Services initialized in order: config, igodust, logger, cache, dbs, mailer
    - Each service has an `init()` method called sequentially
    - Express middlewares configured
    - User routes loaded from `app/routes.js` (in user projects)
