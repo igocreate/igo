@@ -10,6 +10,25 @@ describe('ErrorHandler', function() {
       const res = await agent.get('/this-page-does-not-exist');
       assert.strictEqual(res.statusCode, 404);
     });
+
+    it('should handle 404 for POST requests', async () => {
+      const res = await agent.post('/this-route-does-not-exist', {
+        body: { test: 'data' }
+      });
+      assert.strictEqual(res.statusCode, 404);
+    });
+
+    it('should handle 404 for PUT requests', async () => {
+      const res = await agent.put('/this-route-does-not-exist', {
+        body: { test: 'data' }
+      });
+      assert.strictEqual(res.statusCode, 404);
+    });
+
+    it('should handle 404 for DELETE requests', async () => {
+      const res = await agent.delete('/this-route-does-not-exist');
+      assert.strictEqual(res.statusCode, 404);
+    });
   });
 
   describe('Routes', function() {
