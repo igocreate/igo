@@ -1,8 +1,24 @@
 const production = process.env.NODE_ENV === 'production';
 
+// Plugin to trigger full reload on dust template changes
+const dustReloadPlugin = () => ({
+  name: 'dust-reload',
+  handleHotUpdate({ file, server }) {
+    if (file.endsWith('.dust')) {
+      server.ws.send({ type: 'full-reload', path: '*' });
+      return [];
+    }
+  }
+});
+
 // Vite config
 const viteConfig = {
   root: process.cwd(),
+
+  // Plugins
+  plugins: [
+    dustReloadPlugin()
+  ],
 
   // Build configuration
   build: {
