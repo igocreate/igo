@@ -11,10 +11,7 @@
 
     <title>{+title}Igo running{/title}</title>
 
-    {viteClient|s}
-    {?assets.main.css}
-      <link rel="stylesheet" href="{assets.main.css}" />
-    {/assets.main.css}
+    {viteStyles|s}
   </head>
 
   <body class="h-full">
@@ -27,6 +24,6 @@
       </div>
     </main>
 
-    <script {@eq key=env value="dev"}type="module"{/eq} src="{assets.main.js}"></script>
+    {viteScripts|s}
   </body>
 </html>

@@ -1,51 +1,62 @@
-const fs = require('fs');
-const path = require('path');
-const config = require('../config');
-const logger = require('../logger');
+const fs      = require('fs');
+const path    = require('path');
+const config  = require('../config');
+const logger  = require('../logger');
+const { build } = require('vite');
 
-let manifest;
+let scriptsCache = null;
+let stylesCache = null;
 
-const getManifest = () => {
-  if (manifest) return manifest;
-  if (config.env !== 'production') return null;
-
-  const manifestPath = path.join(config.projectRoot, 'dist', 'manifest.json');
-  try {
-    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
-    return manifest;
-  } catch (err) {
-    logger.error('manifest.json not found. Run "vite build" for production.');
-    return null;
+const buildAssets = () => {
+  if (scriptsCache !== null) {
+    // return;
   }
+
+  const scripts = [];
+  const styles = [];
+
+  if (config.env === 'production') {
+    // Production: read manifest.json
+    try {
+      const manifest  = require(path.join(config.projectRoot, 'dist/manifest.json'));
+
+      for (const [key, entry] of Object.entries(manifest)) {
+        if (entry.isEntry) {
+          scripts.push(`<script type="module" src="/${entry.file}"></script>`);
+          if (entry.css?.[0]) {
+            styles.push(`<link rel="stylesheet" href="/${entry.css[0]}">`);
+          }
+        }
+      }
+    } catch (err) {
+      logger.error('manifest.json not found. Run "npm run build" for production.');
+    }
+  } else {
+    
+    // Development: read vite.config.js
+    const viteConf = require(path.join(config.projectRoot, 'vite.config.js'));
+
+    scripts.push('<script type="module" src="/@vite/client"></script>');
+    const input = viteConf?.build?.rollupOptions?.input;
+    for (const entryPath of Object.values(input)) {
+      scripts.push(`<script type="module" src="/${entryPath}"></script>`);
+    }
+  }
+
+  scriptsCache  = scripts.join('\n');
+  stylesCache   = styles.join('\n');
 };
 
-const localsMiddleware = (req, res, next) => {
-  // Set environment and language
+// Middleware to set locals for views
+module.exports = (req, res, next) => {
   res.locals.env = config.env;
   res.locals.lang = req.language;
 
-  // Handle assets for Vite
-  if (config.env === 'production') {
-    const manifest = getManifest();
-    const entry = manifest ? manifest['src/js/main.js'] : null;
-    
-    res.locals.assets = {
-      main: {
-        js: entry ? `/${entry.file}` : '',
-        css: (entry && entry.css) ? `/${entry.css[0]}` : ''
-      }
-    };
-  } else { // Development
-    res.locals.assets = {
-      main: {
-        js: '/src/js/main.js',
-        css: null // CSS is injected by JS in dev
-      }
-    };
-    res.locals.viteClient = '<script type="module" src="/@vite/client"></script>';
-  }
+  buildAssets();
+  console.log({stylesCache, scriptsCache});
+
+  res.locals.viteScripts  =  scriptsCache;
+  res.locals.viteStyles   =  stylesCache;
 
   next();
 };
-
-module.exports = localsMiddleware;
