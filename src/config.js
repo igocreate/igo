@@ -26,16 +26,6 @@ module.exports.init = function() {
     sameSite: 'Lax'
   };
 
-  // Security check: warn if using default secrets in production
-  if (config.env === 'production') {
-    if (config.cookieSecret === 'abcdefghijklmnopqrstuvwxyz') {
-      console.warn('⚠️  SECURITY WARNING: Default cookieSecret detected in production. Please set COOKIE_SECRET environment variable.');
-    }
-    if (!process.env.COOKIE_SESSION_KEYS) {
-      console.warn('⚠️  SECURITY WARNING: Default cookie session keys detected in production. Please set COOKIE_SESSION_KEYS environment variable.');
-    }
-  }
-
   config.igodust = {
     stream: false   // experimental!
   };

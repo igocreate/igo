@@ -11,8 +11,10 @@
 
     <title>{+title}Igo running{/title}</title>
 
-    <link rel="stylesheet" href="{assets.vendor.css}" />
-    <link rel="stylesheet" href="{assets.main.css}" />
+    {viteClient|s}
+    {?assets.main.css}
+      <link rel="stylesheet" href="{assets.main.css}" />
+    {/assets.main.css}
   </head>
 
   <body class="h-full">
@@ -24,9 +26,7 @@
         {+content /}
       </div>
     </main>
-  
 
-    <script src="{assets.vendor.js}" ></script>
-    <script src="{assets.main.js}" ></script>
+    <script {@eq key=env value="dev"}type="module"{/eq} src="{assets.main.js}"></script>
   </body>
 </html>

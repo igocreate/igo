@@ -1,7 +1,7 @@
 
 //
 module.exports = {
-  webpackConfig:        require('./webpack.config'),
-  test:                 function() { require('./test/init'); },
+  viteConfig:           require('./vite.config'),
+  test:                 () => { require('./test/init'); },
   agent:                require('./test/agent'),
 };

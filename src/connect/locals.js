@@ -1,58 +1,51 @@
+const fs = require('fs');
+const path = require('path');
+const config = require('../config');
+const logger = require('../logger');
 
-const _           = require('lodash');
-const config      = require('../config');
+let manifest;
 
-const assetsPath  = process.cwd() + '/webpack-assets.json';
-let   assets      = null;
+const getManifest = () => {
+  if (manifest) return manifest;
+  if (config.env !== 'production') return null;
 
-const DEV_SERVER  = 'http://localhost:9000';
-//
-const getWebpackAssets = () => {
-  if (assets && config.env === 'production') {
-    return assets;
-  }
-
+  const manifestPath = path.join(config.projectRoot, 'dist', 'manifest.json');
   try {
-    const resolved = require.resolve(assetsPath);
-    delete require.cache[resolved];
-    assets = require(resolved);
-    
-    if (config.env === 'dev') {
-      _.each(assets, (entry) => {
-        _.each(entry, (url, key) => {
-          if (_.isString(url)) {
-            entry[key] = DEV_SERVER + url;
-          }
-        });
-      });
-    }
-    
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+    return manifest;
   } catch (err) {
-    // ignored
+    logger.error('manifest.json not found. Run "vite build" for production.');
+    return null;
   }
-  return assets;
 };
 
-//
-module.exports = (req, res, next) => {
+const localsMiddleware = (req, res, next) => {
+  // Set environment and language
+  res.locals.env = config.env;
+  res.locals.lang = req.language;
 
-  res.locals.assets   = getWebpackAssets();
-
-  // verify locale whitelist
-  if (config.i18n.whitelist.indexOf(req.locale) > -1) {
-    res.locals.lang = req.locale;
-    return next();
+  // Handle assets for Vite
+  if (config.env === 'production') {
+    const manifest = getManifest();
+    const entry = manifest ? manifest['src/js/main.js'] : null;
+    
+    res.locals.assets = {
+      main: {
+        js: entry ? `/${entry.file}` : '',
+        css: (entry && entry.css) ? `/${entry.css[0]}` : ''
+      }
+    };
+  } else { // Development
+    res.locals.assets = {
+      main: {
+        js: '/src/js/main.js',
+        css: null // CSS is injected by JS in dev
+      }
+    };
+    res.locals.viteClient = '<script type="module" src="/@vite/client"></script>';
   }
-
-  // fix locale (not in whitelist)
-  let lang = req.locale.substring(0, 2);
-  if (config.i18n.whitelist.indexOf(lang) < 0) {
-    lang = config.i18n.fallbackLng;
-  }
-  req.i18n.changeLanguage(lang);
-  req.locale      = lang;
-  req.language    = lang;
-  res.locals.lang = lang;
 
   next();
 };
+
+module.exports = localsMiddleware;

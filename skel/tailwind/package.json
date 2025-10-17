@@ -5,10 +5,8 @@
   "main": "app.js",
   "scripts": {
     "eslint": "eslint ./app ./test",
-    "nodemon": "nodemon app.js",
-    "start": "concurrently \"npm run nodemon\" \"npm run webpack\"",
-    "webpack": "webpack serve --mode=development",
-    "webpack-prod": "webpack --mode=production",
+    "start": "nodemon app.js",
+    "build": "vite build",
     "test": "mocha"
   },
   "author": "",
@@ -18,7 +16,8 @@
   },
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.10",
-    "@tailwindcss/postcss": "^4.1.10",
-    "tailwindcss": "^4.1.10"
+    "tailwindcss": "^4.1.14",
+    "@tailwindcss/postcss": "^4.1.14",
+    "autoprefixer": "^10.4.21"
   }
 }
