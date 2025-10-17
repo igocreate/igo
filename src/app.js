@@ -78,12 +78,23 @@ module.exports.configure = async () => {
   }));
 
   // Static files with caching in production
-  app.use(express.static('public', {
+  const staticDir = config.env === 'production' ? 'dist' : 'public';
+  app.use(express.static(staticDir, {
     redirect:     false,
     maxAge:       config.env === 'production' ? '1y' : 0,
     etag:         true,
     lastModified: true
   }));
+
+  // Vite middleware in development mode
+  if (config.env === 'dev') {
+    const vite = await import('vite').then(m => m.createServer({
+      server: { middlewareMode: true },
+      appType: 'custom',
+      configFile: './vite.config.js'
+    }));
+    app.use(vite.middlewares);
+  }
 
   if (config.env !== 'test') {
     // async error handling

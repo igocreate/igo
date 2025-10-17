@@ -83,6 +83,11 @@ module.exports.migrate = async (db, rootDir = '.') => {
 
   // execute SQL migration file
   const executeFile = async (file) => {
+    // Skip hidden files silently (like .gitkeep)
+    if (file.filename.startsWith('.')) {
+      return;
+    }
+
     if (!file.filename.match('[0-9]{8}.*\\.sql$')) {
       logger.warn('File %s does not match migration pattern, skipping', file.filename);
       return;
