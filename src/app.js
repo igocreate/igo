@@ -11,6 +11,7 @@ const igodust           = require('./engines/igodust');
 const cache             = require('./cache');
 const config            = require('./config');
 const dbs               = require('./db/dbs');
+const assets            = require('./connect/assets');
 const errorHandler      = require('./connect/errorhandler');
 const flash             = require('./connect/flash');
 const locals            = require('./connect/locals');
@@ -118,6 +119,7 @@ module.exports.configure = async () => {
   app.use(i18nMiddleware.handle(i18next));
 
   app.use(locals);
+  app.use(assets);
   app.use(igodust.middleware);
 
   // load routes
