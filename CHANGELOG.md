@@ -1,5 +1,23 @@
 # Changelog
 
+## 6.0.0 - TBD
+
+- **BREAKING**: Migrated from Webpack to Vite for faster builds and modern tooling
+  - Build configuration now uses Vite instead of Webpack
+  - Development server uses Vite middleware mode
+  - Asset manifest generation updated for Vite compatibility
+- **BREAKING**: Upgraded to Express 5.1
+- **BREAKING**: Removed Bootstrap skeleton template
+- Fixed manifest.json path for Vite 5+ compatibility (now generated at `dist/manifest.json`)
+- Improved migration system to silently skip hidden files (`.gitkeep`, etc.)
+- Removed Tailwind UI placeholder image from default template
+- Updated project scaffolding to use Vite build pipeline
+
+**Migration guide**:
+- Projects using Webpack will need to migrate to Vite
+- Run `npm run build` instead of `webpack` for production builds
+- Update your project's `vite.config.js` to extend `require('igo').dev.viteConfig`
+
 ## 5.2.3 - 2025-10-16
 
 - **Flash middleware improvements**:
