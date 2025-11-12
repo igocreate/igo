@@ -1,6 +1,6 @@
 
 const _               = require('lodash');
-const { v4: uuidv4 }  = require('uuid');
+const { randomUUID }  = require('crypto');
 
 const cache           = require('../cache');
 const logger          = require('../logger');
@@ -41,7 +41,7 @@ module.exports = async (req, res, next) => {
 
   // save flash data in redis
   req.cacheflash = (key, value) => {
-    const uuid = uuidv4();
+    const uuid = randomUUID();
     req.session._igo_cacheflash.push(uuid);
     cache.put(NS, uuid, { [key]: value }, 60); // 60s
   };
