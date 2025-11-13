@@ -17,11 +17,12 @@ module.exports.init = async (db) => {
     const { dialect } = db.driver;
     const lock        = db.config.database + '.__db_migrations';
     const getLock     = dialect.getLock(lock);
-    const [res]       = await db.driver.query(connection, getLock, []);
+    const res         = await db.driver.query(connection, getLock, []);
     if (!dialect.gotLock(res)) {
       // could not get lock, skip migration
       return db.driver.release(connection);
     }
+    
     // got lock, migrate!
     await module.exports.migrate(db);
 

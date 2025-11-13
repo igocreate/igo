@@ -67,7 +67,7 @@ module.exports.dialect = {
   in: 'IN',
   notin: 'NOT IN',
   getLock: lock => `SELECT GET_LOCK('${lock}', 0) AS 'lock'`,
-  gotLock: res => res && res[0] && res[0].lock > 0,
+  gotLock: res => res && res[0] && res[0][0] && res[0][0].lock > 0,
   releaseLock: lock => `SELECT RELEASE_LOCK('${lock}')`,
 
   
