@@ -26,7 +26,7 @@ module.exports = async (req, res, next) => {
 
   // save flash data in session
   req.flash = (key, value) => {
-    const size = JSON.stringify(value).length;
+    const size = value !== undefined ? JSON.stringify(value).length : 0;
 
     // Auto-switch to cacheflash if object is too large
     if (size > SIZE_THRESHOLD) {
