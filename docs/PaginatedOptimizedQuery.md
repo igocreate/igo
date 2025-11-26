@@ -31,13 +31,15 @@ AND a.last_name LIKE '%Dupont%'
 
 ### Approche optimisée (RAPIDE)
 
-Avec `PaginatedOptimizedQuery`, les requêtes utilisent le pattern COUNT/IDS/FULL :
+Avec `PaginatedOptimizedQuery`, les requêtes utilisent le pattern COUNT/IDS/FULL avec une syntaxe simplifiée :
 
 ```javascript
 // ✅ RAPIDE : ~50-200ms sur 2M de lignes
 const result = await Folder.paginatedOptimized()
-  .where({ type: ['agp', 'avt'] })
-  .filterJoin('applicant', { last_name: 'Dupont%' })
+  .where({
+    type: ['agp', 'avt'],
+    'applicant.last_name': 'Dupont%'
+  })
   .join(['applicant', 'pme_folder', 'delegation'])
   .page(1, 50);
 ```
@@ -49,7 +51,7 @@ WHERE f.type IN ('agp', 'avt')
 AND EXISTS (
   SELECT 1 FROM applicants a
   WHERE a.id = f.applicant_id
-  AND a.last_name LIKE '%Dupont%'
+  AND a.last_name LIKE 'Dupont%'
 )
 -- Temps : 10-50ms
 ```
@@ -61,7 +63,7 @@ WHERE f.type IN ('agp', 'avt')
 AND EXISTS (
   SELECT 1 FROM applicants a
   WHERE a.id = f.applicant_id
-  AND a.last_name LIKE '%Dupont%'
+  AND a.last_name LIKE 'Dupont%'
 )
 ORDER BY f.created_at DESC
 LIMIT 50 OFFSET 0
@@ -93,6 +95,52 @@ const Model = require('igo').Model;
 const query = MyModel.paginatedOptimized();
 ```
 
+## Nouvelle syntaxe simplifiée ⭐
+
+### Vue d'ensemble
+
+La nouvelle syntaxe permet de filtrer sur des tables jointes directement dans `where()` en utilisant la notation pointée :
+
+```javascript
+// Une seule méthode pour tout !
+Folder.paginatedOptimized()
+  .where({
+    // Table principale
+    status: 'SUBMITTED',
+    type: ['agp', 'avt'],
+
+    // Tables jointes (1 niveau)
+    'applicant.last_name': 'Dupont%',
+    'applicant.email': '%@example.com',
+
+    // Tables imbriquées (plusieurs niveaux)
+    'pme_folder.company.country.code': 'FR',
+    'pme_folder.company.siret': '1234%'
+  })
+```
+
+**Avantages :**
+- ✅ **60% moins de code** que l'ancienne syntaxe
+- ✅ **Plus lisible** et intuitif
+- ✅ **Performances identiques** (génère les mêmes EXISTS)
+- ✅ **Détection automatique** des chemins imbriqués
+- ✅ **Rétrocompatible** avec `filterJoin()` et `filterJoinNested()`
+
+### Syntaxe de base
+
+```javascript
+.where({
+  // Colonne de la table principale : valeur normale
+  column: value,
+
+  // Colonne d'une table jointe : notation pointée
+  'association.column': value,
+
+  // Plusieurs niveaux d'imbrication
+  'association1.association2.association3.column': value
+})
+```
+
 ## API
 
 ### Model.paginatedOptimized()
@@ -106,84 +154,208 @@ const query = Folder.paginatedOptimized();
 
 ### .where(conditions)
 
-Filtre sur la table principale (identique à `Query.where()`).
+Filtre sur la table principale ET les tables jointes avec détection automatique.
+
+#### Filtres sur table principale
 
 ```javascript
-query.where({ type: ['agp', 'avt'] });
+// Égalité simple
 query.where({ status: 'SUBMITTED' });
+
+// IN (tableau)
+query.where({ type: ['agp', 'avt'] });
+
+// IS NULL
+query.where({ deleted_at: null });
 ```
 
-### .filterJoin(associationName, conditions, operator)
-
-**Nouveau** : Ajoute un filtre sur une table jointe qui sera converti en `EXISTS`.
-
-- `associationName` : Nom de l'association (ex: `'applicant'`)
-- `conditions` : Objet avec les conditions de filtrage
-- `operator` : `'AND'` (défaut) ou `'OR'` pour conditions multiples
+#### Filtres sur tables jointes (1 niveau)
 
 ```javascript
-// Filtre simple
-query.filterJoin('applicant', { last_name: 'Dupont%' });
-
-// Filtre multiple avec AND
-query.filterJoin('applicant', {
-  last_name: 'Dupont%',
-  email: '%@example.com'
-}, 'AND');
-
-// Filtre multiple avec OR
-query.filterJoin('applicant', {
-  last_name: 'Dupont%',
-  email: 'dupont%'
-}, 'OR');
-```
-
-**⚠️ Important** : Les colonnes filtrées via `.filterJoin()` ne seront pas récupérées automatiquement. Pour récupérer les données associées, ajoutez un `.join()` correspondant.
-
-### .filterJoinNested(nestedConfig)
-
-**Nouveau** : Ajoute des filtres imbriqués sur plusieurs niveaux d'associations.
-
-```javascript
-query.filterJoinNested({
-  pme_folder: {
-    conditions: { status: 'ACTIVE' },
-    nested: {
-      company: {
-        conditions: { country: 'FR' }
-      }
-    }
-  }
+query.where({
+  status: 'SUBMITTED',
+  'applicant.last_name': 'Dupont%',
+  'applicant.email': '%@example.com'
 });
+```
+
+**SQL généré :**
+```sql
+WHERE folders.status = 'SUBMITTED'
+AND EXISTS (
+  SELECT 1 FROM applicants
+  WHERE applicants.id = folders.applicant_id
+  AND applicants.last_name LIKE 'Dupont%'
+  AND applicants.email LIKE '%@example.com'
+)
+```
+
+#### Filtres sur tables imbriquées (plusieurs niveaux)
+
+```javascript
+query.where({
+  type: 'agp',
+  'pme_folder.company.country.code': 'FR',
+  'pme_folder.company.siret': '1234%'
+});
+```
+
+**SQL généré :**
+```sql
+WHERE folders.type = 'agp'
+AND EXISTS (
+  SELECT 1 FROM pme_folders
+  WHERE pme_folders.id = folders.pme_folder_id
+  AND EXISTS (
+    SELECT 1 FROM companies
+    WHERE companies.id = pme_folders.company_id
+    AND companies.siret LIKE '1234%'
+    AND EXISTS (
+      SELECT 1 FROM countries
+      WHERE countries.id = companies.country_id
+      AND countries.code = 'FR'
+    )
+  )
+)
+```
+
+### Opérateurs supportés
+
+#### Opérateurs de base
+
+```javascript
+// Égalité
+{ status: 'ACTIVE' }
+// → WHERE status = 'ACTIVE'
+
+// IN (tableau)
+{ status: ['ACTIVE', 'PENDING'] }
+// → WHERE status IN ('ACTIVE', 'PENDING')
+
+// IS NULL
+{ email: null }
+// → WHERE email IS NULL
+
+// LIKE (auto-détecté avec %)
+{ last_name: 'Dupont%' }
+// → WHERE last_name LIKE 'Dupont%'
+```
+
+#### Opérateurs avancés
+
+Utilisez un objet avec un opérateur `$` pour les comparaisons avancées :
+
+```javascript
+// $like - LIKE explicite
+{ 'applicant.last_name': { $like: 'Dup%' } }
+// → WHERE applicant.last_name LIKE 'Dup%'
+
+// $between - Plages de dates/nombres
+{ created_at: { $between: ['2024-01-01', '2024-12-31'] } }
+// → WHERE created_at BETWEEN '2024-01-01' AND '2024-12-31'
+
+// $gte - Greater than or equal (>=)
+{ created_at: { $gte: '2024-01-01' } }
+// → WHERE created_at >= '2024-01-01'
+
+// $lte - Less than or equal (<=)
+{ created_at: { $lte: '2024-12-31' } }
+// → WHERE created_at <= '2024-12-31'
+
+// $gt - Greater than (>)
+{ 'pme_folder.amount': { $gt: 1000 } }
+// → WHERE amount > 1000
+
+// $lt - Less than (<)
+{ 'pme_folder.amount': { $lt: 5000 } }
+// → WHERE amount < 5000
+```
+
+#### Opérateurs logiques
+
+##### $and - Toutes les conditions doivent être vraies
+
+```javascript
+query.where({
+  $and: [
+    { created_at: { $between: ['2024-01-01', '2024-12-31'] } },
+    { status: 'SUBMITTED' },
+    { 'applicant.last_name': { $like: 'Dup%' } },
+    { 'pme_folder.company.country.code': 'FR' }
+  ]
+});
+```
+
+**Note :** Par défaut, plusieurs conditions dans `where()` sont combinées avec AND, donc `$and` est optionnel dans la plupart des cas.
+
+##### $or - Au moins une condition doit être vraie
+
+Pour simuler un OR sur la même colonne, utilisez IN :
+
+```javascript
+// OR sur même colonne → utilisez IN
+query.where({
+  status: ['SUBMITTED', 'VALIDATED']  // Équivalent à OR
+});
+// → WHERE status IN ('SUBMITTED', 'VALIDATED')
 ```
 
 ### .join(associations)
 
 Ajoute des `LEFT JOIN` pour récupérer les données associées (phase FULL uniquement).
 
+**✅ Nouvelle syntaxe avec notation pointée** :
+
 ```javascript
 // Un seul join
 query.join('applicant');
 
-// Plusieurs joins
+// Plusieurs joins simples
 query.join(['applicant', 'pme_folder', 'delegation']);
 
-// Joins imbriqués
-query.join({ pme_folder: ['company'] });
+// Join imbriqué avec notation pointée
+query.join('pme_folder.company.country');
+
+// Plusieurs joins dont certains imbriqués
+query.join(['applicant', 'pme_folder.company.country']);
 ```
+
+**Ancienne syntaxe (toujours supportée)** :
+
+```javascript
+// Joins imbriqués avec structure d'objet
+query.join({ pme_folder: ['company'] });
+query.join({ pme_folder: { company: ['country'] } });
+```
+
+**Note** : La notation pointée est plus lisible et cohérente avec la syntaxe de `where()`. Elle est automatiquement transformée en structure d'objet en interne.
+
+**⚠️ Important** : Les colonnes filtrées via `where('association.column')` génèrent des EXISTS (pas de JOIN). Pour récupérer les données associées, ajoutez un `.join()` correspondant.
 
 ### .order(orderBy)
 
-Tri (identique à `Query.order()`).
+Tri sur colonnes de la table principale ou des tables jointes.
 
 ```javascript
+// Tri sur la table principale
 query.order('folders.created_at DESC');
 query.order('folders.status ASC, folders.created_at DESC');
+
+// Tri sur une table jointe (directe)
+query.order('applicants.last_name ASC');
+
+// Tri sur une table jointe imbriquée
+query.order('companies.name DESC');  // via pme_folder.company
 ```
 
-**⚠️ Limitation actuelle** : Le tri ne peut se faire que sur les colonnes de la table principale. Pour trier sur une colonne jointe, il faut soit :
-1. Matérialiser la colonne dans la table principale (recommandé)
-2. Trier en mémoire après récupération (pour petites listes)
+**✅ Nouveau** : Le tri sur colonnes jointes est maintenant automatiquement optimisé !
+
+Quand vous triez sur une colonne d'une table jointe, le système :
+1. **Détecte automatiquement** la table nécessaire (même si imbriquée)
+2. **Ajoute un INNER JOIN** dans la phase IDS uniquement (pas dans COUNT)
+3. **Crée les INNER JOIN en cascade** pour les tables imbriquées
+
+Voir la section [Tri sur colonnes jointes](#tri-sur-colonnes-jointes) pour plus de détails.
 
 ### .limit(limit) / .offset(offset)
 
@@ -233,8 +405,10 @@ const result = await query.execute();
 
 ```javascript
 const result = await Folder.paginatedOptimized()
-  .where({ type: ['agp', 'avt'] })
-  .filterJoin('applicant', { last_name: 'Dupont%' })
+  .where({
+    type: ['agp', 'avt'],
+    'applicant.last_name': 'Dupont%'
+  })
   .join('applicant') // Récupérer les données de l'applicant
   .order('folders.created_at DESC')
   .page(1, 50)
@@ -247,211 +421,182 @@ result.rows.forEach(folder => {
 });
 ```
 
-### Exemple 2 : Filtres multiples
+### Exemple 2 : Filtres multiples sur plusieurs tables
 
 ```javascript
 const folders = await Folder.paginatedOptimized()
-  .where({ status: 'SUBMITTED' })
-  .filterJoin('applicant', {
-    last_name: 'Dupont%',
-    email: '%@example.com'
+  .where({
+    status: 'SUBMITTED',
+    'applicant.last_name': 'Dupont%',
+    'applicant.email': '%@example.com',
+    'pme_folder.status': 'ACTIVE',
+    'delegation.code': 'MAY'
   })
-  .filterJoin('pme_folder', { status: 'ACTIVE' })
-  .filterJoin('delegation', { code: 'MAY' })
   .join(['applicant', 'pme_folder', 'delegation'])
   .limit(100)
   .execute();
 ```
 
-### Exemple 3 : Sans pagination
+### Exemple 3 : Filtres avec opérateurs avancés
 
 ```javascript
 const folders = await Folder.paginatedOptimized()
-  .where({ status: 'APPROVED' })
-  .filterJoin('delegation', { code: 'PAR' })
+  .where({
+    created_at: { $between: ['2024-01-01', '2024-12-31'] },
+    status: ['SUBMITTED', 'VALIDATED'],
+    'applicant.last_name': { $like: 'Dup%' },
+    'pme_folder.amount': { $gte: 1000, $lte: 5000 }
+  })
+  .join(['applicant', 'pme_folder'])
+  .page(1, 50)
+  .execute();
+```
+
+### Exemple 4 : Filtres imbriqués sur 3 niveaux
+
+```javascript
+const folders = await Folder.paginatedOptimized()
+  .where({
+    type: 'agp',
+    'pme_folder.status': 'ACTIVE',
+    'pme_folder.company.country.code': 'FR',
+    'pme_folder.company.siret': '1234%',
+    'pme_folder.company.created_at': { $gte: '2020-01-01' }
+  })
+  .join('pme_folder.company.country')
+  .page(1, 50)
+  .execute();
+```
+
+### Exemple 5 : Recherche multi-champs avec $and
+
+```javascript
+const token = 'test';
+
+const folders = await Folder.paginatedOptimized()
+  .where({
+    $and: [
+      { created_at: { $between: ['2024-01-01', '2024-12-31'] } },
+      { status: ['SUBMITTED', 'VALIDATED'] },
+      { 'applicant.last_name': { $like: `${token}%` } },
+      { 'applicant.first_name': { $like: `${token}%` } },
+      { 'applicant.email': token },
+      { 'pme_folder.company.siret': { $like: `${token}%` } },
+      { 'pme_folder.company.country.code': 'FR' }
+    ]
+  })
+  .join(['applicant', { pme_folder: { company: ['country'] } }])
+  .order('folders.created_at DESC')
+  .page(1, 50)
+  .execute();
+```
+
+### Exemple 6 : Sans pagination
+
+```javascript
+const folders = await Folder.paginatedOptimized()
+  .where({
+    status: 'APPROVED',
+    'delegation.code': 'PAR'
+  })
   .join('delegation')
   .limit(20)
   .execute();
 // Retourne directement un array (pas de .pagination)
 ```
 
-### Exemple 4 : Filtres imbriqués
+### Exemple 7 : Comparaison avant/après
 
+**AVANT (syntaxe ancienne) :**
 ```javascript
 const folders = await Folder.paginatedOptimized()
-  .where({ type: 'agp' })
+  .where({ status: 'SUBMITTED' })
+  .filterJoin('applicant', { last_name: 'Dupont%' })
   .filterJoinNested({
     pme_folder: {
       conditions: { status: 'ACTIVE' },
       nested: {
         company: {
-          conditions: {
-            country: 'FR',
-            siret: '1234%'
+          conditions: { siret: '123%' },
+          nested: {
+            country: {
+              conditions: { code: 'FR' }
+            }
           }
         }
       }
     }
   })
-  .join({ pme_folder: ['company'] })
-  .page(1, 50)
-  .execute();
+  .join(['applicant', { pme_folder: { company: ['country'] } }])
+  .page(1, 50);
 ```
 
-### Exemple 5 : Comparaison avant/après
-
+**MAINTENANT (syntaxe simplifiée) :**
 ```javascript
-// AVANT (lent)
-const startBefore = Date.now();
-const resultBefore = await Folder
-  .join(['applicant', 'pme_folder'])
-  .where({ 'folders.type': 'agp' })
-  .where(['applicants.last_name LIKE $?', '%Dupont%'])
+const folders = await Folder.paginatedOptimized()
+  .where({
+    status: 'SUBMITTED',
+    'applicant.last_name': 'Dupont%',
+    'pme_folder.status': 'ACTIVE',
+    'pme_folder.company.siret': '123%',
+    'pme_folder.company.country.code': 'FR'
+  })
+  .join(['applicant', { pme_folder: { company: ['country'] } }])
   .page(1, 50);
-console.log(`Avant : ${Date.now() - startBefore}ms`);
-// Résultat : 5000-10000ms
-
-// APRÈS (rapide)
-const startAfter = Date.now();
-const resultAfter = await Folder.paginatedOptimized()
-  .where({ type: 'agp' })
-  .filterJoin('applicant', { last_name: 'Dupont%' })
-  .join(['applicant', 'pme_folder'])
-  .page(1, 50);
-console.log(`Après : ${Date.now() - startAfter}ms`);
-// Résultat : 50-200ms
 ```
+
+**Résultat : 60% moins de code, même performance !**
 
 ## Fonctionnalités avancées
 
-### Support des types de conditions
+### Regroupement automatique des conditions
 
-`filterJoin()` supporte différents types de valeurs :
+Les conditions sur la même table sont automatiquement regroupées dans un seul EXISTS :
 
 ```javascript
-// Égalité simple
-query.filterJoin('applicant', { status: 'ACTIVE' });
-// → WHERE a.status = 'ACTIVE'
-
-// LIKE (détecté automatiquement si % présent)
-query.filterJoin('applicant', { last_name: 'Dupont%' });
-// → WHERE a.last_name LIKE 'Dupont%'
-
-query.filterJoin('applicant', { email: '%@example.com' });
-// → WHERE a.email LIKE '%@example.com'
-
-// IN (tableau)
-query.filterJoin('applicant', { status: ['ACTIVE', 'PENDING'] });
-// → WHERE a.status IN ('ACTIVE', 'PENDING')
-
-// IS NULL
-query.filterJoin('applicant', { email: null });
-// → WHERE a.email IS NULL
-
-// Tableau vide (false)
-query.filterJoin('applicant', { status: [] });
-// → WHERE FALSE
+query.where({
+  'applicant.last_name': 'Dupont',
+  'applicant.first_name': 'Jean',
+  'applicant.email': '%@example.com'
+});
 ```
 
-### Opérateurs de comparaison avancés
+**SQL généré :**
+```sql
+EXISTS (
+  SELECT 1 FROM applicants
+  WHERE applicants.id = folders.applicant_id
+  AND applicants.last_name = 'Dupont'
+  AND applicants.first_name = 'Jean'
+  AND applicants.email LIKE '%@example.com'
+)
+-- Un seul EXISTS au lieu de 3 → Plus performant !
+```
 
-Pour les dates et les nombres, utilisez des objets avec des opérateurs spéciaux :
+### Détection automatique du LIKE
+
+Le caractère `%` déclenche automatiquement l'opérateur LIKE :
 
 ```javascript
-// BETWEEN - Idéal pour les plages de dates
-query.filterJoin('applicant', {
-  created_at: { $between: ['2024-01-01', '2024-12-31'] }
-});
-// → WHERE a.created_at BETWEEN '2024-01-01' AND '2024-12-31'
+// Détection automatique
+{ 'applicant.last_name': 'Dup%' }
+// → WHERE last_name LIKE 'Dup%'
 
-// >= (greater than or equal)
-query.filterJoin('applicant', {
-  created_at: { $gte: '2024-01-01' }
-});
-// → WHERE a.created_at >= '2024-01-01'
+// Ou explicite avec $like
+{ 'applicant.last_name': { $like: 'Dup%' } }
+// → WHERE last_name LIKE 'Dup%'
+```
 
-// <= (less than or equal)
-query.filterJoin('applicant', {
-  created_at: { $lte: '2024-12-31' }
-});
-// → WHERE a.created_at <= '2024-12-31'
+### Combinaison de plusieurs opérateurs
 
-// > (greater than)
-query.filterJoin('pme_folder', {
-  amount: { $gt: 1000 }
-});
-// → WHERE p.amount > 1000
-
-// < (less than)
-query.filterJoin('pme_folder', {
-  amount: { $lt: 5000 }
-});
-// → WHERE p.amount < 5000
-
-// Combiner plusieurs opérateurs
-query.filterJoin('applicant', {
-  last_name: 'Dupont%',
+```javascript
+query.where({
   created_at: { $between: ['2024-01-01', '2024-12-31'] },
-  email: '%@example.com'
+  status: ['SUBMITTED', 'VALIDATED'],
+  'applicant.last_name': 'Dupont%',
+  'applicant.created_at': { $gte: '2024-01-01' },
+  'pme_folder.amount': { $gt: 1000, $lt: 5000 }
 });
-// → WHERE a.last_name LIKE 'Dupont%'
-//     AND a.created_at BETWEEN '2024-01-01' AND '2024-12-31'
-//     AND a.email LIKE '%@example.com'
-```
-
-### Opérateur OR
-
-```javascript
-// Chercher les applicants dont le nom OU l'email correspond
-query.filterJoin('applicant', {
-  last_name: 'Dupont%',
-  email: '%dupont%'
-}, 'OR');
-// → WHERE (a.last_name LIKE 'Dupont%' OR a.email LIKE '%dupont%')
-```
-
-### Filtres imbriqués avec opérateurs avancés
-
-Les opérateurs avancés fonctionnent aussi avec `filterJoinNested()` :
-
-```javascript
-const folders = await Folder.paginatedOptimized()
-  .where({ type: 'agp' })
-  .filterJoinNested({
-    pme_folder: {
-      conditions: {
-        status: 'ACTIVE',
-        created_at: { $gte: '2024-01-01' }
-      },
-      nested: {
-        company: {
-          conditions: {
-            country: 'FR',
-            siret: '1234%',
-            created_at: { $between: ['2020-01-01', '2024-12-31'] }
-          }
-        }
-      }
-    }
-  })
-  .join({ pme_folder: ['company'] })
-  .page(1, 50)
-  .execute();
-
-// SQL généré avec EXISTS imbriqués :
-// EXISTS (
-//   SELECT 1 FROM pme_folders p
-//   WHERE p.id = f.pme_folder_id
-//     AND p.status = 'ACTIVE'
-//     AND p.created_at >= '2024-01-01'
-//     AND EXISTS (
-//       SELECT 1 FROM companies c
-//       WHERE c.id = p.company_id
-//         AND c.country = 'FR'
-//         AND c.siret LIKE '1234%'
-//         AND c.created_at BETWEEN '2020-01-01' AND '2024-12-31'
-//     )
-// )
 ```
 
 ## Performance
@@ -478,34 +623,206 @@ const folders = await Folder.paginatedOptimized()
 - Pas de jointures
 - Requête sur clé primaire (`.find(id)`)
 
-## Limitations actuelles
+## Tri sur colonnes jointes
 
-### 1. Tri sur colonnes jointes
+PaginatedOptimizedQuery détecte automatiquement les colonnes de tri qui proviennent de tables jointes et ajoute les INNER JOIN nécessaires dans la phase `SELECT IDS`.
 
-Le tri ne peut se faire que sur les colonnes de la table principale car la phase IDS ne fait pas de JOIN.
+Cette fonctionnalité garantit que :
+- Le tri est effectué côté base de données (rapide)
+- La pagination renvoie les bons résultats triés
+- Les INNER JOIN sont ajoutés uniquement dans la phase IDS (pas dans COUNT)
+- Les tables imbriquées sont gérées avec des INNER JOIN en cascade
 
-**Contournement :**
-- Matérialiser les colonnes fréquemment triées dans la table principale
-- Ou trier en mémoire après récupération (petites listes uniquement)
+### Détection Automatique
+
+Le système parse les clauses `ORDER BY` et détecte automatiquement si une colonne de tri provient d'une table jointe :
 
 ```javascript
-const folders = await Folder.paginatedOptimized()
-  .where({ type: 'agp' })
-  .filterJoin('applicant', { last_name: 'D%' })
+const query = Folder.paginatedOptimized()
+  .where({ type: ['agp', 'avt'] })
+  .order('applicants.last_name ASC')  // ← Colonne d'une table jointe
   .join('applicant')
-  .order('folders.created_at DESC') // ✅ OK (colonne principale)
-  .limit(20)
-  .execute();
-
-// Tri en mémoire sur une colonne jointe
-folders.sort((a, b) => {
-  const nameA = a.applicant?.last_name || '';
-  const nameB = b.applicant?.last_name || '';
-  return nameA.localeCompare(nameB);
-});
+  .limit(50);
 ```
 
-### 2. Agrégations complexes
+### SQL Généré
+
+#### Phase COUNT (sans JOIN)
+```sql
+SELECT COUNT(0) as `count`
+FROM `folders`
+WHERE `folders`.`type` IN ('agp', 'avt')
+-- Pas de JOIN dans le COUNT !
+```
+
+#### Phase SELECT IDS (avec INNER JOIN automatique)
+```sql
+SELECT `folders`.`id`
+FROM `folders`
+INNER JOIN `applicants` ON `applicants`.`id` = `folders`.`applicant_id`
+WHERE `folders`.`type` IN ('agp', 'avt')
+ORDER BY applicants.last_name ASC
+LIMIT 50 OFFSET 0
+```
+
+#### Phase SELECT FULL (LEFT JOIN pour les données)
+```sql
+SELECT f.*, a.*
+FROM `folders` f
+LEFT JOIN `applicants` a ON a.id = f.applicant_id
+WHERE f.id IN (101, 102, ..., 150)
+ORDER BY applicants.last_name ASC
+```
+
+### Exemples
+
+#### Exemple 1 : Tri sur la Table Principale
+
+Quand le tri est sur la table principale, aucun JOIN n'est ajouté :
+
+```javascript
+const query = Folder.paginatedOptimized()
+  .where({ type: ['agp', 'avt'] })
+  .order('folders.created_at DESC')  // ← Table principale
+  .limit(50);
+```
+
+SQL généré (phase IDS) :
+```sql
+SELECT `folders`.`id`
+FROM `folders`
+WHERE `folders`.`type` IN ('agp', 'avt')
+ORDER BY folders.created_at DESC
+LIMIT 50 OFFSET 0
+-- Pas de JOIN car tri sur table principale
+```
+
+#### Exemple 2 : Tri sur une Table Jointe
+
+Quand le tri est sur une table jointe, INNER JOIN est automatiquement ajouté :
+
+```javascript
+const query = Folder.paginatedOptimized()
+  .where({ type: ['agp', 'avt'] })
+  .order('applicants.last_name ASC')  // ← Table jointe
+  .join('applicant')
+  .limit(50);
+```
+
+SQL généré (phase IDS) :
+```sql
+SELECT `folders`.`id`
+FROM `folders`
+INNER JOIN `applicants` ON `applicants`.`id` = `folders`.`applicant_id`
+WHERE `folders`.`type` IN ('agp', 'avt')
+ORDER BY applicants.last_name ASC
+LIMIT 50 OFFSET 0
+```
+
+#### Exemple 3 : Tri sur une Table Jointe Imbriquée
+
+Le système gère automatiquement les tables imbriquées avec des INNER JOIN en cascade :
+
+```javascript
+const query = Folder.paginatedOptimized()
+  .where({
+    type: 'agp',
+    'pme_folder.company.country.code': 'FR'
+  })
+  .join('pme_folder.company.country')
+  .order('companies.name DESC')  // ← Table imbriquée (via pme_folder)
+  .limit(50);
+```
+
+SQL généré (phase IDS) :
+```sql
+SELECT `folders`.`id`
+FROM `folders`
+INNER JOIN `pme_folders` ON `pme_folders`.`id` = `folders`.`pme_folder_id`
+INNER JOIN `companies` ON `companies`.`id` = `pme_folders`.`company_id`
+WHERE `folders`.`type` = 'agp'
+  AND EXISTS (
+    SELECT 1 FROM `pme_folders`
+    WHERE `pme_folders`.`id` = `folders`.`pme_folder_id`
+    AND EXISTS (
+      SELECT 1 FROM `companies`
+      WHERE `companies`.`id` = `pme_folders`.`company_id`
+      AND EXISTS (
+        SELECT 1 FROM `countries`
+        WHERE `countries`.`id` = `companies`.`country_id`
+        AND `countries`.`code` = 'FR'
+      )
+    )
+  )
+ORDER BY companies.name DESC
+LIMIT 50 OFFSET 0
+```
+
+**Note** : Les INNER JOIN sont créés en cascade pour permettre le tri, tandis que les filtres utilisent toujours EXISTS pour la performance.
+
+#### Exemple 4 : Tri + Filtres sur Table Jointe
+
+Combine INNER JOIN pour le tri et EXISTS pour les filtres :
+
+```javascript
+const query = Folder.paginatedOptimized()
+  .where({
+    type: ['agp', 'avt'],
+    'applicant.email': '%@example.com'  // ← Filtre (EXISTS)
+  })
+  .order('applicants.last_name ASC')    // ← Tri (INNER JOIN)
+  .join('applicant')
+  .limit(50);
+```
+
+SQL généré (phase IDS) :
+```sql
+SELECT `folders`.`id`
+FROM `folders`
+INNER JOIN `applicants` ON `applicants`.`id` = `folders`.`applicant_id`
+WHERE `folders`.`type` IN ('agp', 'avt')
+  AND EXISTS (
+    SELECT 1 FROM `applicants`
+    WHERE `applicants`.`id` = `folders`.`applicant_id`
+      AND `applicants`.`email` LIKE '%@example.com'
+  )
+ORDER BY applicants.last_name ASC
+LIMIT 50 OFFSET 0
+```
+
+> **Note** : Le filtre utilise EXISTS (pour la performance), tandis que le tri utilise INNER JOIN (nécessaire pour ORDER BY).
+
+### Avantages
+
+✅ **Performance** : Tri côté base de données, utilise les index, beaucoup plus rapide que le tri en mémoire
+
+✅ **Pagination correcte** : Les bons 50 résultats triés sont retournés
+
+✅ **COUNT sans JOIN** : Le COUNT reste rapide (pas de JOIN inutile)
+
+✅ **Automatique** : Pas besoin de configuration manuelle, détection automatique des colonnes de tri
+
+✅ **Tables imbriquées** : Gère automatiquement les chemins imbriqués avec INNER JOIN en cascade
+
+✅ **Combinaison intelligente** :
+- **Filtres** → EXISTS (optimal pour filtrage)
+- **Tri** → INNER JOIN (nécessaire pour ORDER BY)
+- **Données** → LEFT JOIN (phase FULL uniquement)
+
+### Note Importante : INNER JOIN vs LEFT JOIN
+
+> **Pourquoi INNER JOIN et non LEFT JOIN pour le tri ?**
+
+Quand on trie sur une colonne d'une table jointe (ex: `applicants.last_name`), on veut **uniquement** les folders qui **ont** un applicant.
+
+- **INNER JOIN** : Exclut les folders sans applicant (correct pour le tri)
+- **LEFT JOIN** : Inclurait les folders sans applicant, avec `last_name = NULL` en premier/dernier
+
+Si vous voulez inclure les folders sans applicant dans les résultats, ne triez pas sur une colonne de la table jointe.
+
+## Limitations
+
+### 1. Agrégations complexes
 
 Les agrégations avec `GROUP BY` sur plusieurs tables ne sont pas supportées.
 
@@ -517,15 +834,17 @@ Les agrégations avec `GROUP BY` sur plusieurs tables ne sont pas supportées.
 
 `PaginatedOptimizedQuery` n'est pas compatible avec `CachedQuery` pour le moment.
 
+
 ## Architecture interne
 
 ### Fichiers créés
 
 - `src/db/PaginatedOptimizedQuery.js` - Classe principale héritant de `Query`
-- `src/db/PaginatedOptimizedSql.js` - Générateur SQL avec EXISTS
+- `src/db/PaginatedOptimizedSql.js` - Générateur SQL avec EXISTS et INNER JOIN pour tri
 - `test/db/PaginatedOptimizedQueryTest.js` - Tests unitaires
-- `examples/PaginatedOptimizedQueryExample.js` - Exemples d'utilisation
-- `docs/PaginatedOptimizedQuery.md` - Cette documentation
+- `test/db/SimplifiedSyntaxTest.js` - Tests de la syntaxe simplifiée
+- `examples/PaginatedOptimizedQueryExample.js` - Exemples complets d'utilisation (10 exemples)
+- `docs/PaginatedOptimizedQuery.md` - Cette documentation complète
 
 ### Pattern COUNT/IDS/FULL
 
@@ -559,29 +878,49 @@ Les agrégations avec `GROUP BY` sur plusieurs tables ne sont pas supportées.
 
 ## Tests
 
-Les tests unitaires se trouvent dans `test/db/PaginatedOptimizedQueryTest.js`.
+Les tests se trouvent dans :
+- `test/db/PaginatedOptimizedQueryTest.js` - Tests généraux
+- `test/db/SimplifiedSyntaxTest.js` - Tests de la nouvelle syntaxe (26 tests)
 
 ```bash
-# Exécuter les tests
+# Exécuter les tests de la nouvelle syntaxe
+npm test -- test/db/SimplifiedSyntaxTest.js
+
+# Exécuter tous les tests PaginatedOptimizedQuery
 npm test -- test/db/PaginatedOptimizedQueryTest.js
 
 # Ou tous les tests db
 npm test
 ```
 
+## Exemples
+
+Les exemples se trouvent dans :
+- `examples/SimplifiedSyntaxExample.js` - 8 exemples de la nouvelle syntaxe
+- `examples/PaginatedOptimizedQueryExample.js` - Exemples généraux
+- `examples/NestedJoinsExample.js` - Exemples de jointures imbriquées
+
+```bash
+# Lancer les exemples de la nouvelle syntaxe
+node examples/SimplifiedSyntaxExample.js
+
+# Voir le SQL généré pour chaque exemple
+node examples/NestedJoinsExample.js
+```
+
 ## Contribuer
 
 Pour améliorer `PaginatedOptimizedQuery`, veuillez :
 
-1. Ajouter des tests dans `test/db/PaginatedOptimizedQueryTest.js`
+1. Ajouter des tests dans `test/db/SimplifiedSyntaxTest.js`
 2. Documenter les changements dans ce fichier
 3. Mettre à jour les exemples si nécessaire
 
 ## Références
 
-- [Query.js](/Users/cletetour/devhome/igo/src/db/Query.js) - Classe parente
-- [Sql.js](/Users/cletetour/devhome/igo/src/db/Sql.js) - Générateur SQL standard
-- [Model.js](/Users/cletetour/devhome/igo/src/db/Model.js) - Intégration avec Model
+- [Query.js](../src/db/Query.js) - Classe parente
+- [Sql.js](../src/db/Sql.js) - Générateur SQL standard
+- [Model.js](../src/db/Model.js) - Intégration avec Model
 
 ## License
 

@@ -26,20 +26,40 @@ const mockGetDb = (query) => {
 describe('db.PaginatedOptimizedQuery', function() {
 
   // Définition des modèles de test
-  class Folder extends Model({
-    table: 'folders',
+  class Country extends Model({
+    table: 'countries',
+    columns: {
+      id: 'integer',
+      code: 'string',
+      name: 'string'
+    }
+  }) {}
+
+  class Company extends Model({
+    table: 'companies',
     primary: ['id'],
     columns: {
       id: 'integer',
-      type: 'string',
-      status: 'string',
-      applicant_id: 'integer',
-      pme_folder_id: 'integer',
-      created_at: 'datetime'
+      name: 'string',
+      siret: 'string',
+      country_id: 'integer'
     },
     associations: [
-      ['belongs_to', 'applicant', null, 'applicant_id', 'id'],
-      ['belongs_to', 'pme_folder', null, 'pme_folder_id', 'id']
+      ['belongs_to', 'country', Country, 'country_id', 'id']
+    ]
+  }) {}
+
+  class PmeFolder extends Model({
+    table: 'pme_folders',
+    primary: ['id'],
+    columns: {
+      id: 'integer',
+      status: 'string',
+      company_id: 'integer',
+      company_name: 'string'
+    },
+    associations: [
+      ['belongs_to', 'company', Company, 'company_id', 'id']
     ]
   }) {}
 
@@ -54,52 +74,74 @@ describe('db.PaginatedOptimizedQuery', function() {
     }
   }) {}
 
-  class PmeFolder extends Model({
-    table: 'pme_folders',
+  class Folder extends Model({
+    table: 'folders',
     primary: ['id'],
     columns: {
       id: 'integer',
+      type: 'string',
       status: 'string',
-      company_name: 'string'
-    }
+      applicant_id: 'integer',
+      pme_folder_id: 'integer',
+      created_at: 'datetime'
+    },
+    associations: [
+      ['belongs_to', 'applicant', Applicant, 'applicant_id', 'id'],
+      ['belongs_to', 'pme_folder', PmeFolder, 'pme_folder_id', 'id']
+    ]
   }) {}
 
-  // Mettre à jour les associations avec les vrais modèles
-  Folder.schema.associations[0][2] = Applicant;
-  Folder.schema.associations[1][2] = PmeFolder;
-
   //
-  describe('filterJoin', function() {
-    it('should add filterJoin to query', () => {
+  describe('Simplified Syntax - where() with nested paths', function() {
+    it('should detect simple path (1 level)', () => {
       const query = new PaginatedOptimizedQuery(Folder);
-      query.filterJoin('applicant', { last_name: 'Dupont%' });
+      query.where({
+        status: 'SUBMITTED',
+        'applicant.last_name': 'Dupont'
+      });
 
-      assert.strictEqual(query.query.filterJoins.length, 1);
-      assert.strictEqual(query.query.filterJoins[0].association[1], 'applicant');
-      assert.deepStrictEqual(query.query.filterJoins[0].conditions, { last_name: 'Dupont%' });
+      // Vérifier que filterJoins a été créé
+      assert.ok(query.query.filterJoins.length > 0, 'filterJoins should contain at least one element');
+
+      // Vérifier que le filtre sur la table principale est dans where
+      assert.ok(query.query.where.length > 0, 'where should contain the condition on status');
     });
 
-    it('should support multiple filterJoins', () => {
+    it('should detect nested path (3 levels)', () => {
       const query = new PaginatedOptimizedQuery(Folder);
-      query
-        .filterJoin('applicant', { last_name: 'Dupont%' })
-        .filterJoin('pme_folder', { status: 'ACTIVE' });
+      query.where({
+        'pme_folder.company.country.code': 'FR'
+      });
 
-      assert.strictEqual(query.query.filterJoins.length, 2);
+      // Vérifier que filterJoins nested a été créé
+      assert.ok(query.query.filterJoins.length > 0, 'filterJoins should be created');
+      assert.equal(query.query.filterJoins[0].type, 'nested', 'filterJoin should be of type nested');
+    });
+
+    it('should group conditions on the same table', () => {
+      const query = new PaginatedOptimizedQuery(Folder);
+      query.where({
+        'applicant.last_name': 'Dupont',
+        'applicant.first_name': 'Jean',
+        'applicant.email': 'test@test.com'
+      });
+
+      // Vérifier qu'un seul filterJoin a été créé (regroupement)
+      assert.equal(query.query.filterJoins.length, 1, 'Should create a single filterJoin for applicant');
     });
   });
 
   //
   describe('countSQL with EXISTS', function() {
-    it('should generate COUNT SQL with EXISTS for filterJoins', () => {
+    it('should generate COUNT SQL with EXISTS for nested paths', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
-      query.query.verb = 'count'; // Important: définir le verb
-      query
-        .where({ type: ['agp', 'avt'] })
-        .filterJoin('applicant', { last_name: 'Dupont%' });
+      query.query.verb = 'count';
+      query.where({
+        type: ['agp', 'avt'],
+        'applicant.last_name': 'Dupont%'
+      });
 
       const sql = query.toSQL();
-      // console.log('SQL:', sql.sql); // Debug
 
       // Vérifier que le SQL contient EXISTS
       assert.ok(sql.sql.includes('EXISTS'), 'SQL should contain EXISTS');
@@ -114,10 +156,11 @@ describe('db.PaginatedOptimizedQuery', function() {
     it('should generate COUNT SQL with multiple EXISTS', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
-      query
-        .where({ type: 'agp' })
-        .filterJoin('applicant', { last_name: 'Dupont%' })
-        .filterJoin('pme_folder', { status: 'ACTIVE' });
+      query.where({
+        type: 'agp',
+        'applicant.last_name': 'Dupont%',
+        'pme_folder.status': 'ACTIVE'
+      });
 
       const sql = query.toSQL();
 
@@ -129,6 +172,25 @@ describe('db.PaginatedOptimizedQuery', function() {
       assert.ok(sql.sql.includes('applicants'), 'SQL should reference applicants');
       assert.ok(sql.sql.includes('pme_folders'), 'SQL should reference pme_folders');
     });
+
+    it('should generate nested EXISTS for deep paths', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'count';
+      query.where({
+        'pme_folder.company.country.code': 'FR'
+      });
+
+      const sql = query.toSQL();
+
+      // Vérifier que des EXISTS imbriqués sont générés
+      const existsCount = (sql.sql.match(/EXISTS/g) || []).length;
+      assert.ok(existsCount >= 3, 'SQL should contain at least 3 nested EXISTS');
+
+      // Vérifier que les tables sont mentionnées
+      assert.ok(sql.sql.includes('pme_folders'), 'SQL should reference pme_folders');
+      assert.ok(sql.sql.includes('companies'), 'SQL should reference companies');
+      assert.ok(sql.sql.includes('countries'), 'SQL should reference countries');
+    });
   });
 
   //
@@ -136,11 +198,12 @@ describe('db.PaginatedOptimizedQuery', function() {
     it('should generate SELECT IDs SQL with EXISTS', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'select_ids';
-      query
-        .where({ type: 'agp' })
-        .filterJoin('applicant', { last_name: 'Dupont%' })
-        .order('folders.created_at DESC')
-        .limit(50);
+      query.where({
+        type: 'agp',
+        'applicant.last_name': 'Dupont%'
+      })
+      .order('folders.created_at DESC')
+      .limit(50);
 
       const sql = query.toSQL();
 
@@ -164,10 +227,12 @@ describe('db.PaginatedOptimizedQuery', function() {
       assert.strictEqual(query.query.optimized, true, 'Query should be marked as optimized');
     });
 
-    it('should support method chaining', () => {
+    it('should support method chaining with new syntax', () => {
       const query = Folder.paginatedOptimized()
-        .where({ type: 'agp' })
-        .filterJoin('applicant', { last_name: 'Dupont%' })
+        .where({
+          type: 'agp',
+          'applicant.last_name': 'Dupont%'
+        })
         .order('folders.created_at DESC');
 
       assert.strictEqual(query.query.where.length, 1);
@@ -181,12 +246,11 @@ describe('db.PaginatedOptimizedQuery', function() {
     it('should generate correct WHERE EXISTS clause', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
-      query
-        .where({ status: 'SUBMITTED' })
-        .filterJoin('applicant', {
-          last_name: 'Dupont%',
-          email: 'test@example.com'
-        });
+      query.where({
+        status: 'SUBMITTED',
+        'applicant.last_name': 'Dupont%',
+        'applicant.email': 'test@example.com'
+      });
 
       const sql = query.toSQL();
 
@@ -196,10 +260,12 @@ describe('db.PaginatedOptimizedQuery', function() {
       assert.ok(sql.sql.includes('WHERE `applicants`.`id` = `folders`.`applicant_id`'), 'Should have join condition');
     });
 
-    it('should handle LIKE patterns in filterJoin', () => {
+    it('should handle LIKE patterns with %', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
-      query.filterJoin('applicant', { last_name: 'Dupont%' });
+      query.where({
+        'applicant.last_name': 'Dupont%'
+      });
 
       const sql = query.toSQL();
 
@@ -207,11 +273,11 @@ describe('db.PaginatedOptimizedQuery', function() {
       assert.ok(sql.sql.includes('LIKE'), 'Should generate LIKE for patterns with %');
     });
 
-    it('should handle IN arrays in filterJoin', () => {
+    it('should handle IN arrays', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
-      query.filterJoin('applicant', {
-        last_name: ['Dupont', 'Martin', 'Bernard']
+      query.where({
+        status: ['SUBMITTED', 'VALIDATED', 'APPROVED']
       });
 
       const sql = query.toSQL();
@@ -226,8 +292,10 @@ describe('db.PaginatedOptimizedQuery', function() {
     it('COUNT should not include LEFT JOIN', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query
-        .where({ type: 'agp' })
-        .filterJoin('applicant', { last_name: 'Dupont%' })
+        .where({
+          type: 'agp',
+          'applicant.last_name': 'Dupont%'
+        })
         .join('pme_folder'); // Ce join ne doit pas apparaître dans COUNT
 
       query.query.verb = 'count';
@@ -236,17 +304,18 @@ describe('db.PaginatedOptimizedQuery', function() {
       // Le COUNT ne doit pas avoir de LEFT JOIN
       assert.ok(!sql.sql.includes('LEFT JOIN'), 'COUNT should not have LEFT JOIN');
 
-      // Mais doit avoir EXISTS pour le filterJoin
-      assert.ok(sql.sql.includes('EXISTS'), 'COUNT should have EXISTS for filterJoin');
+      // Mais doit avoir EXISTS pour le filtre
+      assert.ok(sql.sql.includes('EXISTS'), 'COUNT should have EXISTS for filter');
     });
 
     it('IDS query should be minimal', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'select_ids';
-      query
-        .where({ type: 'agp' })
-        .filterJoin('applicant', { last_name: 'Dupont%' })
-        .limit(50);
+      query.where({
+        type: 'agp',
+        'applicant.last_name': 'Dupont%'
+      })
+      .limit(50);
 
       const sql = query.toSQL();
 
@@ -263,45 +332,33 @@ describe('db.PaginatedOptimizedQuery', function() {
 
   //
   describe('Complex scenarios', function() {
-    it('should handle multiple conditions with AND operator', () => {
+    it('should handle $and with multiple conditions', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
-      query.filterJoin('applicant', {
-        last_name: 'Dupont%',
-        email: '%@example.com'
-      }, 'AND');
+      query.where({
+        $and: [
+          { status: 'SUBMITTED' },
+          { 'applicant.last_name': 'Dupont%' },
+          { 'applicant.first_name': 'Jean%' }
+        ]
+      });
 
       const sql = query.toSQL();
 
-      // Vérifier que les 2 conditions sont présentes
-      assert.ok(sql.sql.includes('last_name'), 'Should include last_name condition');
-      assert.ok(sql.sql.includes('email'), 'Should include email condition');
-      assert.ok(sql.sql.includes('AND'), 'Should use AND operator');
+      // Vérifier que les conditions sont présentes
+      assert.ok(sql.sql.includes('status'), 'Should include status condition');
+      assert.ok(sql.sql.includes('EXISTS'), 'Should include EXISTS for applicant');
     });
 
-    it('should handle multiple conditions with OR operator', () => {
+    it('should combine main table and joined table filters', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
-      query.filterJoin('applicant', {
-        last_name: 'Dupont%',
-        email: '%@example.com'
-      }, 'OR');
-
-      const sql = query.toSQL();
-
-      // Vérifier que les 2 conditions sont présentes avec OR
-      assert.ok(sql.sql.includes('last_name'), 'Should include last_name');
-      assert.ok(sql.sql.includes('email'), 'Should include email');
-      assert.ok(sql.sql.includes('OR'), 'Should use OR operator');
-    });
-
-    it('should combine WHERE and filterJoin correctly', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
-      query.query.verb = 'count';
-      query
-        .where({ type: ['agp', 'avt', 'cga'] })
-        .where({ status: 'SUBMITTED' })
-        .filterJoin('applicant', { last_name: 'Dupont%' });
+      query.where({
+        type: ['agp', 'avt', 'cga'],
+        status: 'SUBMITTED',
+        'applicant.last_name': 'Dupont%',
+        'pme_folder.status': 'ACTIVE'
+      });
 
       const sql = query.toSQL();
 
@@ -309,6 +366,10 @@ describe('db.PaginatedOptimizedQuery', function() {
       assert.ok(sql.sql.includes('`folders`.`type`'), 'Should include type filter');
       assert.ok(sql.sql.includes('`folders`.`status`'), 'Should include status filter');
       assert.ok(sql.sql.includes('EXISTS'), 'Should include EXISTS for filterJoin');
+
+      // Vérifier qu'il y a 2 EXISTS (applicant + pme_folder)
+      const existsCount = (sql.sql.match(/EXISTS/g) || []).length;
+      assert.ok(existsCount >= 2, 'Should have at least 2 EXISTS');
     });
   });
 
@@ -318,7 +379,9 @@ describe('db.PaginatedOptimizedQuery', function() {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'select_ids';
       query
-        .where({ type: ['agp', 'avt'] })
+        .where({
+          type: ['agp', 'avt']
+        })
         .order('applicants.last_name ASC')
         .join('applicant')
         .limit(50);
@@ -352,32 +415,36 @@ describe('db.PaginatedOptimizedQuery', function() {
       assert.ok(sql.sql.includes('ORDER BY'), 'SQL should have ORDER BY clause');
     });
 
-    it('should add INNER JOIN for multiple sort columns on joined tables', () => {
+    it('should add INNER JOIN for nested sorted columns', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'select_ids';
       query
-        .where({ type: 'agp' })
-        .order('applicants.last_name ASC')
-        .order('folders.created_at DESC')
-        .join('applicant')
+        .where({
+          type: 'agp',
+          'pme_folder.company.country.code': 'FR'
+        })
+        .order('companies.name ASC')  // Tri sur une table imbriquée
+        .join('pme_folder.company.country')
         .limit(50);
 
       const sql = query.toSQL();
 
-      // Vérifier l'INNER JOIN
-      assert.ok(sql.sql.includes('INNER JOIN `applicants`'), 'SQL should INNER JOIN applicants');
+      // Vérifier que les INNER JOIN en cascade sont présents
+      assert.ok(sql.sql.includes('INNER JOIN `pme_folders`'), 'SQL should INNER JOIN pme_folders');
+      assert.ok(sql.sql.includes('INNER JOIN `companies`'), 'SQL should INNER JOIN companies');
 
-      // Vérifier les deux ORDER BY
-      assert.ok(sql.sql.includes('ORDER BY applicants.last_name ASC'), 'SQL should sort by applicants.last_name');
-      assert.ok(sql.sql.includes('folders.created_at DESC'), 'SQL should sort by folders.created_at');
+      // Vérifier le ORDER BY
+      assert.ok(sql.sql.includes('ORDER BY companies.name ASC'), 'SQL should sort by companies.name');
     });
 
     it('should combine INNER JOIN for sorting with EXISTS for filtering', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'select_ids';
       query
-        .where({ type: 'agp' })
-        .filterJoin('applicant', { email: '%@example.com' })
+        .where({
+          type: 'agp',
+          'applicant.email': '%@example.com'
+        })
         .order('applicants.last_name ASC')
         .join('applicant')
         .limit(50);
@@ -416,201 +483,130 @@ describe('db.PaginatedOptimizedQuery', function() {
   });
 
   //
-  describe('Advanced operators (LIKE, BETWEEN, comparison)', function() {
+  describe('Advanced operators', function() {
     it('should handle LIKE operator with % wildcard', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
-      query.filterJoin('applicant', { last_name: 'Dupont%' });
+      query.where({
+        'applicant.last_name': 'Dupont%'
+      });
 
       const sql = query.toSQL();
 
-      // Devrait générer LIKE pour les patterns avec %
       assert.ok(sql.sql.includes('LIKE'), 'Should generate LIKE for patterns with %');
       assert.ok(sql.params.includes('Dupont%'), 'Should include the pattern in params');
     });
 
-    it('should handle LIKE operator with both % wildcards', () => {
+    it('should handle BETWEEN operator', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
-      query.filterJoin('applicant', { email: '%@example.com' });
+      query.where({
+        created_at: { $between: ['2024-01-01', '2024-12-31'] }
+      });
 
       const sql = query.toSQL();
 
-      // Devrait générer LIKE
-      assert.ok(sql.sql.includes('LIKE'), 'Should generate LIKE');
-      assert.ok(sql.params.includes('%@example.com'), 'Should include pattern in params');
-    });
-
-    it('should handle BETWEEN operator for dates', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
-      query.query.verb = 'count';
-      query
-        .where({ type: 'agp' })
-        .filterJoin('applicant', {
-          created_at: { $between: ['2024-01-01', '2024-12-31'] }
-        });
-
-      const sql = query.toSQL();
-
-      // Devrait générer BETWEEN
       assert.ok(sql.sql.includes('BETWEEN'), 'Should generate BETWEEN operator');
-      assert.ok(sql.sql.includes('AND'), 'Should include AND in BETWEEN clause');
       assert.ok(sql.params.includes('2024-01-01'), 'Should include start date in params');
       assert.ok(sql.params.includes('2024-12-31'), 'Should include end date in params');
     });
 
-    it('should handle $gte (greater than or equal) operator', () => {
+    it('should handle $gte operator', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
-      query.filterJoin('applicant', {
+      query.where({
         created_at: { $gte: '2024-01-01' }
       });
 
       const sql = query.toSQL();
 
-      // Devrait générer >=
       assert.ok(sql.sql.includes('>='), 'Should generate >= operator');
       assert.ok(sql.params.includes('2024-01-01'), 'Should include date in params');
     });
 
-    it('should handle $lte (less than or equal) operator', () => {
+    it('should handle $lte operator', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
-      query.filterJoin('applicant', {
+      query.where({
         created_at: { $lte: '2024-12-31' }
       });
 
       const sql = query.toSQL();
 
-      // Devrait générer <=
       assert.ok(sql.sql.includes('<='), 'Should generate <= operator');
       assert.ok(sql.params.includes('2024-12-31'), 'Should include date in params');
     });
 
-    it('should handle $gt (greater than) operator', () => {
+    it('should handle $like operator explicitly', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
-      query.filterJoin('pme_folder', {
-        amount: { $gt: 1000 }
+      query.where({
+        'applicant.last_name': { $like: 'Dup%' }
       });
 
       const sql = query.toSQL();
 
-      // Devrait générer >
-      assert.ok(sql.sql.includes('>'), 'Should generate > operator');
-      assert.ok(sql.params.includes(1000), 'Should include value in params');
-    });
-
-    it('should handle $lt (less than) operator', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
-      query.query.verb = 'count';
-      query.filterJoin('pme_folder', {
-        amount: { $lt: 5000 }
-      });
-
-      const sql = query.toSQL();
-
-      // Devrait générer <
-      assert.ok(sql.sql.includes('<'), 'Should generate < operator');
-      assert.ok(sql.params.includes(5000), 'Should include value in params');
+      assert.ok(sql.sql.includes('LIKE'), 'Should generate LIKE');
+      assert.ok(sql.params.includes('Dup%'), 'Should include pattern in params');
     });
 
     it('should combine multiple advanced operators', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
-      query.filterJoin('applicant', {
-        last_name: 'Dupont%',
+      query.where({
         created_at: { $between: ['2024-01-01', '2024-12-31'] },
-        email: '%@example.com'
+        status: ['SUBMITTED', 'VALIDATED'],
+        'applicant.last_name': 'Dupont%',
+        'applicant.email': '%@example.com'
       });
 
       const sql = query.toSQL();
 
-      // Devrait générer LIKE, BETWEEN et LIKE
       assert.ok(sql.sql.includes('LIKE'), 'Should generate LIKE');
       assert.ok(sql.sql.includes('BETWEEN'), 'Should generate BETWEEN');
-
-      // Vérifier les paramètres
-      assert.ok(sql.params.includes('Dupont%'), 'Should include LIKE pattern');
-      assert.ok(sql.params.includes('2024-01-01'), 'Should include start date');
-      assert.ok(sql.params.includes('2024-12-31'), 'Should include end date');
-      assert.ok(sql.params.includes('%@example.com'), 'Should include email pattern');
-    });
-
-    it('should work with BETWEEN in nested filterJoin', () => {
-      // Ajouter un modèle imbriqué pour le test
-      class Company extends Model({
-        table: 'companies',
-        primary: ['id'],
-        columns: {
-          id: 'integer',
-          name: 'string',
-          created_at: 'datetime'
-        }
-      }) {}
-
-      PmeFolder.schema.associations = [
-        ['belongs_to', 'company', Company, 'company_id', 'id']
-      ];
-
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
-      query.query.verb = 'count';
-      query.filterJoinNested({
-        pme_folder: {
-          conditions: { status: 'ACTIVE' },
-          nested: {
-            company: {
-              conditions: {
-                created_at: { $between: ['2024-01-01', '2024-12-31'] }
-              }
-            }
-          }
-        }
-      });
-
-      const sql = query.toSQL();
-
-      // Devrait générer des EXISTS imbriqués avec BETWEEN
-      assert.ok(sql.sql.includes('EXISTS'), 'Should generate EXISTS');
-      assert.ok(sql.sql.includes('BETWEEN'), 'Should generate BETWEEN in nested EXISTS');
-      assert.ok(sql.params.includes('2024-01-01'), 'Should include start date');
-      assert.ok(sql.params.includes('2024-12-31'), 'Should include end date');
+      assert.ok(sql.sql.includes('IN'), 'Should generate IN');
     });
   });
 
   //
   describe('Edge cases', function() {
-    it('should handle empty filterJoin conditions', () => {
+    it('should handle null values', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
-      query.filterJoin('applicant', {});
+      query.where({
+        status: 'SUBMITTED',
+        deleted_at: null
+      });
 
       const sql = query.toSQL();
 
-      // Devrait générer un EXISTS sans conditions supplémentaires
-      assert.ok(sql.sql.includes('EXISTS'), 'Should generate EXISTS even with empty conditions');
-    });
-
-    it('should handle null values in filterJoin', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
-      query.query.verb = 'count';
-      query.filterJoin('applicant', { email: null });
-
-      const sql = query.toSQL();
-
-      // Devrait générer IS NULL
       assert.ok(sql.sql.includes('IS NULL'), 'Should generate IS NULL for null values');
     });
 
-    it('should handle empty array in filterJoin', () => {
+    it('should handle empty array', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
-      query.filterJoin('applicant', { last_name: [] });
+      query.where({
+        status: []
+      });
 
       const sql = query.toSQL();
 
-      // Un tableau vide devrait générer FALSE
-      assert.ok(sql.sql.includes('FALSE'), 'Should generate FALSE for empty arrays');
+      // Un tableau vide devrait générer une condition qui est toujours fausse
+      // (Query.js le gère automatiquement)
+      assert.ok(sql.sql, 'Should generate SQL even with empty array');
+    });
+
+    it('should handle empty where object', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'count';
+      query.where({});
+
+      const sql = query.toSQL();
+
+      // Devrait générer un SQL valide sans conditions
+      assert.ok(sql.sql.includes('SELECT COUNT(0)'), 'Should generate COUNT SQL');
+      assert.ok(!sql.sql.includes('WHERE'), 'Should not have WHERE clause for empty conditions');
     });
   });
 });

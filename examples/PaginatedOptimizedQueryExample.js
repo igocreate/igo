@@ -1,27 +1,122 @@
 /**
- * Exemple d'utilisation de OptimizedQuery pour optimiser les requêtes avec de nombreuses jointures
+ * Exemples complets d'utilisation de PaginatedOptimizedQuery
  *
- * Ce fichier illustre comment utiliser le pattern COUNT/IDS/FULL pour améliorer drastiquement
- * les performances sur des tables volumineuses avec de nombreuses jointures.
+ * Ce fichier consolide tous les exemples d'utilisation du pattern COUNT/IDS/FULL
+ * pour améliorer drastiquement les performances sur des tables volumineuses avec
+ * de nombreuses jointures.
  *
  * Contexte : Table `folders` avec ~2 millions de lignes et 10 jointures vers d'autres tables
- * (applicants, pme_folders, delegations, users, etc.)
+ * (applicants, pme_folders, delegations, users, companies, countries, etc.)
  *
  * Problème initial : COUNT et SELECT avec LEFT JOIN prennent plusieurs secondes (voire minutes)
- * Solution : Pattern optimisé avec EXISTS pour le filtrage et pagination en 2 phases
+ * Solution : Pattern optimisé avec EXISTS pour le filtrage et pagination en 3 phases
+ *
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * TABLE DES MATIÈRES
+ * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * 1. DÉFINITION DES MODÈLES
+ * 2. COMPARAISON AVANT/APRÈS (performances)
+ * 3. EXEMPLES DE BASE
+ *    - Exemple 1: Filtre simple (1 niveau)
+ *    - Exemple 2: Filtres imbriqués (3 niveaux)
+ *    - Exemple 3: Tous les opérateurs
+ * 4. OPÉRATEURS DE COMPARAISON
+ *    - Exemple 4: LIKE (patterns)
+ *    - Exemple 5: BETWEEN (plages de dates)
+ *    - Exemple 6: Comparaisons numériques (>=, <=, >, <)
+ * 5. OPÉRATEURS LOGIQUES
+ *    - Exemple 7: $and
+ *    - Exemple 8: $or
+ *    - Exemple 9: Combinaison $and + $or
+ * 6. TRI SUR COLONNES JOINTES
+ *    - Exemple 10: Tri sur table jointe simple
+ *    - Exemple 11: Tri sur table imbriquée
+ *    - Exemple 12: Tri multiple (table principale + jointe)
+ * 7. CAS D'USAGE RÉELS
+ *    - Exemple 13: Recherche multi-champs
+ *    - Exemple 14: Sans pagination (simple liste)
+ *    - Exemple 15: Multiples conditions sur même table
+ *    - Exemple 16: Cas réel PMFP folders
+ * 8. OUTILS ET BENCHMARKING
+ *    - showGeneratedSQL() : afficher le SQL généré
+ *    - benchmark() : comparer les performances
  */
 
 const Model = require('../src/db/Model');
 
-// ============================
+// ═══════════════════════════════════════════════════════════════════════════════
 // 1. DÉFINITION DES MODÈLES
-// ============================
+// ═══════════════════════════════════════════════════════════════════════════════
 
-/**
- * Modèle Folder
- *
- * Table principale avec millions de lignes
- */
+class Country extends Model({
+  table: 'countries',
+  columns: {
+    id: 'integer',
+    code: 'string',
+    name: 'string'
+  }
+}) {}
+
+class Company extends Model({
+  table: 'companies',
+  columns: {
+    id: 'integer',
+    name: 'string',
+    siret: 'string',
+    country_id: 'integer',
+    created_at: 'datetime'
+  },
+  associations: [
+    ['belongs_to', 'country', Country, 'country_id', 'id']
+  ]
+}) {}
+
+class PmeFolder extends Model({
+  table: 'pme_folders',
+  columns: {
+    id: 'integer',
+    status: 'string',
+    company_id: 'integer',
+    amount: 'decimal',
+    created_at: 'datetime'
+  },
+  associations: [
+    ['belongs_to', 'company', Company, 'company_id', 'id']
+  ]
+}) {}
+
+class Applicant extends Model({
+  table: 'applicants',
+  columns: {
+    id: 'integer',
+    first_name: 'string',
+    last_name: 'string',
+    email: 'string',
+    phone: 'string',
+    identity_number: 'string',
+    created_at: 'datetime'
+  }
+}) {}
+
+class Delegation extends Model({
+  table: 'delegations',
+  columns: {
+    id: 'integer',
+    code: 'string',
+    name: 'string'
+  }
+}) {}
+
+class User extends Model({
+  table: 'users',
+  columns: {
+    id: 'integer',
+    email: 'string',
+    name: 'string'
+  }
+}) {}
+
 class Folder extends Model({
   table: 'folders',
   columns: {
@@ -43,79 +138,15 @@ class Folder extends Model({
   ]
 }) {}
 
-/**
- * Modèle Applicant
- */
-class Applicant extends Model({
-  table: 'applicants',
-  columns: {
-    id: 'integer',
-    first_name: 'string',
-    last_name: 'string',
-    email: 'string',
-    phone: 'string',
-    created_at: 'datetime'
-  }
-}) {}
-
-/**
- * Modèle PmeFolder
- */
-class PmeFolder extends Model({
-  table: 'pme_folders',
-  columns: {
-    id: 'integer',
-    status: 'string',
-    company_name: 'string',
-    siret: 'string',
-    created_at: 'datetime'
-  }
-}) {}
-
-/**
- * Modèle Delegation
- */
-class Delegation extends Model({
-  table: 'delegations',
-  columns: {
-    id: 'integer',
-    code: 'string',
-    name: 'string'
-  }
-}) {}
-
-/**
- * Modèle User
- */
-class User extends Model({
-  table: 'users',
-  columns: {
-    id: 'integer',
-    email: 'string',
-    name: 'string'
-  }
-}) {}
-
-// ============================
+// ═══════════════════════════════════════════════════════════════════════════════
 // 2. COMPARAISON AVANT/APRÈS
-// ============================
+// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * AVANT : Méthode traditionnelle avec LEFT JOIN
  *
  * Problème : Cette requête fait un LEFT JOIN sur toutes les tables, ce qui crée
  * un produit cartésien énorme et rend la requête très lente.
- *
- * SQL généré (simplifié) :
- *
- * SELECT COUNT(0) FROM folders f
- * LEFT JOIN applicants a ON a.id = f.applicant_id
- * LEFT JOIN pme_folders p ON p.id = f.pme_folder_id
- * LEFT JOIN delegations d ON d.id = f.delegation_id
- * WHERE f.type IN ('agp', 'avt', 'cga', ...)
- * AND a.last_name LIKE '%Dupont%'
- * AND p.status = 'ACTIVE'
- * AND d.code = 'MAY'
  *
  * Temps d'exécution : 5-10 secondes (voire plus)
  */
@@ -153,47 +184,10 @@ async function traditionalQuery() {
 }
 
 /**
- * APRÈS : Méthode optimisée avec pattern COUNT/IDS/FULL
+ * APRÈS : Méthode optimisée avec pattern COUNT/IDS/FULL + syntaxe simplifiée
  *
  * Solution : Cette requête utilise EXISTS pour le filtrage (COUNT et IDS)
  * et fait les LEFT JOIN uniquement sur les IDs trouvés (FULL).
- *
- * SQL généré :
- *
- * Phase 1 - COUNT :
- * SELECT COUNT(0) FROM folders f
- * WHERE f.type IN ('agp', 'avt', 'cga', ...)
- * AND EXISTS (
- *   SELECT 1 FROM applicants a
- *   WHERE a.id = f.applicant_id
- *   AND a.last_name LIKE '%Dupont%'
- * )
- * AND EXISTS (
- *   SELECT 1 FROM pme_folders p
- *   WHERE p.id = f.pme_folder_id
- *   AND p.status = 'ACTIVE'
- * )
- * AND EXISTS (
- *   SELECT 1 FROM delegations d
- *   WHERE d.id = f.delegation_id
- *   AND d.code = 'MAY'
- * )
- *
- * Phase 2 - SELECT IDS :
- * SELECT f.id FROM folders f
- * WHERE ... (mêmes conditions qu'au-dessus)
- * ORDER BY f.created_at DESC
- * LIMIT 50 OFFSET 0
- *
- * Phase 3 - SELECT FULL :
- * SELECT f.*, a.*, p.*, d.*, u.*
- * FROM folders f
- * LEFT JOIN applicants a ON a.id = f.applicant_id
- * LEFT JOIN pme_folders p ON p.id = f.pme_folder_id
- * LEFT JOIN delegations d ON d.id = f.delegation_id
- * LEFT JOIN users u ON u.id = f.user_id
- * WHERE f.id IN (101, 102, 103, ..., 150)
- * ORDER BY f.created_at DESC
  *
  * Temps d'exécution : 50-200ms (amélioration de 50x à 100x)
  */
@@ -203,19 +197,17 @@ async function optimizedQuery() {
   const startTime = Date.now();
 
   const result = await Folder.paginatedOptimized()
-    // Filtres sur la table principale
     .where({
-      type: ['agp', 'avt', 'cga', 'cgp', 'cpa', 'cva']
+      // Filtres sur la table principale
+      type: ['agp', 'avt', 'cga', 'cgp', 'cpa', 'cva'],
+
+      // Filtres sur tables jointes (notation pointée)
+      'applicant.last_name': 'Dupont%',
+      'pme_folder.status': 'ACTIVE',
+      'delegation.code': 'MAY'
     })
-
-    // Filtres sur tables jointes → convertis en EXISTS
-    .filterJoin('applicant', { last_name: 'Dupont%' })
-    .filterJoin('pme_folder', { status: 'ACTIVE' })
-    .filterJoin('delegation', { code: 'MAY' })
-
     // Jointures pour récupérer les données (LEFT JOIN dans phase FULL uniquement)
     .join(['applicant', 'pme_folder', 'delegation', 'user'])
-
     // Tri et pagination
     .order('folders.created_at DESC')
     .page(1, 50)
@@ -231,123 +223,516 @@ async function optimizedQuery() {
   return result;
 }
 
-// ============================
-// 3. AUTRES EXEMPLES D'USAGE
-// ============================
+// ═══════════════════════════════════════════════════════════════════════════════
+// 3. EXEMPLES DE BASE
+// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Exemple 1 : Filtres imbriqués
- *
- * Utilise filterJoinNested pour des associations à plusieurs niveaux
+ * Exemple 1 : Filtre simple sur 1 niveau de jointure
  */
-async function nestedFiltersExample() {
-  console.log('=== EXEMPLE : FILTRES IMBRIQUÉS ===\n');
+async function example1_SimpleJoin() {
+  console.log('=== EXEMPLE 1 : FILTRE SIMPLE (1 niveau) ===\n');
 
   const result = await Folder.paginatedOptimized()
-    .where({ status: 'SUBMITTED' })
-    .filterJoinNested({
-      pme_folder: {
-        conditions: { status: 'ACTIVE' },
-        nested: {
-          // Si pme_folder avait une association 'company'
-          company: {
-            conditions: { country: 'FR' }
-          }
-        }
-      }
+    .where({
+      status: 'SUBMITTED',
+      'applicant.last_name': 'Dupont%'
     })
-    .join('pme_folder')
+    .join('applicant')
+    .page(1, 50)
+    .execute();
+
+  console.log('✓ Notation pointée simple');
+  console.log('  - Filtre sur table principale : status = SUBMITTED');
+  console.log('  - Filtre sur table jointe : applicant.last_name LIKE Dupont%');
+  console.log('  → Génère un WHERE + un EXISTS automatiquement');
+  console.log(`  → ${result.pagination.count} résultats trouvés\n`);
+
+  return result;
+}
+
+/**
+ * Exemple 2 : Filtres imbriqués sur 3 niveaux
+ */
+async function example2_NestedFilters() {
+  console.log('=== EXEMPLE 2 : FILTRES IMBRIQUÉS (3 niveaux) ===\n');
+
+  const result = await Folder.paginatedOptimized()
+    .where({
+      type: 'agp',
+      'pme_folder.status': 'ACTIVE',
+      'pme_folder.company.country.code': 'FR',
+      'pme_folder.company.siret': '1234%'
+    })
+    .join('pme_folder.company.country')
     .page(1, 25)
     .execute();
 
-  console.log(`Résultats : ${result.pagination.count} lignes\n`);
+  console.log('✓ Notation pointée ultra-concise');
+  console.log('  - Chemin imbriqué : pme_folder → company → country');
+  console.log('  - Filtres à tous les niveaux');
+  console.log('  → Génère des EXISTS imbriqués automatiquement');
+  console.log(`  → ${result.pagination.count} résultats trouvés\n`);
+
   return result;
 }
 
 /**
- * Exemple 2 : Filtres complexes avec OR
- *
- * Utilise l'opérateur OR pour des conditions alternatives
+ * Exemple 3 : Tous les opérateurs supportés
  */
-async function orFiltersExample() {
-  console.log('=== EXEMPLE : FILTRES AVEC OR ===\n');
+async function example3_AllOperators() {
+  console.log('=== EXEMPLE 3 : TOUS LES OPÉRATEURS ===\n');
 
   const result = await Folder.paginatedOptimized()
-    .where({ type: 'agp' })
-    // Chercher les applicants dont le nom OU l'email correspond
-    .filterJoin('applicant', {
-      last_name: 'Dupont%',
-      email: '%dupont%'
-    }, 'OR')
-    .join('applicant')
+    .where({
+      // Égalité simple
+      status: 'SUBMITTED',
+
+      // IN (tableau)
+      type: ['agp', 'avt'],
+
+      // LIKE avec % (détection auto)
+      'applicant.last_name': 'Dup%',
+
+      // LIKE explicite
+      'applicant.first_name': { $like: 'Jean%' },
+
+      // BETWEEN
+      created_at: { $between: ['2024-01-01', '2024-12-31'] },
+
+      // Comparaisons numériques
+      'pme_folder.amount': { $gte: 1000, $lte: 5000 }
+    })
+    .join(['applicant', 'pme_folder'])
     .limit(10)
     .execute();
 
-  console.log(`Résultats : ${result.length} lignes\n`);
+  console.log('✓ Démonstration de tous les opérateurs :');
+  console.log('  - Égalité : status = "SUBMITTED"');
+  console.log('  - IN : type IN ("agp", "avt")');
+  console.log('  - LIKE (auto) : last_name LIKE "Dup%"');
+  console.log('  - LIKE (explicite) : { $like: "Jean%" }');
+  console.log('  - BETWEEN : { $between: [start, end] }');
+  console.log('  - Comparaisons : $gte, $lte, $gt, $lt');
+  console.log(`  → ${result.length} résultats trouvés\n`);
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 4. OPÉRATEURS DE COMPARAISON
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Exemple 4 : LIKE - Recherche de patterns
+ */
+async function example4_LikeOperator() {
+  console.log('=== EXEMPLE 4 : OPÉRATEUR LIKE ===\n');
+
+  const result = await Folder.paginatedOptimized()
+    .where({
+      type: 'agp',
+      'applicant.last_name': 'Dupont%',        // Commence par "Dupont"
+      'applicant.email': '%@example.com'       // Se termine par "@example.com"
+    })
+    .join('applicant')
+    .limit(50)
+    .execute();
+
+  console.log('✓ Recherche par patterns :');
+  console.log('  - last_name LIKE "Dupont%" (commence par)');
+  console.log('  - email LIKE "%@example.com" (se termine par)');
+  console.log('  → Détection automatique du LIKE grâce au %');
+  console.log(`  → ${result.length} résultats trouvés\n`);
+
   return result;
 }
 
 /**
- * Exemple 3 : Sans pagination (simple liste)
- *
- * Démontre l'utilisation sans pagination (pas de COUNT)
+ * Exemple 5 : BETWEEN - Plage de dates
  */
-async function withoutPaginationExample() {
-  console.log('=== EXEMPLE : SANS PAGINATION ===\n');
+async function example5_BetweenOperator() {
+  console.log('=== EXEMPLE 5 : OPÉRATEUR BETWEEN ===\n');
+
+  const result = await Folder.paginatedOptimized()
+    .where({
+      status: 'SUBMITTED',
+      'applicant.created_at': { $between: ['2024-01-01', '2024-12-31'] }
+    })
+    .join('applicant')
+    .order('folders.created_at DESC')
+    .page(1, 50)
+    .execute();
+
+  console.log('✓ Filtrage par plage de dates :');
+  console.log('  - applicant.created_at BETWEEN 2024-01-01 AND 2024-12-31');
+  console.log('  → Tous les candidats créés en 2024');
+  console.log(`  → ${result.pagination.count} résultats trouvés\n`);
+
+  return result;
+}
+
+/**
+ * Exemple 6 : Comparaisons numériques (>=, <=, >, <)
+ */
+async function example6_ComparisonOperators() {
+  console.log('=== EXEMPLE 6 : COMPARAISONS NUMÉRIQUES ===\n');
+
+  const result = await Folder.paginatedOptimized()
+    .where({
+      type: 'agp',
+      'pme_folder.amount': { $gte: 10000, $lte: 50000 },  // 10K <= amount <= 50K
+      'pme_folder.created_at': { $gte: '2024-01-01' }
+    })
+    .join('pme_folder')
+    .limit(50)
+    .execute();
+
+  console.log('✓ Filtrage par plages numériques :');
+  console.log('  - amount >= 10000 AND amount <= 50000');
+  console.log('  - created_at >= 2024-01-01');
+  console.log('  → Opérateurs : $gte, $lte, $gt, $lt');
+  console.log(`  → ${result.length} résultats trouvés\n`);
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 5. OPÉRATEURS LOGIQUES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Exemple 7 : Opérateur $and
+ */
+async function example7_AndOperator() {
+  console.log('=== EXEMPLE 7 : OPÉRATEUR $and ===\n');
+
+  const token = 'Dup';
+  const result = await Folder.paginatedOptimized()
+    .where({
+      $and: [
+        { created_at: { $between: ['2024-01-01', '2024-12-31'] } },
+        { status: 'SUBMITTED' },
+        { 'applicant.last_name': { $like: `${token}%` } },
+        { 'applicant.first_name': { $like: `${token}%` } },
+        { 'pme_folder.company.siret': { $like: `${token}%` } }
+      ]
+    })
+    .join(['applicant', 'pme_folder.company'])
+    .page(1, 50)
+    .execute();
+
+  console.log('✓ Opérateur $and avec conditions mixtes');
+  console.log('  - Table principale : created_at, status');
+  console.log('  - Table applicant : last_name, first_name');
+  console.log('  - Tables imbriquées : pme_folder.company.siret');
+  console.log('  → Toutes les conditions doivent être satisfaites');
+  console.log(`  → ${result.pagination.count} résultats trouvés\n`);
+
+  return result;
+}
+
+/**
+ * Exemple 8 : Opérateur $or
+ */
+async function example8_OrOperator() {
+  console.log('=== EXEMPLE 8 : OPÉRATEUR $or ===\n');
+
+  const token = 'test';
+  const result = await Folder.paginatedOptimized()
+    .where({
+      $or: [
+        { 'applicant.email': token },
+        { 'applicant.identity_number': { $gte: token } },
+        { 'pme_folder.company.siret': { $like: `${token}%` } }
+      ]
+    })
+    .join(['applicant', 'pme_folder.company'])
+    .page(1, 50)
+    .execute();
+
+  console.log('✓ Opérateur $or pour recherche flexible');
+  console.log('  - Match si : applicant.email = test');
+  console.log('  - OU : applicant.identity_number >= test');
+  console.log('  - OU : pme_folder.company.siret LIKE test%');
+  console.log('  → Au moins une condition doit être satisfaite');
+  console.log(`  → ${result.pagination.count} résultats trouvés\n`);
+
+  return result;
+}
+
+/**
+ * Exemple 9 : Combinaison $and + $or
+ */
+async function example9_MixedOperators() {
+  console.log('=== EXEMPLE 9 : COMBINAISON $and + $or ===\n');
+
+  const token = 'Dup';
+  const result = await Folder.paginatedOptimized()
+    .where({
+      $and: [
+        { created_at: { $between: ['2024-01-01', '2024-12-31'] } },
+        { status: ['SUBMITTED', 'VALIDATED'] },
+        {
+          $or: [
+            { 'applicant.last_name': { $like: `${token}%` } },
+            { 'applicant.first_name': { $like: `${token}%` } },
+            { 'applicant.email': token }
+          ]
+        },
+        { 'pme_folder.company.country.code': 'FR' }
+      ]
+    })
+    .join(['applicant', 'pme_folder.company.country'])
+    .order('folders.created_at DESC')
+    .page(1, 50)
+    .execute();
+
+  console.log('✓ Requête complexe avec AND + OR imbriqués');
+  console.log('  - Conditions obligatoires (AND) :');
+  console.log('    • created_at entre 2024-01-01 et 2024-12-31');
+  console.log('    • status IN (SUBMITTED, VALIDATED)');
+  console.log('    • country.code = FR');
+  console.log('  - Au moins une condition (OR) :');
+  console.log('    • applicant.last_name LIKE Dup%');
+  console.log('    • applicant.first_name LIKE Dup%');
+  console.log('    • applicant.email = Dup');
+  console.log('  → Logique complexe en une seule requête optimisée');
+  console.log(`  → ${result.pagination.count} résultats trouvés\n`);
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 6. TRI SUR COLONNES JOINTES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Exemple 10 : Tri sur table jointe simple
+ */
+async function example10_SortOnJoinedTable() {
+  console.log('=== EXEMPLE 10 : TRI SUR TABLE JOINTE ===\n');
+
+  const result = await Folder.paginatedOptimized()
+    .where({
+      type: 'agp',
+      'applicant.last_name': 'D%'
+    })
+    .join('applicant')
+    .order('applicants.last_name ASC')  // ← Tri sur table jointe
+    .limit(20)
+    .execute();
+
+  console.log('✓ Tri sur colonne de table jointe :');
+  console.log('  - ORDER BY applicants.last_name ASC');
+  console.log('  → INNER JOIN automatique ajouté dans phase IDS');
+  console.log('  → Tri côté base de données (rapide)');
+  console.log(`  → ${result.length} résultats trouvés\n`);
+
+  return result;
+}
+
+/**
+ * Exemple 11 : Tri sur table imbriquée
+ */
+async function example11_SortOnNestedTable() {
+  console.log('=== EXEMPLE 11 : TRI SUR TABLE IMBRIQUÉE ===\n');
+
+  const result = await Folder.paginatedOptimized()
+    .where({
+      type: 'agp',
+      'pme_folder.company.country.code': 'FR'
+    })
+    .join('pme_folder.company.country')
+    .order('companies.name ASC')  // ← Tri sur table imbriquée
+    .limit(20)
+    .execute();
+
+  console.log('✓ Tri sur table imbriquée (niveau 2) :');
+  console.log('  - ORDER BY companies.name ASC');
+  console.log('  → INNER JOIN cascade automatique (pme_folders → companies)');
+  console.log('  → Tri effectué dans la phase IDS');
+  console.log(`  → ${result.length} résultats trouvés\n`);
+
+  return result;
+}
+
+/**
+ * Exemple 12 : Tri multiple (table principale + jointe)
+ */
+async function example12_MultipleSortColumns() {
+  console.log('=== EXEMPLE 12 : TRI MULTIPLE ===\n');
+
+  const result = await Folder.paginatedOptimized()
+    .where({
+      type: 'agp',
+      'applicant.last_name': 'D%'
+    })
+    .join('applicant')
+    .order('applicants.last_name ASC')      // Tri primaire
+    .order('folders.created_at DESC')        // Tri secondaire
+    .limit(20)
+    .execute();
+
+  console.log('✓ Tri sur plusieurs colonnes :');
+  console.log('  - Tri primaire : applicants.last_name ASC');
+  console.log('  - Tri secondaire : folders.created_at DESC');
+  console.log('  → INNER JOIN uniquement pour applicants (colonne de tri)');
+  console.log(`  → ${result.length} résultats trouvés\n`);
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 7. CAS D'USAGE RÉELS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Exemple 13 : Recherche multi-champs
+ */
+async function example13_MultiFieldSearch() {
+  console.log('=== EXEMPLE 13 : RECHERCHE MULTI-CHAMPS ===\n');
+
+  const token = 'test';
+
+  const result = await Folder.paginatedOptimized()
+    .where({
+      $and: [
+        { created_at: { $between: ['2024-01-01', '2024-12-31'] } },
+        { status: ['SUBMITTED', 'VALIDATED'] },
+        { 'applicant.last_name': { $like: `${token}%` } },
+        { 'applicant.first_name': { $like: `${token}%` } },
+        { 'applicant.email': token },
+        { 'pme_folder.company.siret': { $like: `${token}%` } },
+        { 'pme_folder.company.country.code': 'FR' }
+      ]
+    })
+    .join(['applicant', 'pme_folder.company.country'])
+    .order('folders.created_at DESC')
+    .page(1, 50)
+    .execute();
+
+  console.log('✓ Recherche flexible sur plusieurs champs');
+  console.log('  - Recherche du token dans plusieurs colonnes');
+  console.log('  - Combinaison avec filtres temporels et géographiques');
+  console.log(`  → ${result.pagination.count} résultats trouvés\n`);
+
+  return result;
+}
+
+/**
+ * Exemple 14 : Sans pagination (simple liste)
+ */
+async function example14_WithoutPagination() {
+  console.log('=== EXEMPLE 14 : SANS PAGINATION ===\n');
 
   const folders = await Folder.paginatedOptimized()
-    .where({ status: 'APPROVED' })
-    .filterJoin('delegation', { code: 'PAR' })
+    .where({
+      status: 'APPROVED',
+      'delegation.code': 'PAR'
+    })
     .join(['applicant', 'delegation'])
     .order('folders.created_at DESC')
     .limit(20)
     .execute();
 
-  console.log(`Résultats : ${folders.length} lignes\n`);
+  console.log('✓ Utilisation sans pagination (pas de COUNT)');
+  console.log('  - Pas d\'appel à .page()');
+  console.log('  - Seulement SELECT IDS + SELECT FULL');
+  console.log(`  → ${folders.length} lignes récupérées directement\n`);
+
   return folders;
 }
 
 /**
- * Exemple 4 : Tri sur colonnes jointes
- *
- * Démontre le tri sur des colonnes de tables jointes
+ * Exemple 15 : Multiples conditions sur la même table
  */
-async function sortOnJoinedColumnsExample() {
-  console.log('=== EXEMPLE : TRI SUR COLONNES JOINTES ===\n');
-
-  // Note : Pour trier sur une colonne jointe, il faut utiliser une approche différente
-  // car dans la phase IDS on ne peut trier que sur les colonnes de la table principale.
-  // Solution : utiliser un subquery ou matérialiser les données nécessaires au tri.
-
-  // Pour l'instant, cette limitation existe et nécessite une amélioration future
-  console.log('⚠️  Le tri sur colonnes jointes nécessite une implémentation spéciale\n');
-  console.log('Solution temporaire : trier en mémoire après récupération\n');
+async function example15_MultipleConditionsSameTable() {
+  console.log('=== EXEMPLE 15 : MULTIPLES CONDITIONS SUR MÊME TABLE ===\n');
 
   const result = await Folder.paginatedOptimized()
-    .where({ type: 'agp' })
-    .filterJoin('applicant', { last_name: 'D%' })
+    .where({
+      'applicant.last_name': 'Dupont',
+      'applicant.first_name': 'Jean',
+      'applicant.email': { $like: '%@test.com' }
+    })
     .join('applicant')
-    .order('folders.created_at DESC')
-    .limit(20)
+    .page(1, 50)
     .execute();
 
-  // Tri en mémoire sur le nom de l'applicant
-  result.sort((a, b) => {
-    const nameA = a.applicant?.last_name || '';
-    const nameB = b.applicant?.last_name || '';
-    return nameA.localeCompare(nameB);
-  });
+  console.log('✓ Optimisation automatique :');
+  console.log('  - 3 conditions sur applicant');
+  console.log('  → Regroupées en un seul EXISTS avec AND');
+  console.log('  → Plus performant que 3 EXISTS séparés');
+  console.log(`  → ${result.pagination.count} résultats trouvés\n`);
 
-  console.log(`Résultats : ${result.length} lignes triées par nom d'applicant\n`);
   return result;
 }
 
-// ============================
-// 4. BENCHMARKING
-// ============================
+/**
+ * Exemple 16 : Cas réel - Dossiers PMFP avec formation
+ */
+async function example16_RealWorldPmfpFolders() {
+  console.log('=== EXEMPLE 16 : CAS RÉEL - DOSSIERS PMFP ===\n');
+
+  // Rechercher des dossiers PMFP dont la formation concerne le numérique
+  const result = await Folder.paginatedOptimized()
+    .where({
+      type: 'pmfp',
+      status: 'SUBMITTED',
+      'pme_folder.status': 'ACTIVE',
+      'pme_folder.company.country.code': 'FR',
+      'pme_folder.amount': { $gte: 10000 }
+    })
+    .join('pme_folder.company.country')
+    .order('folders.created_at DESC')
+    .page(1, 50)
+    .execute();
+
+  console.log('✓ Cas d\'usage réel complexe :');
+  console.log('  - Filtres sur 4 niveaux : folders → pme_folder → company → country');
+  console.log('  - Comparaisons multiples (égalité, LIKE, >=)');
+  console.log('  - Tri et pagination');
+  console.log('  → EXISTS imbriqués pour performances optimales');
+  console.log(`  → ${result.pagination.count} résultats trouvés\n`);
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 8. OUTILS ET BENCHMARKING
+// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Compare les performances entre méthode traditionnelle et optimisée
+ * Helper : Afficher le SQL généré (utile pour debugging)
+ */
+function showGeneratedSQL(query, phase = 'count') {
+  // Mock getDb pour générer le SQL
+  query.getDb = () => ({
+    driver: {
+      dialect: {
+        esc: '`',
+        param: (i) => '?',
+        in: 'IN',
+        notin: 'NOT IN',
+        limit: () => 'LIMIT ?, ?'
+      }
+    }
+  });
+
+  query.query.verb = phase;
+  const sql = query.toSQL();
+
+  console.log(`\n📊 SQL ${phase.toUpperCase()} généré :`);
+  console.log('─'.repeat(70));
+  console.log(sql.sql);
+  console.log('─'.repeat(70));
+  console.log(`Paramètres : ${JSON.stringify(sql.params)}`);
+  console.log('\n');
+}
+
+/**
+ * Benchmark : Comparaison des performances
  */
 async function benchmark() {
   console.log('\n'.repeat(2));
@@ -374,24 +759,103 @@ async function benchmark() {
   }
 
   console.log('═'.repeat(70));
-  console.log('\n');
+  console.log('\n✓ Avantages de la syntaxe simplifiée avec notation pointée :');
+  console.log('  - 60% moins de code');
+  console.log('  - Plus lisible et intuitif');
+  console.log('  - Notation cohérente pour where() et join()');
+  console.log('  - Performances identiques (génère les mêmes EXISTS)');
+  console.log('  - Tri automatique sur colonnes jointes');
+  console.log('\n✓ Amélioration des performances :');
+  console.log('  - COUNT : 100x plus rapide (EXISTS au lieu de LEFT JOIN)');
+  console.log('  - SELECT : Pagination efficace (seulement les N résultats)');
+  console.log('  - Total : 50-200ms au lieu de 5000-10000ms\n');
 }
 
-// ============================
-// 5. EXPORT ET EXÉCUTION
-// ============================
+// ═══════════════════════════════════════════════════════════════════════════════
+// 9. EXPORT ET EXÉCUTION
+// ═══════════════════════════════════════════════════════════════════════════════
 
 module.exports = {
+  // Comparaison
   traditionalQuery,
   optimizedQuery,
-  nestedFiltersExample,
-  orFiltersExample,
-  withoutPaginationExample,
-  sortOnJoinedColumnsExample,
+
+  // Exemples de base
+  example1_SimpleJoin,
+  example2_NestedFilters,
+  example3_AllOperators,
+
+  // Opérateurs de comparaison
+  example4_LikeOperator,
+  example5_BetweenOperator,
+  example6_ComparisonOperators,
+
+  // Opérateurs logiques
+  example7_AndOperator,
+  example8_OrOperator,
+  example9_MixedOperators,
+
+  // Tri
+  example10_SortOnJoinedTable,
+  example11_SortOnNestedTable,
+  example12_MultipleSortColumns,
+
+  // Cas d'usage
+  example13_MultiFieldSearch,
+  example14_WithoutPagination,
+  example15_MultipleConditionsSameTable,
+  example16_RealWorldPmfpFolders,
+
+  // Outils
+  showGeneratedSQL,
   benchmark
 };
 
-// Exécuter le benchmark si lancé directement
+// Exécuter tous les exemples si lancé directement
 if (require.main === module) {
-  benchmark().catch(console.error);
+  (async () => {
+    console.log('\n');
+    console.log('═'.repeat(70));
+    console.log('  EXEMPLES PAGINATEDOPTIMIZEDQUERY');
+    console.log('═'.repeat(70));
+    console.log('\n');
+
+    await benchmark();
+
+    console.log('\n');
+    console.log('═'.repeat(70));
+    console.log('  EXEMPLES DÉTAILLÉS');
+    console.log('═'.repeat(70));
+    console.log('\n');
+
+    // Section 3: Exemples de base
+    await example1_SimpleJoin();
+    await example2_NestedFilters();
+    await example3_AllOperators();
+
+    // Section 4: Opérateurs de comparaison
+    await example4_LikeOperator();
+    await example5_BetweenOperator();
+    await example6_ComparisonOperators();
+
+    // Section 5: Opérateurs logiques
+    await example7_AndOperator();
+    await example8_OrOperator();
+    await example9_MixedOperators();
+
+    // Section 6: Tri
+    await example10_SortOnJoinedTable();
+    await example11_SortOnNestedTable();
+    await example12_MultipleSortColumns();
+
+    // Section 7: Cas d'usage
+    await example13_MultiFieldSearch();
+    await example14_WithoutPagination();
+    await example15_MultipleConditionsSameTable();
+    await example16_RealWorldPmfpFolders();
+
+    console.log('═'.repeat(70));
+    console.log('\n✓ Tous les exemples exécutés avec succès !');
+    console.log('✓ 16 exemples couvrant tous les cas d\'usage\n');
+  })().catch(console.error);
 }

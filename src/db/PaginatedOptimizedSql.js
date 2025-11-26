@@ -137,13 +137,13 @@ module.exports = class PaginatedOptimizedSql extends Sql {
    * Détecte les tables jointes nécessaires pour le tri
    *
    * Analyse les clauses ORDER BY pour identifier les colonnes qui proviennent
-   * de tables jointes. Retourne les associations correspondantes.
+   * de tables jointes (directes ou imbriquées). Retourne les associations en cascade.
    *
-   * @returns {Array} Liste des associations nécessaires pour le tri
+   * @returns {Array} Liste hiérarchique des associations nécessaires pour le tri
    *
-   * Exemple :
-   * Si ORDER BY contient "applicants.last_name ASC", retourne :
-   * [{ association: [...], tableName: 'applicants', alias: 'applicant' }]
+   * Exemples :
+   * - ORDER BY "applicants.last_name ASC" → [{path: ['applicant'], tables: [...]}]
+   * - ORDER BY "companies.name DESC" (via pme_folder) → [{path: ['pme_folder', 'company'], tables: [...]}]
    */
   _detectJoinTablesForSort() {
     const { query } = this;
@@ -152,7 +152,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
       return [];
     }
 
-    const joinTables = [];
+    const joinPaths = [];
     const mainTable = query.table;
 
     _.forEach(query.order, (orderClause) => {
@@ -164,21 +164,25 @@ module.exports = class PaginatedOptimizedSql extends Sql {
 
         // Si ce n'est pas la table principale, c'est une table jointe
         if (tableName !== mainTable) {
-          // Trouver l'association correspondante
-          const association = this._findAssociationByTable(tableName);
+          // Chercher le chemin complet vers cette table (peut être imbriqué)
+          const path = this._findPathToTable(tableName, query.schema);
 
-          if (association && !_.find(joinTables, { tableName })) {
-            joinTables.push({
-              association,
-              tableName,
-              alias: association[1] // Nom de l'association (ex: 'applicant')
-            });
+          if (path && path.length > 0) {
+            // Vérifier si ce chemin n'est pas déjà ajouté
+            const pathKey = path.map(p => p.association[1]).join('.');
+            if (!_.find(joinPaths, jp => jp.pathKey === pathKey)) {
+              joinPaths.push({
+                pathKey,
+                path,
+                tableName
+              });
+            }
           }
         }
       }
     });
 
-    return joinTables;
+    return joinPaths;
   }
 
   /**
@@ -207,16 +211,73 @@ module.exports = class PaginatedOptimizedSql extends Sql {
   }
 
   /**
-   * Ajoute les INNER JOIN nécessaires pour le tri
+   * Trouve le chemin complet vers une table (gère les associations imbriquées)
    *
-   * @param {Array} joinTablesForSort - Liste des tables à joindre
-   * @returns {string} Clause SQL avec les INNER JOIN
+   * Cherche récursivement dans les associations pour trouver le chemin
+   * complet depuis la table principale jusqu'à la table cible.
    *
-   * Exemple de SQL généré :
-   * INNER JOIN `applicants` ON `applicants`.`id` = `folders`.`applicant_id`
+   * @param {string} targetTableName - Nom de la table cible (ex: 'companies')
+   * @param {Object} currentSchema - Schema actuel
+   * @param {Array} currentPath - Chemin actuel (pour la récursion)
+   * @returns {Array|null} Chemin vers la table ou null
+   *
+   * Exemple :
+   * _findPathToTable('companies', FolderSchema, [])
+   * → [{association: [...], tableName: 'pme_folders'}, {association: [...], tableName: 'companies'}]
    */
-  _addJoinsForSort(joinTablesForSort) {
-    if (joinTablesForSort.length === 0) {
+  _findPathToTable(targetTableName, currentSchema, currentPath = []) {
+    if (!currentSchema || !currentSchema.associations) {
+      return null;
+    }
+
+    // Chercher dans les associations directes
+    for (const assoc of currentSchema.associations) {
+      const [, assocName, AssociatedModel, src_column, ref_column] = assoc;
+
+      if (!AssociatedModel || !AssociatedModel.schema) {
+        continue;
+      }
+
+      const assocTableName = AssociatedModel.schema.table;
+
+      // Si on a trouvé la table cible
+      if (assocTableName === targetTableName) {
+        return [...currentPath, {
+          association: assoc,
+          tableName: assocTableName
+        }];
+      }
+
+      // Sinon, chercher récursivement dans les associations de ce modèle
+      const nestedPath = this._findPathToTable(
+        targetTableName,
+        AssociatedModel.schema,
+        [...currentPath, {
+          association: assoc,
+          tableName: assocTableName
+        }]
+      );
+
+      if (nestedPath) {
+        return nestedPath;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Ajoute les INNER JOIN nécessaires pour le tri (gère les chemins imbriqués)
+   *
+   * @param {Array} joinPathsForSort - Liste des chemins vers les tables à joindre
+   * @returns {string} Clause SQL avec les INNER JOIN en cascade
+   *
+   * Exemples de SQL généré :
+   * - Simple : INNER JOIN `applicants` ON `applicants`.`id` = `folders`.`applicant_id`
+   * - Imbriqué : INNER JOIN `pme_folders` ON ... INNER JOIN `companies` ON ...
+   */
+  _addJoinsForSort(joinPathsForSort) {
+    if (joinPathsForSort.length === 0) {
       return '';
     }
 
@@ -225,13 +286,28 @@ module.exports = class PaginatedOptimizedSql extends Sql {
     const mainTable = query.table;
 
     let sql = '';
+    const processedTables = new Set(); // Pour éviter les doublons
 
-    _.forEach(joinTablesForSort, ({ association, tableName }) => {
-      const [, , AssociatedModel, src_column, ref_column] = association;
+    _.forEach(joinPathsForSort, ({ path, tableName }) => {
+      // Parcourir le chemin et créer les INNER JOIN en cascade
+      let prevTable = mainTable;
 
-      // Générer l'INNER JOIN
-      sql += `INNER JOIN ${esc}${tableName}${esc} `;
-      sql += `ON ${esc}${tableName}${esc}.${esc}${ref_column}${esc} = ${esc}${mainTable}${esc}.${esc}${src_column}${esc} `;
+      _.forEach(path, ({ association, tableName: currentTableName }) => {
+        // Éviter les doublons si plusieurs ORDER BY utilisent le même chemin
+        if (processedTables.has(currentTableName)) {
+          prevTable = currentTableName;
+          return;
+        }
+
+        const [, , AssociatedModel, src_column, ref_column] = association;
+
+        // Générer l'INNER JOIN
+        sql += `INNER JOIN ${esc}${currentTableName}${esc} `;
+        sql += `ON ${esc}${currentTableName}${esc}.${esc}${ref_column}${esc} = ${esc}${prevTable}${esc}.${esc}${src_column}${esc} `;
+
+        processedTables.add(currentTableName);
+        prevTable = currentTableName;
+      });
     });
 
     return sql;
@@ -428,7 +504,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
           params.push(value);
         }
       } else if (_.isObject(value) && !_.isDate(value)) {
-        // Opérateurs spéciaux ($between, $gte, $lte, $gt, $lt)
+        // Opérateurs spéciaux ($between, $gte, $lte, $gt, $lt, $like)
         if (value.$between && _.isArray(value.$between) && value.$between.length === 2) {
           sqlConditions.push(`${columnRef} BETWEEN ${dialect.param(this.i++)} AND ${dialect.param(this.i++)} `);
           params.push(value.$between[0]);
@@ -445,6 +521,9 @@ module.exports = class PaginatedOptimizedSql extends Sql {
         } else if (value.$lt !== undefined) {
           sqlConditions.push(`${columnRef} < ${dialect.param(this.i++)} `);
           params.push(value.$lt);
+        } else if (value.$like !== undefined) {
+          sqlConditions.push(`${columnRef} LIKE ${dialect.param(this.i++)} `);
+          params.push(value.$like);
         } else {
           // Objet non reconnu, traiter comme égalité
           sqlConditions.push(`${columnRef} = ${dialect.param(this.i++)} `);

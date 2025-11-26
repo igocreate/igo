@@ -37,21 +37,190 @@ module.exports = class PaginatedOptimizedQuery extends Query {
   }
 
   /**
-   * filterJoin - Ajoute un filtre sur une table jointe qui sera transformé en EXISTS
+   * Override de join() pour supporter la notation pointée
    *
-   * Cette méthode permet de filtrer sur une table jointe sans faire de LEFT JOIN dans le COUNT et IDS.
-   * Les conditions sont converties en sous-requêtes EXISTS pour de meilleures performances.
+   * Permet d'utiliser la notation pointée pour les joins imbriqués :
+   * - .join('applicant') → join simple
+   * - .join('pme_folder.company.country') → join imbriqué
+   * - .join(['applicant', 'pme_folder.company']) → plusieurs joins
    *
-   * @param {string} associationName - Nom de l'association (ex: 'applicant', 'pme_folder')
-   * @param {object} conditions - Conditions de filtrage (ex: { last_name: 'Dupont%', status: 'ACTIVE' })
-   * @param {string} operator - Opérateur SQL pour conditions multiples ('AND' ou 'OR'), défaut: 'AND'
+   * @param {string|array|object} associations - Associations à joindre
    * @returns {PaginatedOptimizedQuery} this (pour chaînage)
+   */
+  join(associations) {
+    // Si c'est un objet, utiliser la syntaxe standard (Query parent)
+    if (_.isObject(associations) && !_.isArray(associations)) {
+      return super.join(associations);
+    }
+
+    // Si c'est une string ou un tableau, détecter la notation pointée
+    const assocs = _.isArray(associations) ? associations : [associations];
+    const transformed = [];
+
+    _.forEach(assocs, (assoc) => {
+      if (_.isString(assoc) && assoc.includes('.')) {
+        // Notation pointée détectée : transformer en structure imbriquée
+        transformed.push(this._transformDottedJoinPath(assoc));
+      } else {
+        // Pas de notation pointée : garder tel quel
+        transformed.push(assoc);
+      }
+    });
+
+    // Si on a transformé des chemins, reconstruire la structure
+    if (transformed.length > 0) {
+      return super.join(this._mergeJoinStructures(transformed));
+    }
+
+    return super.join(associations);
+  }
+
+  /**
+   * Transforme un chemin pointé en structure imbriquée
+   *
+   * @param {string} path - Chemin pointé (ex: 'pme_folder.company.country')
+   * @returns {object} Structure imbriquée
    *
    * Exemple :
-   *   query.filterJoin('applicant', { last_name: 'Dupont%' })
-   *   → WHERE EXISTS (SELECT 1 FROM applicants a WHERE a.id = f.applicant_id AND a.last_name LIKE 'Dupont%')
+   * 'pme_folder.company.country' → { pme_folder: { company: ['country'] } }
    */
-  filterJoin(associationName, conditions, operator = 'AND') {
+  _transformDottedJoinPath(path) {
+    const parts = path.split('.');
+
+    // Si un seul niveau, retourner tel quel
+    if (parts.length === 1) {
+      return parts[0];
+    }
+
+    // Construire la structure imbriquée de droite à gauche
+    let result = [parts[parts.length - 1]];
+
+    for (let i = parts.length - 2; i >= 0; i--) {
+      result = { [parts[i]]: result };
+    }
+
+    return result;
+  }
+
+  /**
+   * Fusionne plusieurs structures de join
+   *
+   * @param {array} structures - Tableau de structures de join
+   * @returns {array|object} Structure fusionnée
+   */
+  _mergeJoinStructures(structures) {
+    // Séparer les strings simples des objets
+    const simples = [];
+    const nested = {};
+
+    _.forEach(structures, (struct) => {
+      if (_.isString(struct)) {
+        simples.push(struct);
+      } else if (_.isObject(struct)) {
+        // Fusionner les objets imbriqués
+        _.merge(nested, struct);
+      }
+    });
+
+    // Si on a des objets imbriqués et des simples
+    if (!_.isEmpty(nested) && simples.length > 0) {
+      return [...simples, nested];
+    }
+
+    // Si seulement des simples
+    if (simples.length > 0 && _.isEmpty(nested)) {
+      return simples;
+    }
+
+    // Si seulement des imbriqués
+    if (_.isEmpty(simples) && !_.isEmpty(nested)) {
+      return nested;
+    }
+
+    return structures;
+  }
+
+  /**
+   * Override de where() pour détecter automatiquement les conditions sur tables jointes
+   *
+   * Cette méthode analyse les conditions pour détecter les chemins imbriqués (ex: 'applicant.last_name')
+   * et les convertit automatiquement en filterJoins optimisés avec EXISTS.
+   *
+   * Syntaxe supportée :
+   * - Table principale : { status: 'ACTIVE' }
+   * - Table jointe (1 niveau) : { 'applicant.last_name': 'Dupont' }
+   * - Tables imbriquées : { 'pme_folder.company.country.code': 'FR' }
+   *
+   * Opérateurs supportés :
+   * - Égalité : { 'applicant.email': 'test@test.com' }
+   * - LIKE : { 'applicant.last_name': { $like: 'Dup%' } }
+   * - IN : { 'applicant.status': ['ACTIVE', 'PENDING'] }
+   * - BETWEEN : { created_at: { $between: ['2024-01-01', '2024-12-31'] } }
+   * - Comparaisons : { amount: { $gte: 100 } }
+   *
+   * Opérateurs logiques :
+   * - $and : { $and: [{ status: 'ACTIVE' }, { 'applicant.last_name': 'Dupont' }] }
+   * - $or : { $or: [{ status: 'ACTIVE' }, { status: 'PENDING' }] }
+   *
+   * @param {object|string} where - Conditions de filtrage
+   * @param {any} params - Paramètres (pour compatibilité avec Query parent)
+   * @returns {PaginatedOptimizedQuery} this (pour chaînage)
+   */
+  where(where, params) {
+    // Appeler le parent pour gérer les cas simples (string avec params)
+    if (params !== undefined) {
+      return super.where(where, params);
+    }
+
+    // Analyser et transformer les conditions
+    const { mainConditions, joinConditions } = this._parseWhereConditions(where);
+
+    // Ajouter les conditions sur la table principale
+    // mainConditions est maintenant un tableau de conditions
+    if (mainConditions && mainConditions.length > 0) {
+      _.forEach(mainConditions, (cond) => {
+        // Vérifier si c'est un objet avec des valeurs SQL transformées
+        if (_.isObject(cond) && !_.isArray(cond)) {
+          const normalizedCond = {};
+          _.forOwn(cond, (value, key) => {
+            // Si la valeur est un tableau [sql, params] avec $? dans le SQL
+            if (_.isArray(value) && value.length === 2 && _.isString(value[0]) && value[0].includes('$?')) {
+              super.where(value[0], value[1]);
+            } else {
+              normalizedCond[key] = value;
+            }
+          });
+
+          // Ajouter les conditions normales si présentes
+          if (!_.isEmpty(normalizedCond)) {
+            super.where(normalizedCond);
+          }
+        } else {
+          super.where(cond);
+        }
+      });
+    }
+
+    // Générer automatiquement les filterJoins pour les conditions sur tables jointes
+    if (joinConditions && Object.keys(joinConditions).length > 0) {
+      this._buildFilterJoinsFromPaths(joinConditions);
+    }
+
+    return this;
+  }
+
+  /**
+   * _addSimpleFilterJoin - Ajoute un filtre sur une table jointe (méthode interne)
+   *
+   * Cette méthode est utilisée en interne par where() pour ajouter des filtres EXISTS.
+   * Les utilisateurs ne doivent pas l'appeler directement.
+   *
+   * @private
+   * @param {string} associationName - Nom de l'association (ex: 'applicant', 'pme_folder')
+   * @param {object} conditions - Conditions de filtrage
+   * @param {string} operator - Opérateur SQL ('AND' ou 'OR')
+   */
+  _addSimpleFilterJoin(associationName, conditions, operator = 'AND') {
     const association = this._findAssociation(associationName, this.schema);
 
     this.query.filterJoins.push({
@@ -60,42 +229,18 @@ module.exports = class PaginatedOptimizedQuery extends Query {
       operator,
       src_schema: this.schema
     });
-
-    return this;
   }
 
   /**
-   * filterJoinNested - Ajoute des filtres imbriqués sur plusieurs niveaux de jointures
+   * _addNestedFilterJoin - Ajoute des filtres imbriqués (méthode interne)
    *
-   * Permet de filtrer sur des associations imbriquées (ex: folder → pmfp_folder → formation_nature)
+   * Cette méthode est utilisée en interne par where() pour ajouter des filtres EXISTS imbriqués.
+   * Les utilisateurs ne doivent pas l'appeler directement.
    *
-   * Cette version REFACTORISÉE stocke TOUTE la hiérarchie, même les niveaux sans conditions,
-   * pour permettre la génération de vrais EXISTS imbriqués.
-   *
+   * @private
    * @param {object} nestedConfig - Configuration des filtres imbriqués
-   * @returns {PaginatedOptimizedQuery} this (pour chaînage)
-   *
-   * Exemple :
-   *   query.filterJoinNested({
-   *     pmfp_folder: {
-   *       nested: {
-   *         formation_nature: {
-   *           conditions: { label: '%numérique%' }
-   *         }
-   *       }
-   *     }
-   *   })
-   *
-   * Ceci génère :
-   * EXISTS (
-   *   SELECT 1 FROM pmfp_folders WHERE pmfp_folders.id = folders.pmfp_folder_id
-   *   AND EXISTS (
-   *     SELECT 1 FROM formation_nature WHERE formation_nature.id = pmfp_folders.formation_nature_id
-   *     AND formation_nature.label LIKE '%numérique%'
-   *   )
-   * )
    */
-  filterJoinNested(nestedConfig) {
+  _addNestedFilterJoin(nestedConfig) {
     // Construire la hiérarchie complète d'associations
     const buildHierarchy = (config, currentSchema, parentPath = null) => {
       const results = [];
@@ -133,8 +278,6 @@ module.exports = class PaginatedOptimizedQuery extends Query {
       type: 'nested',
       hierarchy: hierarchy
     });
-
-    return this;
   }
 
   /**
@@ -316,6 +459,288 @@ module.exports = class PaginatedOptimizedQuery extends Query {
 
     // Fallback vers l'implémentation standard pour les autres verbes (update, delete, etc.)
     return await super.execute();
+  }
+
+  /**
+   * Parse les conditions where pour séparer :
+   * - Les conditions sur la table principale
+   * - Les conditions sur les tables jointes (chemins avec points)
+   *
+   * @param {object} conditions - Objet de conditions
+   * @returns {object} { mainConditions, joinConditions }
+   *
+   * Exemple :
+   * Input: {
+   *   $and: [
+   *     { status: 'ACTIVE' },
+   *     { 'applicant.last_name': 'Dupont' },
+   *     { 'pme_folder.company.country.code': 'FR' }
+   *   ]
+   * }
+   *
+   * Output: {
+   *   mainConditions: [{ status: 'ACTIVE' }],  // Tableau de conditions
+   *   joinConditions: {
+   *     'applicant.last_name': { value: 'Dupont', path: ['applicant'], column: 'last_name' },
+   *     'pme_folder.company.country.code': { value: 'FR', path: ['pme_folder', 'company', 'country'], column: 'code' }
+   *   }
+   * }
+   */
+  _parseWhereConditions(conditions) {
+    const mainConditions = [];
+    const joinConditions = {};
+
+    // Gérer les opérateurs logiques $and et $or
+    if (conditions.$and) {
+      // $and : aplatir les conditions sur la table principale
+      _.forEach(conditions.$and, (cond) => {
+        const parsed = this._parseConditionObject(cond);
+        if (parsed.main && !_.isEmpty(parsed.main)) {
+          mainConditions.push(parsed.main);
+        }
+        Object.assign(joinConditions, parsed.join);
+      });
+    } else if (conditions.$or) {
+      // $or : gérer les conditions imbriquées
+      // Note: Si toutes les conditions du $or sont sur la table principale,
+      // on peut les regrouper. Sinon, on doit les traiter séparément.
+      const orMainConditions = [];
+      _.forEach(conditions.$or, (cond) => {
+        const parsed = this._parseConditionObject(cond);
+        if (parsed.main && !_.isEmpty(parsed.main)) {
+          orMainConditions.push(parsed.main);
+        }
+        Object.assign(joinConditions, parsed.join);
+      });
+
+      // Si on a des conditions sur la table principale dans le $or
+      if (orMainConditions.length > 0) {
+        mainConditions.push(orMainConditions);
+      }
+    } else {
+      // Cas simple : objet de conditions
+      const parsed = this._parseConditionObject(conditions);
+      if (parsed.main && !_.isEmpty(parsed.main)) {
+        mainConditions.push(parsed.main);
+      }
+      Object.assign(joinConditions, parsed.join);
+    }
+
+    return { mainConditions, joinConditions };
+  }
+
+  /**
+   * Parse un objet de conditions pour séparer les colonnes principales et jointes
+   *
+   * @param {object} conditionObj - Objet de conditions { column: value, ... }
+   * @returns {object} { main: {...}, join: {...} }
+   */
+  _parseConditionObject(conditionObj) {
+    const main = {};
+    const join = {};
+
+    _.forOwn(conditionObj, (value, key) => {
+      // Détecter si la clé contient un point (chemin vers table jointe)
+      if (key.includes('.')) {
+        // Extraire le chemin et la colonne finale
+        const parts = key.split('.');
+        const column = parts[parts.length - 1];
+        const path = parts.slice(0, -1); // ['applicant'] ou ['pme_folder', 'company', 'country']
+
+        join[key] = {
+          value,
+          path,
+          column
+        };
+      } else {
+        // Condition sur la table principale
+        // Transformer les opérateurs spéciaux en SQL avant de les ajouter
+        main[key] = this._transformOperator(key, value);
+      }
+    });
+
+    return { main, join };
+  }
+
+  /**
+   * Transforme les opérateurs spéciaux en SQL
+   *
+   * @param {string} column - Nom de la colonne
+   * @param {any} value - Valeur (peut contenir des opérateurs)
+   * @returns {any} Valeur transformée ou SQL string avec params
+   */
+  _transformOperator(column, value) {
+    // Si la valeur n'est pas un objet, la retourner telle quelle
+    if (!_.isObject(value) || _.isArray(value) || _.isDate(value)) {
+      return value;
+    }
+
+    // Transformer les opérateurs spéciaux en SQL
+    if (value.$between && _.isArray(value.$between) && value.$between.length === 2) {
+      return [`\`${this.schema.table}\`.\`${column}\` BETWEEN $? AND $?`, value.$between];
+    } else if (value.$gte !== undefined) {
+      return [`\`${this.schema.table}\`.\`${column}\` >= $?`, value.$gte];
+    } else if (value.$lte !== undefined) {
+      return [`\`${this.schema.table}\`.\`${column}\` <= $?`, value.$lte];
+    } else if (value.$gt !== undefined) {
+      return [`\`${this.schema.table}\`.\`${column}\` > $?`, value.$gt];
+    } else if (value.$lt !== undefined) {
+      return [`\`${this.schema.table}\`.\`${column}\` < $?`, value.$lt];
+    } else if (value.$like !== undefined) {
+      return [`\`${this.schema.table}\`.\`${column}\` LIKE $?`, value.$like];
+    }
+
+    // Sinon, retourner la valeur telle quelle
+    return value;
+  }
+
+  /**
+   * Construit automatiquement les filterJoins à partir des chemins détectés
+   *
+   * Cette méthode regroupe les conditions par chemin d'association et génère
+   * les filterJoinNested appropriés.
+   *
+   * @param {object} joinConditions - Conditions sur les tables jointes
+   *
+   * Exemple :
+   * Input: {
+   *   'applicant.last_name': { value: 'Dupont', path: ['applicant'], column: 'last_name' },
+   *   'applicant.email': { value: 'test@test.com', path: ['applicant'], column: 'email' },
+   *   'pme_folder.company.country.code': { value: 'FR', path: ['pme_folder', 'company', 'country'], column: 'code' }
+   * }
+   *
+   * Output: Appelle filterJoinNested() avec :
+   * {
+   *   applicant: {
+   *     conditions: { last_name: 'Dupont', email: 'test@test.com' }
+   *   },
+   *   pme_folder: {
+   *     nested: {
+   *       company: {
+   *         nested: {
+   *           country: {
+   *             conditions: { code: 'FR' }
+   *           }
+   *         }
+   *       }
+   *     }
+   *   }
+   * }
+   */
+  _buildFilterJoinsFromPaths(joinConditions) {
+    // Regrouper les conditions par racine d'association
+    const groupedByRoot = {};
+
+    _.forOwn(joinConditions, ({ value, path, column }, fullPath) => {
+      const root = path[0];
+
+      if (!groupedByRoot[root]) {
+        groupedByRoot[root] = [];
+      }
+
+      groupedByRoot[root].push({
+        path: path.slice(1), // Enlever la racine
+        column,
+        value,
+        fullPath
+      });
+    });
+
+    // Construire les filterJoinNested pour chaque racine
+    _.forOwn(groupedByRoot, (conditions, root) => {
+      // Si toutes les conditions sont au niveau racine (path vide), utiliser filterJoin simple
+      const allAtRoot = _.every(conditions, c => c.path.length === 0);
+
+      if (allAtRoot) {
+        // Filtre simple (1 niveau)
+        const simpleConditions = {};
+        _.forEach(conditions, ({ column, value }) => {
+          simpleConditions[column] = value;
+        });
+
+        this._addSimpleFilterJoin(root, simpleConditions);
+      } else {
+        // Filtre imbriqué (plusieurs niveaux)
+        const nestedConfig = this._buildNestedConfig(conditions);
+        this._addNestedFilterJoin({ [root]: nestedConfig });
+      }
+    });
+  }
+
+  /**
+   * Construit la configuration imbriquée pour filterJoinNested
+   *
+   * @param {Array} conditions - Liste des conditions à imbriquer
+   * @returns {object} Configuration imbriquée
+   *
+   * Exemple :
+   * Input: [
+   *   { path: ['company', 'country'], column: 'code', value: 'FR' },
+   *   { path: ['company'], column: 'siret', value: '123%' }
+   * ]
+   *
+   * Output: {
+   *   nested: {
+   *     company: {
+   *       conditions: { siret: '123%' },
+   *       nested: {
+   *         country: {
+   *           conditions: { code: 'FR' }
+   *         }
+   *       }
+   *     }
+   *   }
+   * }
+   */
+  _buildNestedConfig(conditions) {
+    const config = {
+      conditions: {},
+      nested: {}
+    };
+
+    // Séparer les conditions : celles au niveau actuel vs celles à imbriquer
+    const currentLevelConditions = [];
+    const nestedConditions = {};
+
+    _.forEach(conditions, (cond) => {
+      if (cond.path.length === 0) {
+        // Condition au niveau actuel
+        currentLevelConditions.push(cond);
+      } else {
+        // Condition à imbriquer
+        const nextLevel = cond.path[0];
+        if (!nestedConditions[nextLevel]) {
+          nestedConditions[nextLevel] = [];
+        }
+        nestedConditions[nextLevel].push({
+          path: cond.path.slice(1),
+          column: cond.column,
+          value: cond.value
+        });
+      }
+    });
+
+    // Ajouter les conditions au niveau actuel
+    _.forEach(currentLevelConditions, ({ column, value }) => {
+      config.conditions[column] = value;
+    });
+
+    // Si pas de conditions au niveau actuel, supprimer la clé
+    if (_.isEmpty(config.conditions)) {
+      delete config.conditions;
+    }
+
+    // Construire récursivement les niveaux imbriqués
+    _.forOwn(nestedConditions, (nestedConds, assocName) => {
+      config.nested[assocName] = this._buildNestedConfig(nestedConds);
+    });
+
+    // Si pas de nested, supprimer la clé
+    if (_.isEmpty(config.nested)) {
+      delete config.nested;
+    }
+
+    return config;
   }
 
   /**
