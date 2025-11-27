@@ -389,8 +389,8 @@ describe('db.PaginatedOptimizedQuery', function() {
       const sql = query.toSQL();
 
       // Vérifier que l'INNER JOIN est présent
-      assert.ok(sql.sql.includes('INNER JOIN'), 'SQL should contain INNER JOIN for sorting on joined table');
-      assert.ok(sql.sql.includes('INNER JOIN `applicants`'), 'SQL should INNER JOIN the applicants table');
+      assert.ok(sql.sql.includes('LEFT JOIN'), 'SQL should contain LEFT JOIN for sorting on joined table');
+      assert.ok(sql.sql.includes('LEFT JOIN `applicants`'), 'SQL should INNER JOIN the applicants table');
       assert.ok(sql.sql.includes('ON `applicants`.`id` = `folders`.`applicant_id`'), 'SQL should have correct join condition');
 
       // Vérifier que le ORDER BY est présent
@@ -430,8 +430,8 @@ describe('db.PaginatedOptimizedQuery', function() {
       const sql = query.toSQL();
 
       // Vérifier que les INNER JOIN en cascade sont présents
-      assert.ok(sql.sql.includes('INNER JOIN `pme_folders`'), 'SQL should INNER JOIN pme_folders');
-      assert.ok(sql.sql.includes('INNER JOIN `companies`'), 'SQL should INNER JOIN companies');
+      assert.ok(sql.sql.includes('LEFT JOIN `pme_folders`'), 'SQL should INNER JOIN pme_folders');
+      assert.ok(sql.sql.includes('LEFT JOIN `companies`'), 'SQL should INNER JOIN companies');
 
       // Vérifier le ORDER BY
       assert.ok(sql.sql.includes('ORDER BY companies.name ASC'), 'SQL should sort by companies.name');
@@ -452,7 +452,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       const sql = query.toSQL();
 
       // Vérifier l'INNER JOIN pour le tri
-      assert.ok(sql.sql.includes('INNER JOIN `applicants`'), 'SQL should have INNER JOIN for sorting');
+      assert.ok(sql.sql.includes('LEFT JOIN `applicants`'), 'SQL should have INNER JOIN for sorting');
 
       // Vérifier EXISTS pour le filtre
       assert.ok(sql.sql.includes('EXISTS'), 'SQL should have EXISTS for filtering');
@@ -474,11 +474,213 @@ describe('db.PaginatedOptimizedQuery', function() {
       const sql = query.toSQL();
 
       // COUNT ne devrait PAS avoir de JOIN (même si on trie sur une table jointe)
-      assert.ok(!sql.sql.includes('INNER JOIN'), 'COUNT should not have INNER JOIN');
+      assert.ok(!sql.sql.includes('LEFT JOIN'), 'COUNT should not have LEFT JOIN for sorting');
       assert.ok(!sql.sql.includes('LEFT JOIN'), 'COUNT should not have LEFT JOIN');
 
       // COUNT ne devrait PAS avoir de ORDER BY
       assert.ok(!sql.sql.includes('ORDER BY'), 'COUNT should not have ORDER BY');
+    });
+
+    it('should transform association names to table names in ORDER BY (pmfp_folder.company case)', () => {
+      // Test pour vérifier que "pmfp_folder.company.name" devient "companies.name"
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'select_ids';
+      query
+        .where({ type: 'agp' })
+        .order('pme_folder.company.name ASC')
+        .join('pme_folder.company')
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Vérifier les INNER JOIN en cascade
+      assert.ok(sql.sql.includes('LEFT JOIN `pme_folders`'), 'SQL should INNER JOIN pme_folders');
+      assert.ok(sql.sql.includes('LEFT JOIN `companies`'), 'SQL should INNER JOIN companies');
+
+      // Vérifier que le ORDER BY utilise le nom de TABLE (companies) et non d'association (company)
+      assert.ok(sql.sql.includes('ORDER BY companies.name ASC'), 'SQL should use table name "companies" in ORDER BY');
+      assert.ok(!sql.sql.includes('company.name'), 'SQL should NOT use association name "company" in ORDER BY');
+    });
+  });
+
+  describe('ORDER BY avec Fonctions SQL', function() {
+    it('devrait gérer COALESCE avec plusieurs colonnes de la même table', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'select_ids';
+      query
+        .where({ type: 'agp' })
+        .join('applicant')
+        .order('COALESCE(`applicant`.`last_name`, `applicant`.`first_name`) ASC')
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Doit contenir l'INNER JOIN
+      assert.ok(sql.sql.includes('LEFT JOIN `applicants`'), 'SQL should INNER JOIN applicants');
+
+      // Doit conserver la fonction COALESCE dans ORDER BY
+      assert.ok(sql.sql.includes('ORDER BY COALESCE'), 'SQL should preserve COALESCE function');
+      assert.ok(sql.sql.includes('applicants.last_name'), 'SQL should include last_name column (transformed from association to table name)');
+      assert.ok(sql.sql.includes('applicants.first_name'), 'SQL should include first_name column (transformed from association to table name)');
+    });
+
+    it('devrait gérer IFNULL avec table imbriquée', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'select_ids';
+      query
+        .where({ type: 'pme' })
+        .join('pme_folder.company')
+        .order('IFNULL(`companies`.`name`, "N/A") ASC')
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Doit contenir les INNER JOIN pour la chaîne d'associations
+      assert.ok(sql.sql.includes('LEFT JOIN `pme_folders`'), 'SQL should INNER JOIN pme_folders');
+      assert.ok(sql.sql.includes('LEFT JOIN `companies`'), 'SQL should INNER JOIN companies');
+
+      // Doit conserver IFNULL dans ORDER BY
+      assert.ok(sql.sql.includes('ORDER BY IFNULL'), 'SQL should preserve IFNULL function');
+    });
+
+    it('devrait gérer CONCAT avec colonnes multiples', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'select_ids';
+      query
+        .where({ type: 'agp' })
+        .join('applicant')
+        .order('CONCAT(`applicant`.`last_name`, " ", `applicant`.`first_name`) ASC')
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Doit contenir l'INNER JOIN
+      assert.ok(sql.sql.includes('LEFT JOIN `applicants`'), 'SQL should INNER JOIN applicants');
+
+      // Doit conserver CONCAT dans ORDER BY
+      assert.ok(sql.sql.includes('ORDER BY CONCAT'), 'SQL should preserve CONCAT function');
+      assert.ok(sql.sql.includes('applicants.last_name'), 'SQL should include last_name column (transformed from association to table name)');
+      assert.ok(sql.sql.includes('applicants.first_name'), 'SQL should include first_name column (transformed from association to table name)');
+    });
+
+    it('devrait gérer COALESCE avec tables imbriquées', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'select_ids';
+      query
+        .where({ type: 'pme' })
+        .join('applicant')
+        .join('pme_folder.company')
+        .order('COALESCE(`applicant`.`last_name`, `companies`.`name`) ASC')
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Doit contenir les INNER JOIN
+      assert.ok(sql.sql.includes('LEFT JOIN `applicants`'), 'SQL should INNER JOIN applicants');
+      assert.ok(sql.sql.includes('LEFT JOIN `pme_folders`'), 'SQL should INNER JOIN pme_folders');
+      assert.ok(sql.sql.includes('LEFT JOIN `companies`'), 'SQL should INNER JOIN companies');
+
+      // Doit conserver COALESCE dans ORDER BY
+      assert.ok(sql.sql.includes('ORDER BY COALESCE'), 'SQL should preserve COALESCE function');
+    });
+
+    it('ne devrait pas ajouter de JOIN pour les fonctions sur la table principale', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'select_ids';
+      query
+        .where({ type: 'agp' })
+        .order('UPPER(`folders`.`name`) ASC')
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Ne doit pas contenir de INNER JOIN (seulement la table principale)
+      assert.ok(!sql.sql.includes('LEFT JOIN'), 'SQL should not contain LEFT JOIN for functions on main table');
+
+      // Doit conserver la fonction UPPER
+      assert.ok(sql.sql.includes('ORDER BY UPPER'), 'SQL should preserve UPPER function');
+    });
+  });
+
+  describe('LEFT JOIN preserves rows with NULL', function() {
+    it('should use LEFT JOIN (not INNER JOIN) when sorting on joined table', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'select_ids';
+      query
+        .where({ type: 'agp' })
+        .order('applicants.last_name ASC')
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Doit utiliser LEFT JOIN, pas INNER JOIN
+      assert.ok(sql.sql.includes('LEFT JOIN'), 'SQL should use LEFT JOIN');
+      assert.ok(!sql.sql.includes('INNER JOIN'), 'SQL should not use INNER JOIN');
+
+      // Vérifier que c'est bien un LEFT JOIN sur applicants
+      assert.ok(sql.sql.includes('LEFT JOIN `applicants`'), 'SQL should LEFT JOIN applicants');
+
+      // Le ORDER BY doit être présent
+      assert.ok(sql.sql.includes('ORDER BY applicants.last_name ASC'), 'SQL should have ORDER BY');
+    });
+
+    it('should use LEFT JOIN for nested table sorting', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'select_ids';
+      query
+        .where({ type: 'pme' })
+        .order('pme_folder.company.name ASC')
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Tous les JOIN doivent être des LEFT JOIN
+      assert.ok(sql.sql.includes('LEFT JOIN'), 'SQL should use LEFT JOIN');
+      assert.ok(!sql.sql.includes('INNER JOIN'), 'SQL should not use INNER JOIN');
+
+      // Vérifier les LEFT JOIN en cascade
+      const leftJoinCount = (sql.sql.match(/LEFT JOIN/g) || []).length;
+      assert.ok(leftJoinCount >= 2, 'SQL should have at least 2 LEFT JOINs for nested path');
+    });
+
+    it('should use LEFT JOIN with SQL functions (COALESCE)', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'select_ids';
+      query
+        .where({ type: 'agp' })
+        .join('applicant')
+        .order('COALESCE(`applicant`.`last_name`, "Unknown") ASC')
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Doit utiliser LEFT JOIN même avec des fonctions SQL
+      assert.ok(sql.sql.includes('LEFT JOIN `applicants`'), 'SQL should LEFT JOIN applicants');
+      assert.ok(!sql.sql.includes('INNER JOIN'), 'SQL should not use INNER JOIN');
+    });
+
+    it('should verify LEFT JOIN preserves all rows conceptually', () => {
+      // Ce test vérifie que le SQL généré utilise LEFT JOIN
+      // qui préserve toutes les lignes, même celles avec NULL
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'select_ids';
+      query
+        .where({ type: 'agp' })
+        .order('applicants.last_name ASC')
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Vérifier structure SQL complète
+      assert.ok(sql.sql.includes('SELECT'), 'SQL should have SELECT');
+      assert.ok(sql.sql.includes('FROM `folders`'), 'SQL should have FROM folders');
+      assert.ok(sql.sql.includes('LEFT JOIN `applicants`'), 'SQL should have LEFT JOIN applicants');
+      assert.ok(sql.sql.includes('WHERE `folders`.`type` = ?'), 'SQL should have WHERE clause');
+      assert.ok(sql.sql.includes('ORDER BY applicants.last_name ASC'), 'SQL should have ORDER BY');
+      assert.ok(sql.sql.includes('LIMIT'), 'SQL should have LIMIT');
+
+      // Avec LEFT JOIN, les folders sans applicant seront inclus avec last_name=NULL
+      // Ce comportement est correct et préserve toutes les lignes
     });
   });
 

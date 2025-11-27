@@ -172,6 +172,13 @@ module.exports = class PaginatedOptimizedQuery extends Query {
       return super.where(where, params);
     }
 
+    // Cas spécial : $or avec des conditions sur tables jointes
+    // Ces conditions doivent être transformées en filterJoin avec OR
+    if (where.$or && _.isArray(where.$or)) {
+      this._handleOrWithJoinedTables(where.$or);
+      return this;
+    }
+
     // Analyser et transformer les conditions
     const { mainConditions, joinConditions } = this._parseWhereConditions(where);
 
@@ -179,8 +186,51 @@ module.exports = class PaginatedOptimizedQuery extends Query {
     // mainConditions est maintenant un tableau de conditions
     if (mainConditions && mainConditions.length > 0) {
       _.forEach(mainConditions, (cond) => {
-        // Vérifier si c'est un objet avec des valeurs SQL transformées
-        if (_.isObject(cond) && !_.isArray(cond)) {
+        // Cas 1 : c'est un array d'objets (vient d'un $or)
+        // Il faut le transformer en SQL avec OR car Query ne gère pas $or
+        if (_.isArray(cond) && cond.length > 0) {
+          // Construire manuellement la clause OR
+          const orClauses = [];
+          const orParams = [];
+
+          _.forEach(cond, (orCond) => {
+            if (_.isObject(orCond)) {
+              const condClauses = [];
+              _.forOwn(orCond, (value, key) => {
+                const columnRef = `\`${this.query.table}\`.\`${key}\``;
+
+                if (value === null || value === undefined) {
+                  condClauses.push(`${columnRef} IS NULL`);
+                } else if (_.isArray(value)) {
+                  if (value.length === 0) {
+                    condClauses.push('FALSE');
+                  } else {
+                    condClauses.push(`${columnRef} IN ($?)`);
+                    orParams.push(value);
+                  }
+                } else if (_.isString(value) && value.includes('%')) {
+                  // Pattern LIKE détecté
+                  condClauses.push(`${columnRef} LIKE $?`);
+                  orParams.push(value);
+                } else {
+                  condClauses.push(`${columnRef} = $?`);
+                  orParams.push(value);
+                }
+              });
+
+              if (condClauses.length > 0) {
+                orClauses.push(condClauses.length > 1 ? `(${condClauses.join(' AND ')})` : condClauses[0]);
+              }
+            }
+          });
+
+          if (orClauses.length > 0) {
+            const orSQL = `(${orClauses.join(' OR ')})`;
+            super.where(orSQL, orParams);
+          }
+        }
+        // Cas 2 : c'est un objet avec des valeurs SQL transformées
+        else if (_.isObject(cond) && !_.isArray(cond)) {
           const normalizedCond = {};
           _.forOwn(cond, (value, key) => {
             // Si la valeur est un tableau [sql, params] avec $? dans le SQL
@@ -195,7 +245,9 @@ module.exports = class PaginatedOptimizedQuery extends Query {
           if (!_.isEmpty(normalizedCond)) {
             super.where(normalizedCond);
           }
-        } else {
+        }
+        // Cas 3 : autre format (ne devrait pas arriver)
+        else {
           super.where(cond);
         }
       });
@@ -459,6 +511,75 @@ module.exports = class PaginatedOptimizedQuery extends Query {
 
     // Fallback vers l'implémentation standard pour les autres verbes (update, delete, etc.)
     return await super.execute();
+  }
+
+  /**
+   * Gère les conditions $or qui contiennent des tables jointes
+   *
+   * Crée un filterJoin spécial de type 'or_group' qui combine toutes les
+   * conditions avec OR au lieu de AND.
+   *
+   * @param {Array} orConditions - Array de conditions du $or
+   */
+  _handleOrWithJoinedTables(orConditions) {
+    // Séparer les conditions principales et jointes
+    const mainTableConditions = [];
+    const joinedTableConditions = [];
+
+    _.forEach(orConditions, (cond) => {
+      const hasJoinedTable = _.some(_.keys(cond), key => key.includes('.'));
+
+      if (hasJoinedTable) {
+        // Condition sur table jointe
+        joinedTableConditions.push(cond);
+      } else {
+        // Condition sur table principale
+        mainTableConditions.push(cond);
+      }
+    });
+
+    // Traiter les conditions sur table principale avec OR
+    if (mainTableConditions.length > 0) {
+      const orClauses = [];
+      const orParams = [];
+
+      _.forEach(mainTableConditions, (cond) => {
+        _.forOwn(cond, (value, key) => {
+          const columnRef = `\`${this.query.table}\`.\`${key}\``;
+
+          if (value === null || value === undefined) {
+            orClauses.push(`${columnRef} IS NULL`);
+          } else if (_.isArray(value)) {
+            if (value.length === 0) {
+              orClauses.push('FALSE');
+            } else {
+              orClauses.push(`${columnRef} IN ($?)`);
+              orParams.push(value);
+            }
+          } else if (_.isString(value) && value.includes('%')) {
+            orClauses.push(`${columnRef} LIKE $?`);
+            orParams.push(value);
+          } else {
+            orClauses.push(`${columnRef} = $?`);
+            orParams.push(value);
+          }
+        });
+      });
+
+      if (orClauses.length > 0) {
+        const orSQL = `(${orClauses.join(' OR ')})`;
+        super.where(orSQL, orParams);
+      }
+    }
+
+    // Traiter les conditions sur tables jointes
+    // Créer un filterJoin spécial qui sera traité comme un groupe OR
+    if (joinedTableConditions.length > 0) {
+      this.query.filterJoins.push({
+        type: 'or_group',
+        conditions: joinedTableConditions
+      });
+    }
   }
 
   /**

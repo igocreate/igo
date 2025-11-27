@@ -525,7 +525,7 @@ async function example10_SortOnJoinedTable() {
 
   console.log('✓ Tri sur colonne de table jointe :');
   console.log('  - ORDER BY applicants.last_name ASC');
-  console.log('  → INNER JOIN automatique ajouté dans phase IDS');
+  console.log('  → LEFT JOIN automatique ajouté dans phase IDS');
   console.log('  → Tri côté base de données (rapide)');
   console.log(`  → ${result.length} résultats trouvés\n`);
 
@@ -550,7 +550,7 @@ async function example11_SortOnNestedTable() {
 
   console.log('✓ Tri sur table imbriquée (niveau 2) :');
   console.log('  - ORDER BY companies.name ASC');
-  console.log('  → INNER JOIN cascade automatique (pme_folders → companies)');
+  console.log('  → LEFT JOIN en cascade automatique (pme_folders → companies)');
   console.log('  → Tri effectué dans la phase IDS');
   console.log(`  → ${result.length} résultats trouvés\n`);
 
@@ -577,7 +577,7 @@ async function example12_MultipleSortColumns() {
   console.log('✓ Tri sur plusieurs colonnes :');
   console.log('  - Tri primaire : applicants.last_name ASC');
   console.log('  - Tri secondaire : folders.created_at DESC');
-  console.log('  → INNER JOIN uniquement pour applicants (colonne de tri)');
+  console.log('  → LEFT JOIN uniquement pour applicants (colonne de tri)');
   console.log(`  → ${result.length} résultats trouvés\n`);
 
   return result;
@@ -695,6 +695,81 @@ async function example16_RealWorldPmfpFolders() {
   console.log('  - Tri et pagination');
   console.log('  → EXISTS imbriqués pour performances optimales');
   console.log(`  → ${result.pagination.count} résultats trouvés\n`);
+
+  return result;
+}
+
+/**
+ * Exemple 17 : Tri avec COALESCE (priorité de fallback)
+ */
+async function example17_SortWithCoalesce() {
+  console.log('=== EXEMPLE 17 : TRI AVEC COALESCE ===\n');
+
+  const result = await Folder.paginatedOptimized()
+    .where({ type: 'agp' })
+    .join(['beneficiary', 'beneficiarySnapshot'])
+    .order('COALESCE(`beneficiarySnapshot`.`identity_expires_at`, `beneficiary`.`identity_expires_at`) DESC')
+    .page(1, 10)
+    .execute();
+
+  console.log('✓ Tri avec fonction SQL COALESCE :');
+  console.log('  - Priorité : beneficiarySnapshot.identity_expires_at');
+  console.log('  - Fallback : beneficiary.identity_expires_at');
+  console.log('  → LEFT JOIN automatique sur les 2 tables dans phase IDS');
+  console.log(`  → ${result.pagination.count} résultats triés\n`);
+
+  // Afficher le SQL généré pour la phase IDS
+  const idsQuery = Folder.paginatedOptimized()
+    .where({ type: 'agp' })
+    .join(['beneficiary', 'beneficiarySnapshot'])
+    .order('COALESCE(`beneficiarySnapshot`.`identity_expires_at`, `beneficiary`.`identity_expires_at`) DESC')
+    .page(1, 10);
+
+  showGeneratedSQL(idsQuery, 'select_ids');
+
+  return result;
+}
+
+/**
+ * Exemple 18 : Tri avec IFNULL
+ */
+async function example18_SortWithIfnull() {
+  console.log('=== EXEMPLE 18 : TRI AVEC IFNULL ===\n');
+
+  const result = await Folder.paginatedOptimized()
+    .where({ type: ['pme', 'pmf'] })
+    .join('pme_folder.company')
+    .order('IFNULL(`pme_folder.company`.`name`, "N/A") ASC')
+    .page(1, 10)
+    .execute();
+
+  console.log('✓ Tri avec fonction IFNULL :');
+  console.log('  - Tri sur pme_folder.company.name');
+  console.log('  - Valeur par défaut : "N/A" si NULL');
+  console.log('  → LEFT JOIN en cascade (pme_folder → company)');
+  console.log(`  → ${result.pagination.count} résultats triés\n`);
+
+  return result;
+}
+
+/**
+ * Exemple 19 : Tri avec CONCAT (nom complet)
+ */
+async function example19_SortWithConcat() {
+  console.log('=== EXEMPLE 19 : TRI AVEC CONCAT ===\n');
+
+  const result = await Folder.paginatedOptimized()
+    .where({ type: 'agp' })
+    .join('applicant')
+    .order('CONCAT(`applicant`.`last_name`, " ", `applicant`.`first_name`) ASC')
+    .page(1, 10)
+    .execute();
+
+  console.log('✓ Tri avec fonction CONCAT :');
+  console.log('  - Concaténation : last_name + " " + first_name');
+  console.log('  - Tri alphabétique sur nom complet');
+  console.log('  → LEFT JOIN sur applicant dans phase IDS');
+  console.log(`  → ${result.pagination.count} résultats triés\n`);
 
   return result;
 }
