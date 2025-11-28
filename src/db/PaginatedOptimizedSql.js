@@ -140,11 +140,16 @@ module.exports = class PaginatedOptimizedSql extends Sql {
    * Analyse les clauses ORDER BY pour identifier les colonnes qui proviennent
    * de tables jointes (directes ou imbriquées). Retourne les associations en cascade.
    *
+   * Gère également les colonnes sans préfixe de table (ex: "studies_year") en cherchant
+   * automatiquement dans les associations belongs_to si la colonne n'existe pas dans
+   * la table principale.
+   *
    * @returns {Array} Liste hiérarchique des associations nécessaires pour le tri
    *
    * Exemples :
    * - ORDER BY "applicants.last_name ASC" → [{path: [...], pathKey: 'applicant'}]
    * - ORDER BY "pmfp_folder.formationNature.name" → [{path: [...], pathKey: 'pmfp_folder.formationNature'}]
+   * - ORDER BY "studies_year ASC" → [{path: [...], pathKey: 'studies'}] (si studies_year existe dans une table de block)
    */
   _detectJoinTablesForSort() {
     const { query } = this;
@@ -192,13 +197,66 @@ module.exports = class PaginatedOptimizedSql extends Sql {
             }
           }
         });
+
+        // Also extract simple column names (without table prefix) in SQL functions
+        // and check if they belong to block tables
+        const simpleColumns = this._extractSimpleColumnsFromOrderClause(orderClause);
+
+        _.forEach(simpleColumns, (columnName) => {
+          // Check if column exists in main table
+          const existsInMainTable = query.schema && query.schema.colsByName && query.schema.colsByName[columnName];
+
+          if (!existsInMainTable) {
+            // Column not in main table - search in associations (blocks)
+            const assocPath = this._findAssociationByColumn(columnName, query.schema);
+
+            if (assocPath && assocPath.length > 0) {
+              const pathKey = assocPath.map(p => p.association[1]).join('.');
+
+              // Avoid duplicates
+              if (!_.find(joinPaths, jp => jp.pathKey === pathKey)) {
+                joinPaths.push({
+                  pathKey,
+                  path: assocPath,
+                  tablePath: [assocPath[assocPath.length - 1].tableName],
+                  columnName
+                });
+              }
+            }
+          }
+        });
       } else {
         // For non-function ORDER BY, parse as nested path
         const cleanedClause = orderClause.replace(/`/g, '').trim();
         const parts = cleanedClause.split(/\s+/)[0].split('.'); // Take only before ASC/DESC
 
         if (parts.length < 2) {
-          // No dot, it's a column on main table
+          // No dot - could be a column on main table OR a column from a block table
+          const columnName = parts[0];
+
+          // Check if column exists in main table
+          const existsInMainTable = query.schema && query.schema.colsByName && query.schema.colsByName[columnName];
+
+          if (!existsInMainTable) {
+            // Column not in main table - search in associations (blocks)
+            const assocPath = this._findAssociationByColumn(columnName, query.schema);
+
+            if (assocPath && assocPath.length > 0) {
+              const pathKey = assocPath.map(p => p.association[1]).join('.');
+
+              // Avoid duplicates
+              if (!_.find(joinPaths, jp => jp.pathKey === pathKey)) {
+                joinPaths.push({
+                  pathKey,
+                  path: assocPath,
+                  tablePath: [assocPath[assocPath.length - 1].tableName],
+                  columnName
+                });
+              }
+            }
+          }
+
+          // If column exists in main table or wasn't found in associations, no join needed
           return;
         }
 
@@ -237,6 +295,60 @@ module.exports = class PaginatedOptimizedSql extends Sql {
     });
 
     return joinPaths;
+  }
+
+  /**
+   * Extract simple column names (without table prefix) from an ORDER BY clause
+   * Handles SQL functions like COALESCE, IFNULL, CONCAT, etc.
+   *
+   * Examples:
+   * - "COALESCE(`studies_year`, 'N/A')" → ["studies_year"]
+   * - "CONCAT(`first_name`, ' ', `last_name`)" → ["first_name", "last_name"]
+   * - "IFNULL(bac_year, 0)" → ["bac_year"]
+   *
+   * @param {string} orderClause - The ORDER BY clause to parse
+   * @returns {Array<string>} - Array of unique column names (without table prefix)
+   */
+  _extractSimpleColumnsFromOrderClause(orderClause) {
+    const columnNames = new Set();
+
+    // Pattern pour capturer les identifiants entre backticks qui n'ont pas de point avant
+    // Ex: `studies_year` mais pas `table`.`column`
+    const backtickPattern = /(?<!\.)(`(\w+)`)/g;
+    let match;
+    while ((match = backtickPattern.exec(orderClause)) !== null) {
+      const columnName = match[2];
+      // Vérifier qu'il n'y a pas de point juste avant (sinon c'est une référence table.colonne)
+      const beforeMatch = orderClause.substring(0, match.index);
+      if (!beforeMatch.endsWith('.')) {
+        columnNames.add(columnName);
+      }
+    }
+
+    // Pattern pour capturer les identifiants sans backticks qui n'ont pas de point
+    // et qui ne sont pas des mots-clés SQL
+    const sqlKeywords = new Set([
+      'SELECT', 'FROM', 'WHERE', 'ORDER', 'BY', 'ASC', 'DESC',
+      'COALESCE', 'IFNULL', 'CONCAT', 'CONCAT_WS', 'SUBSTRING',
+      'UPPER', 'LOWER', 'TRIM', 'LENGTH', 'DATE', 'NOW', 'NULL', 'AND', 'OR'
+    ]);
+
+    // Pattern pour les identifiants sans backticks (lettres, chiffres, underscores)
+    // qui ne sont pas suivis d'une parenthèse (pas une fonction)
+    const identifierPattern = /\b([a-zA-Z_]\w+)\b(?!\s*\()/g;
+    while ((match = identifierPattern.exec(orderClause)) !== null) {
+      const identifier = match[1];
+      // Ignorer les mots-clés SQL et les valeurs spéciales
+      if (!sqlKeywords.has(identifier.toUpperCase()) && identifier !== 'N' && identifier !== 'A') {
+        // Vérifier qu'il n'y a pas de point juste avant
+        const beforeMatch = orderClause.substring(0, match.index);
+        if (!beforeMatch.trimEnd().endsWith('.')) {
+          columnNames.add(identifier);
+        }
+      }
+    }
+
+    return Array.from(columnNames);
   }
 
   /**
@@ -281,6 +393,26 @@ module.exports = class PaginatedOptimizedSql extends Sql {
   }
 
   /**
+   * Récupère les associations d'un schema (gère le cas où associations est une fonction)
+   *
+   * @param {Object} schema - Schema
+   * @returns {Array|null} Tableau d'associations ou null
+   */
+  _getSchemaAssociations(schema) {
+    if (!schema || !schema.associations) {
+      return null;
+    }
+
+    // Si associations est une fonction, l'appeler pour obtenir le tableau
+    // (Normalement cela devrait déjà être fait par Schema, mais on gère le cas par sécurité)
+    if (_.isFunction(schema.associations)) {
+      return schema.associations();
+    }
+
+    return schema.associations;
+  }
+
+  /**
    * Construit un chemin d'associations à partir d'un tableau de noms (association ou table)
    *
    * @param {Array} names - Tableau de noms d'associations ou de tables (ex: ["pmfp_folder", "formationNature"] ou ["applicants"])
@@ -295,7 +427,8 @@ module.exports = class PaginatedOptimizedSql extends Sql {
    *   ]
    */
   _buildAssociationPath(names, currentSchema) {
-    if (!currentSchema || !currentSchema.associations || names.length === 0) {
+    const associations = this._getSchemaAssociations(currentSchema);
+    if (!associations || names.length === 0) {
       return null;
     }
 
@@ -303,8 +436,13 @@ module.exports = class PaginatedOptimizedSql extends Sql {
     let schema = currentSchema;
 
     for (const name of names) {
+      const schemaAssociations = this._getSchemaAssociations(schema);
+      if (!schemaAssociations) {
+        return null;
+      }
+
       // Chercher l'association par nom OU par nom de table dans le schema courant
-      const association = _.find(schema.associations, (assoc) => {
+      const association = _.find(schemaAssociations, (assoc) => {
         const [, assocName, AssociatedModel] = assoc;
 
         // Matcher sur le nom de l'association
@@ -351,13 +489,14 @@ module.exports = class PaginatedOptimizedSql extends Sql {
    */
   _findAssociationByTable(tableName) {
     const { query } = this;
+    const associations = this._getSchemaAssociations(query.schema);
 
-    if (!query.schema || !query.schema.associations) {
+    if (!associations) {
       return null;
     }
 
     // Chercher dans les associations du schema (ici on a toujours les Model classes)
-    const association = _.find(query.schema.associations, (assoc) => {
+    const association = _.find(associations, (assoc) => {
       const [, , AssociatedModel] = assoc;
       if (!AssociatedModel || !AssociatedModel.schema) {
         return false;
@@ -366,6 +505,53 @@ module.exports = class PaginatedOptimizedSql extends Sql {
     });
 
     return association || null;
+  }
+
+  /**
+   * Trouve une association qui contient une colonne donnée
+   *
+   * Cette méthode cherche dans les associations belongs_to directes du schema
+   * pour trouver laquelle contient la colonne spécifiée.
+   *
+   * Utilisé pour gérer les colonnes de "blocks" dans les ORDER BY.
+   *
+   * @param {string} columnName - Nom de la colonne à chercher (ex: 'studies_year')
+   * @param {Object} currentSchema - Schema actuel
+   * @returns {Array|null} Chemin vers l'association contenant la colonne, ou null
+   *
+   * Exemple :
+   * _findAssociationByColumn('studies_year', PMEFolderSchema)
+   * → [{association: ['belongs_to', 'studies', StudiesBlock, 'block_studies_id', 'id'], tableName: 'block_studies'}]
+   */
+  _findAssociationByColumn(columnName, currentSchema) {
+    const associations = this._getSchemaAssociations(currentSchema);
+    if (!associations) {
+      return null;
+    }
+
+    // Chercher dans les associations directes (belongs_to uniquement pour les blocks)
+    for (const assoc of associations) {
+      const [assocType, assocName, AssociatedModel, src_column, ref_column] = assoc;
+
+      // On cherche uniquement dans les belongs_to
+      if (assocType !== 'belongs_to' || !AssociatedModel || !AssociatedModel.schema) {
+        continue;
+      }
+
+      const assocSchema = AssociatedModel.schema;
+      const assocTableName = assocSchema.table;
+
+      // Vérifier si la colonne existe dans ce schema
+      if (assocSchema.colsByName && assocSchema.colsByName[columnName]) {
+        // Colonne trouvée ! Retourner le chemin
+        return [{
+          association: assoc,
+          tableName: assocTableName
+        }];
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -388,7 +574,8 @@ module.exports = class PaginatedOptimizedSql extends Sql {
    * → [{association: [...], tableName: 'pmfp_folders'}, {association: [...], tableName: 'formation_natures'}]
    */
   _findPathToTable(target, currentSchema, currentPath = [], visitedTables = new Set()) {
-    if (!currentSchema || !currentSchema.associations) {
+    const associations = this._getSchemaAssociations(currentSchema);
+    if (!associations) {
       return null;
     }
 
@@ -406,7 +593,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
     }
 
     // Chercher dans les associations directes
-    for (const assoc of currentSchema.associations) {
+    for (const assoc of associations) {
       const [, assocName, AssociatedModel, src_column, ref_column] = assoc;
 
       if (!AssociatedModel || !AssociatedModel.schema) {
@@ -734,9 +921,14 @@ module.exports = class PaginatedOptimizedSql extends Sql {
       return null;
     }
 
+    const associations = this._getSchemaAssociations(currentSchema);
+    if (!associations) {
+      return null;
+    }
+
     // Chercher la première association
     const firstAssocName = path[0];
-    const association = _.find(currentSchema.associations, (assoc) => {
+    const association = _.find(associations, (assoc) => {
       return assoc[1] === firstAssocName;
     });
 
@@ -892,6 +1084,43 @@ module.exports = class PaginatedOptimizedSql extends Sql {
   }
 
   /**
+   * Transforme une clause ORDER BY pour la phase FULL (utilise les noms d'associations comme alias)
+   *
+   * @param {string} orderClause - Clause ORDER BY (ex: "pme_folder.studies.studies_year DESC" ou "studies_year")
+   * @returns {string} Clause transformée avec alias (ex: "studies.studies_year DESC")
+   */
+  _transformOrderClauseForFullQuery(orderClause) {
+    // Parser la clause ORDER BY pour extraire ASC/DESC
+    const cleanedClause = orderClause.replace(/`/g, '').trim();
+    const match = cleanedClause.match(/^(.+?)\s+(ASC|DESC)$/i);
+
+    let expression, direction;
+    if (match) {
+      expression = match[1];
+      direction = match[2];
+    } else {
+      expression = cleanedClause;
+      direction = '';
+    }
+
+    // Détecter si c'est une fonction SQL
+    const hasSqlFunction = /\b(COALESCE|IFNULL|CONCAT|CONCAT_WS|UPPER|LOWER|SUBSTRING|TRIM)\s*\(/i.test(expression);
+
+    if (hasSqlFunction) {
+      // Pour les fonctions, transformer les chemins à l'intérieur
+      // Note: _transformPathsInExpression utilise _transformSinglePath, donc on ne peut pas l'utiliser directement
+      // Pour l'instant, on retourne tel quel (les fonctions dans FULL query sont rares avec des blocks)
+      // TODO: créer une version spéciale si nécessaire
+    } else {
+      // Transformation simple
+      expression = this._transformPathForFullQuery(expression);
+    }
+
+    // Reconstruire avec direction
+    return direction ? `${expression} ${direction}` : expression;
+  }
+
+  /**
    * Transforme une clause ORDER BY en remplaçant les noms d'associations par les noms de tables
    *
    * Gère aussi les fonctions SQL comme COALESCE, IFNULL, CONCAT, etc.
@@ -931,29 +1160,140 @@ module.exports = class PaginatedOptimizedSql extends Sql {
 
   /**
    * Transforme tous les chemins association.colonne dans une expression SQL
+   * Gère également les colonnes simples (sans préfixe) qui proviennent de blocks
    *
-   * @param {string} expression - Expression SQL (ex: "COALESCE(beneficiary.name, applicant.name)")
-   * @returns {string} Expression transformée (ex: "COALESCE(beneficiaries.name, applicants.name)")
+   * @param {string} expression - Expression SQL (ex: "COALESCE(beneficiary.name, applicant.name)" ou "COALESCE(studies_year, 'N/A')")
+   * @returns {string} Expression transformée (ex: "COALESCE(beneficiaries.name, applicants.name)" ou "COALESCE(block_studies.studies_year, 'N/A')")
    */
   _transformPathsInExpression(expression) {
     const { query } = this;
 
-    // Pattern pour capturer table.colonne ou `table`.`colonne`
-    // Supporte les chemins imbriqués comme table1.table2.colonne
-    const pathPattern = /\b([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)+)\b/g;
+    // Mots-clés SQL à ne pas transformer
+    const sqlKeywords = new Set([
+      'SELECT', 'FROM', 'WHERE', 'ORDER', 'BY', 'ASC', 'DESC',
+      'COALESCE', 'IFNULL', 'CONCAT', 'CONCAT_WS', 'SUBSTRING',
+      'UPPER', 'LOWER', 'TRIM', 'LENGTH', 'DATE', 'NOW', 'NULL', 'AND', 'OR'
+    ]);
 
-    return expression.replace(pathPattern, (match) => {
-      // match est quelque chose comme "beneficiary_snapshot.identity_expires_at"
-      const transformed = this._transformSinglePath(match);
-      return transformed;
+    // Regex combiné qui capture TOUS les types de chemins/colonnes en une seule passe
+    // Cette approche évite la re-transformation des chemins déjà transformés
+    //
+    // Groupe 1: paths avec points (sans backticks) comme table.column
+    // Groupe 2: colonnes simples avec backticks comme `column`
+    // Groupe 3: identificateurs simples (sans backticks, sans points)
+    const combinedPattern = /(\b[a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)+\b)|(`[a-zA-Z_][a-zA-Z0-9_]*`)(?!\s*\.)|(\b[a-zA-Z_][a-zA-Z0-9_]*\b)(?!\s*[\.\(])/g;
+
+    return expression.replace(combinedPattern, (match, plainPath, backtickColumn, plainIdentifier) => {
+      // Cas 1: Chemins avec points (ex: table.column, table1.table2.column)
+      if (plainPath) {
+        const transformed = this._transformSinglePath(plainPath);
+        return transformed;
+      }
+
+      // Cas 2: Colonne simple avec backticks (ex: `column`)
+      if (backtickColumn) {
+        const columnName = backtickColumn.replace(/`/g, '');
+
+        // Vérifier si c'est dans la table principale
+        const existsInMainTable = query.schema?.colsByName?.[columnName];
+        if (existsInMainTable) {
+          return match; // Garder tel quel
+        }
+
+        // Chercher dans les associations (blocks)
+        const assocPath = this._findAssociationByColumn(columnName, query.schema);
+        if (assocPath && assocPath.length > 0) {
+          const tableName = assocPath[0].tableName;
+          return `\`${tableName}\`.\`${columnName}\``;
+        }
+
+        return match;
+      }
+
+      // Cas 3: Identifiant simple sans backticks (ex: column)
+      if (plainIdentifier) {
+        // Ignorer les mots-clés SQL
+        if (sqlKeywords.has(plainIdentifier.toUpperCase())) {
+          return match;
+        }
+
+        // Vérifier si c'est dans la table principale
+        const existsInMainTable = query.schema?.colsByName?.[plainIdentifier];
+        if (existsInMainTable) {
+          return match;
+        }
+
+        // Chercher dans les associations (blocks)
+        const assocPath = this._findAssociationByColumn(plainIdentifier, query.schema);
+        if (assocPath && assocPath.length > 0) {
+          const tableName = assocPath[0].tableName;
+          return `${tableName}.${plainIdentifier}`;
+        }
+
+        return match;
+      }
+
+      return match;
     });
+  }
+
+  /**
+   * Transforme un chemin d'association pour la phase FULL (utilise les noms d'associations comme alias)
+   *
+   * @param {string} path - Chemin (ex: "pme_folder.studies.studies_year" ou "studies_year")
+   * @returns {string} Chemin transformé avec alias (ex: "studies.studies_year")
+   */
+  _transformPathForFullQuery(path) {
+    const { query } = this;
+
+    // Split le chemin par point
+    const parts = path.split('.');
+
+    if (parts.length < 2) {
+      // Pas de point - peut être une colonne simple ou une colonne de block
+      const columnName = parts[0];
+
+      // Vérifier si la colonne existe dans la table principale
+      const existsInMainTable = query.schema && query.schema.colsByName && query.schema.colsByName[columnName];
+
+      if (!existsInMainTable) {
+        // Chercher dans les associations (blocks)
+        const assocPath = this._findAssociationByColumn(columnName, query.schema);
+
+        if (assocPath && assocPath.length > 0) {
+          // Colonne trouvée dans une table de block - utiliser le nom de l'association comme alias
+          const assocName = assocPath[0].association[1]; // Nom de l'association
+          return `${assocName}.${columnName}`;
+        }
+      }
+
+      // Colonne dans la table principale ou non trouvée - retourner tel quel
+      return path;
+    }
+
+    // Le dernier élément est la colonne
+    const columnName = parts[parts.length - 1];
+    const associationPath = parts.slice(0, -1);
+
+    // Si le premier élément est déjà la table principale, pas de transformation
+    if (associationPath[0] === query.table) {
+      return path;
+    }
+
+    // Pour les chemins imbriqués, utiliser le dernier nom d'association comme alias
+    // Ex: "pme_folder.studies.studies_year" -> "studies.studies_year"
+    const lastAssocName = associationPath[associationPath.length - 1];
+    return `${lastAssocName}.${columnName}`;
   }
 
   /**
    * Transforme un seul chemin association.colonne en table.colonne
    *
-   * @param {string} path - Chemin (ex: "beneficiary_snapshot.identity_expires_at" ou "pme_folder.company.name")
-   * @returns {string} Chemin transformé (ex: "beneficiaries_snapshots.identity_expires_at" ou "companies.name")
+   * Gère également les colonnes sans préfixe (ex: "studies_year") en cherchant
+   * dans les associations si elles proviennent d'une table de block.
+   *
+   * @param {string} path - Chemin (ex: "beneficiary_snapshot.identity_expires_at", "pme_folder.company.name", ou "studies_year")
+   * @returns {string} Chemin transformé (ex: "beneficiaries_snapshots.identity_expires_at", "companies.name", ou "block_studies.studies_year")
    */
   _transformSinglePath(path) {
     const { query } = this;
@@ -962,7 +1302,24 @@ module.exports = class PaginatedOptimizedSql extends Sql {
     const parts = path.split('.');
 
     if (parts.length < 2) {
-      // Pas de point, c'est une colonne simple
+      // Pas de point - peut être une colonne simple ou une colonne de block
+      const columnName = parts[0];
+
+      // Vérifier si la colonne existe dans la table principale
+      const existsInMainTable = query.schema && query.schema.colsByName && query.schema.colsByName[columnName];
+
+      if (!existsInMainTable) {
+        // Chercher dans les associations (blocks)
+        const assocPath = this._findAssociationByColumn(columnName, query.schema);
+
+        if (assocPath && assocPath.length > 0) {
+          // Colonne trouvée dans une table de block - ajouter le préfixe
+          const tableName = assocPath[0].tableName;
+          return `${tableName}.${columnName}`;
+        }
+      }
+
+      // Colonne dans la table principale ou non trouvée - retourner tel quel
       return path;
     }
 

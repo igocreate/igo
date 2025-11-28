@@ -56,12 +56,24 @@ describe('db.PaginatedOptimizedQuery', function() {
       id: 'integer',
       status: 'string',
       company_id: 'integer',
-      company_name: 'string'
+      company_name: 'string',
+      block_studies_id: 'integer'
     },
     associations: [
       ['belongs_to', 'company', Company, 'company_id', 'id']
     ]
   }) {}
+
+  // Separate class to avoid circular dependencies in test setup
+  // This will be used for testing nested block paths
+  class PmeFolderWithBlocks extends PmeFolder {}
+
+  // Define associations after class declaration to handle forward references
+  PmeFolderWithBlocks.schema.columns.block_studies_id = 'integer';
+  PmeFolderWithBlocks.schema.columns.block_travel_wishes_id = 'integer';
+  PmeFolderWithBlocks.schema.colsByName = PmeFolderWithBlocks.schema.colsByName || {};
+  PmeFolderWithBlocks.schema.colsByName.block_studies_id = 'integer';
+  PmeFolderWithBlocks.schema.colsByName.block_travel_wishes_id = 'integer';
 
   class Applicant extends Model({
     table: 'applicants',
@@ -88,6 +100,72 @@ describe('db.PaginatedOptimizedQuery', function() {
     associations: [
       ['belongs_to', 'applicant', Applicant, 'applicant_id', 'id'],
       ['belongs_to', 'pme_folder', PmeFolder, 'pme_folder_id', 'id']
+    ]
+  }) {}
+
+  // Modèles de test pour les "blocks" (sous-tables)
+  class StudiesBlock extends Model({
+    table: 'block_studies',
+    primary: ['id'],
+    columns: [
+      'id',
+      'ine_number',
+      'student_status',
+      'studies_year',
+      'studies_field',
+      { name: 'bac_year', type: 'integer' }
+    ]
+  }) {}
+
+  class TravelWishesBlock extends Model({
+    table: 'block_travel_wishes',
+    primary: ['id'],
+    columns: [
+      'id',
+      { name: 'departure_date', type: 'date' },
+      { name: 'return_date', type: 'date' },
+      'destination'
+    ]
+  }) {}
+
+  // Now add block associations to PmeFolderWithBlocks (must be after block classes are defined)
+  PmeFolderWithBlocks.schema.associations = [
+    ['belongs_to', 'company', Company, 'company_id', 'id'],
+    ['belongs_to', 'block_study', StudiesBlock, 'block_studies_id', 'id'],
+    ['belongs_to', 'block_travel_wish', TravelWishesBlock, 'block_travel_wishes_id', 'id']
+  ];
+
+  // Folder variant with PmeFolderWithBlocks for testing nested block paths
+  class FolderWithNestedBlocks extends Model({
+    table: 'folders',
+    primary: ['id'],
+    columns: {
+      id: 'integer',
+      type: 'string',
+      status: 'string',
+      applicant_id: 'integer',
+      pme_folder_id: 'integer',
+      created_at: 'datetime'
+    },
+    associations: [
+      ['belongs_to', 'applicant', Applicant, 'applicant_id', 'id'],
+      ['belongs_to', 'pme_folder', PmeFolderWithBlocks, 'pme_folder_id', 'id']
+    ]
+  }) {}
+
+  class PMEFolderWithBlocks extends Model({
+    table: 'pme_folders_with_blocks',
+    primary: ['id'],
+    columns: [
+      'id',
+      { name: 'block_studies_id', type: 'integer' },
+      { name: 'block_travel_wishes_id', type: 'integer' },
+      'professional_activity',
+      { name: 'is_initial', type: 'boolean' }
+    ],
+    associations: () => [
+      ['belongs_to', 'studies', StudiesBlock, 'block_studies_id', 'id'],
+      ['belongs_to', 'travel_wishes', TravelWishesBlock, 'block_travel_wishes_id', 'id']
     ]
   }) {}
 
@@ -600,6 +678,49 @@ describe('db.PaginatedOptimizedQuery', function() {
       // Doit conserver la fonction UPPER
       assert.ok(sql.sql.includes('ORDER BY UPPER'), 'SQL should preserve UPPER function');
     });
+
+    it('should not double-transform paths in COALESCE (idempotence)', () => {
+      // Test pour vérifier qu'il n'y a pas de double-transformation
+      // Ce test vérifie le bug: applicant.last_name dans un COALESCE
+      // ne doit PAS être transformé 2 fois et devenir applicants.something.last_name
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'select_ids';
+      query
+        .where({ type: 'agp' })
+        .join('applicant')
+        .join('pme_folder.company')
+        .order('COALESCE(applicant.last_name, applicant.first_name, pme_folder.company_name, companies.name) ASC')
+        .limit(25);
+
+      const sql = query.toSQL();
+
+      // Doit transformer correctement SANS double transformation
+      assert.ok(sql.sql.includes('applicants.last_name'), 'Should transform applicant to applicants');
+      assert.ok(sql.sql.includes('applicants.first_name'), 'Should transform applicant fields');
+      assert.ok(sql.sql.includes('pme_folders.company_name'), 'Should transform pme_folder to pme_folders');
+      assert.ok(sql.sql.includes('companies.name'), 'Should transform company to companies');
+
+      // NE DOIT PAS contenir de chemins avec 3 niveaux (double transformation)
+      assert.ok(!sql.sql.includes('.applicants.'), 'Should NOT have double-transformed paths like table.applicants.column');
+      assert.ok(!sql.sql.includes('.companies.'), 'Should NOT have double-transformed paths like table.companies.column');
+      assert.ok(!sql.sql.includes('.pme_folders.'), 'Should NOT have double-transformed paths like table.pme_folders.column');
+    });
+
+    it('transformation should be idempotent (_transformSinglePath)', () => {
+      // Test pour vérifier que transformer 2 fois donne le même résultat
+      const PaginatedOptimizedSql = require('../../src/db/PaginatedOptimizedSql');
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const sqlGenerator = new PaginatedOptimizedSql(query);
+
+      const original = 'applicant.last_name';
+      const transformed1 = sqlGenerator._transformSinglePath(original);
+      const transformed2 = sqlGenerator._transformSinglePath(transformed1);
+
+      assert.strictEqual(transformed1, 'applicants.last_name',
+        'First transformation should give correct result');
+      assert.strictEqual(transformed1, transformed2,
+        'Transforming twice should give the same result (idempotent)');
+    });
   });
 
   describe('LEFT JOIN preserves rows with NULL', function() {
@@ -809,6 +930,254 @@ describe('db.PaginatedOptimizedQuery', function() {
       // Devrait générer un SQL valide sans conditions
       assert.ok(sql.sql.includes('SELECT COUNT(0)'), 'Should generate COUNT SQL');
       assert.ok(!sql.sql.includes('WHERE'), 'Should not have WHERE clause for empty conditions');
+    });
+  });
+
+  //
+  describe('Block tables (sub-tables) support', function() {
+    it('should detect ORDER BY on block column without prefix and add LEFT JOIN', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      query.query.verb = 'select_ids';
+      query
+        .where({ is_initial: true })
+        .order('studies_year DESC')  // Colonne dans block_studies, sans préfixe
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Doit ajouter un LEFT JOIN vers block_studies
+      assert.ok(sql.sql.includes('LEFT JOIN `block_studies`'), 'SQL should LEFT JOIN block_studies for sorting on block column');
+      assert.ok(sql.sql.includes('ON `block_studies`.`id` = `pme_folders_with_blocks`.`block_studies_id`'), 'SQL should have correct join condition');
+
+      // Doit transformer ORDER BY en block_studies.studies_year
+      assert.ok(sql.sql.includes('ORDER BY block_studies.studies_year DESC'), 'SQL should prefix column with table name');
+    });
+
+    it('should handle multiple block columns in ORDER BY', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      query.query.verb = 'select_ids';
+      query
+        .where({ is_initial: true })
+        .order('studies_year DESC')
+        .order('bac_year ASC')  // Autre colonne du même block
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Un seul LEFT JOIN doit être ajouté (pas de duplication)
+      const leftJoinCount = (sql.sql.match(/LEFT JOIN `block_studies`/g) || []).length;
+      assert.strictEqual(leftJoinCount, 1, 'Should have exactly one LEFT JOIN to block_studies');
+
+      // Les deux colonnes doivent être préfixées
+      assert.ok(sql.sql.includes('ORDER BY block_studies.studies_year DESC'), 'Should prefix studies_year');
+      assert.ok(sql.sql.includes('block_studies.bac_year ASC'), 'Should prefix bac_year');
+    });
+
+    it('should handle ORDER BY on different blocks', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      query.query.verb = 'select_ids';
+      query
+        .where({ is_initial: true })
+        .order('studies_year DESC')  // Colonne dans block_studies
+        .order('destination ASC')    // Colonne dans block_travel_wishes
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Doit ajouter deux LEFT JOIN (un pour chaque block)
+      assert.ok(sql.sql.includes('LEFT JOIN `block_studies`'), 'Should LEFT JOIN block_studies');
+      assert.ok(sql.sql.includes('LEFT JOIN `block_travel_wishes`'), 'Should LEFT JOIN block_travel_wishes');
+
+      // Les colonnes doivent être préfixées correctement
+      assert.ok(sql.sql.includes('ORDER BY block_studies.studies_year DESC'), 'Should prefix studies_year with block_studies');
+      assert.ok(sql.sql.includes('block_travel_wishes.destination ASC'), 'Should prefix destination with block_travel_wishes');
+    });
+
+    it('should NOT add JOIN if column exists in main table', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      query.query.verb = 'select_ids';
+      query
+        .where({ is_initial: true })
+        .order('professional_activity DESC')  // Colonne dans la table principale
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Ne doit PAS ajouter de LEFT JOIN
+      assert.ok(!sql.sql.includes('LEFT JOIN'), 'Should not add LEFT JOIN for main table column');
+
+      // ORDER BY doit rester simple
+      assert.ok(sql.sql.includes('ORDER BY professional_activity DESC'), 'Should keep simple ORDER BY for main table column');
+    });
+
+    it('should handle COUNT without JOIN for block ORDER BY', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      query.query.verb = 'count';
+      query
+        .where({ is_initial: true })
+        .order('studies_year DESC')  // ORDER BY est ignoré dans COUNT
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // COUNT ne doit PAS avoir de LEFT JOIN
+      assert.ok(!sql.sql.includes('LEFT JOIN'), 'COUNT should not have LEFT JOIN');
+
+      // COUNT ne doit PAS avoir de ORDER BY
+      assert.ok(!sql.sql.includes('ORDER BY'), 'COUNT should not have ORDER BY');
+    });
+
+    it('should combine block ORDER BY with WHERE filters', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      query.query.verb = 'select_ids';
+      query
+        .where({
+          is_initial: true,
+          professional_activity: 'STUDENT'
+        })
+        .order('studies_year DESC')
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Doit avoir WHERE sur la table principale
+      assert.ok(sql.sql.includes('WHERE'), 'Should have WHERE clause');
+      assert.ok(sql.sql.includes('`pme_folders_with_blocks`.`is_initial`'), 'Should filter on is_initial');
+      assert.ok(sql.sql.includes('`pme_folders_with_blocks`.`professional_activity`'), 'Should filter on professional_activity');
+
+      // Doit avoir LEFT JOIN pour le tri
+      assert.ok(sql.sql.includes('LEFT JOIN `block_studies`'), 'Should LEFT JOIN for ORDER BY');
+
+      // Doit avoir ORDER BY
+      assert.ok(sql.sql.includes('ORDER BY block_studies.studies_year DESC'), 'Should have ORDER BY on block column');
+    });
+
+    it('should handle SQL functions with block columns', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      query.query.verb = 'select_ids';
+      query
+        .where({ is_initial: true })
+        .order('COALESCE(`studies_year`, "N/A") DESC')
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Doit ajouter LEFT JOIN pour block_studies
+      assert.ok(sql.sql.includes('LEFT JOIN `block_studies`'), 'Should LEFT JOIN block_studies');
+
+      // Doit transformer studies_year en block_studies.studies_year dans la fonction
+      assert.ok(sql.sql.includes('COALESCE'), 'Should preserve COALESCE function');
+      assert.ok(sql.sql.includes('block_studies.studies_year'), 'Should prefix column in function with table name');
+    });
+
+    it('should work with explicit join() on block associations', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      query.query.verb = 'select_ids';
+      query
+        .where({ is_initial: true })
+        .join('studies')  // Join explicite sur l'association
+        .order('studies_year DESC')
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Même comportement : LEFT JOIN ajouté
+      assert.ok(sql.sql.includes('LEFT JOIN `block_studies`'), 'Should LEFT JOIN block_studies');
+      assert.ok(sql.sql.includes('ORDER BY block_studies.studies_year DESC'), 'Should prefix column with table name');
+    });
+
+    it('should transform nested association paths in ORDER BY for phase FULL', () => {
+      // Test pour vérifier que les chemins d'associations imbriqués sont transformés
+      // dans la phase FULL (qui utilise Query standard, pas PaginatedOptimizedSql)
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'select_ids';
+      query
+        .where({ type: 'pme' })
+        .join('pme_folder.company')
+        .order('pme_folder.company.name ASC')  // Chemin d'association imbriqué
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Dans la phase IDS, le ORDER BY doit être transformé
+      assert.ok(sql.sql.includes('ORDER BY companies.name ASC'), 'Should transform nested path to table name in IDS phase');
+    });
+
+    it('should transform nested block paths with dot notation (association.block.column)', () => {
+      // Test pour vérifier que les chemins imbriqués vers des blocks sont transformés
+      // Exemple : pme_folder.company.name doit être transformé en companies.name
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'select_ids';
+      query
+        .where({ type: 'pme' })
+        .join('pme_folder.company')
+        .order('pme_folder.company.name ASC')
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Le ORDER BY doit être transformé
+      assert.ok(sql.sql.includes('ORDER BY companies.name ASC'),
+        'Should transform pme_folder.company.name to companies.name in ORDER BY');
+    });
+
+    it('should handle nested path to block with 3 levels (folder.pme_folder.block_study.column)', () => {
+      // Test pour la hiérarchie complète : Folder -> PMEFolder -> StudiesBlock
+      // Ce test correspond au cas réel de l'utilisateur
+      const query = mockGetDb(new PaginatedOptimizedQuery(FolderWithNestedBlocks));
+      query.query.verb = 'select_ids';
+      query
+        .where({ type: ['agp', 'avt'] })
+        .order('pme_folder.block_study.bac_year DESC')  // Chemin imbriqué vers un block
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Doit ajouter les LEFT JOIN nécessaires
+      assert.ok(sql.sql.includes('LEFT JOIN `pme_folders`'), 'Should LEFT JOIN pme_folders');
+      assert.ok(sql.sql.includes('LEFT JOIN `block_studies`'), 'Should LEFT JOIN block_studies');
+
+      // Doit avoir les bonnes conditions de jointure
+      assert.ok(sql.sql.includes('ON `pme_folders`.`id` = `folders`.`pme_folder_id`'),
+        'Should have correct join condition for pme_folders');
+      assert.ok(sql.sql.includes('ON `block_studies`.`id` = `pme_folders`.`block_studies_id`'),
+        'Should have correct join condition for block_studies');
+
+      // Le ORDER BY doit être transformé
+      assert.ok(sql.sql.includes('ORDER BY block_studies.bac_year DESC'),
+        'Should transform pme_folder.block_study.bac_year to block_studies.bac_year');
+    });
+
+    it('should transform ORDER BY correctly for FULL phase with block columns', () => {
+      // Test pour vérifier que la transformation pour la phase FULL utilise les alias (noms d'associations)
+      // au lieu des noms de tables
+      const PaginatedOptimizedSql = require('../../src/db/PaginatedOptimizedSql');
+      const query = mockGetDb(new PaginatedOptimizedQuery(FolderWithNestedBlocks));
+
+      query
+        .where({ type: ['agp', 'avt'] })
+        .order('pme_folder.block_study.bac_year')  // Chemin imbriqué
+        .order('created_at DESC')  // Colonne de la table principale
+        .limit(50);
+
+      const sqlGenerator = new PaginatedOptimizedSql(query);
+
+      // Test de transformation pour phase IDS (noms de tables)
+      const transformedForIDS = sqlGenerator._transformOrderClause('pme_folder.block_study.bac_year');
+      assert.strictEqual(transformedForIDS, 'block_studies.bac_year',
+        'IDS phase should use table name (block_studies)');
+
+      // Test de transformation pour phase FULL (noms d'associations = alias)
+      const transformedForFULL = sqlGenerator._transformOrderClauseForFullQuery('pme_folder.block_study.bac_year');
+      assert.strictEqual(transformedForFULL, 'block_study.bac_year',
+        'FULL phase should use association name as alias (block_study)');
+
+      // Test avec colonne simple de block (uniquement pour modèles avec associations directes)
+      const queryWithBlocks = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      const sqlGeneratorWithBlocks = new PaginatedOptimizedSql(queryWithBlocks);
+      const transformedSimpleForFULL = sqlGeneratorWithBlocks._transformOrderClauseForFullQuery('studies_year');
+      assert.strictEqual(transformedSimpleForFULL, 'studies.studies_year',
+        'FULL phase should find block association for simple column name in direct associations');
     });
   });
 });

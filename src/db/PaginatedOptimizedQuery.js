@@ -1,6 +1,7 @@
 const _         = require('lodash');
 const Query     = require('./Query');
 const logger    = require('../logger');
+const PaginatedOptimizedSql = require('./PaginatedOptimizedSql');
 
 /**
  * PaginatedOptimizedQuery - Implémentation du pattern COUNT/IDS/FULL pour optimiser les requêtes avec jointures
@@ -424,6 +425,13 @@ module.exports = class PaginatedOptimizedQuery extends Query {
 
     // Conserver l'ORDER BY pour maintenir l'ordre
     // (Important car IN (...) ne garantit pas l'ordre)
+    // Transformer les chemins d'associations en noms d'associations (alias) pour la Query standard
+    if (fullQuery.query.order && fullQuery.query.order.length > 0) {
+      const sqlGenerator = new PaginatedOptimizedSql(this);  // Utiliser 'this' (PaginatedOptimizedQuery) au lieu de 'fullQuery'
+      fullQuery.query.order = fullQuery.query.order.map(orderClause => {
+        return sqlGenerator._transformOrderClauseForFullQuery(orderClause);
+      });
+    }
 
     const rows = await fullQuery.execute();
     return rows;
