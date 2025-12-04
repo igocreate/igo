@@ -79,10 +79,11 @@ class Db {
         return dialect.getRows(result);
 
       } catch (err) {
-        if (!options.silent) {
-          logQuery(sql, params, err);
+        if (options.silent) {
+          return;
         }
-        // rethrow error after logging
+        // log & rethrow error
+        logQuery(sql, params, err);
         throw err;
 
       } finally {
