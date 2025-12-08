@@ -29,7 +29,7 @@ AND a.last_name LIKE '%Dupont%'
 -- Temps : 5-10 secondes
 ```
 
-### Approche optimisée (RAPIDE)
+### Approche optimisée "COUNT / IDs / FULL"
 
 Avec `PaginatedOptimizedQuery`, les requêtes utilisent le pattern COUNT/IDS/FULL avec une syntaxe simplifiée :
 
@@ -82,7 +82,7 @@ ORDER BY f.created_at DESC
 -- Temps : 20-70ms (seulement 50 lignes à joindre)
 ```
 
-**Amélioration : 50x à 100x plus rapide !**
+**Amélioration : 50x à 100x plus rapide sur les requêtes avec bcp de jointures et bcp de lignes**
 
 ## Installation
 
@@ -120,7 +120,7 @@ Folder.paginatedOptimized()
 ```
 
 **Avantages :**
-- ✅ **Plus lisible** et intuitif
+- ✅ **Plus lisible** et moins verbeux
 - ✅ **Détection automatique** des chemins imbriqués
 
 ### Syntaxe de base
@@ -315,7 +315,7 @@ query.join('pme_folder.company.country');
 query.join(['applicant', 'pme_folder.company.country']);
 ```
 
-**Ancienne syntaxe (toujours supportée)** :
+**Autre syntaxe** :
 
 ```javascript
 // Joins imbriqués avec structure d'objet
@@ -500,48 +500,6 @@ const folders = await Folder.paginatedOptimized()
 // Retourne directement un array (pas de .pagination)
 ```
 
-### Exemple 7 : Comparaison avant/après
-
-**AVANT (syntaxe ancienne) :**
-```javascript
-const folders = await Folder.paginatedOptimized()
-  .where({ status: 'SUBMITTED' })
-  .filterJoin('applicant', { last_name: 'Dupont%' })
-  .filterJoinNested({
-    pme_folder: {
-      conditions: { status: 'ACTIVE' },
-      nested: {
-        company: {
-          conditions: { siret: '123%' },
-          nested: {
-            country: {
-              conditions: { code: 'FR' }
-            }
-          }
-        }
-      }
-    }
-  })
-  .join(['applicant', { pme_folder: { company: ['country'] } }])
-  .page(1, 50);
-```
-
-**MAINTENANT (syntaxe simplifiée) :**
-```javascript
-const folders = await Folder.paginatedOptimized()
-  .where({
-    status: 'SUBMITTED',
-    'applicant.last_name': 'Dupont%',
-    'pme_folder.status': 'ACTIVE',
-    'pme_folder.company.siret': '123%',
-    'pme_folder.company.country.code': 'FR'
-  })
-  .join(['applicant', { pme_folder: { company: ['country'] } }])
-  .page(1, 50);
-```
-
-**Résultat : 60% moins de code, même performance !**
-
 ## Fonctionnalités avancées
 
 ### Regroupement automatique des conditions
@@ -650,7 +608,7 @@ WHERE `folders`.`type` IN ('agp', 'avt')
 -- Pas de JOIN dans le COUNT !
 ```
 
-#### Phase SELECT IDS (avec INNER JOIN automatique)
+#### Phase SELECT IDS
 ```sql
 SELECT `folders`.`id`
 FROM `folders`
@@ -667,90 +625,6 @@ FROM `folders` f
 LEFT JOIN `applicants` a ON a.id = f.applicant_id
 WHERE f.id IN (101, 102, ..., 150)
 ORDER BY applicants.last_name ASC
-```
-
-### Exemples
-
-#### Exemple 1 : Tri sur la Table Principale
-
-Quand le tri est sur la table principale, aucun JOIN n'est ajouté :
-
-```javascript
-const query = Folder.paginatedOptimized()
-  .where({ type: ['agp', 'avt'] })
-  .order('folders.created_at DESC')  // ← Table principale
-  .limit(50);
-```
-
-SQL généré (phase IDS) :
-```sql
-SELECT `folders`.`id`
-FROM `folders`
-WHERE `folders`.`type` IN ('agp', 'avt')
-ORDER BY folders.created_at DESC
-LIMIT 50 OFFSET 0
--- Pas de JOIN car tri sur table principale
-```
-
-#### Exemple 2 : Tri sur une Table Jointe
-
-Quand le tri est sur une table jointe, INNER JOIN est automatiquement ajouté :
-
-```javascript
-const query = Folder.paginatedOptimized()
-  .where({ type: ['agp', 'avt'] })
-  .order('applicants.last_name ASC')  // ← Table jointe
-  .join('applicant')
-  .limit(50);
-```
-
-SQL généré (phase IDS) :
-```sql
-SELECT `folders`.`id`
-FROM `folders`
-LEFT JOIN `applicants` ON `applicants`.`id` = `folders`.`applicant_id`
-WHERE `folders`.`type` IN ('agp', 'avt')
-ORDER BY applicants.last_name ASC
-LIMIT 50 OFFSET 0
-```
-
-#### Exemple 3 : Tri sur une Table Jointe Imbriquée
-
-Le système gère automatiquement les tables imbriquées avec des INNER JOIN en cascade :
-
-```javascript
-const query = Folder.paginatedOptimized()
-  .where({
-    type: 'agp',
-    'pme_folder.company.country.code': 'FR'
-  })
-  .join('pme_folder.company.country')
-  .order('companies.name DESC')  // ← Table imbriquée (via pme_folder)
-  .limit(50);
-```
-
-SQL généré (phase IDS) :
-```sql
-SELECT `folders`.`id`
-FROM `folders`
-LEFT JOIN `pme_folders` ON `pme_folders`.`id` = `folders`.`pme_folder_id`
-LEFT JOIN `companies` ON `companies`.`id` = `pme_folders`.`company_id`
-WHERE `folders`.`type` = 'agp'
-  AND EXISTS (
-    SELECT 1 FROM `pme_folders`
-    WHERE `pme_folders`.`id` = `folders`.`pme_folder_id`
-    AND EXISTS (
-      SELECT 1 FROM `companies`
-      WHERE `companies`.`id` = `pme_folders`.`company_id`
-      AND EXISTS (
-        SELECT 1 FROM `countries`
-        WHERE `countries`.`id` = `companies`.`country_id`
-        AND `countries`.`code` = 'FR'
-      )
-    )
-  )
-ORDER BY companies.name DESC
-LIMIT 50 OFFSET 0
 ```
 
 **Note** : Les JOIN sont créés en cascade pour permettre le tri, tandis que les filtres utilisent toujours EXISTS pour la performance.
@@ -863,45 +737,6 @@ Folder.paginatedOptimized()
 
 ### Tri sur colonnes de blocks (sous-tables)
 
-#### Vue d'ensemble
-
-Les **blocks** (ou sous-tables) sont une nomenclature utilisée pour stocker des données spécialisées dans des tables séparées, liées par des associations `belongs_to`. Par exemple, un `PMEFolder` peut avoir un `block_studies` pour les informations d'études et un `block_travel_wishes` pour les souhaits de voyage.
-
-Le framework détecte automatiquement les colonnes de blocks dans `ORDER BY` et ajoute les `LEFT JOIN` nécessaires, **même si les colonnes ne sont pas préfixées par le nom de la table**.
-
-#### Exemple de structure avec blocks
-
-```javascript
-// StudiesBlock - Sous-table pour les informations d'études
-class StudiesBlock extends Model({
-  table: 'block_studies',
-  primary: ['id'],
-  columns: [
-    'id',
-    'ine_number',
-    'student_status',
-    'studies_year',     // ← Colonne utilisée pour le tri
-    'studies_field',
-    'bac_year'
-  ]
-}) {}
-
-// PMEFolder - Table principale avec référence au block
-class PMEFolder extends Model({
-  table: 'pme_folders',
-  primary: ['id'],
-  columns: [
-    'id',
-    'block_studies_id',        // ← Clé étrangère vers le block
-    'professional_activity',
-    'is_initial'
-  ],
-  associations: () => [
-    ['belongs_to', 'studies', StudiesBlock, 'block_studies_id', 'id']
-  ]
-}) {}
-```
-
 #### Comportement avec colonnes ambiguës
 
 Si une colonne existe à la fois dans la table principale ET dans un block, **la table principale est prioritaire** :
@@ -1004,33 +839,11 @@ Les agrégations avec `GROUP BY` sur plusieurs tables ne sont pas supportées.
 
 Les tests se trouvent dans :
 - `test/db/PaginatedOptimizedQueryTest.js` - Tests généraux
-- `test/db/SimplifiedSyntaxTest.js` - Tests de la nouvelle syntaxe (26 tests)
-
-```bash
-# Exécuter les tests de la nouvelle syntaxe
-npm test -- test/db/SimplifiedSyntaxTest.js
-
-# Exécuter tous les tests PaginatedOptimizedQuery
-npm test -- test/db/PaginatedOptimizedQueryTest.js
-
-# Ou tous les tests db
-npm test
-```
 
 ## Exemples
 
 Les exemples se trouvent dans :
-- `examples/SimplifiedSyntaxExample.js` - 8 exemples de la nouvelle syntaxe
 - `examples/PaginatedOptimizedQueryExample.js` - Exemples généraux
-- `examples/NestedJoinsExample.js` - Exemples de jointures imbriquées
-
-```bash
-# Lancer les exemples de la nouvelle syntaxe
-node examples/SimplifiedSyntaxExample.js
-
-# Voir le SQL généré pour chaque exemple
-node examples/NestedJoinsExample.js
-```
 
 ## Contribuer
 
