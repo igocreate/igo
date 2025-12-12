@@ -6,45 +6,80 @@
 
 Igo.js is a full-featured Node.js web framework that gives you a production-ready application with a complete development environment in seconds.
 
-Built on top of Express, Igo.js integrates the most popular Node.js libraries and tools: Webpack 5 for asset bundling, an ORM for MySQL/PostgreSQL, Redis caching, Mocha for testing, and more.
+Built on top of Express 5, Igo.js integrates the most popular Node.js libraries and tools: Vite for asset bundling, an ORM for MySQL/PostgreSQL, Redis caching, Mocha for testing, and more.
 
-After building several Node.js projects, we realized we were duplicating the same technical stack over and over: Express configuration, Webpack setup, database connections, test helpers, and countless dependencies. Igo.js packages all of this into a single framework, letting you focus on building your application instead of configuring tools.
+## Packages
+
+Igo.js is organized as a monorepo with the following packages:
+
+| Package | Description |
+|---------|-------------|
+| **@igo/server** | Express-based web framework with routing, forms, cache, mailer, CLI |
+| **@igo/db** | Database ORM for MySQL and PostgreSQL with Active Record pattern |
+| **@igo/dust** | JavaScript template engine inspired by Dust.js |
+| **@igo/signal** | Reactive frontend/SSR framework with automatic dependency tracking |
 
 ## Installation
 
 ```sh
-# install mocha
-npm install -g mocha
-
-# install igo.js
+# Install igo.js globally for CLI commands
 npm install -g igo
+
+# Or add to your project
+npm install igo
 ```
 
 ## Getting started
+
 ```sh
-# create new project
+# Create new project
 igo create myproject
 cd myproject
 
-# install node.js dependencies
+# Install dependencies
 npm install
 
-# start the server on http://localhost:3000
+# Start the server on http://localhost:3000
 npm start
 ```
 
 ## Configuration
+
 The Igo.js configuration is located in `/app/config.js`.
 The configuration is initialized at startup, and can be retrieved through igo module:
+
 ```js
-var config = require('igo').config`;
+const config = require('igo').config;
 ```
 
-Some configuration parameters can be defined with environment variables. Igo.js uses [dotenv](https://github.com/motdotla/dotenv), so you can just add/override variables in the `/.env` file.
-E.g:
+Some configuration parameters can be defined with environment variables. Igo.js uses [dotenv](https://github.com/motdotla/dotenv), so you can add/override variables in the `/.env` file:
+
 ```txt
-# development database
+# Development database
 MYSQL_DATABASE=mydatabase
+
+# Redis
+REDIS_HOST=localhost
+```
+
+## Project Structure
+
+A typical Igo.js project:
+
+```
+myproject/
+├── app/
+│   ├── config.js       # Configuration
+│   ├── routes.js       # Route definitions
+│   ├── controllers/    # Request handlers
+│   ├── models/         # Database models
+│   └── helpers.js      # View helpers
+├── views/              # Dust templates
+├── public/             # Static assets
+├── sql/                # Database migrations
+├── locales/            # i18n translations
+├── test/               # Test files
+└── .env                # Environment variables
 ```
 
 ---

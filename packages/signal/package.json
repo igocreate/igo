@@ -1,0 +1,27 @@
+{
+  "name": "@igo/signal",
+  "version": "6.0.0",
+  "description": "Signal - Reactive frontend/SSR framework for Igo.js",
+  "main": "index.js",
+  "browser": "src/client/index.js",
+  "scripts": {
+    "test": "mocha --exit 'test/**/*.js'"
+  },
+  "keywords": [
+    "frontend",
+    "ssr",
+    "reactive",
+    "signals",
+    "components"
+  ],
+  "author": "@igocreate",
+  "license": "ISC",
+  "dependencies": {
+    "@igo/server": "*",
+    "@igo/dust": "*",
+    "devalue": "^5.6.1",
+    "diff-dom": "^5.2.1",
+    "i18next": "^25.7.2",
+    "lodash": "^4.17.21"
+  }
+}

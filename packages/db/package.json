@@ -1,0 +1,24 @@
+{
+  "name": "@igo/db",
+  "version": "6.0.0",
+  "description": "Igo ORM - Database abstraction layer for MySQL and PostgreSQL",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --exit 'test/**/*.js'"
+  },
+  "keywords": [
+    "orm",
+    "mysql",
+    "postgresql",
+    "database"
+  ],
+  "author": "@igocreate",
+  "license": "ISC",
+  "dependencies": {
+    "lodash": "^4.17.21"
+  },
+  "optionalDependencies": {
+    "mysql2": "^3.15.3",
+    "pg": "^8.16.3"
+  }
+}

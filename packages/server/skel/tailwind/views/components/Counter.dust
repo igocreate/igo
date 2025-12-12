@@ -1,0 +1,8 @@
+<div data-component="components/Counter" data-props="{@serialize props="count" /}">
+  <div class="flex items-center gap-4">
+    <span class="text-2xl font-bold">{count}</span>
+    <button class="increment-btn cursor-pointer rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">
+      +1
+    </button>
+  </div>
+</div>

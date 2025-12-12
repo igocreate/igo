@@ -1,19 +1,16 @@
 
+// Meta-package igo - exports all sub-packages
+const server = require('@igo/server');
+const db = require('@igo/db');
+const signal = require('@igo/signal');
+
+// Re-export everything from @igo/server for backward compatibility
 const igo = {
-  app:        require('./src/app'),
-  cache:      require('./src/cache'),
-  CacheStats: require('./src/db/CacheStats'),
-  config:     require('./src/config'),
-  dev:        require('./src/dev/index'),
-  dbs:        require('./src/db/dbs'),
-  express:    require('express'),
-  i18next:    require('i18next'),
-  IgoDust:    require('igo-dust'),
-  logger:     require('./src/logger'),
-  mailer:     require('./src/mailer'),
-  migrations: require('./src/db/migrations'),
-  Model:      require('./src/db/Model'),
-  Form:       require('./src/forms/Form'),
+  ...server,
+  // Also expose db module directly
+  db,
+  // Expose signal module
+  signal,
 };
 
 module.exports = igo;

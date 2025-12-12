@@ -1,0 +1,22 @@
+{
+  "name": "@igo/dust",
+  "version": "6.0.0",
+  "description": "Javascript template engine for Igo",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --exit --recursive",
+    "build": "vite build"
+  },
+  "keywords": [
+    "dust",
+    "template",
+    "express"
+  ],
+  "author": "Igocreate.com",
+  "license": "ISC",
+  "devDependencies": {
+    "vite": "^7.2.7",
+    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.3"
+  }
+}

@@ -1,0 +1,1 @@
+{#friends_list}{.name}, {> "./test/templates/_recursive" friends_list=.friends /}{/friends_list}
