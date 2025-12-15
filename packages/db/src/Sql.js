@@ -58,7 +58,7 @@ module.exports = class Sql {
     sql += `FROM ${esc}${query.table}${esc} `;
 
     // joins
-    sql += this.addJoins();
+    sql += this.addJoins(params);
 
     // where
     sql += this.whereSQL(params);
@@ -101,7 +101,7 @@ module.exports = class Sql {
     sql += `FROM ${esc}${query.table}${esc} `;
 
     // joins
-    sql += this.addJoins();
+    sql += this.addJoins(params);
 
     // where
     sql += this.whereSQL(params);
@@ -118,17 +118,24 @@ module.exports = class Sql {
   };
 
   // JOINS
-  addJoins() {
+  addJoins(params) {
     const { query, dialect } = this;
     const { esc }   = dialect;
 
     let sql = '';
     _.each(query.joins, join => {
       const { src_schema, type, association, src_alias } = join;
-      const [ assoc_type, name, Obj, src_column, column] = association;
+      const [ assoc_type, name, Obj, src_column, column, extraWhere] = association;
       const src_table_alias = src_alias || src_schema.table;
       const table       = Obj.schema.table;
-      sql += `${type.toUpperCase()} JOIN ${esc}${table}${esc} AS ${esc}${name}${esc} ON ${esc}${name}${esc}.${esc}${column}${esc} = ${esc}${src_table_alias}${esc}.${esc}${src_column}${esc} `;
+      let joinSql = `${type.toUpperCase()} JOIN ${esc}${table}${esc} AS ${esc}${name}${esc} ON ${esc}${name}${esc}.${esc}${column}${esc} = ${esc}${src_table_alias}${esc}.${esc}${src_column}${esc}`;
+      if (extraWhere) {
+        _.forOwn(extraWhere, (value, key) => {
+          joinSql += ` AND ${esc}${name}${esc}.${esc}${key}${esc} = ${dialect.param(this.i++)}`;
+          params.push(value);
+        });
+      }
+      sql += joinSql + ' ';
     });
     return sql;
   }

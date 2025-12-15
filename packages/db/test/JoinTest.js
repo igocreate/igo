@@ -202,6 +202,37 @@ describe('includes', () => {
       assert.strictEqual(foundBook.library.collection, library.collection);
       assert.strictEqual(foundBook.library.details.description, library.details.description);
     });
+
+    it('should apply extraWhere conditions on join', async () => {
+      class BookWithExtraWhere extends Model({
+        table: 'books',
+        primary: ['id'],
+        columns: [
+          'id',
+          'code',
+          'title',
+          'library_id',
+        ],
+        associations: () => ([
+          ['belongs_to', 'library', Library, 'library_id', 'id', { collection: 'A' }],
+        ])
+      }) {}
+
+      const libraryA = await Library.create({ title: 'Library A', collection: 'A' });
+      const libraryB = await Library.create({ title: 'Library B', collection: 'B' });
+      const bookA    = await BookWithExtraWhere.create({ library_id: libraryA.id });
+      const bookB    = await BookWithExtraWhere.create({ library_id: libraryB.id });
+
+      // Book A should have its library joined (collection = 'A' matches extraWhere)
+      const foundBookA = await BookWithExtraWhere.join('library').find(bookA.id);
+      assert.strictEqual(foundBookA.id, bookA.id);
+      assert.strictEqual(foundBookA.library.id, libraryA.id);
+
+      // Book B should NOT have its library joined (collection = 'B' does not match extraWhere)
+      const foundBookB = await BookWithExtraWhere.join('library').find(bookB.id);
+      assert.strictEqual(foundBookB.id, bookB.id);
+      assert.strictEqual(foundBookB.library, null);
+    });
   });
 
 });
