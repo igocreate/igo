@@ -1,5 +1,30 @@
 # Changelog
 
+## 5.3.2 - 2025-12-15
+
+- **Fix**: `extraWhere` conditions in associations are now applied when using `.join()` (previously only worked with `.includes()`)
+
+## 5.3.1 - 2025-12-04
+
+- **Fix**: Database silent mode
+
+## 5.3.0 - 2025-11-20
+
+- Updated igo-dust and dependencies
+
+## 5.2.6 - 2025-11-13
+
+- **Fix**: Flash crash
+
+## 5.2.5 - 2025-11-13
+
+- **Fix**: Migrations on PostgreSQL
+
+## 5.2.4 - 2025-11-12
+
+- Removed `uuid` dependency (replaced with crypto.randomUUID)
+- Removed plugins system from CLI and skeleton projects
+
 ## 5.2.3 - 2025-10-16
 
 - **Flash middleware improvements**:
