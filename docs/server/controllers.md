@@ -1,7 +1,7 @@
 
 # Controllers
 
-Igo.js uses [Express 4](http://expressjs.com/) as a web framework for the Controller layer.
+Igo.js uses [Express 5](http://expressjs.com/) as a web framework for the Controller layer.
 
 
 ## Routes

@@ -12,7 +12,7 @@ All remarks, suggestions, PRs are welcome! 💕
 
 # 🚀 Getting Started
 
-Before using Igo, you need to install Node.js (>=16.x).
+Before using Igo, you need to install Node.js (>=22.x).
 Then, you can easily create a new project via the `igo` CLI.
 
 ```sh

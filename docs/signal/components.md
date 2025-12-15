@@ -90,7 +90,7 @@ module.exports = ProductList;
 
 ### 2. Create the Template
 
-```dust
+```html
 {! views/components/ProductList.dust !}
 <div data-component="components/ProductList"
      data-props="{@serialize props="products,form" /}">
@@ -185,7 +185,7 @@ res.locals.signal_props = {
 };
 ```
 
-```dust
+```html
 <input type="text" name="search" value="{form.search}">
 
 <select name="category">
@@ -227,7 +227,7 @@ The middleware will:
 
 Components can be nested:
 
-```dust
+```html
 {! Parent component !}
 <div data-component="ProductPage">
   {! Child component with its own props !}

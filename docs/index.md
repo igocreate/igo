@@ -19,19 +19,12 @@ Igo.js is organized as a monorepo with the following packages:
 | **@igo/dust** | JavaScript template engine inspired by Dust.js |
 | **@igo/signal** | Reactive frontend/SSR framework with automatic dependency tracking |
 
-## Installation
+## Getting started
 
 ```sh
 # Install igo.js globally for CLI commands
 npm install -g igo
 
-# Or add to your project
-npm install igo
-```
-
-## Getting started
-
-```sh
 # Create new project
 igo create myproject
 cd myproject
