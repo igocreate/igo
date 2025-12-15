@@ -1,7 +1,7 @@
 const moment = require('moment');
 
 const config = require('../config');
-const IgoDust = require('@igo/dust');
+const IgoDust = require('@igojs/dust');
 
 //
 module.exports.init = (app) => {

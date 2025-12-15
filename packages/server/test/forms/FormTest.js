@@ -3,7 +3,7 @@ require('../init');
 const assert    = require('assert');
 const _         = require('lodash');
 
-const validator = require('@igo/server/src/connect/validator');
+const validator = require('@igojs/server/src/connect/validator');
 const UserForm  = require('./UserForm');
 const ArrayForm = require('./ArrayForm');
 

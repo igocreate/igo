@@ -6,7 +6,7 @@ require('./init');
 const assert    = require('assert');
 const _         = require('lodash');
 
-const igo       = require('@igo/server');
+const igo       = require('@igojs/server');
 const cache     = igo.cache;
 
 const utils = {

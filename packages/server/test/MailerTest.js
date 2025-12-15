@@ -2,7 +2,7 @@ require('./init');
 
 const assert = require('assert');
 
-const mailer = require('@igo/server').mailer;
+const mailer = require('@igojs/server').mailer;
 
 
 describe('mailer', function() {

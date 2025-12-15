@@ -1,7 +1,7 @@
 
 process.env.NODE_ENV = 'test';
 
-const db          = require('@igo/db');
+const db          = require('@igojs/db');
 const cache       = require('../../cache');
 const config      = require('../../config');
 const logger      = require('../../logger');

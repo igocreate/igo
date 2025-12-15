@@ -14,10 +14,10 @@ Igo.js is organized as a monorepo with the following packages:
 
 | Package | Description |
 |---------|-------------|
-| **@igo/server** | Express-based web framework with routing, forms, cache, mailer, CLI |
-| **@igo/db** | Database ORM for MySQL and PostgreSQL with Active Record pattern |
-| **@igo/dust** | JavaScript template engine inspired by Dust.js |
-| **@igo/signal** | Reactive frontend/SSR framework with automatic dependency tracking |
+| **@igojs/server** | Express-based web framework with routing, forms, cache, mailer, CLI |
+| **@igojs/db** | Database ORM for MySQL and PostgreSQL with Active Record pattern |
+| **@igojs/dust** | JavaScript template engine inspired by Dust.js |
+| **@igojs/signal** | Reactive frontend/SSR framework with automatic dependency tracking |
 
 ## Getting started
 

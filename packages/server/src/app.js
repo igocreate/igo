@@ -10,7 +10,7 @@ const i18next           = require('i18next');
 const igodust           = require('./engines/igodust');
 const cache             = require('./cache');
 const config            = require('./config');
-const db                = require('@igo/db');
+const db                = require('@igojs/db');
 const assets            = require('./connect/assets');
 const errorHandler      = require('./connect/errorhandler');
 const flash             = require('./connect/flash');
@@ -44,7 +44,7 @@ module.exports.configure = async () => {
   // Config must be initialized first
   await config.init(app);
 
-  // Initialize @igo/db with injected dependencies
+  // Initialize @igojs/db with injected dependencies
   const utils = require('./utils');
   db.init({
     config,

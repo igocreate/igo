@@ -1,11 +1,11 @@
-# @igo/dust
+# @igojs/dust
 
 JavaScript template engine inspired by [Dust.js](https://github.com/linkedin/dustjs).
 
 ## Installation
 
 ```sh
-npm install @igo/dust
+npm install @igojs/dust
 ```
 
 ## Features
@@ -20,7 +20,7 @@ npm install @igo/dust
 ## Quick Start
 
 ```javascript
-const dust = require('@igo/dust');
+const dust = require('@igojs/dust');
 
 // Configure
 dust.configure({
@@ -93,7 +93,7 @@ await dust.renderFile('template.dust', data, stream);
 
 ```javascript
 const express = require('express');
-const dust = require('@igo/dust');
+const dust = require('@igojs/dust');
 
 const app = express();
 app.engine('dust', dust.engine);

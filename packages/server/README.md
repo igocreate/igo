@@ -1,11 +1,11 @@
-# @igo/server
+# @igojs/server
 
 Express-based web framework for Node.js with batteries included.
 
 ## Installation
 
 ```sh
-npm install @igo/server
+npm install @igojs/server
 ```
 
 ## Features
@@ -13,7 +13,7 @@ npm install @igo/server
 - **Express 5** - Web server with pre-configured middlewares
 - **Configuration** - Environment-based config with dotenv support
 - **Routing** - File-based controller loading
-- **Views** - Dust templating via @igo/dust
+- **Views** - Dust templating via @igojs/dust
 - **Forms** - Form handling and validation
 - **i18n** - Internationalization with i18next
 - **Cache** - Redis-based caching
@@ -24,7 +24,7 @@ npm install @igo/server
 ## Quick Start
 
 ```javascript
-const igo = require('@igo/server');
+const igo = require('@igojs/server');
 
 // Configure
 igo.config.httpport = 3000;
@@ -46,7 +46,7 @@ igo.app.run();
 | `express` | Express module |
 | `i18next` | i18next instance |
 
-### Database (via @igo/db)
+### Database (via @igojs/db)
 
 | Export | Description |
 |--------|-------------|
@@ -61,7 +61,7 @@ igo.app.run();
 |--------|-------------|
 | `Form` | Form handling class |
 | `mailer` | Email utilities |
-| `dust` | Template engine (@igo/dust) |
+| `dust` | Template engine (@igojs/dust) |
 | `dev` | Development tools (Vite, test agent) |
 
 ## Configuration

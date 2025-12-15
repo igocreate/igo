@@ -1,4 +1,4 @@
-// @igo/signal - Reactive frontend/SSR framework for Igo.js
+// @igojs/signal - Reactive frontend/SSR framework for Igo.js
 
 // Server-side exports
 const server = require('./src/server');

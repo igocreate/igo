@@ -1,7 +1,7 @@
 require('./init');
 
 const assert = require('assert');
-const agent  = require('@igo/server').dev.agent;
+const agent  = require('@igojs/server').dev.agent;
 
 describe('ErrorHandler', function() {
 

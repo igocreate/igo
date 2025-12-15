@@ -1,7 +1,7 @@
 require('./init');
 
 const assert = require('assert');
-const igo = require('@igo/server');
+const igo = require('@igojs/server');
 const config = igo.config;
 const agent = igo.dev.agent;
 

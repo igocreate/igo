@@ -6,7 +6,7 @@ const path        = require('path');
 
 const config      = require('./config');
 const logger      = require('./logger');
-const IgoDust     = require('@igo/dust');
+const IgoDust     = require('@igojs/dust');
 
 let transport     = null;
 const options     = {};

@@ -2,7 +2,7 @@
  * Signal - Zero-boilerplate reactive framework (browser entry point)
  *
  * Usage:
- *   require('@igo/signal/src/client').start({
+ *   require('@igojs/signal/src/client').start({
  *     components: { 'Counter': Counter },
  *     helpers: require('./helpers')
  *   });

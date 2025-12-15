@@ -2,9 +2,9 @@
 
 var assert    = require('assert');
 
-var Sql           = require('@igo/db').Sql;
+var Sql           = require('@igojs/db').Sql;
 
-const { dialect } = require('@igo/db/src/drivers/postgresql');
+const { dialect } = require('@igojs/db/src/drivers/postgresql');
 
 
 describe('db.PostgreSql', function() {

@@ -1,7 +1,7 @@
 
 const context = require('./src/context');
 
-// Initialize @igo/db with dependencies from @igo/server
+// Initialize @igojs/db with dependencies from @igojs/server
 function init({ config, cache, logger, utils, errorhandler }) {
   context.config = config;
   context.cache = cache;

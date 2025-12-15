@@ -7,7 +7,7 @@ const WelcomeController   = require('./controllers/WelcomeController');
 //
 module.exports.init = (app) => {
 
-  // @igo/signal routes
+  // @igojs/signal routes
   app.use(signal.middleware);
   app.get('/__signal/templates', signal.templates);
 

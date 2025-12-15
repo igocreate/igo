@@ -1,6 +1,6 @@
 const Templates        = require('./Templates');
 const { uneval }       = require('devalue'); // Bundler handles ES modules correctly
-const igoDustHelpers   = require('@igo/dust/src/render/Helpers');
+const igoDustHelpers   = require('@igojs/dust/src/render/Helpers');
 const { createSerializeHelper, htmlencode } = require('../../shared/serialize');
 
 // Special characters

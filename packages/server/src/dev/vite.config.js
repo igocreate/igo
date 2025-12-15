@@ -3,7 +3,7 @@ const commonjs = require('vite-plugin-commonjs').default;
 
 const production = process.env.NODE_ENV === 'production';
 
-// Resolve @igo/* packages to igo monorepo
+// Resolve @igojs/* packages to igo monorepo
 const igoPath = path.resolve(__dirname, '../../../..');
 
 // Plugin to trigger full reload on dust template changes
@@ -60,13 +60,13 @@ const viteConfig = {
     }
   },
 
-  // Resolve @igo/* aliases
+  // Resolve @igojs/* aliases
   resolve: {
     alias: {
-      '@igo/signal': path.join(igoPath, 'packages/signal'),
-      '@igo/dust': path.join(igoPath, 'packages/dust'),
-      '@igo/db': path.join(igoPath, 'packages/db'),
-      '@igo/server': path.join(igoPath, 'packages/server'),
+      '@igojs/signal': path.join(igoPath, 'packages/signal'),
+      '@igojs/dust': path.join(igoPath, 'packages/dust'),
+      '@igojs/db': path.join(igoPath, 'packages/db'),
+      '@igojs/server': path.join(igoPath, 'packages/server'),
     }
   },
 

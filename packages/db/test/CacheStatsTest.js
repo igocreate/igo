@@ -4,8 +4,8 @@ require('./init');
 
 const assert    = require('assert');
 
-const Model       = require('@igo/db').Model;
-const CacheStats  = require('@igo/db').CacheStats;
+const Model       = require('@igojs/db').Model;
+const CacheStats  = require('@igojs/db').CacheStats;
 
 //
 describe('db.CacheStats', function() {

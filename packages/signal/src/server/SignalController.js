@@ -1,5 +1,5 @@
 
-const { dust: IgoDust } = require('@igo/server');
+const { dust: IgoDust } = require('@igojs/server');
 
 const SerializeUtils  = require('./SerializeUtils');
 const { createSerializeHelper } = require('../shared/serialize');

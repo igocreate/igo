@@ -4,8 +4,8 @@ require('./init');
 
 const assert    = require('assert');
 
-const Query     = require('@igo/db').Query;
-const Model     = require('@igo/db').Model;
+const Query     = require('@igojs/db').Query;
+const Model     = require('@igojs/db').Model;
 
 //
 describe('db.Query', function() {

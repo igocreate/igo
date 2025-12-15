@@ -1,5 +1,5 @@
 
-// Shared serialize helper for @igo/signal
+// Shared serialize helper for @igojs/signal
 // Used both server-side (SignalController) and client-side (Utils)
 
 const HCHARS = /[&<>"']/;

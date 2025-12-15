@@ -41,7 +41,7 @@ afterRender()           │
 ### 1. Define the Component Class
 
 ```javascript
-const { SignalComponent } = require('@igo/signal');
+const { SignalComponent } = require('@igojs/signal');
 
 class ProductList extends SignalComponent {
   constructor(element) {
@@ -116,7 +116,7 @@ module.exports = ProductList;
 
 ```javascript
 // assets/js/app.js
-const signal = require('@igo/signal/src/front');
+const signal = require('@igojs/signal/src/front');
 
 signal.start({
   components: require.context('./components', true, /\.js$/),

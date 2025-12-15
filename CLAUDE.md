@@ -14,10 +14,10 @@ Igo is a Node.js full-stack web framework built on Express, providing ORM, templ
 ```
 /
 ├── packages/                    # Monorepo packages
-│   ├── db/                     # @igo/db - ORM and database abstraction
-│   ├── dust/                   # @igo/dust - Template engine
-│   ├── server/                 # @igo/server - Express framework core
-│   └── signal/                 # @igo/signal - Reactive frontend/SSR
+│   ├── db/                     # @igojs/db - ORM and database abstraction
+│   ├── dust/                   # @igojs/dust - Template engine
+│   ├── server/                 # @igojs/server - Express framework core
+│   └── signal/                 # @igojs/signal - Reactive frontend/SSR
 ├── docs/                       # Docsify documentation
 ├── index.js                    # Root meta-package entry point
 ├── package.json                # Root workspace configuration
@@ -26,7 +26,7 @@ Igo is a Node.js full-stack web framework built on Express, providing ORM, templ
 
 ## Packages
 
-### @igo/db (Database Layer)
+### @igojs/db (Database Layer)
 - Active Record-style ORM supporting MySQL and PostgreSQL
 - Query builder with chainable API
 - Associations (has_many, belongs_to)
@@ -34,7 +34,7 @@ Igo is a Node.js full-stack web framework built on Express, providing ORM, templ
 - SQL migrations
 - **Entry:** `packages/db/src/index.js`
 
-### @igo/dust (Template Engine)
+### @igojs/dust (Template Engine)
 - JavaScript template engine (Dust.js-inspired)
 - Async/await rendering
 - Express.js view engine integration
@@ -42,7 +42,7 @@ Igo is a Node.js full-stack web framework built on Express, providing ORM, templ
 - **Entry:** `packages/dust/src/index.js`
 - **Browser build:** `packages/dust/dist/igo-dust-6.0.0-min.js`
 
-### @igo/server (Core Framework)
+### @igojs/server (Core Framework)
 - Express 5 integration
 - Configuration management (dotenv)
 - File-based controller routing
@@ -53,7 +53,7 @@ Igo is a Node.js full-stack web framework built on Express, providing ORM, templ
 - **Entry:** `packages/server/src/index.js`
 - **CLI:** `packages/server/cli/igo.js`
 
-### @igo/signal (Reactive Frontend)
+### @igojs/signal (Reactive Frontend)
 - Deep reactivity via JavaScript Proxy
 - Automatic dependency tracking
 - SSR with hydration

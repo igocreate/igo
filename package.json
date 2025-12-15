@@ -1,17 +1,20 @@
 {
   "name": "igo",
-  "version": "6.0.0",
+  "version": "6.0.0-beta.1",
   "homepage": "https://github.com/igocreate/igo",
   "description": "Igo is a Node.js Web Framework based on Express",
   "main": "index.js",
   "scripts": {
-    "test": "npm test --workspace=@igo/server && npm test --workspace=@igo/db && npm test --workspace=@igo/dust && npm test --workspace=@igo/signal",
-    "test:dust": "npm test --workspace=@igo/dust",
-    "test:signal": "npm test --workspace=@igo/signal",
-    "test:server": "npm test --workspace=@igo/server",
-    "test:db": "npm test --workspace=@igo/db",
+    "test": "npm test --workspace=@igojs/server && npm test --workspace=@igojs/db && npm test --workspace=@igojs/dust && npm test --workspace=@igojs/signal",
+    "test:dust": "npm test --workspace=@igojs/dust",
+    "test:signal": "npm test --workspace=@igojs/signal",
+    "test:server": "npm test --workspace=@igojs/server",
+    "test:db": "npm test --workspace=@igojs/db",
     "eslint": "eslint ./packages/*/src",
-    "compress": "npx @squoosh/cli --resize '{\"enabled\":false}' -d public public/**/*.{jpg,jpeg,png}"
+    "compress": "npx @squoosh/cli --resize '{\"enabled\":false}' -d public public/**/*.{jpg,jpeg,png}",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "bin": {
     "igo": "./packages/server/cli/igo.js"
@@ -31,14 +34,15 @@
     "packages/*"
   ],
   "dependencies": {
-    "@igo/db": "*",
-    "@igo/dust": "*",
-    "@igo/server": "*",
-    "@igo/signal": "*"
+    "@igojs/db": "*",
+    "@igojs/dust": "*",
+    "@igojs/server": "*",
+    "@igojs/signal": "*"
   },
   "devDependencies": {
-    "eslint": "^9.39.1",
+    "eslint": "^9.39.2",
     "mocha": "^11.7.5",
-    "nodemon": "3.1.11"
+    "nodemon": "3.1.11",
+    "vitepress": "^1.6.4"
   }
 }

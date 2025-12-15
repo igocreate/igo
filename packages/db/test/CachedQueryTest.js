@@ -1,8 +1,8 @@
 require('./init');
 
 const assert = require('assert');
-const Model  = require('@igo/db').Model;
-const cache  = require('@igo/server').cache;
+const Model  = require('@igojs/db').Model;
+const cache  = require('@igojs/server').cache;
 
 describe('db.CachedQuery', function () {
 

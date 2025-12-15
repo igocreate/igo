@@ -1,11 +1,11 @@
-# @igo/db
+# @igojs/db
 
 Database abstraction layer for MySQL and PostgreSQL with Active Record-style ORM.
 
 ## Installation
 
 ```sh
-npm install @igo/db
+npm install @igojs/db
 ```
 
 **Note:** Database drivers are optional dependencies. Install the one you need:
@@ -26,7 +26,7 @@ npm install pg      # For PostgreSQL
 ## Quick Start
 
 ```javascript
-const { Model } = require('@igo/db');
+const { Model } = require('@igojs/db');
 
 const schema = {
   table: 'users',
@@ -134,10 +134,10 @@ const result = await User.paginatedOptimized()
 
 ## Initialization
 
-When used standalone (without @igo/server), initialize with dependencies:
+When used standalone (without @igojs/server), initialize with dependencies:
 
 ```javascript
-const db = require('@igo/db');
+const db = require('@igojs/db');
 
 db.init({
   config: { mysql: { host: 'localhost', database: 'myapp' } },

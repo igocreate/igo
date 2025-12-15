@@ -6,7 +6,7 @@ const cache       = require('../src/cache');
 const logger      = require('../src/logger');
 const utils       = require('../src/utils');
 const errorhandler = require('../src/connect/errorhandler');
-const db          = require('@igo/db');
+const db          = require('@igojs/db');
 
 // db verbs
 const verbs   = {
@@ -101,7 +101,7 @@ module.exports = async (argv) => {
 
   config.init();
 
-  // Initialize @igo/db with injected dependencies
+  // Initialize @igojs/db with injected dependencies
   db.init({
     config,
     cache,

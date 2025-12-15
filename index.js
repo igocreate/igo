@@ -1,10 +1,10 @@
 
 // Meta-package igo - exports all sub-packages
-const server = require('@igo/server');
-const db = require('@igo/db');
-const signal = require('@igo/signal');
+const server = require('@igojs/server');
+const db = require('@igojs/db');
+const signal = require('@igojs/signal');
 
-// Re-export everything from @igo/server for backward compatibility
+// Re-export everything from @igojs/server for backward compatibility
 const igo = {
   ...server,
   // Also expose db module directly

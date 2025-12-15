@@ -1,11 +1,11 @@
-# @igo/signal
+# @igojs/signal
 
 Reactive frontend/SSR framework for Igo.js with automatic dependency tracking.
 
 ## Installation
 
 ```sh
-npm install @igo/signal
+npm install @igojs/signal
 ```
 
 ## Features
@@ -15,7 +15,7 @@ npm install @igo/signal
 - **SSR Support** - Server-side rendering with hydration
 - **DiffDOM** - Efficient DOM reconciliation
 - **Form Handling** - Two-way binding for forms
-- **Dust Templates** - Integration with @igo/dust
+- **Dust Templates** - Integration with @igojs/dust
 
 ## Architecture
 
@@ -31,7 +31,7 @@ Props (immutable) → State (reactive) → Derived (computed) → Template → D
 
 ```javascript
 const express = require('express');
-const signal = require('@igo/signal');
+const signal = require('@igojs/signal');
 
 const app = express();
 
@@ -60,7 +60,7 @@ app.get('/products', (req, res) => {
 
 ```javascript
 // components/ProductList.js
-const { SignalComponent } = require('@igo/signal');
+const { SignalComponent } = require('@igojs/signal');
 
 class ProductList extends SignalComponent {
   constructor(element) {
@@ -114,7 +114,7 @@ module.exports = ProductList;
 
 ```javascript
 // assets/js/app.js
-const signal = require('@igo/signal/src/client');
+const signal = require('@igojs/signal/src/client');
 
 signal.start({
   components: require.context('./components', true, /\.js$/),

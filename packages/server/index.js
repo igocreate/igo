@@ -1,5 +1,5 @@
 
-const db            = require('@igo/db');
+const db            = require('@igojs/db');
 const config        = require('./src/config');
 const cache         = require('./src/cache');
 const logger        = require('./src/logger');
@@ -15,7 +15,7 @@ const server = {
   dbs:        db.dbs,
   express:    require('express'),
   i18next:    require('i18next'),
-  dust:       require('@igo/dust'),
+  dust:       require('@igojs/dust'),
   logger,
   mailer:     require('./src/mailer'),
   migrations: db.migrations,

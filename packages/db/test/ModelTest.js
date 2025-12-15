@@ -5,7 +5,7 @@ require('./init');
 const assert    = require('assert');
 const _         = require('lodash');
 
-const Model     = require('@igo/db').Model;
+const Model     = require('@igojs/db').Model;
 
 describe('db.Model', () => {
 

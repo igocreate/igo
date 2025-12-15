@@ -10,7 +10,7 @@
  */
 
 const assert = require('assert');
-const Model = require('@igo/db').Model;
+const Model = require('@igojs/db').Model;
 
 // ============================
 // MODÈLES DE TEST

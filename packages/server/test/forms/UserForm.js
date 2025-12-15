@@ -1,5 +1,5 @@
 
-const Form = require('@igo/server').Form;
+const Form = require('@igojs/server').Form;
 
 const schema = {
   attributes: [

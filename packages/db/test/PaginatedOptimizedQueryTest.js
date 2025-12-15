@@ -3,8 +3,8 @@
 
 const assert = require('assert');
 
-const PaginatedOptimizedQuery = require('@igo/db').PaginatedOptimizedQuery;
-const Model = require('@igo/db').Model;
+const PaginatedOptimizedQuery = require('@igojs/db').PaginatedOptimizedQuery;
+const Model = require('@igojs/db').Model;
 
 // Helper pour mocker getDb
 const mockGetDb = (query) => {
@@ -708,7 +708,7 @@ describe('db.PaginatedOptimizedQuery', function() {
 
     it('transformation should be idempotent (_transformSinglePath)', () => {
       // Test pour vérifier que transformer 2 fois donne le même résultat
-      const PaginatedOptimizedSql = require('@igo/db').PaginatedOptimizedSql;
+      const PaginatedOptimizedSql = require('@igojs/db').PaginatedOptimizedSql;
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       const sqlGenerator = new PaginatedOptimizedSql(query);
 
@@ -1151,7 +1151,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     it('should transform ORDER BY correctly for FULL phase with block columns', () => {
       // Test pour vérifier que la transformation pour la phase FULL utilise les alias (noms d'associations)
       // au lieu des noms de tables
-      const PaginatedOptimizedSql = require('@igo/db').PaginatedOptimizedSql;
+      const PaginatedOptimizedSql = require('@igojs/db').PaginatedOptimizedSql;
       const query = mockGetDb(new PaginatedOptimizedQuery(FolderWithNestedBlocks));
 
       query

@@ -1,6 +1,6 @@
 {
-  "name": "@igo/dust",
-  "version": "6.0.0",
+  "name": "@igojs/dust",
+  "version": "6.0.0-beta.1",
   "description": "Javascript template engine for Igo",
   "main": "index.js",
   "scripts": {
@@ -14,8 +14,11 @@
   ],
   "author": "Igocreate.com",
   "license": "ISC",
+  "publishConfig": {
+    "access": "public"
+  },
   "devDependencies": {
-    "vite": "^7.2.7",
+    "vite": "^7.3.0",
     "@rollup/plugin-commonjs": "^29.0.0",
     "@rollup/plugin-node-resolve": "^16.0.3"
   }
