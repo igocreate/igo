@@ -41,9 +41,6 @@ const validateLang = (whitelist, fallbackLng) => {
 // Configure the Express app
 module.exports.configure = async () => {
 
-  // Config must be initialized first
-  await config.init(app);
-
   // Initialize @igojs/db with injected dependencies
   const utils = require('./utils');
   db.init({
@@ -141,12 +138,14 @@ module.exports.configure = async () => {
 // started: function invoked when server is started
 module.exports.run = async (configured, started) => {
 
-  // In dev mode, create HTTP server first so Vite can attach WebSocket to it
-  if (config.env === 'dev') {
-    const http = require('http');
-    app.server = http.createServer(app);
+  // Initialize config first so we know the environment
+  await config.init(app);
 
-    // Initialize Vite with access to HTTP server for HMR WebSocket
+  const http = require('http');
+  app.server = http.createServer(app);
+
+  // In dev mode, attach WebSocket to HTTP server
+  if (config.env === 'dev') {
     app.vite = await import('vite').then(m => m.createServer({
       server: {
         middlewareMode: true,
@@ -155,23 +154,15 @@ module.exports.run = async (configured, started) => {
       appType: 'custom',
       configFile: './vite.config.js'
     }));
-
-    // Configure app (will add Vite middleware at the right place)
-    await module.exports.configure();
-
-    configured && configured();
-
-    app.server.listen(config.httpport, function() {
-      logger.info('Listening to port %s', config.httpport);
-      started && started();
-    });
-  } else {
-    await module.exports.configure();
-    configured && configured();
-
-    app.server = app.listen(config.httpport, function() {
-      logger.info('Listening to port %s', config.httpport);
-      started && started();
-    });
   }
+
+  // Configure app (will add Vite middleware at the right place)
+  await module.exports.configure();
+  configured && configured();
+
+  app.server.listen(config.httpport, function() {
+    logger.info('Listening to port %s', config.httpport);
+    started && started();
+  });
+
 };

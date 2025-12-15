@@ -44,8 +44,8 @@ const viteConfig = {
       }
     },
 
-    // Target modern browsers in production
-    target: production ? 'es2015' : 'esnext',
+    // Target modern browsers - es2017+ to preserve async/await
+    target: 'es2017',
 
     // Minification
     minify: production ? 'esbuild' : false

@@ -12,7 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "igo": "latest"
+    "igo": "{igo.version}"
   },
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.10",
