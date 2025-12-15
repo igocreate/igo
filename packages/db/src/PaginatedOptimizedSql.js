@@ -108,6 +108,12 @@ module.exports = class PaginatedOptimizedSql extends Sql {
 
     // WHERE de la table principale
     const params = [];
+
+    // Ajouter les params des jointures de tri (extraWhere)
+    if (this._sortJoinParams && this._sortJoinParams.length > 0) {
+      params.push(...this._sortJoinParams);
+    }
+
     sql += this.whereSQL(params);
 
     // WHERE NOT de la table principale
@@ -657,6 +663,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
     const { query, dialect } = this;
     const { esc } = dialect;
     const mainTable = query.table;
+    const params = [];
 
     let sql = '';
     const processedTables = new Set(); // Pour éviter les doublons
@@ -672,17 +679,29 @@ module.exports = class PaginatedOptimizedSql extends Sql {
           return;
         }
 
-        const [, , AssociatedModel, src_column, ref_column] = association;
+        const [, , AssociatedModel, src_column, ref_column, extraWhere] = association;
 
         // Générer le LEFT JOIN (pour préserver toutes les lignes, même celles avec NULL)
-        sql += `LEFT JOIN ${esc}${currentTableName}${esc} `;
-        sql += `ON ${esc}${currentTableName}${esc}.${esc}${ref_column}${esc} = ${esc}${prevTable}${esc}.${esc}${src_column}${esc} `;
+        let joinSql = `LEFT JOIN ${esc}${currentTableName}${esc} `;
+        joinSql += `ON ${esc}${currentTableName}${esc}.${esc}${ref_column}${esc} = ${esc}${prevTable}${esc}.${esc}${src_column}${esc}`;
+
+        // Ajouter les conditions extraWhere si présentes
+        if (extraWhere) {
+          _.forOwn(extraWhere, (value, key) => {
+            joinSql += ` AND ${esc}${currentTableName}${esc}.${esc}${key}${esc} = ${dialect.param(this.i++)}`;
+            params.push(value);
+          });
+        }
+
+        sql += joinSql + ' ';
 
         processedTables.add(currentTableName);
         prevTable = currentTableName;
       });
     });
 
+    // Retourner à la fois le SQL et les params pour qu'ils soient ajoutés
+    this._sortJoinParams = params;
     return sql;
   }
 
@@ -775,7 +794,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
     const { esc } = dialect;
 
     const { association, conditions, operator, children } = node;
-    const [, , AssociatedModel, src_column, ref_column] = association;
+    const [, , AssociatedModel, src_column, ref_column, extraWhere] = association;
     const joinTable = AssociatedModel.schema.table;
 
     // Ouvrir l'EXISTS
@@ -783,6 +802,14 @@ module.exports = class PaginatedOptimizedSql extends Sql {
 
     // Condition de jointure
     sql += `WHERE ${esc}${joinTable}${esc}.${esc}${ref_column}${esc} = ${esc}${parentTable}${esc}.${esc}${src_column}${esc} `;
+
+    // Ajouter les conditions extraWhere si présentes
+    if (extraWhere) {
+      _.forOwn(extraWhere, (value, key) => {
+        sql += `AND ${esc}${joinTable}${esc}.${esc}${key}${esc} = ${dialect.param(this.i++)} `;
+        params.push(value);
+      });
+    }
 
     // Ajouter les conditions de ce niveau (si présentes)
     if (conditions && !_.isEmpty(conditions)) {
@@ -817,11 +844,19 @@ module.exports = class PaginatedOptimizedSql extends Sql {
     const { esc } = dialect;
 
     const { association, conditions, operator } = filterJoin;
-    const [, , AssociatedModel, src_column, ref_column] = association;
+    const [, , AssociatedModel, src_column, ref_column, extraWhere] = association;
     const joinTable = AssociatedModel.schema.table;
 
     let sql = `EXISTS (SELECT 1 FROM ${esc}${joinTable}${esc} `;
     sql += `WHERE ${esc}${joinTable}${esc}.${esc}${ref_column}${esc} = ${esc}${parentTable}${esc}.${esc}${src_column}${esc} `;
+
+    // Ajouter les conditions extraWhere si présentes
+    if (extraWhere) {
+      _.forOwn(extraWhere, (value, key) => {
+        sql += `AND ${esc}${joinTable}${esc}.${esc}${key}${esc} = ${dialect.param(this.i++)} `;
+        params.push(value);
+      });
+    }
 
     if (conditions && !_.isEmpty(conditions)) {
       sql += this.buildConditions(conditions, joinTable, params, operator);
@@ -869,12 +904,20 @@ module.exports = class PaginatedOptimizedSql extends Sql {
         const association = this._findAssociationByPath(path, query.schema);
 
         if (association) {
-          const [, , AssociatedModel, src_column, ref_column] = association;
+          const [, , AssociatedModel, src_column, ref_column, extraWhere] = association;
           const joinTable = AssociatedModel.schema.table;
 
           // Construire l'EXISTS pour cette condition
           let existsSQL = `EXISTS (SELECT 1 FROM ${esc}${joinTable}${esc} `;
           existsSQL += `WHERE ${esc}${joinTable}${esc}.${esc}${ref_column}${esc} = ${esc}${parentTable}${esc}.${esc}${src_column}${esc} `;
+
+          // Ajouter les conditions extraWhere si présentes
+          if (extraWhere) {
+            _.forOwn(extraWhere, (ewValue, ewKey) => {
+              existsSQL += `AND ${esc}${joinTable}${esc}.${esc}${ewKey}${esc} = ${dialect.param(this.i++)} `;
+              params.push(ewValue);
+            });
+          }
 
           // Ajouter la condition sur la colonne
           const columnRef = `${esc}${joinTable}${esc}.${esc}${column}${esc}`;
