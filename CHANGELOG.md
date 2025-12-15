@@ -1,5 +1,9 @@
 # Changelog
 
+## 6.0.0-beta.2 - 2025-12-15
+
+- Minor fixes in app.js and vite.config.js
+
 ## 6.0.0 - TBD
 
 - **BREAKING**: Migrated from Webpack to Vite for faster builds and modern tooling
