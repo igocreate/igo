@@ -1180,4 +1180,147 @@ describe('db.PaginatedOptimizedQuery', function() {
         'FULL phase should find block association for simple column name in direct associations');
     });
   });
+
+  //
+  describe('extraWhere support in PaginatedOptimizedQuery', function() {
+    // Modèle avec extraWhere sur l'association
+    class Library extends Model({
+      table: 'libraries',
+      primary: ['id'],
+      columns: {
+        id: 'integer',
+        title: 'string',
+        collection: 'string'
+      }
+    }) {}
+
+    class BookWithExtraWhere extends Model({
+      table: 'books',
+      primary: ['id'],
+      columns: {
+        id: 'integer',
+        code: 'string',
+        title: 'string',
+        library_id: 'integer'
+      },
+      associations: () => ([
+        ['belongs_to', 'library', Library, 'library_id', 'id', { collection: 'A' }]
+      ])
+    }) {}
+
+    it('should apply extraWhere in EXISTS clause for filterJoin', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(BookWithExtraWhere));
+      query.query.verb = 'count';
+      query.where({
+        'library.title': 'Test%'
+      });
+
+      const sql = query.toSQL();
+
+      // Vérifier que EXISTS est présent
+      assert.ok(sql.sql.includes('EXISTS'), 'SQL should contain EXISTS');
+
+      // Vérifier que extraWhere est inclus dans la clause EXISTS
+      assert.ok(sql.sql.includes('`libraries`.`collection`'), 'SQL should include extraWhere column');
+      assert.ok(sql.params.includes('A'), 'SQL params should include extraWhere value');
+
+      // Le SQL devrait ressembler à :
+      // EXISTS (SELECT 1 FROM `libraries` WHERE `libraries`.`id` = `books`.`library_id` AND `libraries`.`collection` = ? AND `libraries`.`title` LIKE ?)
+    });
+
+    it('should apply extraWhere in LEFT JOIN for sorting', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(BookWithExtraWhere));
+      query.query.verb = 'select_ids';
+      query
+        .where({ code: 'ABC' })
+        .order('library.title ASC')
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Vérifier que LEFT JOIN est présent
+      assert.ok(sql.sql.includes('LEFT JOIN `libraries`'), 'SQL should contain LEFT JOIN');
+
+      // Vérifier que extraWhere est inclus dans la condition du JOIN
+      assert.ok(sql.sql.includes('`libraries`.`collection` = ?'), 'SQL should include extraWhere in JOIN condition');
+      assert.ok(sql.params.includes('A'), 'SQL params should include extraWhere value');
+
+      // Le SQL devrait ressembler à :
+      // LEFT JOIN `libraries` ON `libraries`.`id` = `books`.`library_id` AND `libraries`.`collection` = ?
+    });
+
+    it('should apply extraWhere in both EXISTS (filter) and LEFT JOIN (sort)', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(BookWithExtraWhere));
+      query.query.verb = 'select_ids';
+      query
+        .where({
+          code: 'ABC',
+          'library.title': 'Test%'
+        })
+        .order('library.title ASC')
+        .limit(50);
+
+      const sql = query.toSQL();
+
+      // Vérifier que EXISTS et LEFT JOIN sont présents
+      assert.ok(sql.sql.includes('EXISTS'), 'SQL should contain EXISTS');
+      assert.ok(sql.sql.includes('LEFT JOIN'), 'SQL should contain LEFT JOIN');
+
+      // Vérifier que extraWhere apparaît 2 fois (une fois dans EXISTS, une fois dans JOIN)
+      const collectionMatches = sql.sql.match(/`libraries`\.`collection`/g) || [];
+      assert.strictEqual(collectionMatches.length, 2, 'extraWhere should appear twice (EXISTS + JOIN)');
+
+      // Vérifier que 'A' est dans les params deux fois
+      const aParams = sql.params.filter(p => p === 'A');
+      assert.strictEqual(aParams.length, 2, 'extraWhere value should appear twice in params');
+    });
+
+    it('should NOT include extraWhere in COUNT (no JOIN needed)', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(BookWithExtraWhere));
+      query.query.verb = 'count';
+      query
+        .where({ code: 'ABC' })
+        .order('library.title ASC');  // ORDER BY ignored in COUNT
+
+      const sql = query.toSQL();
+
+      // COUNT ne devrait pas avoir de LEFT JOIN
+      assert.ok(!sql.sql.includes('LEFT JOIN'), 'COUNT should not have LEFT JOIN');
+
+      // COUNT ne devrait pas avoir de ORDER BY
+      assert.ok(!sql.sql.includes('ORDER BY'), 'COUNT should not have ORDER BY');
+
+      // Mais si on avait un filtre sur library, on aurait EXISTS avec extraWhere
+    });
+
+    // Test avec plusieurs conditions extraWhere
+    class BookWithMultipleExtraWhere extends Model({
+      table: 'books_multi',
+      primary: ['id'],
+      columns: {
+        id: 'integer',
+        title: 'string',
+        library_id: 'integer'
+      },
+      associations: () => ([
+        ['belongs_to', 'library', Library, 'library_id', 'id', { collection: 'A', title: 'Main' }]
+      ])
+    }) {}
+
+    it('should apply multiple extraWhere conditions', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(BookWithMultipleExtraWhere));
+      query.query.verb = 'count';
+      query.where({
+        'library.title': 'Test%'
+      });
+
+      const sql = query.toSQL();
+
+      // Vérifier que les deux conditions extraWhere sont présentes
+      assert.ok(sql.sql.includes('`libraries`.`collection`'), 'SQL should include collection extraWhere');
+      assert.ok(sql.sql.includes('`libraries`.`title`'), 'SQL should include title in filter condition');
+      assert.ok(sql.params.includes('A'), 'SQL params should include collection value');
+      assert.ok(sql.params.includes('Main'), 'SQL params should include title extraWhere value');
+    });
+  });
 });
