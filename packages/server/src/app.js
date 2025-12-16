@@ -85,6 +85,12 @@ module.exports.configure = async () => {
     threshold: 1024 // Only compress if > 1KB
   }));
 
+  // Vite middleware in development mode (set by run() before configure())
+  // Must be before static files so Vite can serve JS/CSS
+  if (config.env === 'dev' && app.vite) {
+    app.use(app.vite.middlewares);
+  }
+
   // Static files with caching in production
   const staticDir = config.env === 'production' ? 'dist' : 'public';
   app.use(express.static(staticDir, {
@@ -93,11 +99,6 @@ module.exports.configure = async () => {
     etag:         true,
     lastModified: true
   }));
-
-  // Vite middleware in development mode (set by run() before configure())
-  if (config.env === 'dev' && app.vite) {
-    app.use(app.vite.middlewares);
-  }
 
   if (config.env !== 'test') {
     // async error handling
