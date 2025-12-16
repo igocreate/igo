@@ -135,6 +135,12 @@ class Db {
   //
   async rollbackTransaction() {
     const { driver, TEST_ENV } = this;
+
+    // No connection = no transaction to rollback
+    if (TEST_ENV && !this.connection) {
+      return;
+    }
+
     const { connection } = await this.getConnection();
     await driver.rollback(connection);
     driver.release(connection);

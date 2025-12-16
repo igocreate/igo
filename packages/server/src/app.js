@@ -41,6 +41,9 @@ const validateLang = (whitelist, fallbackLng) => {
 // Configure the Express app
 module.exports.configure = async () => {
 
+  // Initialize config (idempotent, safe to call multiple times)
+  await config.init();
+
   // Initialize @igojs/db with injected dependencies
   const utils = require('./utils');
   db.init({
@@ -140,7 +143,7 @@ module.exports.configure = async () => {
 module.exports.run = async (configured, started) => {
 
   // Initialize config first so we know the environment
-  await config.init(app);
+  await config.init();
 
   const http = require('http');
   app.server = http.createServer(app);
