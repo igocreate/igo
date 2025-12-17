@@ -7,8 +7,8 @@ let scriptsCache = null;
 let stylesCache = null;
 
 const buildAssets = () => {
-  const scripts = [];
-  const styles = [];
+  const scripts = {};
+  const styles = {};
 
   if (config.env === 'production') {
     // Production: read manifest.json
@@ -17,9 +17,14 @@ const buildAssets = () => {
 
       for (const [key, entry] of Object.entries(manifest)) {
         if (entry.isEntry) {
-          scripts.push(`<script type="module" src="/${entry.file}"></script>`);
-          if (entry.css?.[0]) {
-            styles.push(`<link rel="stylesheet" href="/${entry.css[0]}">`);
+          // Extract entry name from key (e.g., "js/admin/main.js" → "admin")
+          const entryName = path.basename(path.dirname(key));
+          scripts[entryName] = `<script type="module" src="/${entry.file}"></script>`;
+
+          if (entry.css?.length) {
+            styles[entryName] = entry.css
+              .map(css => `<link rel="stylesheet" href="/${css}">`)
+              .join('\n');
           }
         }
       }
@@ -30,22 +35,29 @@ const buildAssets = () => {
     // Development: read vite.config.js
     const viteConf = require(path.join(config.projectRoot, 'vite.config.js'));
 
-    scripts.push('<script type="module" src="/@vite/client"></script>');
+    const viteClientScript = '<script type="module" src="/@vite/client"></script>';
     const input = viteConf?.build?.rollupOptions?.input;
-    for (const entryPath of Object.values(input)) {
-      scripts.push(`<script type="module" src="/${entryPath}"></script>`);
-    }
 
-    // Load CSS to avoid FOUC (Flash Of Unstyled Content)
-    // Vite compiles SCSS on-the-fly when requested
-    const defaultCss = 'scss/main.scss';
-    if (fs.existsSync(path.join(config.projectRoot, defaultCss))) {
-      styles.push(`<link rel="stylesheet" href="/${defaultCss}">`);
+    for (const [entryName, entryPath] of Object.entries(input)) {
+      // Check JS entry exists
+      if (!fs.existsSync(path.join(config.projectRoot, entryPath))) {
+        logger.warn(`Vite entry not found: ${entryPath}`);
+      }
+      scripts[entryName] = viteClientScript + `<script type="module" src="/${entryPath}"></script>`;
+
+      // Convention: js/main.js → scss/main.scss
+      const stylePath = entryPath.replace(/^js\//, 'scss/').replace(/\.js$/, '.scss');
+      if (fs.existsSync(path.join(config.projectRoot, stylePath))) {
+        styles[entryName] = `<link rel="stylesheet" href="/${stylePath}">`;
+      } else {
+        logger.warn(`Vite style not found: ${stylePath} (convention: js/*.js → scss/*.scss)`);
+      }
     }
   }
 
-  scriptsCache  = scripts.join('\n');
-  stylesCache   = styles.join('\n');
+  scriptsCache = scripts;
+  stylesCache = styles;
+
 };
 
 // Middleware to inject Vite assets into res.locals
@@ -56,8 +68,8 @@ module.exports = (req, res, next) => {
     buildAssets();
   }
 
-  res.locals.viteScripts  = scriptsCache;
-  res.locals.viteStyles   = stylesCache;
+  res.locals.viteScripts = scriptsCache;
+  res.locals.viteStyles  = stylesCache;
 
   next();
 };

@@ -11,7 +11,7 @@
 
     <title>{+title}Igo running{/title}</title>
 
-    {viteStyles|s}
+    {viteStyles.main|s}
   </head>
 
   <body class="h-full">
@@ -24,6 +24,6 @@
       </div>
     </main>
 
-    {viteScripts|s}
+    {viteScripts.main|s}
   </body>
 </html>
