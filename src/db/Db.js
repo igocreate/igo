@@ -79,13 +79,11 @@ class Db {
         return dialect.getRows(result);
 
       } catch (err) {
-        if (options.silent) {
-          return;
+        // log & rethrow
+        if (!options.silent) {
+          logQuery(sql, params, err);
         }
-        // log & rethrow error
-        logQuery(sql, params, err);
         throw err;
-
       } finally {
         if (!keep) {
           // console.log('query: release transaction');
