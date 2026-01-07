@@ -379,8 +379,9 @@ module.exports = class PaginatedOptimizedQuery extends Query {
     // Retourner un tableau d'IDs (ou objets de clés composites)
     if (primaryKeys.length === 1) {
       return rows.map(row => row[primaryKeys[0]]);
+    } else {
+      return rows.map(row => _.pick(row, primaryKeys));
     }
-    return rows.map(row => _.pick(row, primaryKeys));
   }
 
   /**
@@ -434,7 +435,62 @@ module.exports = class PaginatedOptimizedQuery extends Query {
     }
 
     const rows = await fullQuery.execute();
-    return rows;
+
+    // Dédupliquer les résultats si nécessaire
+    // Les LEFT JOIN 1-N (comme beneficiary.folder_id = folders.id) créent des doublons
+    // qu'on doit éliminer manuellement en gardant la première occurrence de chaque ID
+    const uniqueRows = this._deduplicateRows(rows, ids.length);
+
+    return uniqueRows;
+  }
+
+  /**
+   * Déduplique les lignes retournées par SELECT FULL en gardant la première occurrence de chaque ID
+   *
+   * Cette méthode est nécessaire car les LEFT JOIN 1-N (ex: beneficiary.folder_id = folders.id)
+   * créent plusieurs lignes pour le même objet principal. On garde uniquement la première occurrence.
+   *
+   * @param {Array} rows - Lignes retournées par SELECT FULL
+   * @param {number} expectedCount - Nombre d'IDs attendus (pour logging)
+   * @returns {Array} Lignes dédupliquées
+   */
+  _deduplicateRows(rows, expectedCount) {
+    if (!rows || rows.length === 0) {
+      return rows;
+    }
+
+    // Si le nombre de lignes correspond au nombre d'IDs, pas de doublons
+    if (rows.length === expectedCount) {
+      return rows;
+    }
+
+    const primaryKeys = this.schema.primary || ['id'];
+    const seenIds = new Set();
+    const uniqueRows = [];
+
+    for (const row of rows) {
+      // Construire la clé composite si nécessaire
+      let key;
+      if (primaryKeys.length === 1) {
+        key = row[primaryKeys[0]];
+      } else {
+        key = primaryKeys.map(k => row[k]).join('|');
+      }
+
+      // Garder seulement la première occurrence de chaque ID
+      if (!seenIds.has(key)) {
+        seenIds.add(key);
+        uniqueRows.push(row);
+      }
+    }
+
+    // Logger si des doublons ont été éliminés (uniquement en cas de doublons)
+    const duplicatesRemoved = rows.length - uniqueRows.length;
+    if (duplicatesRemoved > 0) {
+      logger.info(`[PaginatedOptimizedQuery] ${duplicatesRemoved} duplicate(s) removed by LEFT JOIN 1-N deduplication`);
+    }
+
+    return uniqueRows;
   }
 
   /**
