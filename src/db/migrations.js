@@ -75,7 +75,7 @@ module.exports.migrate = async (db, rootDir = '.') => {
       await db.query(querybuf);
       querybuf = '';
     } else if (line.length > 0) {
-      querybuf += line;
+      querybuf += line + ' ';
       return;
     } else {
       return;
