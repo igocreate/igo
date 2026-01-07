@@ -89,7 +89,7 @@ ORDER BY f.created_at DESC
 Le module est intégré dans `igo-db`. Aucune installation supplémentaire n'est nécessaire.
 
 ```javascript
-const Model = require('igo').Model;
+const Model = require('@igojs/db').Model;
 
 // La méthode .paginatedOptimized() est disponible sur tous les modèles
 const query = MyModel.paginatedOptimized();

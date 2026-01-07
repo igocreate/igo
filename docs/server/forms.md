@@ -24,7 +24,7 @@ const schema = {
 Once the schema is defined, create a form class extending Igo's base form model. This class will also include a validation method to set validation rules for each field.
 
 ```javascript
-const { Form } = require('igo');
+const { Form } = require('@igojs/server');
 
 class TestForm extends Form(schema) {
   validate(req) {

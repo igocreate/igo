@@ -20,7 +20,7 @@
 **Migration guide**:
 - Projects using Webpack will need to migrate to Vite
 - Run `npm run build` instead of `webpack` for production builds
-- Update your project's `vite.config.js` to extend `require('igo').dev.viteConfig`
+- Update your project's `vite.config.js` to extend `require('@igojs/server').dev.viteConfig`
 
 ## 5.2.3 - 2025-10-16
 

@@ -1,5 +1,5 @@
 
 //
-const { app } = require('igo');
+const { app } = require('@igojs/server');
 
 app.run();

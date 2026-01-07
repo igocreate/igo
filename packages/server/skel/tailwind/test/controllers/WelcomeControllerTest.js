@@ -1,9 +1,9 @@
 
-require('igo').dev.test();
+require('@igojs/server').dev.test();
 
 const assert = require('assert');
 
-const agent = require('igo').dev.agent;
+const agent = require('@igojs/server').dev.agent;
 
 
 

@@ -1,0 +1,27 @@
+{
+  "name": "@igojs/igo",
+  "version": "6.0.0-beta.8",
+  "homepage": "https://github.com/igocreate/igo",
+  "description": "Igo is a Node.js Web Framework based on Express",
+  "keywords": [
+    "igocreate",
+    "web",
+    "expressjs"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:igocreate/igo.git"
+  },
+  "author": "@igocreate",
+  "license": "ISC",
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "@igojs/db": "^6.0.0-beta.4",
+    "@igojs/dust": "^6.0.0-beta.2",
+    "@igojs/server": "^6.0.0-beta.6",
+    "@igojs/signal": "^6.0.0-beta.3"
+  }
+}

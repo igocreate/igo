@@ -26,7 +26,7 @@ The default `npm start` script will actually run two scripts in parallel:
 
 Your local `vite.config.js` can be as short as:
 ```js
-const viteConfig = require('igo').dev.viteConfig;
+const viteConfig = require('@igojs/server').dev.viteConfig;
 module.exports = viteConfig;
 ```
 

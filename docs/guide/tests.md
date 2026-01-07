@@ -16,7 +16,7 @@ All tests run in the `test` environment, which allows you to define specific con
 
 All the tests must include this Igo Test init instruction:
 ```js
-require('igo').dev.test();
+require('@igojs/server').dev.test();
 ```
 
 This function will initialize the Mocha test suite, and do the following:
@@ -32,7 +32,7 @@ Here is a basic test example
 
 ```js
 
-require('igo').dev.test();
+require('@igojs/server').dev.test();
 
 var assert    = require('assert');
 var DateUtils = require('../../app/utils/DateUtils');
@@ -57,10 +57,10 @@ Here are some basic tests for controllers.
 
 ### Test redirection
 ```js
-require('igo').dev.test();
+require('@igojs/server').dev.test();
 
 var assert = require('assert');
-var agent = require('igo').dev.agent;
+var agent = require('@igojs/server').dev.agent;
 
 describe('controllers/IndexController', () => {
   describe('/', () => {

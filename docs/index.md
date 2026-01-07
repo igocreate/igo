@@ -23,7 +23,7 @@ Igo.js is organized as a monorepo with the following packages:
 
 ```sh
 # Install igo.js globally for CLI commands
-npm install -g igo
+npm install -g @igojs/igo
 
 # Create new project
 igo create myproject
@@ -42,7 +42,7 @@ The Igo.js configuration is located in `/app/config.js`.
 The configuration is initialized at startup, and can be retrieved through igo module:
 
 ```js
-const config = require('igo').config;
+const config = require('@igojs/server').config;
 ```
 
 Some configuration parameters can be defined with environment variables. Igo.js uses [dotenv](https://github.com/motdotla/dotenv), so you can add/override variables in the `/.env` file:

@@ -28,11 +28,11 @@ config.redis = {
 
 This configuration object is directly transmitted to the redis client: `redisclient = redis.createClient(config.redis);`
 
-Use `require('igo').cache` to access the Igo.js Cache API.
+Use `require('@igojs/server').cache` to access the Igo.js Cache API.
 
 ```js
 
-var cache = require('igo').cache;
+var cache = require('@igojs/server').cache;
 var id    = 123;
 cache.put('namespace', id, 'hello', () => {
   const value = await cache.get('namespace', 124);

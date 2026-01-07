@@ -1,7 +1,7 @@
 // Define your Express routes here
 // Check http://expressjs.com/fr/guide/routing.html for documentation
 
-const { signal }          = require('igo');
+const signal              = require('@igojs/signal');
 const WelcomeController   = require('./controllers/WelcomeController');
 
 //
