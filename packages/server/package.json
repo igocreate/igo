@@ -7,7 +7,7 @@
     "test": "mocha --exit 'test/**/*.js'"
   },
   "bin": {
-    "igo": "./cli/igo.js"
+    "igo": "cli/igo.js"
   },
   "keywords": [
     "igocreate",
@@ -20,7 +20,7 @@
   "homepage": "https://github.com/igocreate/igo",
   "repository": {
     "type": "git",
-    "url": "git@github.com:igocreate/igo.git"
+    "url": "git+ssh://git@github.com/igocreate/igo.git"
   },
   "publishConfig": {
     "access": "public"
