@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Igo is a Node.js full-stack web framework built on Express, providing ORM, templating, and reactive frontend components. This is an **npm monorepo** with 4 interdependent packages.
+Igo is a Node.js full-stack web framework built on Express, providing ORM, templating, and reactive frontend components. This is an **npm monorepo** with 5 packages.
 
 **Version:** 6.0.0
 **License:** ISC
@@ -16,10 +16,10 @@ Igo is a Node.js full-stack web framework built on Express, providing ORM, templ
 ├── packages/                    # Monorepo packages
 │   ├── db/                     # @igojs/db - ORM and database abstraction
 │   ├── dust/                   # @igojs/dust - Template engine
+│   ├── igo/                    # @igojs/igo - Meta-package (dépend de tous les autres)
 │   ├── server/                 # @igojs/server - Express framework core
 │   └── signal/                 # @igojs/signal - Reactive frontend/SSR
 ├── docs/                       # Docsify documentation
-├── index.js                    # Root meta-package entry point
 ├── package.json                # Root workspace configuration
 └── CHANGELOG.md                # Version history
 ```
@@ -121,6 +121,24 @@ res.render('template', { data });
 
 - **Development:** `v6` (current)
 - **Main:** `master`
+
+## Versioning
+
+Le package principal `@igojs/igo` (`packages/igo/`) est un meta-package qui dépend de tous les autres packages :
+
+```
+@igojs/igo
+├── @igojs/db
+├── @igojs/dust
+├── @igojs/server
+└── @igojs/signal
+```
+
+**Lors d'une mise à jour de version d'un package :**
+
+1. Mettre à jour la version dans `packages/<package>/package.json`
+2. Mettre à jour la dépendance correspondante dans `packages/igo/package.json`
+3. Lancer `npm install` pour synchroniser `package-lock.json`
 
 ## Important Files
 
