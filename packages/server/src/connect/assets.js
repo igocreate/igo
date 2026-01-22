@@ -17,8 +17,7 @@ const buildAssets = () => {
 
       for (const [key, entry] of Object.entries(manifest)) {
         if (entry.isEntry) {
-          // Extract entry name from key (e.g., "js/admin/main.js" → "admin")
-          const entryName = path.basename(path.dirname(key));
+          const entryName = entry.name;
           scripts[entryName] = `<script type="module" src="/${entry.file}"></script>`;
 
           if (entry.css?.length) {
@@ -45,7 +44,7 @@ const buildAssets = () => {
       }
       scripts[entryName] = viteClientScript + `<script type="module" src="/${entryPath}"></script>`;
 
-      // Convention: js/main.js → scss/main.scss
+      // Convention: js/index.js → scss/index.scss
       const stylePath = entryPath.replace(/^js\//, 'scss/').replace(/\.js$/, '.scss');
       if (fs.existsSync(path.join(config.projectRoot, stylePath))) {
         styles[entryName] = `<link rel="stylesheet" href="/${stylePath}">`;
