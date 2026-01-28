@@ -1,7 +1,9 @@
 require('./init');
 
 const assert = require('assert');
+const fs     = require('fs');
 const agent  = require('@igojs/server').dev.agent;
+const { _test: throttle } = require('@igojs/server/src/connect/errorhandler');
 
 describe('ErrorHandler', function() {
 
@@ -63,6 +65,93 @@ describe('ErrorHandler', function() {
       assert.strictEqual(res.statusCode, 200);
       // Promise rejection happens after response is sent
     });
+  });
+
+  describe('Email throttling', function() {
+
+    beforeEach(function() {
+      // Clean throttle file before each test
+      if (fs.existsSync(throttle.THROTTLE_FILE)) {
+        fs.unlinkSync(throttle.THROTTLE_FILE);
+      }
+    });
+
+    it('should allow first emails', function() {
+      const result = throttle.checkThrottle('TestError');
+      assert.strictEqual(result.throttled, false);
+      assert.strictEqual(result.shouldAlert, false);
+    });
+
+    it('should allow emails up to limit', function() {
+      // First 2 emails should pass without alert
+      for (let i = 0; i < throttle.THROTTLE_LIMIT - 1; i++) {
+        const result = throttle.checkThrottle('TestError');
+        assert.strictEqual(result.throttled, false);
+        assert.strictEqual(result.shouldAlert, false);
+      }
+    });
+
+    it('should alert on reaching limit', function() {
+      // Send THROTTLE_LIMIT - 1 emails
+      for (let i = 0; i < throttle.THROTTLE_LIMIT - 1; i++) {
+        throttle.checkThrottle('TestError');
+      }
+
+      // The Nth email should trigger alert
+      const result = throttle.checkThrottle('TestError');
+      assert.strictEqual(result.throttled, false);
+      assert.strictEqual(result.shouldAlert, true);
+    });
+
+    it('should block after reaching limit', function() {
+      // Send THROTTLE_LIMIT emails (last one triggers block)
+      for (let i = 0; i < throttle.THROTTLE_LIMIT; i++) {
+        throttle.checkThrottle('TestError');
+      }
+
+      // Next email should be blocked
+      const result = throttle.checkThrottle('TestError');
+      assert.strictEqual(result.throttled, true);
+      assert.strictEqual(result.shouldAlert, false);
+    });
+
+    it('should allow different errors independently', function() {
+      // Block first error
+      for (let i = 0; i < throttle.THROTTLE_LIMIT; i++) {
+        throttle.checkThrottle('Error1');
+      }
+
+      // First error should be blocked
+      const result1 = throttle.checkThrottle('Error1');
+      assert.strictEqual(result1.throttled, true);
+
+      // Different error should pass
+      const result2 = throttle.checkThrottle('Error2');
+      assert.strictEqual(result2.throttled, false);
+      assert.strictEqual(result2.shouldAlert, false);
+    });
+
+    it('should persist throttle data to file', function() {
+      throttle.checkThrottle('TestError');
+
+      // Read file directly
+      const data = JSON.parse(fs.readFileSync(throttle.THROTTLE_FILE, 'utf8'));
+      assert.strictEqual(data.emails.length, 1);
+      assert.strictEqual(data.emails[0].error, 'TestError');
+    });
+
+    it('should persist block state to file', function() {
+      // Trigger block
+      for (let i = 0; i < throttle.THROTTLE_LIMIT; i++) {
+        throttle.checkThrottle('TestError');
+      }
+
+      // Read file directly
+      const data = JSON.parse(fs.readFileSync(throttle.THROTTLE_FILE, 'utf8'));
+      assert.ok(data.blocked['TestError']);
+      assert.ok(data.blocked['TestError'] > Date.now());
+    });
+
   });
 
 });
