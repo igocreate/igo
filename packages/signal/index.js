@@ -2,6 +2,7 @@
 
 // Server-side exports
 const server = require('./src/server');
+const SignalComponent = require('./src/client/SignalComponent');
 
 // Re-export server utilities
 module.exports = {
@@ -18,7 +19,5 @@ module.exports = {
   serialize: server.serialize,
 
   // SignalComponent for SSR rendering
-  get SignalComponent() {
-    return require('./src/client/SignalComponent');
-  },
+  SignalComponent,
 };
