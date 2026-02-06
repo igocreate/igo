@@ -110,4 +110,31 @@ describe('igo.Form', () => {
     assert.strictEqual(form.price, 0);
   });
 
+  it('should validate isLength', () => {
+    const req = reqWithBody({ username: 'abc' });
+    req.checkBody('username', 'error.length').isLength({ min: 3, max: 20 });
+    assert.strictEqual(req.getValidationErrors(), null);
+  });
+
+  it('should fail isLength when too short', () => {
+    const req = reqWithBody({ username: 'ab' });
+    req.checkBody('username', 'error.length').isLength({ min: 3, max: 20 });
+    const errors = req.getValidationErrors();
+    assert.strictEqual(errors.username.msg, 'error.length');
+  });
+
+  it('should fail isLength when too long', () => {
+    const req = reqWithBody({ username: 'a'.repeat(21) });
+    req.checkBody('username', 'error.length').isLength({ min: 3, max: 20 });
+    const errors = req.getValidationErrors();
+    assert.strictEqual(errors.username.msg, 'error.length');
+  });
+
+  it('should fail isLength when empty', () => {
+    const req = reqWithBody({ username: '' });
+    req.checkBody('username', 'error.length').isLength({ min: 3 });
+    const errors = req.getValidationErrors();
+    assert.strictEqual(errors.username.msg, 'error.length');
+  });
+
 });

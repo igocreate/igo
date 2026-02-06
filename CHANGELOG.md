@@ -6,6 +6,9 @@
 
 ## 6.0.0 - TBD
 
+- Added `igo db seed` command to run seed files from `seeds/` directory
+- Added `igo db reseed` command to reset database and run seeds
+- **BREAKING**: `silent` query option now swallows errors and returns `null` instead of just suppressing logs
 - **BREAKING**: Migrated from Webpack to Vite for faster builds and modern tooling
   - Build configuration now uses Vite instead of Webpack
   - Development server uses Vite middleware mode

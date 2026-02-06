@@ -1,4 +1,6 @@
 
+const fs          = require('fs');
+const path        = require('path');
 const _           = require('lodash');
 
 const config      = require('../src/config');
@@ -7,6 +9,12 @@ const logger      = require('../src/logger');
 const utils       = require('../src/utils');
 const errorhandler = require('../src/connect/errorhandler');
 const db          = require('@igojs/db');
+
+// colors
+const green = (s) => `\x1b[32m${s}\x1b[0m`;
+const red   = (s) => `\x1b[31m${s}\x1b[0m`;
+const yellow = (s) => `\x1b[33m${s}\x1b[0m`;
+const dim   = (s) => `\x1b[2m${s}\x1b[0m`;
 
 // db verbs
 const verbs   = {
@@ -92,6 +100,42 @@ const verbs   = {
     });
   },
 
+  // igo db reseed
+  reseed: async (args) => {
+    await verbs.reset(args);
+    await verbs.seed();
+  },
+
+  // igo db seed
+  seed: async () => {
+    if (config.env === 'production') {
+      console.error(red('Seeds cannot be run in production.'));
+      return;
+    }
+
+    const seedsDir = path.resolve('seeds');
+    if (!fs.existsSync(seedsDir)) {
+      console.error(red('No seeds directory found.'));
+      return;
+    }
+
+    const files = fs.readdirSync(seedsDir)
+      .filter(f => f.match(/^\d+.*\.js$/))
+      .sort();
+
+    if (!files.length) {
+      console.log(yellow('No seed files found.'));
+      return;
+    }
+
+    await cache.init();
+    for (const file of files) {
+      const seed = require(path.join(seedsDir, file));
+      await seed();
+      console.log(`  ${green('✔')} ${file}`);
+    }
+  },
+
 };
 
 // igo db
@@ -114,10 +158,10 @@ module.exports = async (argv) => {
 
   if (args.length > 1 && verbs[args[1]]) {
     await verbs[args[1]](args)
-    console.log('Done.');
+    console.log(green('Done.'));
     process.exit(0);
   } else {
-    console.error('ERROR: Wrong options');
-    console.error('Usage: igo db [migrate|migrations|reset]');
+    console.error(red('ERROR: Wrong options'));
+    console.error(dim('Usage: igo db [migrate|migrations|reset|seed|reseed]'));
   }
 };
