@@ -132,4 +132,4 @@ class EventBinder {
   }
 }
 
-module.exports = EventBinder;
+export default EventBinder;

@@ -32,4 +32,4 @@ const createSerializeHelper = (uneval) => {
   };
 };
 
-module.exports = { createSerializeHelper, htmlencode };
+export { createSerializeHelper, htmlencode };

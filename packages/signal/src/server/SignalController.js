@@ -1,25 +1,15 @@
 
-const IgoDust = require('@igojs/dust');
+import IgoDust from '@igojs/dust';
+import { uneval } from 'devalue';
 
-const SerializeUtils  = require('./SerializeUtils');
-const { createSerializeHelper } = require('../shared/serialize');
-
-// Load devalue dynamically (ES module)
-let uneval;
-let helperRegistered = false;
-const devaluePromise = import('devalue').then(mod => {
-  uneval = mod.uneval;
-});
+import SerializeUtils from './SerializeUtils.js';
+import { createSerializeHelper } from '../shared/serialize.js';
 
 // Translations are loaded from user's project (configured via signal.configure())
 let translations = {};
 
-// Register @serialize helper (called once after devalue is loaded)
-const registerHelper = () => {
-  if (helperRegistered) return;
-  helperRegistered = true;
-  IgoDust.helpers.serialize = createSerializeHelper(uneval);
-};
+// Register @serialize helper
+IgoDust.helpers.serialize = createSerializeHelper(uneval);
 
 
 /**
@@ -35,11 +25,7 @@ const registerHelper = () => {
  * 2. Compute SSR derived values from registered signal_components
  * 3. Merge everything into res.locals for template rendering
  */
-module.exports.middleware = async (req, res, next) => {
-
-  // Wait for devalue to be loaded, then register helper
-  await devaluePromise;
-  registerHelper();
+const middleware = async (req, res, next) => {
 
   // Inject translations for frontend i18next
   res.locals.__signal_translations = uneval(translations);
@@ -80,15 +66,17 @@ module.exports.middleware = async (req, res, next) => {
 };
 
 //
-module.exports.templates = async (req, res) => {
+const templates = async (req, res) => {
   const file = req.query.file;
   const source = await IgoDust.getSource(`${file}.dust`);
   res.json({ file, source });
 };
 
 // Configure Signal (called from user's app)
-module.exports.configure = (options) => {
+const configure = (options) => {
   if (options.translations) {
     translations = options.translations;
   }
 };
+
+export default { middleware, templates, configure };

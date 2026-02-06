@@ -1,4 +1,4 @@
-const i18next = require('i18next');
+import i18next from 'i18next';
 
 // Get language from <html lang="..."> attribute (set by server)
 const lang = document.documentElement.lang || 'en';
@@ -19,4 +19,3 @@ i18next.init({
 
 // Expose globally for use in components
 window.i18next = i18next;
-

@@ -1,23 +1,20 @@
 // @igojs/signal - Reactive frontend/SSR framework for Igo.js
 
 // Server-side exports
-const server = require('./src/server');
-const SignalComponent = require('./src/client/SignalComponent');
+import server from './src/server/index.js';
+import SignalComponent from './src/client/SignalComponent.js';
 
 // Re-export server utilities
-module.exports = {
-  // Server middleware for SSR
+export const middleware = server.middleware;
+export const templates = server.templates;
+export const configure = server.configure;
+export const serialize = server.serialize;
+export { SignalComponent };
+
+export default {
   middleware: server.middleware,
-
-  // Template serving endpoint
   templates: server.templates,
-
-  // Configure signal (translations, etc.)
   configure: server.configure,
-
-  // Serialization for client hydration
   serialize: server.serialize,
-
-  // SignalComponent for SSR rendering
   SignalComponent,
 };

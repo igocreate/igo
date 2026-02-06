@@ -1,5 +1,6 @@
 
-const _ = require('lodash');
+import lodash from 'lodash';
+const { isFunction, isDate, isArray, map, isPlainObject, isObject } = lodash;
 
 /**
  * Serialize data for client-side hydration
@@ -15,23 +16,23 @@ const _ = require('lodash');
  * @param {WeakMap} [seen] - Internal map for tracking already-serialized objects
  * @returns {any} - Serialized data ready for devalue
  */
-module.exports.serialize = (data, seen = new WeakMap()) => {
+const serialize = (data, seen = new WeakMap()) => {
   if (data === null || data === undefined) {
     return null;
   }
   // Skip functions
-  if (_.isFunction(data)) {
+  if (isFunction(data)) {
     return undefined;
   }
   // Keep Date objects as-is (devalue handles them natively)
-  if (_.isDate(data)) {
+  if (isDate(data)) {
     return data;
   }
-  if (_.isArray(data)) {
-    return _.map(data, item => module.exports.serialize(item, seen));
+  if (isArray(data)) {
+    return map(data, item => serialize(item, seen));
   }
   // Model instances with serialize method
-  if (_.isFunction(data?.serialize)) {
+  if (isFunction(data?.serialize)) {
     // Check if already serialized (deduplication)
     if (seen.has(data)) {
       return seen.get(data);
@@ -41,15 +42,15 @@ module.exports.serialize = (data, seen = new WeakMap()) => {
     seen.set(data, serialized);
     // Serialize and merge into placeholder
     const result = data.serialize();
-    Object.assign(serialized, module.exports.serialize(result, seen));
+    Object.assign(serialized, serialize(result, seen));
     return serialized;
   }
   // Form instances with getValues method (Igo Form)
-  if (_.isFunction(data?.getValues) && data.constructor?.schema?.attributes) {
-    return module.exports.serialize(data.getValues(), seen);
+  if (isFunction(data?.getValues) && data.constructor?.schema?.attributes) {
+    return serialize(data.getValues(), seen);
   }
   // Plain objects only - recursively serialize values
-  if (_.isPlainObject(data)) {
+  if (isPlainObject(data)) {
     // Check if already processed (for circular plain objects)
     if (seen.has(data)) {
       return seen.get(data);
@@ -57,14 +58,16 @@ module.exports.serialize = (data, seen = new WeakMap()) => {
     const serialized = {};
     seen.set(data, serialized);
     for (const [key, value] of Object.entries(data)) {
-      serialized[key] = module.exports.serialize(value, seen);
+      serialized[key] = serialize(value, seen);
     }
     return serialized;
   }
   // Primitives (string, number, boolean)
-  if (!_.isObject(data)) {
+  if (!isObject(data)) {
     return data;
   }
   // Skip non-POJO class instances that we don't know how to serialize
   return undefined;
 };
+
+export default { serialize };

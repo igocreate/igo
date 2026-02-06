@@ -91,4 +91,4 @@ class FormHandler {
   }
 }
 
-module.exports = FormHandler;
+export default FormHandler;

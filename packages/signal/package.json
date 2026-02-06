@@ -1,14 +1,13 @@
 {
   "name": "@igojs/signal",
-  "version": "6.0.0-beta.7",
+  "version": "6.0.0-beta.8",
   "description": "Signal - Reactive frontend/SSR framework for Igo.js",
+  "type": "module",
   "main": "index.js",
   "browser": "src/client/index.js",
   "exports": {
     ".": {
       "browser": "./src/client/index.js",
-      "import": "./index.mjs",
-      "require": "./index.js",
       "default": "./index.js"
     },
     "./src/client": "./src/client/index.js",

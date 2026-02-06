@@ -1,5 +1,5 @@
-const assert = require('assert');
-const StateProxy = require('../../src/client/StateProxy');
+import assert from 'assert';
+import StateProxy from '../../src/client/StateProxy.js';
 
 describe('StateProxy', () => {
 

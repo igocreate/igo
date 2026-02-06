@@ -19,8 +19,5 @@ const loadTemplate = async (file) => {
   return _CACHE[file];
 };
 
-module.exports = {
-  getTemplate,
-  loadTemplate,
-  _CACHE
-};
+export { getTemplate, loadTemplate, _CACHE };
+export default { getTemplate, loadTemplate, _CACHE };

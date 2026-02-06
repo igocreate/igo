@@ -1,25 +1,16 @@
 // Isomorphic imports (safe for Node.js)
-const DerivedCache  = require('./DerivedCache');
-const StateProxy    = require('./StateProxy');
+import DerivedCache from './DerivedCache.js';
+import StateProxy from './StateProxy.js';
 
-// Browser-only imports are loaded lazily in constructor
+// Browser-only imports (top-level, but only used in browser methods)
+import diffDom from 'diff-dom';
+const { DiffDOM } = diffDom;
+import EventBinder from './EventBinder.js';
+import Templates from './dust/Templates.js';
+import FormHandler from './FormHandler.js';
 
 // Detect server-side rendering
 const isServer = typeof window === 'undefined';
-
-// Browser-only dependencies (lazy loaded once)
-let _browserDeps = null;
-const getBrowserDeps = () => {
-  if (!_browserDeps) {
-    _browserDeps = {
-      DiffDOM: require('diff-dom').DiffDOM,
-      EventBinder: require('./EventBinder'),
-      Templates: require('./dust/Templates'),
-      FormHandler: require('./FormHandler'),
-    };
-  }
-  return _browserDeps;
-};
 
 class Igo2Component {
   // Component registry for auto-discovery
@@ -77,16 +68,14 @@ class Igo2Component {
 
     // Browser-only setup
     if (!isServer) {
-      const deps = getBrowserDeps();
-
       this.element = element;
       this.element.__igoInstance  = this;
       this._dustTemplateFn        = null;
-      this._eventBinder           = new deps.EventBinder();
+      this._eventBinder           = new EventBinder();
       this._derivedCache          = new DerivedCache();
       this._isInitialized         = false;
       this._renderFrame           = null;
-      this._diffDom               = new deps.DiffDOM();
+      this._diffDom               = new DiffDOM();
     }
 
     // Default events array (only if not defined as getter in subclass)
@@ -230,13 +219,12 @@ class Igo2Component {
   // Initialize component (called automatically by constructor)
   // Can be overridden in subclasses for custom initialization
   async init() {
-    const deps = getBrowserDeps();
-    this._dustTemplateFn = await deps.Templates.loadTemplate(this.template);
+    this._dustTemplateFn = await Templates.loadTemplate(this.template);
     this._isInitialized = true;
 
     // Initialize form handler if props.form exists
     if (this.props.form) {
-      this._formHandler = new deps.FormHandler(this, this.props.form);
+      this._formHandler = new FormHandler(this, this.props.form);
     }
 
     await this.render();
@@ -406,4 +394,4 @@ class Igo2Component {
 
 }
 
-module.exports = Igo2Component;
+export default Igo2Component;

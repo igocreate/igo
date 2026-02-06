@@ -71,4 +71,4 @@ class StateProxy {
 
 }
 
-module.exports = StateProxy;
+export default StateProxy;
