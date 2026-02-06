@@ -1,5 +1,13 @@
 # Changelog
 
+## 6.0.0-beta.10 - 2026-02-06
+
+- Fixed LEFT JOIN 1-N duplicates with JavaScript deduplication in paginated optimized queries
+- Fixed migrations line return issue
+- Added per-error email throttling to prevent crash loop spam
+- Moved heavy dependencies (express, vite, redis, sass, etc.) to peerDependencies in @igojs/server
+- Moved @igojs/dust and i18next to peerDependencies in @igojs/signal
+
 ## 6.0.0-beta.2 - 2025-12-15
 
 - Minor fixes in app.js and vite.config.js

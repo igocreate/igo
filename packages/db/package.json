@@ -1,6 +1,6 @@
 {
   "name": "@igojs/db",
-  "version": "6.0.0-beta.5",
+  "version": "6.0.0-beta.6",
   "description": "Igo ORM - Database abstraction layer for MySQL and PostgreSQL",
   "main": "index.js",
   "scripts": {
@@ -26,7 +26,7 @@
     "lodash": "^4.17.23"
   },
   "optionalDependencies": {
-    "mysql2": "^3.16.1",
-    "pg": "^8.17.2"
+    "mysql2": "^3.16.3",
+    "pg": "^8.18.0"
   }
 }

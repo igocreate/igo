@@ -67,7 +67,7 @@ module.exports.configure = async () => {
   await i18next
   .use(i18nMiddleware.LanguageDetector)
   .use(i18nFsBackend)
-  .init(config.i18n);
+  .init({ showSupportNotice: false, ...config.i18n });
 
   app.enable('trust proxy');
   app.disable('x-powered-by');
