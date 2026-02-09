@@ -1,5 +1,5 @@
-import assert from 'assert';
-import DerivedCache from '../../src/client/DerivedCache.js';
+const assert = require('assert');
+const DerivedCache = require('../../src/client/DerivedCache.js');
 
 describe('DerivedCache', () => {
 

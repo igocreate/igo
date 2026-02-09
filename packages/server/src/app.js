@@ -88,15 +88,8 @@ module.exports.configure = async () => {
     threshold: 1024 // Only compress if > 1KB
   }));
 
-  // Vite middleware in development mode (set by run() before configure())
-  // Must be before static files so Vite can serve JS/CSS
-  if (config.env === 'dev' && app.vite) {
-    app.use(app.vite.middlewares);
-  }
-
   // Static files with caching in production
-  const staticDir = config.env === 'production' ? 'dist' : 'public';
-  app.use(express.static(staticDir, {
+  app.use(express.static('public', {
     redirect:     false,
     maxAge:       config.env === 'production' ? '1y' : 0,
     etag:         true,
@@ -142,31 +135,11 @@ module.exports.configure = async () => {
 // started: function invoked when server is started
 module.exports.run = async (configured, started) => {
 
-  // Initialize config first so we know the environment
-  await config.init();
-
-  const http = require('http');
-  app.server = http.createServer(app);
-
-  // In dev mode, attach WebSocket to HTTP server
-  if (config.env === 'dev') {
-    app.vite = await import('vite').then(m => m.createServer({
-      server: {
-        middlewareMode: true,
-        hmr: { server: app.server }
-      },
-      appType: 'custom',
-      configFile: './vite.config.js'
-    }));
-  }
-
-  // Configure app (will add Vite middleware at the right place)
   await module.exports.configure();
   configured && configured();
 
-  app.server.listen(config.httpport, function() {
+  app.server = app.listen(config.httpport, function() {
     logger.info('Listening to port %s', config.httpport);
     started && started();
   });
-
 };

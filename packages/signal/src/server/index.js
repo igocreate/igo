@@ -6,10 +6,10 @@
  * - SerializeUtils: Model serialization with deduplication
  */
 
-import SignalController from './SignalController.js';
-import SerializeUtils from './SerializeUtils.js';
+const SignalController = require('./SignalController.js');
+const SerializeUtils = require('./SerializeUtils.js');
 
-export default {
+module.exports = {
   middleware: SignalController.middleware,
   templates: SignalController.templates,
   configure: SignalController.configure,

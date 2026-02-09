@@ -1,6 +1,5 @@
-
 // css
-import '../scss/main.scss';
+require('../scss/main.scss');
 
 // js
 const signal = require('@igojs/signal/src/client');

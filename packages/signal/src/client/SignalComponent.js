@@ -1,12 +1,12 @@
 // Isomorphic imports (safe for Node.js)
-import DerivedCache from './DerivedCache.js';
-import StateProxy from './StateProxy.js';
+const DerivedCache = require('./DerivedCache.js');
+const StateProxy = require('./StateProxy.js');
 
 // Browser-only imports (top-level, but only used in browser methods)
-import { DiffDOM } from 'diff-dom';
-import EventBinder from './EventBinder.js';
-import Templates from './dust/Templates.js';
-import FormHandler from './FormHandler.js';
+const { DiffDOM } = require('diff-dom');
+const EventBinder = require('./EventBinder.js');
+const Templates = require('./dust/Templates.js');
+const FormHandler = require('./FormHandler.js');
 
 // Detect server-side rendering
 const isServer = typeof window === 'undefined';
@@ -393,4 +393,4 @@ class Igo2Component {
 
 }
 
-export default Igo2Component;
+module.exports = Igo2Component;

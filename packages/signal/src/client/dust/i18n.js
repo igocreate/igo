@@ -1,4 +1,4 @@
-import i18next from 'i18next';
+const i18next = require('i18next');
 
 // Get language from <html lang="..."> attribute (set by server)
 const lang = document.documentElement.lang || 'en';

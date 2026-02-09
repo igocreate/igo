@@ -1,7 +1,7 @@
-import Templates from './Templates.js';
-import { uneval } from 'devalue';
-import igoDustHelpers from '@igojs/dust/src/render/Helpers';
-import { createSerializeHelper, htmlencode } from '../../shared/serialize.js';
+const Templates = require('./Templates.js');
+const { uneval } = require('devalue');
+const igoDustHelpers = require('@igojs/dust/src/render/Helpers');
+const { createSerializeHelper, htmlencode } = require('../../shared/serialize.js');
 
 // Special characters
 const BS      = /\\/g,
@@ -121,5 +121,4 @@ const i = async (file) => {
   return await Templates.loadTemplate(file);
 };
 
-export { a, b, v, d, h, f, i, setHelpers };
-export default { a, b, v, d, h, f, i, setHelpers };
+module.exports = { a, b, v, d, h, f, i, setHelpers };

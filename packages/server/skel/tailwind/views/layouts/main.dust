@@ -11,7 +11,8 @@
 
     <title>{+title}Igo running{/title}</title>
 
-    {viteStyles.main|s}
+    <link rel="stylesheet" href="{assets.vendor.css}" />
+    <link rel="stylesheet" href="{assets.main.css}" />
   </head>
 
   <body class="h-full">
@@ -24,6 +25,7 @@
       </div>
     </main>
 
-    {viteScripts.main|s}
+    <script src="{assets.vendor.js}" ></script>
+    <script src="{assets.main.js}" ></script>
   </body>
 </html>

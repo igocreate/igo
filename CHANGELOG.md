@@ -1,37 +1,27 @@
 # Changelog
 
-## 6.0.0-beta.10 - 2026-02-06
+## 6.0.0-beta.11 - 2026-02-09
 
 - Fixed LEFT JOIN 1-N duplicates with JavaScript deduplication in paginated optimized queries
 - Fixed migrations line return issue
 - Added per-error email throttling to prevent crash loop spam
-- Moved heavy dependencies (express, vite, redis, sass, etc.) to peerDependencies in @igojs/server
+- Moved heavy dependencies (express, redis, sass, etc.) to peerDependencies in @igojs/server
 - Moved @igojs/dust and i18next to peerDependencies in @igojs/signal
-
-## 6.0.0-beta.2 - 2025-12-15
-
-- Minor fixes in app.js and vite.config.js
 
 ## 6.0.0 - TBD
 
 - Added `igo db seed` command to run seed files from `seeds/` directory
 - Added `igo db reseed` command to reset database and run seeds
 - **BREAKING**: `silent` query option now swallows errors and returns `null` instead of just suppressing logs
-- **BREAKING**: Migrated from Webpack to Vite for faster builds and modern tooling
-  - Build configuration now uses Vite instead of Webpack
-  - Development server uses Vite middleware mode
-  - Asset manifest generation updated for Vite compatibility
 - **BREAKING**: Upgraded to Express 5.1
 - **BREAKING**: Removed Bootstrap skeleton template
-- Fixed manifest.json path for Vite 5+ compatibility (now generated at `dist/manifest.json`)
 - Improved migration system to silently skip hidden files (`.gitkeep`, etc.)
 - Removed Tailwind UI placeholder image from default template
-- Updated project scaffolding to use Vite build pipeline
 
-**Migration guide**:
-- Projects using Webpack will need to migrate to Vite
-- Run `npm run build` instead of `webpack` for production builds
-- Update your project's `vite.config.js` to extend `require('@igojs/server').dev.viteConfig`
+**v7 roadmap**:
+- Full ESM (`"type": "module"` across all packages)
+- Vite for builds and dev server
+- Vitest for testing
 
 ## 5.2.3 - 2025-10-16
 

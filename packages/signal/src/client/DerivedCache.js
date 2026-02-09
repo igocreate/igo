@@ -60,4 +60,4 @@ class DerivedCache {
   }
 }
 
-export default DerivedCache;
+module.exports = DerivedCache;

@@ -75,14 +75,12 @@ class EventBinder {
         const existingHandler = eventMap.get(eventType);
 
         if (existingHandler) {
-          // ✅ Element preserved by DiffDOM → reuse existing listener
           newListeners.push({
             element: targetElement,
             eventType,
             handler: existingHandler
           });
         } else {
-          // ✅ New element or new eventType → create new listener
           const boundHandler = handler.bind(context);
           targetElement.addEventListener(eventType, boundHandler);
           eventMap.set(eventType, boundHandler);
@@ -105,7 +103,6 @@ class EventBinder {
     this._boundListeners.forEach(({ element, eventType, handler }) => {
       const processedEvents = processedElements.get(element);
       if (!processedEvents || !processedEvents.has(eventType)) {
-        // Element was removed or event type changed → cleanup
         element?.removeEventListener(eventType, handler);
         const eventMap = this._elementListeners.get(element);
         if (eventMap) {
@@ -128,8 +125,7 @@ class EventBinder {
       element?.removeEventListener(eventType, handler);
     });
     this._boundListeners = [];
-    // Note: WeakMap clears itself automatically when elements are garbage collected
   }
 }
 
-export default EventBinder;
+module.exports = EventBinder;

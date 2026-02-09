@@ -1,15 +1,19 @@
 
-import IgoDust from '@igojs/dust';
-import { uneval } from 'devalue';
+const IgoDust = require('@igojs/dust');
 
-import SerializeUtils from './SerializeUtils.js';
-import { createSerializeHelper } from '../shared/serialize.js';
+const SerializeUtils = require('./SerializeUtils.js');
+const { createSerializeHelper } = require('../shared/serialize.js');
 
 // Translations are loaded from user's project (configured via signal.configure())
 let translations = {};
 
-// Register @serialize helper
-IgoDust.helpers.serialize = createSerializeHelper(uneval);
+// devalue is ESM-only, load it dynamically at startup
+let uneval;
+const devalueReady = import('devalue').then(m => {
+  uneval = m.uneval;
+  // Register @serialize helper once devalue is loaded
+  IgoDust.helpers.serialize = createSerializeHelper(uneval);
+});
 
 
 /**
@@ -26,6 +30,9 @@ IgoDust.helpers.serialize = createSerializeHelper(uneval);
  * 3. Merge everything into res.locals for template rendering
  */
 const middleware = async (req, res, next) => {
+
+  // Ensure devalue is loaded
+  await devalueReady;
 
   // Inject translations for frontend i18next
   res.locals.__signal_translations = uneval(translations);
@@ -79,4 +86,4 @@ const configure = (options) => {
   }
 };
 
-export default { middleware, templates, configure };
+module.exports = { middleware, templates, configure };

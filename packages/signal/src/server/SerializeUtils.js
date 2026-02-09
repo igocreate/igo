@@ -1,6 +1,6 @@
 
-import lodash from 'lodash';
-const { isFunction, isDate, isArray, map, isPlainObject, isObject } = lodash;
+const _ = require('lodash');
+const { isFunction, isDate, isArray, map, isPlainObject, isObject } = _;
 
 /**
  * Serialize data for client-side hydration
@@ -70,4 +70,4 @@ const serialize = (data, seen = new WeakMap()) => {
   return undefined;
 };
 
-export default { serialize };
+module.exports = { serialize };

@@ -2,17 +2,17 @@
  * Signal - Zero-boilerplate reactive framework (browser entry point)
  *
  * Usage:
- *   import { start } from '@igojs/signal/src/client';
+ *   const { start } = require('@igojs/signal/src/client');
  *   start({
  *     components: { 'Counter': Counter },
  *     helpers: helpers
  *   });
  */
 
-import './dust/i18n.js';
+require('./dust/i18n.js');
 
-import SignalComponent from './SignalComponent.js';
-import Utils from './dust/Utils.js';
+const SignalComponent = require('./SignalComponent.js');
+const Utils = require('./dust/Utils.js');
 
 window.__signal = {
   IgoDustUtils: Utils
@@ -70,4 +70,4 @@ function start(config = {}) {
 
 window.__signal.mountElement = mountElement;
 
-export { SignalComponent, start, mountAll, mountElement };
+module.exports = { SignalComponent, start, mountAll, mountElement };

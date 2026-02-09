@@ -1,5 +1,5 @@
-import assert from 'assert';
-import SerializeUtils from '../../src/server/SerializeUtils.js';
+const assert = require('assert');
+const SerializeUtils = require('../../src/server/SerializeUtils.js');
 
 describe('SerializeUtils', () => {
 

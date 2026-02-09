@@ -1,12 +1,14 @@
 {
-  "name": "temp",
+  "name": "{project.name}",
   "version": "0.0.1",
   "description": "",
   "main": "app.js",
   "scripts": {
     "eslint": "eslint ./app ./test",
-    "start": "nodemon app.js",
-    "build": "vite build",
+    "nodemon": "nodemon app.js",
+    "start": "concurrently \"npm run nodemon\" \"npm run webpack\"",
+    "webpack": "webpack serve --mode=development",
+    "webpack-prod": "webpack --mode=production",
     "test": "mocha"
   },
   "author": "",

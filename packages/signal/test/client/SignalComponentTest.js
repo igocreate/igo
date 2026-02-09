@@ -1,5 +1,5 @@
-import assert from 'assert';
-import SignalComponent from '../../src/client/SignalComponent.js';
+const assert = require('assert');
+const SignalComponent = require('../../src/client/SignalComponent.js');
 
 describe('SignalComponent', () => {
 
