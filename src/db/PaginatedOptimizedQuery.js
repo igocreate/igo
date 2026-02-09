@@ -402,6 +402,10 @@ module.exports = class PaginatedOptimizedQuery extends Query {
     fullQuery.query = _.cloneDeep(this.query);
     fullQuery.query.verb = 'select';
 
+    // Restaurer les joins originaux : _.cloneDeep crée de nouveaux objets pour src_schema,
+    // ce qui casse les lookups par identité (===) dans le Map de Query.execute()
+    fullQuery.query.joins = this.query.joins;
+
     // Conserver uniquement les "vrais" joins (pas les filterJoins)
     // Les filterJoins ne sont utilisés que pour COUNT et IDS
     fullQuery.query.filterJoins = [];

@@ -235,4 +235,38 @@ describe('includes', () => {
     });
   });
 
+  describe('paginatedOptimized join', () => {
+    it('should attach joined data in selectFull phase (cloneDeep regression)', async () => {
+      const city    = await City.create({ name: 'Paris' });
+      const library = await Library.create({ title: 'BNF', city_id: city.id });
+      const book    = await Book.create({ library_id: library.id });
+
+      const books = await Book.paginatedOptimized()
+        .join('library')
+        .limit(10)
+        .list();
+
+      assert.strictEqual(books.length, 1);
+      assert.strictEqual(books[0].id, book.id);
+      assert.strictEqual(books[0].library.id, library.id);
+      assert.strictEqual(books[0].library.title, 'BNF');
+    });
+
+    it('should attach nested joined data in selectFull phase', async () => {
+      const city    = await City.create({ name: 'Lyon' });
+      const library = await Library.create({ title: 'Municipale', city_id: city.id });
+      const book    = await Book.create({ library_id: library.id });
+
+      const books = await Book.paginatedOptimized()
+        .join({ library: 'city' })
+        .limit(10)
+        .list();
+
+      assert.strictEqual(books.length, 1);
+      assert.strictEqual(books[0].library.id, library.id);
+      assert.strictEqual(books[0].library.city.id, city.id);
+      assert.strictEqual(books[0].library.city.name, 'Lyon');
+    });
+  });
+
 });
