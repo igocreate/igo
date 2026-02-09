@@ -3,8 +3,7 @@ import DerivedCache from './DerivedCache.js';
 import StateProxy from './StateProxy.js';
 
 // Browser-only imports (top-level, but only used in browser methods)
-import diffDom from 'diff-dom';
-const { DiffDOM } = diffDom;
+import { DiffDOM } from 'diff-dom';
 import EventBinder from './EventBinder.js';
 import Templates from './dust/Templates.js';
 import FormHandler from './FormHandler.js';
