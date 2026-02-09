@@ -1,4 +1,4 @@
-const { SignalComponent } = require('@igojs/signal');
+const { SignalComponent } = require('@igojs/signal/client');
 
 class UserMenu extends SignalComponent {
   constructor(element) {

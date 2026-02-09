@@ -9,14 +9,21 @@
  *   });
  */
 
-require('./dust/i18n.js');
-
 const SignalComponent = require('./SignalComponent.js');
+
+const isServer = typeof window === 'undefined';
+
+if (!isServer) {
+  require('./dust/i18n.js');
+}
+
 const Utils = require('./dust/Utils.js');
 
-window.__signal = {
-  IgoDustUtils: Utils
-};
+if (!isServer) {
+  window.__signal = {
+    IgoDustUtils: Utils
+  };
+}
 
 let registry = {};
 
@@ -68,6 +75,8 @@ function start(config = {}) {
   }
 }
 
-window.__signal.mountElement = mountElement;
+if (!isServer) {
+  window.__signal.mountElement = mountElement;
+}
 
-module.exports = { SignalComponent, start, mountAll, mountElement };
+module.exports = { SignalComponent, start };
