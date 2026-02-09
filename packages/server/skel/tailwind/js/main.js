@@ -2,7 +2,7 @@
 require('../scss/main.scss');
 
 // js
-const signal = require('@igojs/signal/src/client');
+const signal = require('@igojs/signal/client');
 const Counter = require('./components/Counter');
 const UserMenu = require('./components/UserMenu');
 
