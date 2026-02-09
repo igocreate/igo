@@ -1,4 +1,4 @@
-const { SignalComponent } = require('@igojs/signal/client');
+const { SignalComponent } = require('@igojs/signal');
 
 class Counter extends SignalComponent {
   constructor(element) {
