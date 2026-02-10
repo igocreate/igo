@@ -1,70 +1,16 @@
 
-# Igo.js Model API
+# Models
 
-The Igo.js Model API for MySQL is the only part of Igo.js that is not just the integration of another module.
-As you will notice, the syntax was very inspired by [Ruby on Rails Active Record](http://guides.rubyonrails.org/active_record_basics.html).
-
-## MySQL Configuration
-
-This is the default MySQL configuration (`config.mysql`) defined by Igo.js:
-```
-config.mysql = {
-  host     : process.env.MYSQL_HOST     || '127.0.0.1',
-  port     : process.env.MYSQL_PORT     || 3306,
-  user     : process.env.MYSQL_USERNAME || 'root',
-  password : process.env.MYSQL_PASSWORD || '',
-  database : process.env.MYSQL_DATABASE || 'igo',
-  debug    : false,     // mysql driver debug mode
-  connectionLimit : 5,
-  debugsql : false      // show sql logs
-};
-```
-
-This configuration is given to the [node.js driver for mysql](https://github.com/mysqljs/mysql) `mysql.createPool(config.mysql)` function, to initialize the connection pool.
-
-You can override this configuration in your `/app/config.js` file:
-```js
-if (config.env === 'dev') {
-  // show sql logs
-  config.mysql.debugsql = true;
-}
-```
-
-
-## Migrations
-
-All the SQL files should be placed in the `/sql` directory, and will be played in the alphabetical order.
-The SQL files names must follow this pattern: `YYYYMMDD-*.sql`.
-
-To run the migrations, use:
-```js
-require('@igojs/db').dbs.mysql.migrate();
-```
-
-When a migration file has run successfully, it is saved in a `__db_migrations` table so it will not run again next time. (This table is automatically created by the framework.)
-
-### CLI
-
-The Igo.js CLI provides convenient functions to deal with the database migrations.
-
-```sh
-# run migrations
-igo db migrate
-
-# reset database (WARNING: data will be lost)
-igo db reset
-```
+We were looking for a simple ORM for Node.js — something lightweight, with a clean API inspired by [Active Record](http://guides.rubyonrails.org/active_record_basics.html). We couldn't find one that fit, so we decided to see if it was hard to build... It wasn't, and @igojs/db was born!
 
 ## Model Definition
 
-### Basics
-
 ```js
-const Model  = require('@igojs/db').Model;
+const Model = require('@igojs/db').Model;
 
 const schema = {
-  table:    'users',
-  columns:  [
+  table:   'users',
+  columns: [
     'id',
     'email',
     'password',
@@ -75,416 +21,264 @@ const schema = {
 };
 
 class User extends Model(schema) {
-  //override constructor if needed
-  constructor(values) {
-    super(values);
-  }
-
   name() {
     return this.first_name + ' ' + this.last_name;
   }
-};
+}
 
 module.exports = User;
 ```
 
-The `schema` object defines the table name and the table structure, and how this model can be associated to other models.
+The `schema` object defines the table name, columns, associations, and scopes.
 
+## Column Types
 
-### Columns Types
-
-Column types can be specified.
+Columns can have a type for automatic conversion:
 
 ```js
 const schema = {
-  table:    'users',
-  columns:  [
+  table:   'users',
+  columns: [
     'id',
     'first_name',
     'last_name',
-    {name: 'is_validated', type: 'boolean'}
-    {name: 'details_json', type: 'json', attr: 'details'},
-    {name: 'pets_array', type: 'array', attr: 'pets'},
+    { name: 'is_validated', type: 'boolean' },
+    { name: 'details_json', type: 'json', attr: 'details' },
+    { name: 'pets_array', type: 'array', attr: 'pets' },
   ]
 };
 ```
-`boolean` will automatically be cast as boolean on instance.
 
-`json` columns will automatically be stringified on creation and update and parsed on load (on the instance, the column key is set with the `attr` attribute).
+| Type | Behavior |
+|------|----------|
+| `boolean` | Automatically cast to `true`/`false` on load |
+| `json` | Stringified on write, parsed on load. Access via `attr` name. |
+| `array` | Joined to CSV on write, split on load. Access via `attr` name. |
 
-`array` columns will automatically be stringified on creation and update and split on load (on the instance, the column key is set with the `attr` attribute).
+## Associations
 
-### Associations
-
-Add `associations` in the schema declaration.
-Use `has_many` for one-to-many relationships, and `belongs_to` for many-to-one relationships.
+Declare relationships in the schema with `has_many` and `belongs_to`:
 
 ```js
 const Project = require('./Project');
 const Country = require('./Country');
-const schema  = {
-  // ...
-  columns: [
-    'id',
-    'country_id',
-    // ...
-  ]
+
+const schema = {
+  table: 'users',
+  columns: ['id', 'country_id', 'email'],
   associations: [
-    // [ type, attribute name, association model, model key, foreign key ('id' if not specified)]
-    [ 'has_many',   'projects', Project, 'id', 'user_id'],
-    [ 'belongs_to', 'country',  Country, 'country_id' ],
+    // [type, name, Model, localKey, foreignKey]
+    ['has_many',   'projects', Project, 'id', 'user_id'],
+    ['belongs_to', 'country',  Country, 'country_id'],
   ]
 };
 ```
 
-`has_many` can also be used with an array of references.
-In the following example, projects_ids should be an array of projects' ids.
+### has_many from JSON array
+
+`has_many` can reference an array of IDs stored as JSON:
 
 ```js
-const schema  = {
-  // ...
+const schema = {
+  table: 'users',
   columns: [
     'id',
-    {name: 'projects_ids_json', type: 'json', attr: 'projects_ids'}
-    // ...
-  ]
+    { name: 'projects_ids_json', type: 'json', attr: 'projects_ids' },
+  ],
   associations: () => ([
-    [ 'has_many',   'projects', require('./Project'), 'projects_ids', 'id'],
+    ['has_many', 'projects', require('./Project'), 'projects_ids', 'id'],
   ])
 };
 ```
 
-### Scopes
+### Extra WHERE on associations
 
-Scopes can be used to specify extra queries options.
-Scopes are added to the schema declaration.
+Filter associated records with an extra condition:
 
 ```js
-const schema  = {
-  // ...
+associations: [
+  ['has_many', 'active_posts', Post, 'id', 'user_id', { active: true }],
+]
+```
+
+See [Queries](./queries.md) for loading associations with `includes()` and `join()`.
+
+## Scopes
+
+Scopes add default query conditions:
+
+```js
+const schema = {
+  table: 'users',
+  columns: ['id', 'email', 'status', 'created_at'],
   scopes: {
-    default:    function(query) { query.order('`created_at` DESC'); },
-    validated:  function(query) { query.where({ validated: true }); }
+    default:   (query) => { query.order('`created_at` DESC'); },
+    active:    (query) => { query.where({ status: 'active' }); },
   }
 };
 ```
 
-The `default` scope will be used on all queries.
-(Use `.unscoped()` to not use the default scope.)
+The `default` scope applies to all queries. Use `.unscoped()` to bypass it.
 
 ```js
-//Scopes usage
-User.scope('validated').list(function(err, validatedUsers) {
-  //..
-});
+const users = await User.scope('active').list();
+const all   = await User.unscoped().list();
 ```
 
-## Model API
+## API Reference
+
+### Static Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `Model.create(values)` | `instance` | Insert a new record |
+| `Model.find(id)` | `instance \| null` | Find by primary key |
+| `Model.first()` | `instance \| null` | First record (respects default scope) |
+| `Model.last()` | `instance \| null` | Last record (respects default scope) |
+| `Model.list()` | `[instance, ...]` | All records |
+| `Model.count()` | `number` | Count records |
+| `Model.delete(id)` | — | Delete by primary key |
+| `Model.deleteAll()` | — | Delete all records |
+| `Model.update(values)` | — | Update all records |
+| `Model.where(conditions)` | `Query` | Filter records (see [Queries](./queries.md)) |
+| `Model.whereNot(conditions)` | `Query` | Exclude records |
+| `Model.select(columns)` | `Query` | Custom SELECT |
+| `Model.distinct(columns)` | `Query` | Distinct values |
+| `Model.group(columns)` | `Query` | GROUP BY |
+| `Model.order(clause)` | `Query` | ORDER BY |
+| `Model.limit(n)` | `Query` | Limit results |
+| `Model.offset(n)` | `Query` | Skip results |
+| `Model.page(page, perPage)` | `Query` | Paginate |
+| `Model.includes(assocs)` | `Query` | Eager load associations |
+| `Model.join(assocs)` | `Query` | SQL JOIN |
+| `Model.scope(name)` | `Query` | Apply named scope |
+| `Model.unscoped()` | `Query` | Remove default scope |
+| `Model.paginatedOptimized()` | `PaginatedOptimizedQuery` | Optimized pagination (see [POQ](./paginated-optimized-query.md)) |
+
+### Instance Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `instance.update(values)` | — | Update this record |
+| `instance.delete()` | — | Delete this record |
+| `instance.reload(includes?)` | — | Refresh from database |
+
+## CRUD
 
 ### Create
 
 ```js
-// create default user
-const user = await User.create();
-// => User { id: null, first_name: null, last_name: null, ... }
-
-// create with specified attributes
 const user = await User.create({
   first_name: 'John',
   last_name:  'Doe',
 });
-// => User { id: null, first_name: 'John', last_name: 'Doe', ... }
+// => User { id: 1, first_name: 'John', last_name: 'Doe', ... }
 ```
 
-If the primary key is an `AUTO_INCREMENT` field, it will be set automatically in the object returned.
+If the primary key is `AUTO_INCREMENT`, it is set automatically on the returned instance.
 
 ### Find
 
 ```js
 const user = await User.find(id);
-console.log('Hi ' + user.first_name);
+// Returns null if not found
 ```
 
-### Update
-
-To update a specific object:
+### First / Last
 
 ```js
-const user = await User.find(id);
-user.update({ first_name: 'Jim' });
-console.log('Hi ' + user.first_name);
-```
-
-To update several objects:
-
-```js
-const users = await User.where({ country: 'France' })
-users.update({ language: 'French' });
-// Users are updated
-```
-
-To update all objects:
-
-```js
-User.update({ first_name: 'Jim' })
-// all users are now named Jim
-
-```
-
-### Delete
-
-To delete a specific object:
-
-```js
-User.delete(id);
-// user was deleted
-```
-
-```js
-const user = await User.find(id);
-user.delete();
-// user was deleted
-
-```
-
-```js
-User.deleteAll();
-// all users were deleted
-
-```
-
-```js
-const users = await User.where({ first_name: 'Jim' });
-users.delete();
-// all users named Jim were deleted
-
+const user = await User.first();
+const user = await User.last();
+const user = await User.where({ status: 'active' }).first();
 ```
 
 ### List
 
 ```js
-const users =  await User.list();
-// users is an array of User objects
-
-```
-
-> **💡 Performance Optimization for Large Tables**
-> For queries with multiple joins on large tables (millions of rows), use the optimized pagination method:
-> ```js
-> const result = await User.paginatedOptimized()
->   .where({ type: 'admin' })
->   .page(1, 50);
-> ```
-> This uses the **COUNT/IDS/FULL pattern** for 50-100x performance improvement.
-> 📖 See [Paginated Optimized Query](#paginated-optimized-query) section below for details.
-
-#### Where
-
-Examples:
-```js
-
-// filter with attribute values
-const users = await User.where({type: 'foo', sub_type: 'bar'}).list();
-
-// filter with sql
-const users = await User.where('`last_name` IS NOT NULL').list();
-
-// filter with sql and params
-const users = await User.where('`created_at` BETWEEN ? AND ?', [date1, date2]).list();
-```
-
-#### Limit
-
-```js
-const users = await User.limit(10).list();
-// first ten users
-console.dir(users);
-```
-
-#### Order
-
-```js
-const users = await User.order('`last_name` DESC').list();
-console.dir(users);
-```
-
-### Associations loading
-
-The `includes()` function is used to eager load the objects' associations
-
-```js
-// include one association
-User.includes('country').first( ... );
-
-// include multiple associations
-User.includes(['country', 'projects']).first( ... );
-
-// include nested associations (load projects's lead and tasks for each user)
-User.includes({projects: ['lead', 'tasks']}).first( ... );
-
-// mixed associations
-User.includes(['country', {projects: ['lead', 'tasks']}]).first( ... );
+const users = await User.list();
+const users = await User.where({ status: 'active' }).list();
 ```
 
 ### Count
 
-`count()` allows you to count rows.
-
 ```js
-const count = await User.count();
-// count all users
-console.dir(count);
-
-
-const count = await User.where({first_name: 'john'}).count();
-// count all users named John
-console.dir(count);
+const total  = await User.count();
+const active = await User.where({ status: 'active' }).count();
 ```
 
-### Distinct
+### Update
 
 ```js
-const first_names = await User.distinct('first_name').list();
-// list all distinct user first names
-console.dir(first_names);
+// Update a single instance
+const user = await User.find(id);
+await user.update({ first_name: 'Jim' });
 
-const first_names = await User.distinct([ 'first_name', 'last_name' ]).list();
-// list all distinct user first and last names combinations
-console.dir(first_names);
+// Bulk update
+await User.where({ country: 'France' }).update({ language: 'French' });
+
+// Update all
+await User.update({ status: 'inactive' });
 ```
 
-### Select
-
-`select()` allows you to customize `SELECT` (set by default to `SELECT *`).
+### Delete
 
 ```js
-const users = await User.select('id, first_name').list();
-// select only id and first_name columns
-console.dir(users);
+// Delete by ID
+await User.delete(id);
 
-const users = await User.select('*, YEAR(created_at) AS `year`').list();
-// add year (from created_at column) in user
-console.dir(users);
+// Delete an instance
+const user = await User.find(id);
+await user.delete();
+
+// Bulk delete
+await User.where({ status: 'banned' }).delete();
+
+// Delete all
+await User.deleteAll();
 ```
 
-### Group
+### Reload
+
+Refresh an instance from the database:
 
 ```js
-const groups = await User.select('COUNT(*) AS `count`, YEAR(created_at) AS `year`').group('year').list();
-// return users count by creation year
-console.dir(groups);
+const user = await User.find(id);
+await user.reload();
+
+// Reload with associations
+await user.reload('country');
 ```
 
-### Pagin
+## Hooks
+
+Override `beforeCreate` and `beforeUpdate` for custom logic:
 
 ```js
-const users = await User.page(current_page, nb_limit_element).list();
-// return pagin of users
-console.dir(users);
+class User extends Model(schema) {
+  async beforeCreate() {
+    this.created_at = new Date();
+  }
 
-// Output
-{
-  pagination: {
-    page: 1,
-    nb: 10,
-    previous: null,
-    next: null,
-    nb_pages: 1,
-    count: '1',
-    links: [ [Object] ]
-  },
-  rows: [
-    User {
-      id: 1,
-      first_name: "edouard"
-      updated_at: 2021-07-07T07:33:31.457Z,
-      created_at: 2021-07-07T07:33:31.457Z,
-    }
-  ]
+  async beforeUpdate(values) {
+    values.updated_at = new Date();
+  }
 }
 ```
 
-### Join
+## Single Table Inheritance
 
-`join()` allows you to join 2 tables with LEFT, INNER OR RIGHT JOIN.
-
-| Parameter  | Type | Description | Required | Default |
-| ------------- |-------------|-------------|-------------|-------------|
-| Association name | string       |   Name of the association (the table to join need to be declared as association in Schema) | true||
-| Columns     | string or array   | Columns joined from the association table | false ||
-| Type     | string    | "left"\|"inner"\|"right| false| "left"|
+Support polymorphic models via `subclass_column`:
 
 ```js
-const user = await User.join('country', 'country_code', 'left').first();
-console.dir(user.country_code);
-
-// Can be use combine with select()
-const user = await User.select('`user`.*, `country`.`code` AS `country_code`' ).join('country').first();
-console.dir(user.country_code);
+const schema = {
+  table: 'users',
+  columns: ['id', 'type', 'email'],
+  subclass_column: 'type',
+  subclasses: () => ({
+    admin: require('./AdminUser'),
+    user:  require('./RegularUser'),
+  }),
+};
 ```
 
----
-
-## Paginated Optimized Query
-
-Pour les requêtes avec de nombreuses jointures sur de grosses tables (>100K lignes), `PaginatedOptimizedQuery` implémente le **pattern COUNT/IDS/FULL** pour améliorer les performances de 50x à 100x.
-
-### Exemple d'utilisation
-
-```javascript
-// ✅ RAPIDE : ~50-200ms sur 2M de lignes (vs ~5-10 secondes avec Query classique)
-const result = await Folder.paginatedOptimized()
-  .where({
-    // Table principale
-    type: ['agp', 'avt'],
-    status: 'SUBMITTED',
-
-    // Tables jointes - notation pointée (filtres via EXISTS)
-    'applicant.last_name': 'Dupont%',
-    'applicant.email': '%@example.com',
-
-    // Tables imbriquées sur plusieurs niveaux
-    'pme_folder.company.country.code': 'FR',
-    'pme_folder.company.siret': '1234%',
-
-    // Opérateurs avancés
-    created_at: { $between: ['2024-01-01', '2024-12-31'] },
-    'pme_folder.amount': { $gte: 1000, $lte: 5000 }
-  })
-  .join(['applicant', 'pme_folder.company.country'])  // Récupérer les données associées
-  .order('folders.created_at DESC')  // Tri automatiquement optimisé
-  .page(1, 50)
-  .execute();
-
-// Accès aux résultats
-console.log(`Total : ${result.pagination.count} folders`);
-result.rows.forEach(folder => {
-  console.log(`${folder.id}: ${folder.applicant.last_name} - ${folder.pme_folder.company.name}`);
-});
-```
-
-### Fonctionnalités clés
-
-- **Syntaxe simplifiée** : Notation pointée pour les filtres sur tables jointes (`'association.column'`)
-- **Performance** : Pattern COUNT/IDS/FULL avec EXISTS pour les filtres (50-100x plus rapide)
-- **Tri optimisé** : Détection automatique des colonnes de tri et ajout de LEFT JOIN uniquement dans la phase IDS
-- **Opérateurs avancés** : `$like`, `$between`, `$gte`, `$lte`, `$gt`, `$lt`
-- **Jointures imbriquées** : Support des chemins multi-niveaux (`'assoc1.assoc2.assoc3.column'`)
-- **Blocks/sous-tables** : Détection automatique des colonnes de blocks dans ORDER BY
-
-### Quand l'utiliser ?
-
-**✅ Utilisez `paginatedOptimized()` quand :**
-- Table principale > 100K lignes
-- Nombre de joins > 3
-- Requêtes avec pagination
-- Filtres sur plusieurs tables jointes
-
-**❌ N'utilisez PAS `paginatedOptimized()` quand :**
-- Table principale < 10K lignes (overhead inutile)
-- Pas de jointures
-- Requête sur clé primaire (`.find(id)`)
-
-### Documentation complète
-
-Pour plus de détails (API, exemples, architecture, limitations), consultez la [documentation complète de PaginatedOptimizedQuery](./paginated-optimized-query.md).
+Queries automatically return the correct subclass based on the `type` column.

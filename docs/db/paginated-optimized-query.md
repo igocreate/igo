@@ -1,17 +1,16 @@
-# PaginatedOptimizedQuery - Optimisation des requêtes avec jointures
 
-## Vue d'ensemble
+# PaginatedOptimizedQuery
 
-`PaginatedOptimizedQuery` est un module d'optimisation pour `igo-db` qui implémente le **pattern COUNT/IDS/FULL** pour améliorer drastiquement les performances des requêtes SQL avec de nombreuses jointures sur de grosses tables.
+## Overview
 
-## Problème résolu
+`PaginatedOptimizedQuery` implements the **COUNT/IDS/FULL pattern** to drastically improve performance of SQL queries with many joins on large tables.
 
-### Approche traditionnelle (LENTE)
+## The Problem
 
-Avec la méthode traditionnelle, les requêtes avec `LEFT JOIN` génèrent un produit cartésien énorme :
+With the traditional approach, queries with `LEFT JOIN` generate a huge cartesian product:
 
 ```javascript
-// ❌ LENT : ~5-10 secondes sur 2M de lignes
+// SLOW: ~5-10 seconds on 2M rows
 const result = await Folder
   .join(['applicant', 'pme_folder', 'delegation'])
   .where({ 'folders.type': ['agp', 'avt'] })
@@ -19,22 +18,22 @@ const result = await Folder
   .page(1, 50);
 ```
 
-**SQL généré :**
+**Generated SQL:**
 ```sql
 SELECT COUNT(0) FROM folders f
 LEFT JOIN applicants a ON a.id = f.applicant_id
 LEFT JOIN pme_folders p ON p.id = f.pme_folder_id
 WHERE f.type IN ('agp', 'avt')
 AND a.last_name LIKE '%Dupont%'
--- Temps : 5-10 secondes
+-- Time: 5-10 seconds
 ```
 
-### Approche optimisée "COUNT / IDs / FULL"
+## The Optimized Approach: COUNT / IDs / FULL
 
-Avec `PaginatedOptimizedQuery`, les requêtes utilisent le pattern COUNT/IDS/FULL avec une syntaxe simplifiée :
+With `PaginatedOptimizedQuery`, queries use the COUNT/IDS/FULL pattern with a simplified syntax:
 
 ```javascript
-// ✅ RAPIDE : ~50-200ms sur 2M de lignes
+// FAST: ~50-200ms on 2M rows
 const result = await Folder.paginatedOptimized()
   .where({
     type: ['agp', 'avt'],
@@ -44,7 +43,7 @@ const result = await Folder.paginatedOptimized()
   .page(1, 50);
 ```
 
-**SQL généré (Phase 1 - COUNT) :**
+**Phase 1 — COUNT:**
 ```sql
 SELECT COUNT(0) FROM folders f
 WHERE f.type IN ('agp', 'avt')
@@ -53,10 +52,10 @@ AND EXISTS (
   WHERE a.id = f.applicant_id
   AND a.last_name LIKE 'Dupont%'
 )
--- Temps : 10-50ms
+-- Time: 10-50ms
 ```
 
-**SQL généré (Phase 2 - SELECT IDS) :**
+**Phase 2 — SELECT IDS:**
 ```sql
 SELECT f.id FROM folders f
 WHERE f.type IN ('agp', 'avt')
@@ -67,10 +66,10 @@ AND EXISTS (
 )
 ORDER BY f.created_at DESC
 LIMIT 50 OFFSET 0
--- Temps : 20-80ms
+-- Time: 20-80ms
 ```
 
-**SQL généré (Phase 3 - SELECT FULL) :**
+**Phase 3 — SELECT FULL:**
 ```sql
 SELECT f.*, a.*, p.*, d.*
 FROM folders f
@@ -79,92 +78,62 @@ LEFT JOIN pme_folders p ON p.id = f.pme_folder_id
 LEFT JOIN delegations d ON d.id = f.delegation_id
 WHERE f.id IN (101, 102, ..., 150)
 ORDER BY f.created_at DESC
--- Temps : 20-70ms (seulement 50 lignes à joindre)
+-- Time: 20-70ms (only 50 rows to join)
 ```
 
-**Amélioration : 50x à 100x plus rapide sur les requêtes avec bcp de jointures et bcp de lignes**
+**Result: 50x to 100x faster on queries with many joins on large tables.**
 
-## Installation
+## Setup
 
-Le module est intégré dans `igo-db`. Aucune installation supplémentaire n'est nécessaire.
+The module is built into @igojs/db. No extra installation needed.
 
 ```javascript
-const Model = require('@igojs/db').Model;
-
-// La méthode .paginatedOptimized() est disponible sur tous les modèles
 const query = MyModel.paginatedOptimized();
 ```
 
-## Nouvelle syntaxe simplifiée ⭐
+## Simplified Syntax
 
-### Vue d'ensemble
-
-La nouvelle syntaxe permet de filtrer sur des tables jointes directement dans `where()` en utilisant la notation pointée :
+Filter on joined tables directly in `where()` using dot notation:
 
 ```javascript
-// Une seule méthode pour tout !
 Folder.paginatedOptimized()
   .where({
-    // Table principale
+    // Main table
     status: 'SUBMITTED',
     type: ['agp', 'avt'],
 
-    // Tables jointes (1 niveau)
+    // Joined tables (1 level)
     'applicant.last_name': 'Dupont%',
     'applicant.email': '%@example.com',
 
-    // Tables imbriquées (plusieurs niveaux)
+    // Nested tables (multiple levels)
     'pme_folder.company.country.code': 'FR',
     'pme_folder.company.siret': '1234%'
   })
 ```
 
-**Avantages :**
-- ✅ **Plus lisible** et moins verbeux
-- ✅ **Détection automatique** des chemins imbriqués
-
-### Syntaxe de base
-
-```javascript
-.where({
-  // Colonne de la table principale : valeur normale
-  column: value,
-  // Colonne d'une table jointe : notation pointée
-  'association.column': value,
-  // Plusieurs niveaux d'imbrication
-  'association1.association2.association3.column': value
-})
-```
+Nested paths are automatically detected and transformed into `EXISTS` subqueries.
 
 ## API
 
-### Model.paginatedOptimized()
-
-Retourne une instance de `PaginatedOptimizedQuery` au lieu de `Query`.
-
-```javascript
-const query = Folder.paginatedOptimized();
-// query instanceof PaginatedOptimizedQuery === true
-```
-
 ### .where(conditions)
 
-Filtre sur la table principale ET les tables jointes avec détection automatique.
+Filters on the main table and joined tables with automatic detection.
 
-#### Filtres sur table principale
+#### Main table filters
 
 ```javascript
-// Égalité simple
+// Equality
 query.where({ status: 'SUBMITTED' });
 
-// IN (tableau)
+// IN (array)
 query.where({ type: ['agp', 'avt'] });
 
 // IS NULL
 query.where({ deleted_at: null });
 ```
 
-#### Filtres sur tables jointes (1 niveau)
+#### Joined table filters (1 level)
 
 ```javascript
 query.where({
@@ -174,7 +143,7 @@ query.where({
 });
 ```
 
-**SQL généré :**
+**Generated SQL:**
 ```sql
 WHERE folders.status = 'SUBMITTED'
 AND EXISTS (
@@ -185,7 +154,7 @@ AND EXISTS (
 )
 ```
 
-#### Filtres sur tables imbriquées (plusieurs niveaux)
+#### Nested table filters (multiple levels)
 
 ```javascript
 query.where({
@@ -195,7 +164,7 @@ query.where({
 });
 ```
 
-**SQL généré :**
+**Generated SQL:**
 ```sql
 WHERE folders.type = 'agp'
 AND EXISTS (
@@ -214,16 +183,16 @@ AND EXISTS (
 )
 ```
 
-### Opérateurs supportés
+### Operators
 
-#### Opérateurs de base
+#### Basic operators
 
 ```javascript
-// Égalité
+// Equality
 { status: 'ACTIVE' }
 // → WHERE status = 'ACTIVE'
 
-// IN (tableau)
+// IN (array)
 { status: ['ACTIVE', 'PENDING'] }
 // → WHERE status IN ('ACTIVE', 'PENDING')
 
@@ -231,44 +200,38 @@ AND EXISTS (
 { email: null }
 // → WHERE email IS NULL
 
-// LIKE (auto-détecté avec %)
+// LIKE (auto-detected with %)
 { last_name: 'Dupont%' }
 // → WHERE last_name LIKE 'Dupont%'
 ```
 
-#### Opérateurs avancés
+#### Advanced operators
 
-Utilisez un objet avec un opérateur `$` pour les comparaisons avancées :
+Use an object with a `$` operator for advanced comparisons:
 
 ```javascript
-// $like - LIKE explicite
+// $like — explicit LIKE
 { 'applicant.last_name': { $like: 'Dup%' } }
-// → WHERE applicant.last_name LIKE 'Dup%'
 
-// $between - Plages de dates/nombres
+// $between — date/number ranges
 { created_at: { $between: ['2024-01-01', '2024-12-31'] } }
-// → WHERE created_at BETWEEN '2024-01-01' AND '2024-12-31'
 
-// $gte - Greater than or equal (>=)
+// $gte — greater than or equal (>=)
 { created_at: { $gte: '2024-01-01' } }
-// → WHERE created_at >= '2024-01-01'
 
-// $lte - Less than or equal (<=)
+// $lte — less than or equal (<=)
 { created_at: { $lte: '2024-12-31' } }
-// → WHERE created_at <= '2024-12-31'
 
-// $gt - Greater than (>)
+// $gt — greater than (>)
 { 'pme_folder.amount': { $gt: 1000 } }
-// → WHERE amount > 1000
 
-// $lt - Less than (<)
+// $lt — less than (<)
 { 'pme_folder.amount': { $lt: 5000 } }
-// → WHERE amount < 5000
 ```
 
-#### Opérateurs logiques
+#### Logical operators
 
-##### $and - Toutes les conditions doivent être vraies
+##### $and
 
 ```javascript
 query.where({
@@ -281,122 +244,98 @@ query.where({
 });
 ```
 
-**Note :** Par défaut, plusieurs conditions dans `where()` sont combinées avec AND, donc `$and` est optionnel dans la plupart des cas.
+Multiple conditions in `where()` are combined with AND by default, so `$and` is optional in most cases.
 
-##### $or - Au moins une condition doit être vraie
+##### $or on same column
 
-Pour simuler un OR sur la même colonne, utilisez IN :
+Use an array (IN) to simulate OR on the same column:
 
 ```javascript
-// OR sur même colonne → utilisez IN
 query.where({
-  status: ['SUBMITTED', 'VALIDATED']  // Équivalent à OR
+  status: ['SUBMITTED', 'VALIDATED']
 });
 // → WHERE status IN ('SUBMITTED', 'VALIDATED')
 ```
 
 ### .join(associations)
 
-Ajoute des `LEFT JOIN` pour récupérer les données associées (phase FULL uniquement).
-
-**✅ Nouvelle syntaxe avec notation pointée** :
+Adds `LEFT JOIN` to retrieve associated data (FULL phase only).
 
 ```javascript
-// Un seul join
+// Single join
 query.join('applicant');
 
-// Plusieurs joins simples
+// Multiple joins
 query.join(['applicant', 'pme_folder', 'delegation']);
 
-// Join imbriqué avec notation pointée
+// Nested join with dot notation
 query.join('pme_folder.company.country');
 
-// Plusieurs joins dont certains imbriqués
+// Mixed
 query.join(['applicant', 'pme_folder.company.country']);
 ```
 
-**Autre syntaxe** :
+Dot notation is automatically transformed into nested object structure internally.
 
-```javascript
-// Joins imbriqués avec structure d'objet
-query.join({ pme_folder: ['company'] });
-query.join({ pme_folder: { company: ['country'] } });
-```
-
-**Note** : La notation pointée est plus lisible et cohérente avec la syntaxe de `where()`. Elle est automatiquement transformée en structure d'objet en interne.
-
-**⚠️ Important** : Les colonnes filtrées via `where('association.column')` génèrent des EXISTS (pas de JOIN). Pour récupérer les données associées, ajoutez un `.join()` correspondant.
+**Important:** Columns filtered via `where('association.column')` generate EXISTS (not JOIN). To retrieve associated data, add a matching `.join()`.
 
 ### .order(orderBy)
 
-Tri sur colonnes de la table principale ou des tables jointes.
+Sort on main table or joined table columns.
 
 ```javascript
-// Tri sur la table principale
+// Main table
 query.order('folders.created_at DESC');
 query.order('folders.status ASC, folders.created_at DESC');
 
-// Tri sur une table jointe (directe)
+// Joined table
 query.order('applicants.last_name ASC');
 
-// Tri sur une table jointe imbriquée
-query.order('companies.name DESC');  // via pme_folder.company
+// Nested joined table
+query.order('companies.name DESC');
 ```
 
-**✅** Le tri sur colonnes jointes est automatiquement optimisé !
+When sorting on a joined table column, the system automatically:
+1. Detects the required table (even if nested)
+2. Adds a JOIN in the IDS phase only (not in COUNT)
+3. Creates cascading JOINs for nested tables
 
-Quand vous triez sur une colonne d'une table jointe, le système :
-1. **Détecte automatiquement** la table nécessaire (même si imbriquée)
-2. **Ajoute un JOIN** dans la phase IDS uniquement (pas dans COUNT)
-3. **Crée les JOIN en cascade** pour les tables imbriquées
+### .page(page, nb)
 
-Voir la section [Tri sur colonnes jointes](#tri-sur-colonnes-jointes) pour plus de détails.
+Automatic pagination (uses COUNT + LIMIT/OFFSET).
+
+```javascript
+const result = await query.page(1, 50).execute();
+
+result.pagination;
+// {
+//   page: 1, nb: 50, count: 1234, nb_pages: 25,
+//   previous: null, next: 2, start: 1, end: 50, links: [...]
+// }
+
+result.rows;
+// [Folder, Folder, ...]
+```
 
 ### .limit(limit) / .offset(offset)
 
-Pagination manuelle.
+Manual pagination.
 
 ```javascript
 query.limit(50).offset(100);
 ```
 
-### .page(page, nb)
-
-Pagination automatique (utilise COUNT + LIMIT/OFFSET).
-
-```javascript
-query.page(1, 50); // Page 1, 50 résultats par page
-```
-
-**Retour** :
-```javascript
-{
-  pagination: {
-    page: 1,
-    nb: 50,
-    count: 1234,
-    nb_pages: 25,
-    previous: null,
-    next: 2,
-    start: 1,
-    end: 50,
-    links: [...]
-  },
-  rows: [...]
-}
-```
-
 ### .execute()
 
-Exécute la requête optimisée (3 phases).
+Executes the optimized query (3 phases).
 
 ```javascript
 const result = await query.execute();
 ```
 
-## Exemples d'utilisation
+## Examples
 
-### Exemple 1 : Requête simple avec pagination
+### Simple pagination
 
 ```javascript
 const result = await Folder.paginatedOptimized()
@@ -404,22 +343,16 @@ const result = await Folder.paginatedOptimized()
     type: ['agp', 'avt'],
     'applicant.last_name': 'Dupont%'
   })
-  .join('applicant') // Récupérer les données de l'applicant
+  .join('applicant')
   .order('folders.created_at DESC')
   .page(1, 50)
   .execute();
-
-console.log(`Total : ${result.pagination.count} folders`);
-console.log(`Résultats : ${result.rows.length}`);
-result.rows.forEach(folder => {
-  console.log(`${folder.id}: ${folder.applicant.last_name}`);
-});
 ```
 
-### Exemple 2 : Filtres multiples sur plusieurs tables
+### Multiple filters on multiple tables
 
 ```javascript
-const folders = await Folder.paginatedOptimized()
+const result = await Folder.paginatedOptimized()
   .where({
     status: 'SUBMITTED',
     'applicant.last_name': 'Dupont%',
@@ -432,10 +365,10 @@ const folders = await Folder.paginatedOptimized()
   .execute();
 ```
 
-### Exemple 3 : Filtres avec opérateurs avancés
+### Advanced operators
 
 ```javascript
-const folders = await Folder.paginatedOptimized()
+const result = await Folder.paginatedOptimized()
   .where({
     created_at: { $between: ['2024-01-01', '2024-12-31'] },
     status: ['SUBMITTED', 'VALIDATED'],
@@ -447,10 +380,10 @@ const folders = await Folder.paginatedOptimized()
   .execute();
 ```
 
-### Exemple 4 : Filtres imbriqués sur 3 niveaux
+### Deep nested filters (3 levels)
 
 ```javascript
-const folders = await Folder.paginatedOptimized()
+const result = await Folder.paginatedOptimized()
   .where({
     type: 'agp',
     'pme_folder.status': 'ACTIVE',
@@ -463,48 +396,31 @@ const folders = await Folder.paginatedOptimized()
   .execute();
 ```
 
-### Exemple 5 : Recherche multi-champs avec $and
+### Multi-field search with $and
 
 ```javascript
 const token = 'test';
 
-const folders = await Folder.paginatedOptimized()
+const result = await Folder.paginatedOptimized()
   .where({
     $and: [
       { created_at: { $between: ['2024-01-01', '2024-12-31'] } },
       { status: ['SUBMITTED', 'VALIDATED'] },
       { 'applicant.last_name': { $like: `${token}%` } },
-      { 'applicant.first_name': { $like: `${token}%` } },
-      { 'applicant.email': token },
-      { 'pme_folder.company.siret': { $like: `${token}%` } },
       { 'pme_folder.company.country.code': 'FR' }
     ]
   })
-  .join(['applicant', { pme_folder: { company: ['country'] } }])
+  .join(['applicant', 'pme_folder.company.country'])
   .order('folders.created_at DESC')
   .page(1, 50)
   .execute();
 ```
 
-### Exemple 6 : Sans pagination
+## Advanced Features
 
-```javascript
-const folders = await Folder.paginatedOptimized()
-  .where({
-    status: 'APPROVED',
-    'delegation.code': 'PAR'
-  })
-  .join('delegation')
-  .limit(20)
-  .execute();
-// Retourne directement un array (pas de .pagination)
-```
+### Automatic condition grouping
 
-## Fonctionnalités avancées
-
-### Regroupement automatique des conditions
-
-Les conditions sur la même table sont automatiquement regroupées dans un seul EXISTS :
+Conditions on the same table are automatically grouped into a single EXISTS:
 
 ```javascript
 query.where({
@@ -514,7 +430,6 @@ query.where({
 });
 ```
 
-**SQL généré :**
 ```sql
 EXISTS (
   SELECT 1 FROM applicants
@@ -523,338 +438,110 @@ EXISTS (
   AND applicants.first_name = 'Jean'
   AND applicants.email LIKE '%@example.com'
 )
--- Un seul EXISTS au lieu de 3 → Plus performant !
+-- One EXISTS instead of 3 — more efficient!
 ```
 
-### Détection automatique du LIKE
+### Automatic LIKE detection
 
-Le caractère `%` déclenche automatiquement l'opérateur LIKE :
+The `%` character automatically triggers the LIKE operator:
 
 ```javascript
-// Détection automatique
 { 'applicant.last_name': 'Dup%' }
 // → WHERE last_name LIKE 'Dup%'
 
-// Ou explicite avec $like
+// Or explicit with $like
 { 'applicant.last_name': { $like: 'Dup%' } }
-// → WHERE last_name LIKE 'Dup%'
 ```
 
-### Combinaison de plusieurs opérateurs
+### Sorting on joined columns
+
+When sorting on a joined table column, the system creates the required JOINs automatically:
 
 ```javascript
-query.where({
-  created_at: { $between: ['2024-01-01', '2024-12-31'] },
-  status: ['SUBMITTED', 'VALIDATED'],
-  'applicant.last_name': 'Dupont%',
-  'applicant.created_at': { $gte: '2024-01-01' },
-  'pme_folder.amount': { $gt: 1000, $lt: 5000 }
-});
+Folder.paginatedOptimized()
+  .where({ type: ['agp', 'avt'] })
+  .order('applicants.last_name ASC')
+  .join('applicant')
+  .limit(50);
+```
+
+**Phase COUNT** — no JOIN:
+```sql
+SELECT COUNT(0) FROM folders WHERE type IN ('agp', 'avt')
+```
+
+**Phase IDS** — JOIN added for sorting:
+```sql
+SELECT folders.id FROM folders
+LEFT JOIN applicants ON applicants.id = folders.applicant_id
+WHERE folders.type IN ('agp', 'avt')
+ORDER BY applicants.last_name ASC
+LIMIT 50 OFFSET 0
+```
+
+### SQL functions in ORDER BY
+
+`order()` supports SQL functions like COALESCE, IFNULL, CONCAT. Referenced tables are automatically joined:
+
+```javascript
+Folder.paginatedOptimized()
+  .where({ type: 'agp' })
+  .join(['beneficiary', 'applicant'])
+  .order('COALESCE(`beneficiary`.`expires_at`, `applicant`.`expires_at`) DESC')
+  .page(1, 50);
 ```
 
 ## Performance
 
-### Cas d'usage typiques
+| Scenario | Traditional | Optimized | Gain |
+|----------|-------------|-----------|------|
+| 100K rows, 3 joins | 500ms | 20ms | 25x |
+| 1M rows, 5 joins | 3000ms | 50ms | 60x |
+| 2M rows, 10 joins | 10000ms | 100ms | 100x |
+| 5M rows, 10 joins | 30000ms+ | 200ms | 150x+ |
 
-| Scénario | Traditionnel | Optimisé | Gain |
-|----------|--------------|----------|------|
-| Table 100K lignes, 3 joins | 500ms | 20ms | 25x |
-| Table 1M lignes, 5 joins | 3000ms | 50ms | 60x |
-| Table 2M lignes, 10 joins | 10000ms | 100ms | 100x |
-| Table 5M lignes, 10 joins | 30000ms+ | 200ms | 150x+ |
+### When to use
 
-### Recommandations
+**Use `paginatedOptimized()` when:**
+- Main table > 100K rows
+- More than 3 joins
+- Paginated queries
+- Filters on multiple joined tables
 
-**Utilisez `PaginatedOptimizedQuery` quand :**
-- Table principale > 100K lignes
-- Nombre de joins > 3
-- Requêtes avec pagination
-- Filtres sur plusieurs tables jointes
-
-**N'utilisez PAS `PaginatedOptimizedQuery` quand :**
-- Table principale < 10K lignes (overhead inutile)
-- Pas de jointures
-- Requête sur clé primaire (`.find(id)`)
-
-## Tri sur colonnes jointes
-
-PaginatedOptimizedQuery détecte automatiquement les colonnes de tri qui proviennent de tables jointes et ajoute les INNER JOIN nécessaires dans la phase `SELECT IDS`.
-
-Cette fonctionnalité garantit que :
-- Le tri est effectué côté base de données (rapide)
-- La pagination renvoie les bons résultats triés
-- Les INNER JOIN sont ajoutés uniquement dans la phase IDS (pas dans COUNT)
-- Les tables imbriquées sont gérées avec des INNER JOIN en cascade
-
-### Détection Automatique
-
-Le système parse les clauses `ORDER BY` et détecte automatiquement si une colonne de tri provient d'une table jointe :
-
-```javascript
-const query = Folder.paginatedOptimized()
-  .where({ type: ['agp', 'avt'] })
-  .order('applicants.last_name ASC')  // ← Colonne d'une table jointe
-  .join('applicant')
-  .limit(50);
-```
-
-### SQL Généré
-
-#### Phase COUNT (sans JOIN)
-```sql
-SELECT COUNT(0) as `count`
-FROM `folders`
-WHERE `folders`.`type` IN ('agp', 'avt')
--- Pas de JOIN dans le COUNT !
-```
-
-#### Phase SELECT IDS
-```sql
-SELECT `folders`.`id`
-FROM `folders`
-LEFT JOIN `applicants` ON `applicants`.`id` = `folders`.`applicant_id`
-WHERE `folders`.`type` IN ('agp', 'avt')
-ORDER BY applicants.last_name ASC
-LIMIT 50 OFFSET 0
-```
-
-#### Phase SELECT FULL (LEFT JOIN pour récupérer les données)
-```sql
-SELECT f.*, a.*
-FROM `folders` f
-LEFT JOIN `applicants` a ON a.id = f.applicant_id
-WHERE f.id IN (101, 102, ..., 150)
-ORDER BY applicants.last_name ASC
-```
-
-**Note** : Les JOIN sont créés en cascade pour permettre le tri, tandis que les filtres utilisent toujours EXISTS pour la performance.
-
-#### Exemple 4 : Tri + Filtres sur Table Jointe
-
-Combine JOIN pour le tri et EXISTS pour les filtres :
-
-```javascript
-const query = Folder.paginatedOptimized()
-  .where({
-    type: ['agp', 'avt'],
-    'applicant.email': '%@example.com'  // ← Filtre (EXISTS)
-  })
-  .order('applicants.last_name ASC')    // ← Tri (JOIN)
-  .join('applicant')
-  .limit(50);
-```
-
-SQL généré (phase IDS) :
-```sql
-SELECT `folders`.`id`
-FROM `folders`
-INNER JOIN `applicants` ON `applicants`.`id` = `folders`.`applicant_id`
-WHERE `folders`.`type` IN ('agp', 'avt')
-  AND EXISTS (
-    SELECT 1 FROM `applicants`
-    WHERE `applicants`.`id` = `folders`.`applicant_id`
-      AND `applicants`.`email` LIKE '%@example.com'
-  )
-ORDER BY applicants.last_name ASC
-LIMIT 50 OFFSET 0
-```
-
-> **Note** : Le filtre utilise EXISTS (pour la performance), tandis que le tri utilise JOIN (nécessaire pour ORDER BY).
-
-### Avantages
-
-✅ **Performance** : Tri côté base de données, utilise les index, beaucoup plus rapide que le tri en mémoire
-✅ **Pagination correcte** : Les bons 50 résultats triés sont retournés
-✅ **COUNT sans JOIN** : Le COUNT reste rapide (pas de JOIN inutile)
-✅ **Automatique** : Pas besoin de configuration manuelle, détection automatique des colonnes de tri
-✅ **Tables imbriquées** : Gère automatiquement les chemins imbriqués avec LEFT JOIN en cascade
-✅ **Combinaison intelligente** :
-- **Filtres** → EXISTS (optimal pour filtrage)
-- **Tri** → LEFT JOIN (préserve toutes les lignes)
-- **Données** → LEFT JOIN (phase FULL uniquement)
-
-### Tri avec Fonctions SQL (COALESCE, IFNULL, CONCAT, etc.)
-
-La méthode `order()` supporte les fonctions SQL dans les clauses ORDER BY. Les tables référencées dans les fonctions seront automatiquement jointes dans la phase IDS.
-
-#### COALESCE
-
-Utile pour trier sur plusieurs colonnes avec une priorité de fallback :
-
-```javascript
-Folder.paginatedOptimized()
-  .where({ type: 'agp' })
-  .join(['beneficiary', 'applicant', 'beneficiarySnapshot', 'applicantSnapshot'])
-  .order('COALESCE(`beneficiarySnapshot`.`identity_expires_at`, `beneficiary`.`identity_expires_at`, `applicantSnapshot`.`identity_expires_at`, `applicant`.`identity_expires_at`) DESC')
-  .page(1, 50);
-```
-
-**SQL Généré (Phase IDS) :**
-```sql
-SELECT `folders`.`id`
-FROM `folders`
-LEFT JOIN `beneficiaries_snapshot` AS `beneficiarySnapshot`
-  ON `beneficiarySnapshot`.`id` = `folders`.`beneficiary_snapshot_id`
-LEFT JOIN `beneficiaries` AS `beneficiary`
-  ON `beneficiary`.`id` = `folders`.`beneficiary_id`
-LEFT JOIN `applicants_snapshot` AS `applicantSnapshot`
-  ON `applicantSnapshot`.`id` = `folders`.`applicant_snapshot_id`
-LEFT JOIN `applicants` AS `applicant`
-  ON `applicant`.`id` = `folders`.`applicant_id`
-WHERE `folders`.`type` = ?
-ORDER BY COALESCE(`beneficiarySnapshot`.`identity_expires_at`,
-                   `beneficiary`.`identity_expires_at`,
-                   `applicantSnapshot`.`identity_expires_at`,
-                   `applicant`.`identity_expires_at`) DESC
-LIMIT ?, ?
-```
-
-#### IFNULL
-
-Alternative à COALESCE pour deux valeurs :
-
-```javascript
-Folder.paginatedOptimized()
-  .where({ type: 'agp' })
-  .join(['company', 'pme_folder.company'])
-  .order('IFNULL(`company`.`name`, `pme_folder.company`.`name`) ASC')
-  .page(1, 50);
-```
-
-#### CONCAT
-
-Tri sur des colonnes concaténées :
-
-```javascript
-Folder.paginatedOptimized()
-  .where({ type: 'agp' })
-  .join('applicant')
-  .order('CONCAT(`applicant`.`last_name`, " ", `applicant`.`first_name`) ASC')
-  .page(1, 50);
-```
-
-**Note:** Toutes les tables référencées dans les fonctions SQL doivent être explicitement déclarées avec `.join()`.
-
-### Tri sur colonnes de blocks (sous-tables)
-
-#### Comportement avec colonnes ambiguës
-
-Si une colonne existe à la fois dans la table principale ET dans un block, **la table principale est prioritaire** :
-
-```javascript
-// Si "status" existe dans pme_folders ET dans block_studies
-.order('status ASC')  // ← Trie sur pme_folders.status (table principale)
-
-// Pour trier explicitement sur le block, utilisez le préfixe
-.order('block_studies.status ASC')  // ← Trie sur block_studies.status
-```
-
-#### Combinaison avec WHERE sur blocks
-
-Vous pouvez combiner filtres et tri sur les blocks :
-
-```javascript
-const result = await PMEFolder.paginatedOptimized()
-  .where({
-    is_initial: true,
-    professional_activity: 'STUDENT',
-    'studies.studies_field': 'Informatique'  // ← Filtre via EXISTS
-  })
-  .order('studies_year DESC')  // ← Tri via LEFT JOIN
-  .page(1, 50)
-  .execute();
-```
-
-**SQL Généré (Phase IDS) :**
-```sql
-SELECT `pme_folders`.`id`
-FROM `pme_folders`
-LEFT JOIN `block_studies` ON `block_studies`.`id` = `pme_folders`.`block_studies_id`
-WHERE `pme_folders`.`is_initial` = ?
-  AND `pme_folders`.`professional_activity` = ?
-  AND EXISTS (
-    SELECT 1 FROM `block_studies`
-    WHERE `block_studies`.`id` = `pme_folders`.`block_studies_id`
-      AND `block_studies`.`studies_field` = ?
-  )
-ORDER BY block_studies.studies_year DESC
-LIMIT ?, ?
-```
+**Don't use `paginatedOptimized()` when:**
+- Main table < 10K rows (unnecessary overhead)
+- No joins
+- Primary key lookup (`.find(id)`)
 
 ## Limitations
 
-### 1. Agrégations complexes
+- Complex aggregations with `GROUP BY` on multiple tables are not supported
+- Not compatible with `CachedQuery`
 
-Les agrégations avec `GROUP BY` sur plusieurs tables ne sont pas supportées.
-
-**Contournement :**
-- Utiliser des sous-requêtes SQL personnalisées
-- Ou matérialiser les agrégations dans des vues/tables
-
-### 3. Cache
-
-`PaginatedOptimizedQuery` n'est pas compatible avec `CachedQuery` pour le moment.
-
-
-## Architecture interne
-
-### Fichiers créés
-
-- `src/db/PaginatedOptimizedQuery.js` - Classe principale héritant de `Query`
-- `src/db/PaginatedOptimizedSql.js` - Générateur SQL avec EXISTS et INNER JOIN pour tri
-- `test/db/PaginatedOptimizedQueryTest.js` - Tests unitaires
-- `examples/PaginatedOptimizedQueryExample.js` - Exemples complets d'utilisation (10 exemples)
-
-### Pattern COUNT/IDS/FULL
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     PaginatedOptimizedQuery.execute()       │
-└─────────────────────────────────────────────────────────────┘
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        │                     │                     │
-        ▼                     ▼                     ▼
-   ┌─────────┐          ┌──────────┐         ┌──────────┐
-   │ Phase 1 │          │ Phase 2  │         │ Phase 3  │
-   │  COUNT  │          │   IDS    │         │   FULL   │
-   └─────────┘          └──────────┘         └──────────┘
-        │                     │                     │
-        │                     │                     │
-        ▼                     ▼                     ▼
-  COUNT(0)              SELECT id            SELECT *
-  FROM folders          FROM folders         FROM folders
-  WHERE ...             WHERE ...            WHERE id IN (...)
-  AND EXISTS(...)       AND EXISTS(...)      LEFT JOIN ...
-                        ORDER BY ...         ORDER BY ...
-                        LIMIT ... OFFSET ...
-        │                     │                     │
-        └─────────────────────┴─────────────────────┘
-                              │
-                              ▼
-                        { pagination, rows }
+┌─────────────────────────────────────────────────────┐
+│          PaginatedOptimizedQuery.execute()           │
+└─────────────────────────────────────────────────────┘
+                          │
+        ┌─────────────────┼─────────────────┐
+        ▼                 ▼                 ▼
+   ┌─────────┐      ┌──────────┐     ┌──────────┐
+   │ Phase 1 │      │ Phase 2  │     │ Phase 3  │
+   │  COUNT  │      │   IDS    │     │   FULL   │
+   └─────────┘      └──────────┘     └──────────┘
+        │                 │                 │
+        ▼                 ▼                 ▼
+  COUNT(0)          SELECT id          SELECT *
+  FROM main         FROM main          FROM main
+  WHERE ...         WHERE ...          WHERE id IN (...)
+  AND EXISTS(...)   AND EXISTS(...)    LEFT JOIN ...
+                    ORDER BY ...       ORDER BY ...
+                    LIMIT ... OFFSET
+        │                 │                 │
+        └─────────────────┴─────────────────┘
+                          │
+                          ▼
+                    { pagination, rows }
 ```
-
-## Tests
-
-Les tests se trouvent dans :
-- `test/db/PaginatedOptimizedQueryTest.js` - Tests généraux
-
-## Exemples
-
-Les exemples se trouvent dans :
-- `examples/PaginatedOptimizedQueryExample.js` - Exemples généraux
-
-## Contribuer
-
-Pour améliorer `PaginatedOptimizedQuery`, veuillez :
-
-1. Ajouter des tests dans `test/db/SimplifiedSyntaxTest.js`
-2. Documenter les changements dans ce fichier
-3. Mettre à jour les exemples si nécessaire
-
-## Références
-
-- [Query.js](../../src/db/Query.js) - Classe parente
-- [Sql.js](../../src/db/Sql.js) - Générateur SQL standard
-- [Model.js](../../src/db/Model.js) - Intégration avec Model

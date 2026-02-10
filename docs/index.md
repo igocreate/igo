@@ -1,63 +1,64 @@
-# Igo.js
+---
+layout: home
 
-![Build Status](https://github.com/igocreate/igo/actions/workflows/node.js.yml/badge.svg)
+hero:
+  name: Igo.js
+  text: Full-stack Node.js Web Framework
+  tagline: Built on Express 5 — ORM, templates, reactive frontend, all included.
+  actions:
+    - theme: brand
+      text: Get Started
+      link: /guide/development
+    - theme: alt
+      text: GitHub
+      link: https://github.com/igocreate/igo
 
-## Introduction
+features:
+  - title: '@igojs/server'
+    details: Express 5 framework with file-based routing, form validation, i18n, email, Redis caching, and CLI scaffolding.
+    link: /server/controllers
+    linkText: Server docs
+  - title: '@igojs/db'
+    details: Active Record-style ORM for MySQL and PostgreSQL with query builder, associations, and migrations.
+    link: /db/models
+    linkText: Database docs
+  - title: '@igojs/dust'
+    details: Async template engine with partials, helpers, filters, and Express integration.
+    link: /dust/getting-started
+    linkText: Dust docs
+  - title: '@igojs/signal'
+    details: Reactive frontend with deep reactivity via Proxy, SSR with hydration, and DiffDOM-based DOM reconciliation.
+    link: /signal/components
+    linkText: Signal docs
+---
 
-Igo.js is a full-featured Node.js web framework that gives you a production-ready application with a complete development environment in seconds.
-
-Built on top of Express 5, Igo.js integrates the most popular Node.js libraries and tools: Vite for asset bundling, an ORM for MySQL/PostgreSQL, Redis caching, Mocha for testing, and more.
-
-## Packages
-
-Igo.js is organized as a monorepo with the following packages:
-
-| Package | Description |
-|---------|-------------|
-| **@igojs/server** | Express-based web framework with routing, forms, cache, mailer, CLI |
-| **@igojs/db** | Database ORM for MySQL and PostgreSQL with Active Record pattern |
-| **@igojs/dust** | JavaScript template engine inspired by Dust.js |
-| **@igojs/signal** | Reactive frontend/SSR framework with automatic dependency tracking |
-
-## Getting started
+## Getting Started
 
 ```sh
-# Install igo.js globally for CLI commands
-npm install -g @igojs/igo
-
-# Create new project
-igo create myproject
+npx @igojs/server create myproject
 cd myproject
-
-# Install dependencies
 npm install
-
-# Start the server on http://localhost:3000
 npm start
 ```
 
+Open [http://localhost:3000](http://localhost:3000) and start coding.
+
 ## Configuration
 
-The Igo.js configuration is located in `/app/config.js`.
-The configuration is initialized at startup, and can be retrieved through igo module:
+The configuration is located in `/app/config.js` and initialized at startup:
 
 ```js
 const config = require('@igojs/server').config;
 ```
 
-Some configuration parameters can be defined with environment variables. Igo.js uses [dotenv](https://github.com/motdotla/dotenv), so you can add/override variables in the `/.env` file:
+Environment variables can be defined in a `.env` file (loaded via [dotenv](https://github.com/motdotla/dotenv)):
 
 ```txt
-# Development database
 MYSQL_DATABASE=mydatabase
-
-# Redis
 REDIS_HOST=localhost
 ```
 
 ## Project Structure
-
-A typical Igo.js project:
 
 ```
 myproject/
@@ -74,5 +75,3 @@ myproject/
 ├── test/               # Test files
 └── .env                # Environment variables
 ```
-
----

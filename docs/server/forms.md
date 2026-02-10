@@ -1,73 +1,120 @@
 
-# Igo.js Forms
+# Forms
 
-## Overview
+Igo.js provides structured form handling with schema-based validation and type conversion.
 
-Igo.js offers a structured approach for handling user inputs in Node.js applications using form schemas. This guide will walk you through the steps to create, validate, and manage forms with Igo.js.
+## Schema Definition
 
-## Setting up the Schema
-
-Every form in Igo.js begins with a schema definition. The schema outlines the attributes the form will accept and their respective types.
-
-```javascript
+```js
 const schema = {
   attributes: [
-    { name: 'family_id', type: 'int' },
-    { name: 'training_id', type: 'int' },
-    ...
+    { name: 'name',      type: 'text' },
+    { name: 'email',     type: 'text' },
+    { name: 'age',       type: 'int' },
+    { name: 'price',     type: 'float' },
+    { name: 'birthdate', type: 'date', format: 'DD/MM/YYYY' },
+    { name: 'active',    type: 'boolean' },
+    { name: 'tags',      type: 'array', item_type: 'text' },
   ]
 };
 ```
 
-## Creating the Form Class
+### Attribute Types
 
-Once the schema is defined, create a form class extending Igo's base form model. This class will also include a validation method to set validation rules for each field.
+| Type | Conversion | Notes |
+|------|-----------|-------|
+| `text` | String or `null` | Trimmed |
+| `int` | `parseInt()` | Spaces removed (`'1 234'` → `1234`) |
+| `float` | `parseFloat()` | Comma replaced by dot (`'12,5'` → `12.5`) |
+| `number` | `Number()` | |
+| `date` | `moment(value, format).toDate()` | Requires `format` option |
+| `boolean` | `true` / `false` | Use `allownull: true` for nullable |
+| `array` | Array | Use `item_type` for typed items |
+| `custom` | `attr.convert(value)` | Custom converter function |
 
-```javascript
+### Attribute Options
+
+```js
+{
+  name: 'field',
+  type: 'int',
+  default: 0,           // Default value if null
+  allownull: true,       // For booleans: allow null instead of false
+  item_type: 'int',      // For arrays: type of items
+  format: 'YYYY-MM-DD',  // For dates: moment format
+  convert: (v) => v,     // For custom type: converter function
+}
+```
+
+## Form Class
+
+Create a form class with a `validate` method:
+
+```js
 const { Form } = require('@igojs/server');
 
-class TestForm extends Form(schema) {
+class UserForm extends Form(schema) {
   validate(req) {
-    req.checkBody('family_id', 'error.products.family_id').notEmpty();
-    ...
+    req.checkBody('name', 'error.name.required').notEmpty();
+    req.checkBody('email', 'error.email.invalid').isEmail();
+    req.checkBody('age', 'error.age.invalid').isInt({ min: 0, max: 150 });
   }
 }
 ```
 
-## Using the Form in Routes
+## Usage in Controllers
 
-With the form class ready, you can use it within your Express routes to process form data.
-
-```javascript
-const TestForm = require('./path_to_your_form_class');
-
-app.post('/submit', (req, res) => {
-  const form = new TestForm().submit(req);
+```js
+app.post('/users', (req, res) => {
+  const form = new UserForm().submit(req);
 
   if (form.errors) {
     req.flash('form', form);
-    return res.redirect('/tt/tests/new');
+    return res.redirect('/users/new');
   }
 
-  // Continue processing valid data here
+  const values = form.getValues();
+  await User.create(values);
+  res.redirect('/users');
 });
 ```
 
-## Custom Validation
+## Processing Steps
 
-Igo.js allows for extensive customization in validation to cater to specific needs. Add unique conditions, checks, and other validation rules within the `validate` method of your form class.
+When `form.submit(req)` is called:
+
+1. **Sanitize** — Trim whitespace, normalize numbers
+2. **Validate** — Run your `validate(req)` method
+3. **On error** — Store errors, revert to original string values
+4. **Convert** — Convert strings to target types (int, date, boolean...)
+
+## Validation Methods
+
+Validation is built on [validator.js](https://github.com/validatorjs/validator.js):
+
+```js
+req.checkBody('field', 'error.key').notEmpty();
+req.checkBody('field', 'error.key').isEmail();
+req.checkBody('field', 'error.key').isInt({ min: 0 });
+req.checkBody('field', 'error.key').isFloat();
+req.checkBody('field', 'error.key').isLength({ min: 3, max: 50 });
+req.checkBody('field', 'error.key').match(/^[A-Z]+$/);
+req.checkBody('field', 'error.key').custom(async (value) => {
+  return value !== 'forbidden';
+});
+```
+
+Other available methods: `checkQuery()`, `checkParam()`, `addError()`, `hasError()`.
 
 ## Error Handling
 
-When Igo.js detects validation errors, it captures them for easy retrieval and user feedback. If there are validation errors, the `form.errors` property will be populated. 
+```js
+const errors = req.getValidationErrors();
+// null if no errors, or: { fieldName: { msg: 'error.key' }, ... }
 
-```javascript
 if (form.errors) {
+  // form.errors has the same structure
   req.flash('form', form);
-  return res.redirect('/error_page');
+  return res.redirect('/form');
 }
 ```
-
-## Validation Library
-
-Igo's validation mechanism is built upon its internal `validator.js` file, which is based on the [validator.js library](https://github.com/validatorjs/validator.js). This provides a robust set of validators and sanitizers for strings, ensuring that form data is both accurate and secure.

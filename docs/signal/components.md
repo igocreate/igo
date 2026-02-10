@@ -1,244 +1,199 @@
-# Signal Components
 
-Signal is a reactive frontend framework for Igo.js with SSR support and automatic dependency tracking.
+# Components
 
-## Overview
+## Creating a Component
 
-Signal components provide:
-- **Reactive state** with deep Proxy tracking
-- **Computed values** with automatic dependency detection
-- **SSR support** with client-side hydration
-- **Efficient updates** via DiffDOM reconciliation
+A Signal component is a class that extends `SignalComponent`:
 
-## Component Lifecycle
+```js
+const { SignalComponent } = require('@igojs/signal/src/client');
+
+class Counter extends SignalComponent {
+  constructor(element) {
+    super(element, 'Counter'); // template path (relative to views/)
+  }
+
+  get events() {
+    return [
+      { selector: '.increment', eventType: 'click', handler: this.increment },
+    ];
+  }
+
+  get count() {
+    return this.state.count || 0;
+  }
+
+  increment() {
+    this.state.count = (this.state.count || 0) + 1;
+  }
+}
+
+module.exports = Counter;
+```
+
+## Template
+
+Each component has a Dust template. The root element **must** have `data-component`:
+
+```html
+{! views/Counter.dust !}
+<div data-component="Counter">
+  <p>Count: {count}</p>
+  <button class="increment">+1</button>
+</div>
+```
+
+The template context is a flat merge of `props`, `state`, and computed values (getters).
+
+## Registering Components
+
+Register components in your client entry point:
+
+```js
+// public/main.js
+const { start } = require('@igojs/signal/src/client');
+
+start({
+  components: {
+    'Counter': require('./components/Counter'),
+    'products/List': require('./components/products/List'),
+  },
+  helpers: require('./helpers'),
+});
+```
+
+Or with Webpack `require.context` for automatic discovery:
+
+```js
+start({
+  components: require.context('./components', true, /\.js$/),
+});
+```
+
+With `require.context`, component names are derived from file paths: `./products/List.js` becomes `products/List`.
+
+## Lifecycle
 
 ```
-constructor()
+constructor(element)
     ↓
-init()
+init()                    ← Load template, init form handler
     ↓
-loadTemplate()
-    ↓
-render() ←──────────────┐
+render()  ←────────────┐
     ↓                   │
 beforeRender()          │
     ↓                   │
-_computeGettersAsDerived()
+compute getters         │
     ↓                   │
 dust.render()           │
     ↓                   │
 DiffDOM.apply()         │
     ↓                   │
-_bindEvents()           │
+bind events             │
+    ↓                   │
+mount child components  │
     ↓                   │
 afterRender()           │
     ↓                   │
 [state mutation] ───────┘
 ```
 
-## Creating a Component
+### Lifecycle Hooks
 
-### 1. Define the Component Class
+Override these methods for custom logic:
 
-```javascript
-const { SignalComponent } = require('@igojs/signal');
-
-class ProductList extends SignalComponent {
-  constructor(element) {
-    // Template path (relative to views/)
-    super(element, 'components/ProductList');
+```js
+class MyComponent extends SignalComponent {
+  async init() {
+    // Called once after constructor
+    // Template is loaded here — call super.init() or handle manually
+    await super.init();
   }
 
-  // Computed value - automatically re-computed when dependencies change
-  get filteredProducts() {
-    const search = this.state.form?.search?.toLowerCase() || '';
-    return this.props.products.filter(p =>
-      p.name.toLowerCase().includes(search)
-    );
-  }
-
-  // Event bindings
-  get events() {
-    return [
-      { selector: '.add-btn', eventType: 'click', handler: this.onAdd },
-      { selector: '.delete-btn', eventType: 'click', handler: this.onDelete }
-    ];
-  }
-
-  onAdd(e) {
-    this.state.items.push({ id: Date.now(), name: 'New Item' });
-  }
-
-  onDelete(e) {
-    const id = Number(e.target.dataset.id);
-    const index = this.state.items.findIndex(i => i.id === id);
-    this.state.items.splice(index, 1);
-  }
-
-  // Lifecycle hooks
   async beforeRender() {
     // Called before each render
   }
 
   async afterRender() {
-    // Called after each render
+    // Called after each render — DOM is updated
+    // Good for: focus management, scroll position, third-party libs
+  }
+
+  async onError(error) {
+    // Called if render throws
+  }
+
+  async destroy() {
+    // Cleanup: cancel pending renders, unbind events, clear cache
+    await super.destroy();
   }
 }
-
-module.exports = ProductList;
 ```
-
-### 2. Create the Template
-
-```html
-{! views/components/ProductList.dust !}
-<div data-component="components/ProductList"
-     data-props="{@serialize props="products,form" /}">
-
-  <input type="text" name="search" value="{form.search}">
-
-  <ul>
-    {#filteredProducts}
-      <li>
-        {name}
-        <button class="delete-btn" data-id="{id}">×</button>
-      </li>
-    {:else}
-      <li>No products found</li>
-    {/filteredProducts}
-  </ul>
-
-  <button class="add-btn">Add Product</button>
-</div>
-```
-
-### 3. Register in Client Entry
-
-```javascript
-// assets/js/app.js
-const signal = require('@igojs/signal/src/front');
-
-signal.start({
-  components: require.context('./components', true, /\.js$/),
-  helpers: require('./helpers')
-});
-```
-
-## Reactivity
-
-### State
-
-State is deeply reactive via Proxy:
-
-```javascript
-// All of these trigger re-render
-this.state.count = 5;
-this.state.user = { name: 'John' };
-this.state.user.name = 'Jane';
-this.state.items.push({ id: 1 });
-this.state.items[0].active = true;
-```
-
-### Props
-
-Props come from the server and are immutable:
-
-```javascript
-// In controller
-res.locals.signal_props = {
-  products: await Product.list(),
-  user: req.session.user
-};
-```
-
-```javascript
-// In component
-this.props.products  // Array of products
-this.props.user      // Current user
-```
-
-### Computed Values (Getters)
-
-Getters are automatically tracked and cached:
-
-```javascript
-get totalPrice() {
-  // Automatically re-computed when this.props.products or this.state.cart changes
-  return this.state.cart.reduce((sum, item) => {
-    const product = this.props.products.find(p => p.id === item.productId);
-    return sum + (product?.price || 0) * item.quantity;
-  }, 0);
-}
-```
-
-## Forms
-
-When `props.form` exists, forms are automatically bound:
-
-```javascript
-// Controller
-res.locals.signal_props = {
-  form: {
-    search: req.query.search || '',
-    category: req.query.category || 'all'
-  }
-};
-```
-
-```html
-<input type="text" name="search" value="{form.search}">
-
-<select name="category">
-  <option value="all" {@selected key="all" value=form.category /}>All</option>
-  <option value="electronics" {@selected key="electronics" value=form.category /}>Electronics</option>
-</select>
-```
-
-```javascript
-// In component - access form values
-get filteredProducts() {
-  const { search, category } = this.state.form;
-  return this.props.products.filter(p => {
-    if (category !== 'all' && p.category !== category) return false;
-    if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
-}
-```
-
-## SSR (Server-Side Rendering)
-
-Signal components support SSR via the `ssr()` static method:
-
-```javascript
-// In controller
-res.locals.signal_props = { products };
-res.locals.signal_components = [ProductList];  // SSR these components
-res.render('products/index');
-```
-
-The middleware will:
-1. Serialize props with deduplication
-2. Call `ProductList.ssr(props)` to compute derived values
-3. Merge computed values into `res.locals`
-4. Render the template with full data
 
 ## Child Components
 
-Components can be nested:
+Components can be nested. Parent and child components are independent:
 
 ```html
-{! Parent component !}
-<div data-component="ProductPage">
-  {! Child component with its own props !}
-  <div data-component="ProductList"
-       data-props="{@serialize props="products" /}">
-    ...
+{! Parent template !}
+<div data-component="products/Page">
+  <input type="text" name="search" value="{form.search}">
+
+  {! Child component !}
+  <div data-component="products/List"
+       data-props="{@serialize props="filtered" /}">
+    <ul>
+      {#filtered}
+        <li>{.name}</li>
+      {/filtered}
+    </ul>
   </div>
 </div>
 ```
 
-Child components:
-- Are preserved by DiffDOM
-- Are mounted automatically after parent render
-- Have their props synced when parent re-renders
+### How Children Work
+
+- **Preserved by DiffDOM**: When the parent re-renders, child component DOM nodes are preserved
+- **Props synced**: After parent render, `data-props` attributes are re-evaluated and child components re-render if props changed
+- **Auto-mounted**: New child components added during parent render are automatically mounted
+- **Independent state**: Each child has its own state, getters, and event bindings
+
+### Parent → Child Communication
+
+Via props (the `data-props` attribute):
+
+```html
+<div data-component="ProductDetail"
+     data-props="{@serialize props="selectedProduct" /}">
+```
+
+When the parent recomputes `selectedProduct`, the child receives the new value and re-renders.
+
+## API Reference
+
+### Static Methods
+
+| Method | Description |
+|--------|-------------|
+| `ssr(props)` | Compute derived values for server-side rendering |
+
+### Instance Properties
+
+| Property | Description |
+|----------|-------------|
+| `element` | The DOM element this component is mounted on |
+| `template` | Template file path |
+| `props` | Read-only props (tracking Proxy) |
+| `state` | Reactive state (deep Proxy) |
+| `rawState` | Internal state (no auto-render on access) |
+
+### Lifecycle Methods
+
+| Method | Description |
+|--------|-------------|
+| `init()` | Called once after constructor |
+| `render()` | Render the component (called automatically) |
+| `beforeRender()` | Hook before each render |
+| `afterRender()` | Hook after each render |
+| `onError(error)` | Hook on render error |
+| `destroy()` | Cleanup and unbind everything |

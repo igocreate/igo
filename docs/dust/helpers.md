@@ -103,7 +103,7 @@ You can define `custom helpers` to extend the functionality of Igo Dust.js.
 
 ```js
 // Define custom helpers
-const igodust = require('igo-dust');
+const igodust = require('@igojs/dust');
 
 // @nl2br helper
 igodust.helpers.nl2br = (params, locals) => {
@@ -143,7 +143,7 @@ Helpers can receive a third parameter `body`, which is an async function that re
 
 ```js
 // Define a repeat helper
-const igodust = require('igo-dust');
+const igodust = require('@igojs/dust');
 
 igodust.helpers.repeat = async (params, locals, body) => {
   if (!body) {

@@ -1,182 +1,155 @@
 
 
-
-# Igo Dust.js
-
-![Build Status](https://github.com/igocreate/igo-dust/actions/workflows/node.js.yml/badge.svg) ![npm](https://img.shields.io/badge/version-0.5.0-0879BA) ![npm](https://img.shields.io/npm/dt/igo-dust)
-
+# Igo Dust
 
 ## Introduction
 
-Igo Dust.js is a high-performance templating library inspired by Dust.js, offering simplicity and efficiency in rendering dynamic content. With its clean syntax and seamless integration with Express, Igo Dust.js simplifies template creation, ensuring fast and responsive user experiences for web applications.
+Dust.js was a great templating engine, maintained and then abandoned by LinkedIn. After looking for an equivalent that was lightweight and performant, we ended up rewriting it from scratch — with zero dependencies and modern async/await patterns.
 
 ### Key Features
 
-* **Simpler Syntax**: Easier to create and manage templates compared to Dust.js
+* **Fully Async**: Built with async/await, all rendering returns Promises
 * **High Performance**: Optimized compilation and rendering engine
-* **Fully Async**: Built with modern async/await patterns
-* **Modern JavaScript**: Compatible with the latest ECMAScript standards
+* **HTML-safe by default**: All output is HTML-encoded unless you opt out
 * **Zero Dependencies**: Lightweight and fast
+* **Express Integration**: Works as an Express view engine
+
+> The VSCode extension for Igo Dust is available [here](https://marketplace.visualstudio.com/items?itemName=IGOCREATE.igo-dust-language-support).
 
 ### Differences from Dust.js
 
-* **Simpler Syntax**: Igo Dust.js offers a simpler syntax compared to Dust.js, making it easier to create and manage templates.
-* **Improved Performance**: Igo Dust.js is optimized for performance, ensuring fast rendering of dynamic content.
-* **Modern JavaScript**: Igo Dust.js is built using modern JavaScript, offering compatibility with the latest ECMAScript standards.
+Igo Dust is **not a drop-in replacement** for Dust.js. It shares a similar syntax but has important differences:
 
-> Note: The VSCode extension for Igo Dust.js is available [here](https://marketplace.visualstudio.com/items?itemName=IGOCREATE.igo-dust-language-support).
+**1. Dot notation required in loops and sections**
 
-> Benchmark [here](https://github.com/itsarnaud/templating-engine-bench.git)
+Inside a loop or section, you must use `.` to access properties of the current item:
+
+```js
+// Template
+{#users}{.name}{/users}
+```
+
+Without the dot, `{name}` looks up the root context, not the current item. This is the biggest difference from Dust.js.
+
+You can also rename the iterator with `it=`:
+
+```js
+{#users it="user"}{user.name}{/users}
+```
+
+**2. HTML encoding by default**
+
+All output is HTML-encoded by default (prevents XSS). Use the `|s` filter to output raw HTML:
+
+```js
+{content|s}
+```
+
+In Dust.js, output is not encoded by default.
+
+**3. No hierarchical scope chain**
+
+Dust.js searches up a scope chain to resolve variables. Igo Dust uses a flat context with explicit save/restore. Inside a section, only `.property` accesses the current context — there is no automatic fallback to parent contexts.
+
+**4. Empty arrays are falsy**
+
+In Igo Dust, `[]` evaluates to `false` in conditionals:
+
+```js
+{?items}Has items{:else}No items{/items}
+// With items = [] → "No items"
+```
+
+**5. Async rendering only**
+
+All rendering methods return Promises. There is no callback-based API.
 
 ## Quick Start
 
 ```js
-const igodust = require('igo-dust');
+const dust = require('@igojs/dust');
 
-// Render a simple template
-const result = await igodust.render('Hello, {name}!', { name: 'World' });
-console.log(result); // Hello, World!
+const result = await dust.render('Hello, {name}!', { name: 'World' });
+// => Hello, World!
 ```
 
 ## Installation
 
 ```bash
-npm install --save igo-dust
+npm install @igojs/dust
 ```
 
 ## Using with Express
 
-You can use Igo Dust.js with Express by setting the view engine to `dust` and rendering templates using the `res.render` method.
-
 ```js
 const express = require('express');
-const igodust = require('igo-dust');
-const app     = express();
+const dust = require('@igojs/dust');
+const app = express();
 
-// Configure Igo Dust as the template engine
-app.engine('dust', igodust.engine);
+dust.configure({
+  views: './views',
+  cache: app.get('env') === 'production',
+});
+
+app.engine('dust', dust.engine);
 app.set('view engine', 'dust');
 app.set('views', './views');
 
-// Optional: Enable caching in production for better performance
-if (app.get('env') === 'production') {
-  igodust.configure({ cache: true });
-}
-
 app.get('/', (req, res) => {
-  // Renders ./views/welcome/index.dust
-  res.render('welcome/index', {
-    name: 'World',
-    title: 'Welcome Page'
-  });
+  res.render('welcome/index', { name: 'World' });
 });
 
-app.get('/users/:id', (req, res) => {
-  // Example with dynamic data
-  res.render('users/profile', {
-    user: {
-      id: req.params.id,
-      name: 'John Doe',
-      email: 'john@example.com'
-    }
-  });
-});
-
-app.listen(3000, () => {
-  console.log(`Example app listening on port 3000`)
-});
+app.listen(3000);
 ```
 
-**Example template** (`./views/welcome/index.dust`):
+**Template** (`views/welcome/index.dust`):
 ```html
 <!DOCTYPE html>
 <html>
-<head>
-  <title>{title}</title>
-</head>
+<head><title>{title}</title></head>
 <body>
   <h1>Hello, {name}!</h1>
 </body>
 </html>
 ```
 
-That's it! You have now successfully set up Igo Dust.js with Express.
-
-
 ## Using the API
 
-You can also use Igo Dust.js without Express by rendering templates using the `render` and `renderFile` methods.
-
-> **Important**: All rendering methods are async and return Promises. Always use `await` or `.then()`.
-
-### Render from string
-
 ```js
-const igodust = require('igo-dust');
+const dust = require('@igojs/dust');
 
-const result = await igodust.render('<h1>Hello, {name}!</h1>', { name: 'World' });
-console.log(result);
-// => <h1>Hello, World!</h1>
-```
+// Render from string
+const html = await dust.render('<h1>Hello, {name}!</h1>', { name: 'World' });
 
-### Render from file
-
-```js
-const igodust = require('igo-dust');
-
-// Configure views directory (optional, defaults to './views')
-igodust.configure({
-  views: './templates'
-});
-
-const result = await igodust.renderFile('template.dust', { name: 'World' });
-console.log(result);
-// => <h1>Hello, World!</h1>
+// Render from file
+dust.configure({ views: './templates' });
+const html = await dust.renderFile('template.dust', { name: 'World' });
 ```
 
 ## Configuration
 
-Configure Igo Dust.js with various options:
-
 ```js
-const igodust = require('igo-dust');
-
-igodust.configure({
-  // Directory where templates are located
-  views: './views',
-
-  // Enable template caching (recommended for production)
-  cache: true,
-
-  // Automatically HTML-encode output (default: true)
-  htmlencode: true,
-
-  // Remove line breaks and trim whitespace (default: true)
-  htmltrim: true
+dust.configure({
+  views:      './views',   // Template directory
+  cache:      true,        // Cache compiled templates (recommended in production)
+  htmlencode: true,        // HTML-encode all output (default: true)
+  htmltrim:   true,        // Trim whitespace (default: true)
 });
 ```
-
-### Configuration Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `views` | string | `'./views'` | Directory containing template files |
-| `cache` | boolean | `false` | Cache compiled templates for better performance |
-| `htmlencode` | boolean | `true` | Automatically HTML-encode all output (prevents XSS) |
+| `cache` | boolean | `false` | Cache compiled templates |
+| `htmlencode` | boolean | `true` | HTML-encode all output (prevents XSS) |
 | `htmltrim` | boolean | `true` | Remove line breaks and trim whitespace |
-
-> **Tip**: Enable `cache` in production for significantly better performance!
 
 ## Next Steps
 
-Now that you have Igo Dust.js set up, explore the documentation to learn more:
-
-* **[Basics](./basics.md)** - Learn the fundamental syntax and features
-* **[Loops](./loops.md)** - Iterate over arrays and objects
-* **[Logic](./logic.md)** - Add conditional logic to your templates
-* **[Helpers](./helpers.md)** - Use built-in helpers and create custom ones
-* **[Filters](./filters.md)** - Transform output with filters
-* **[Partials](./partials.md)** - Reuse templates with partials and layouts
-* **[API Reference](./api.md)** - Complete API documentation
-
----
+* **[Basics](./basics)** — Syntax fundamentals
+* **[Loops](./loops)** — Iterating over arrays and objects
+* **[Logic](./logic)** — Conditional rendering
+* **[Helpers](./helpers)** — Built-in and custom helpers
+* **[Filters](./filters)** — Output transformation
+* **[Partials](./partials)** — Template reuse and layouts
+* **[API](./api)** — Full API reference
