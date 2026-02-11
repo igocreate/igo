@@ -68,38 +68,3 @@ Executed migrations are tracked in a `__db_migrations` table, created automatica
 A migration that has run successfully will not run again.
 
 Concurrent migration runs are prevented via advisory locks (MySQL `GET_LOCK()` / PostgreSQL `pg_try_advisory_lock()`).
-
-## Seeds
-
-Seed files populate the database with initial or test data. They are placed in the `seeds/` directory and must match the pattern `NNN*.js`:
-
-```
-seeds/
-├── 001_users.js
-├── 002_projects.js
-└── 003_tasks.js
-```
-
-Each seed file exports an async function:
-
-```js
-// seeds/001_users.js
-const User = require('../app/models/User');
-
-module.exports = async () => {
-  await User.create({ email: 'admin@example.com', first_name: 'Admin' });
-  await User.create({ email: 'user@example.com', first_name: 'User' });
-};
-```
-
-### CLI
-
-```bash
-# Run all seed files
-npx igo db seed
-
-# Reset database and run seeds
-npx igo db reseed
-```
-
-Seeds cannot be run in production (`NODE_ENV=production`).
