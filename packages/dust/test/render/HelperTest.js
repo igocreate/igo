@@ -105,10 +105,72 @@ describe('Render Helpers', () => {
     assert.equal(r, 'Hello world !');
   });
 
-  it.skip('should render select with eq', () => {
+  it('should render select with eq', async () => {
     const template  = 'Hello {@select key=w}{@eq value="puppies"}Puppies{/eq}{@eq value="bunnies"}test-bunnies{/eq}{/select}';
-    const r         = new Renderer().render(template, { w: 'puppies' });
+    const r         = await new Renderer().render(template, { w: 'puppies' });
     assert.equal(r, 'Hello Puppies');
+  });
+
+  it('should render select with second match', async () => {
+    const template  = '{@select key=w}{@eq value="a"}A{/eq}{@eq value="b"}B{/eq}{@eq value="c"}C{/eq}{/select}';
+    const r         = await new Renderer().render(template, { w: 'b' });
+    assert.equal(r, 'B');
+  });
+
+  it('should render select with @none when no match', async () => {
+    const template  = '{@select key=status}{@eq value="active"}Active{/eq}{@eq value="inactive"}Inactive{/eq}{@none}Unknown{/none}{/select}';
+    const r         = await new Renderer().render(template, { status: 'other' });
+    assert.equal(r, 'Unknown');
+  });
+
+  it('should not render @none when a match exists', async () => {
+    const template  = '{@select key=status}{@eq value="active"}Active{/eq}{@none}Unknown{/none}{/select}';
+    const r         = await new Renderer().render(template, { status: 'active' });
+    assert.equal(r, 'Active');
+  });
+
+  it('should render select with @any when match exists', async () => {
+    const template  = '{@select key=w}{@eq value="a"}A{/eq}{@any}Matched!{/any}{/select}';
+    const r         = await new Renderer().render(template, { w: 'a' });
+    assert.equal(r, 'AMatched!');
+  });
+
+  it('should not render @any when no match', async () => {
+    const template  = '{@select key=w}{@eq value="a"}A{/eq}{@any}Matched!{/any}{/select}';
+    const r         = await new Renderer().render(template, { w: 'z' });
+    assert.equal(r, '');
+  });
+
+  it('should render all matching comparators in select', async () => {
+    const template  = '{@select key=w}{@eq value="a"}First{/eq}{@eq value="a"}Second{/eq}{/select}';
+    const r         = await new Renderer().render(template, { w: 'a' });
+    assert.equal(r, 'FirstSecond');
+  });
+
+  it('should render select with ne helper', async () => {
+    const template  = '{@select key=w}{@ne value="b"}Not B{/ne}{/select}';
+    const r         = await new Renderer().render(template, { w: 'a' });
+    assert.equal(r, 'Not B');
+  });
+
+  it('should render select with numeric comparators', async () => {
+    const template  = '{@select key=n}{@gt value=5}Big{/gt}{@lte value=5}Small{/lte}{/select}';
+    let r = await new Renderer().render(template, { n: 10 });
+    assert.equal(r, 'Big');
+    r = await new Renderer().render(template, { n: 3 });
+    assert.equal(r, 'Small');
+  });
+
+  it('should allow standalone comparators with own key outside select', async () => {
+    const template  = '{@eq key=w value="hello"}yes{/eq}';
+    const r         = await new Renderer().render(template, { w: 'hello' });
+    assert.equal(r, 'yes');
+  });
+
+  it('should render empty when select has no body', async () => {
+    const template  = 'Hello {@select key=w /} World';
+    const r         = await new Renderer().render(template, { w: 'test' });
+    assert.equal(r, 'Hello  World');
   });
 
   it('should render custom helper', async () => {

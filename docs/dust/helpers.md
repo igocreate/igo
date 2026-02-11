@@ -8,6 +8,9 @@
 * `@lt`: less than
 * `@gte` : greater than or equal to
 * `@lte` : less than or equal to
+* `@select`: group comparators under a single key
+* `@none`: render if no comparator matched (inside `@select`)
+* `@any`: render if at least one comparator matched (inside `@select`)
 
 ## Equal
 
@@ -95,6 +98,64 @@ Hello {@eq key=w value="World"}World{:else}Planet{/eq}
 
 // Output
 Hello Planet
+```
+
+## Select
+
+`@select` groups multiple comparators under a single key, avoiding repetition. Nested helpers (`@eq`, `@ne`, `@gt`, `@lt`, `@gte`, `@lte`) automatically inherit the `key` from the parent `@select`.
+
+All matching comparators are rendered (not exclusive like a switch).
+
+```js
+// Template
+{@select key=status}
+  {@eq value="active"}<span class="green">Active</span>{/eq}
+  {@eq value="inactive"}<span class="red">Inactive</span>{/eq}
+  {@none}<span class="gray">Unknown</span>{/none}
+{/select}
+
+// Data
+{ status: 'active' }
+
+// Output
+<span class="green">Active</span>
+```
+
+### @none
+
+Renders its body if no comparator matched inside the `@select`.
+
+```js
+// Data: { status: 'other' }
+// Output: <span class="gray">Unknown</span>
+```
+
+### @any
+
+Renders its body if at least one comparator matched inside the `@select`.
+
+```js
+// Template
+{@select key=role}
+  {@eq value="admin"}Admin{/eq}
+  {@eq value="editor"}Editor{/eq}
+  {@any} (authenticated){/any}
+  {@none}Guest{/none}
+{/select}
+
+// Data
+{ role: 'admin' }
+
+// Output
+Admin (authenticated)
+```
+
+### Standalone comparators
+
+Comparators can still be used outside `@select` with their own `key` parameter:
+
+```js
+{@eq key=user.status value="online"}Online{/eq}
 ```
 
 ## Custom Helpers
@@ -231,15 +292,12 @@ item-0 item-1 item-2
 ```js
 // Template
 <div class="user-status">
-  {@eq key=user.status value="online"}
-    <span class="dot green"></span> Online
-  {/eq}
-  {@eq key=user.status value="away"}
-    <span class="dot yellow"></span> Away
-  {/eq}
-  {@eq key=user.status value="offline"}
-    <span class="dot gray"></span> Offline
-  {/eq}
+  {@select key=user.status}
+    {@eq value="online"}<span class="dot green"></span> Online{/eq}
+    {@eq value="away"}<span class="dot yellow"></span> Away{/eq}
+    {@eq value="offline"}<span class="dot gray"></span> Offline{/eq}
+    {@none}<span class="dot gray"></span> Unknown{/none}
+  {/select}
 </div>
 
 // Data
