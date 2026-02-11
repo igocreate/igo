@@ -7,11 +7,23 @@ const config      = require('../src/config');
 const cache       = require('../src/cache');
 const logger      = require('../src/logger');
 const utils       = require('../src/utils');
-const errorhandler = require('../src/connect/errorhandler');
 const db          = require('@igojs/db');
 
-const green = (s) => `\x1b[32m${s}\x1b[0m`;
-const dim   = (s) => `\x1b[2m${s}\x1b[0m`;
+const green  = (s) => `\x1b[32m${s}\x1b[0m`;
+const dim    = (s) => `\x1b[2m${s}\x1b[0m`;
+const yellow = (s) => `\x1b[33m${s}\x1b[0m`;
+
+// Try to load module-alias if the project uses it
+const initModuleAlias = () => {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8'));
+    if (pkg._moduleAliases) {
+      require('module-alias/register');
+    }
+  } catch (err) {
+    // module-alias not available, skip
+  }
+};
 
 // Recursively find all .js files in a directory
 const findJsFiles = (dir) => {
@@ -40,19 +52,50 @@ const discoverModels = () => {
     try {
       const exported = require(file);
       if (typeof exported === 'function' && exported.schema) {
-        models[exported.name] = exported;
+        const relPath = path.relative(modelsDir, file);
+        const dir = path.dirname(relPath);
+        if (dir === '.') {
+          models[exported.name] = exported;
+        } else {
+          // Group subdirectory models: elearning/Training → { elearning: { Training } }
+          if (!models[dir]) {
+            models[dir] = {};
+          }
+          models[dir][exported.name] = exported;
+        }
       }
     } catch (err) {
-      // Skip models that fail to load
+      const relPath = path.relative(modelsDir, file);
+      console.log(yellow(`  ⚠ ${relPath}: ${err.message}`));
     }
   }
   return models;
+};
+
+// Format model names for display
+const formatModelNames = (models) => {
+  const names = [];
+  for (const [key, value] of Object.entries(models)) {
+    if (typeof value === 'function') {
+      names.push(key);
+    } else {
+      const subNames = Object.keys(value).map(n => `${key}.${n}`);
+      names.push(...subNames);
+    }
+  }
+  return names;
 };
 
 // igo console
 module.exports = async () => {
 
   config.init();
+  initModuleAlias();
+
+  // Minimal errorhandler for CLI (no process.exit on errors)
+  const errorhandler = {
+    errorSQL: (err) => { logger.error(err); }
+  };
 
   // Initialize @igojs/db with injected dependencies
   db.init({
@@ -71,7 +114,7 @@ module.exports = async () => {
 
   // Discover models
   const models = discoverModels();
-  const modelNames = Object.keys(models);
+  const modelNames = formatModelNames(models);
 
   // Welcome message
   console.log(green('igo console'));
@@ -93,8 +136,8 @@ module.exports = async () => {
   r.context.logger = logger;
 
   // Expose discovered models
-  for (const [name, model] of Object.entries(models)) {
-    r.context[name] = model;
+  for (const [key, value] of Object.entries(models)) {
+    r.context[key] = value;
   }
 
   r.on('exit', () => {
