@@ -118,11 +118,17 @@ const schema = {
 };
 ```
 
-The `default` scope applies to all queries. Use `.unscoped()` to bypass it.
+The `default` scope applies to all queries, including when using `.scope()` — named scopes stack on top of the default scope.
 
 ```js
+// default + active scopes both apply
 const users = await User.scope('active').list();
-const all   = await User.unscoped().list();
+
+// Remove all scopes (including default)
+const all   = await User.unscope().list();
+
+// Remove only the includes added by the default scope
+const users = await User.unscope('includes').list();
 ```
 
 ## API Reference
@@ -152,7 +158,8 @@ const all   = await User.unscoped().list();
 | `Model.includes(assocs)` | `Query` | Eager load associations |
 | `Model.join(assocs)` | `Query` | SQL JOIN |
 | `Model.scope(name)` | `Query` | Apply named scope |
-| `Model.unscoped()` | `Query` | Remove default scope |
+| `Model.unscope(...clauses)` | `Query` | Remove all scopes (no args) or specific clauses |
+| `Model.unscoped()` | `Query` | *Deprecated* — use `unscope()` |
 | `Model.paginatedOptimized()` | `PaginatedOptimizedQuery` | Optimized pagination (see [POQ](./paginated-optimized-query.md)) |
 
 ### Instance Methods

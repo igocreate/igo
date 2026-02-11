@@ -40,7 +40,7 @@ module.exports = function(schema) {
       await this.beforeUpdate(values);
 
       await newQuery(this.constructor, 'update')
-      .unscoped()
+      .unscope()
       .values(values)
       .where(this.primaryObject())
       .execute();
@@ -56,14 +56,14 @@ module.exports = function(schema) {
 
     // reload
     async reload(includes) {
-      const query = this.constructor.unscoped();
+      const query = this.constructor.unscope();
       includes && query.includes(includes);
       return await query.find(this.id);
     }
 
     // delete
     delete() {
-      return newQuery(this.constructor, 'delete').unscoped().where(this.primaryObject()).execute();
+      return newQuery(this.constructor, 'delete').unscope().where(this.primaryObject()).execute();
     }
 
     async beforeCreate() { }
@@ -101,9 +101,9 @@ module.exports = function(schema) {
 
         const { insertId } = result;
         if (insertId) {
-          return _this.unscoped().find(insertId);
+          return _this.unscope().find(insertId);
         }
-        return _this.unscoped().find(obj.primaryObject());
+        return _this.unscope().find(obj.primaryObject());
       };
 
       return await create();
@@ -177,12 +177,12 @@ module.exports = function(schema) {
 
     // delete
     static delete(id, ) {
-      return newQuery(this, 'delete').unscoped().where({ id: id }).execute();
+      return newQuery(this, 'delete').unscope().where({ id: id }).execute();
     }
 
     // delete all
     static async deleteAll() {
-      return newQuery(this, 'delete').unscoped().execute();
+      return newQuery(this, 'delete').unscope().execute();
     }
 
     // destroy all
@@ -193,7 +193,7 @@ module.exports = function(schema) {
     //
     static update(values, ) {
       values.updated_at = new Date();
-      return newQuery(this).unscoped().update(values, );
+      return newQuery(this).unscope().update(values, );
     }
 
     // includes
@@ -214,9 +214,15 @@ module.exports = function(schema) {
       console.warn('Invalid join argument for Model.join(). Must be a string, array, or object.');
     }
 
-    //unscoped
+    // unscoped (deprecated, use unscope())
     static unscoped() {
-      return newQuery(this).unscoped();
+      console.warn('Model.unscoped() is deprecated, use unscope() instead.');
+      return this.unscope();
+    }
+
+    // unscope
+    static unscope(...clauses) {
+      return newQuery(this).unscope(...clauses);
     }
 
     //scope

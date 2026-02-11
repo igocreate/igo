@@ -50,7 +50,8 @@ module.exports = class Query {
       group:    null,
       includes: {},
       options:  {},
-      scopes:   [ 'default' ]
+      scopes:   [ 'default' ],
+      unscopes: []
     };
 
     // filter on subclass
@@ -153,9 +154,19 @@ module.exports = class Query {
     return this;
   }
 
-  // UNSCOPED
+  // UNSCOPED (deprecated, use unscope())
   unscoped() {
-    this.query.scopes.length = 0;
+    console.warn('Query.unscoped() is deprecated, use unscope() instead.');
+    return this.unscope();
+  }
+
+  // UNSCOPE
+  unscope(...clauses) {
+    if (clauses.length === 0) {
+      this.query.scopes.length = 0;
+    } else {
+      this.query.unscopes.push(...clauses);
+    }
     return this;
   }
 
@@ -265,6 +276,21 @@ module.exports = class Query {
       }
       schema.scopes[scope](this);
     });
+    // Apply unscopes after scopes
+    for (const clause of query.unscopes) {
+      switch (clause) {
+        case 'where':    query.where = [];    break;
+        case 'whereNot': query.whereNot = []; break;
+        case 'order':    query.order = [];    break;
+        case 'includes': query.includes = {}; break;
+        case 'joins':    query.joins = [];    break;
+        case 'select':   query.select = null; break;
+        case 'distinct': query.distinct = null; break;
+        case 'group':    query.group = null;  break;
+        case 'limit':    delete query.limit;  break;
+        case 'offset':   delete query.offset; break;
+      }
+    }
   }
 
   // INCLUDES

@@ -182,7 +182,7 @@ describe('db.Model', () => {
         const first   = await Book.create();
         const hibook  = await Book.create({title: 'hi'});
         await Book.create();
-        const book = await Book.unscoped().first();
+        const book = await Book.unscope().first();
         assert.strictEqual(first.id, book.id);
         assert.strictEqual('hi', hibook.title);
       });
@@ -203,7 +203,7 @@ describe('db.Model', () => {
         await Book.create();
         await Book.create();
         const last = await Book.create();
-        const book = await Book.unscoped().last();
+        const book = await Book.unscope().last();
         assert.strictEqual(last.id, book.id);
       });
     });
@@ -374,8 +374,88 @@ describe('db.Model', () => {
     it('should use a scope', async () => {
       await BookWithScopes.create({code: 'a'});
       await BookWithScopes.create({code: 'abc'});
-      const books = await BookWithScopes.unscoped().scope('a').list();
+      const books = await BookWithScopes.unscope().scope('a').list();
       assert.strictEqual(books.length, 1);
+    });
+  });
+
+  describe('unscope', () => {
+
+    class Library extends Model({
+      table:    'libraries',
+      primary:  ['id'],
+      columns:  ['id', 'title'],
+    }) {}
+
+    const scopedSchema = {
+      table:    'books',
+      primary:  ['id'],
+      columns: [
+        'id',
+        'code',
+        'title',
+        {name: 'details_json', type: 'json', attr: 'details'},
+        {name:'is_available', type: 'boolean'},
+        'library_id',
+        'created_at'
+      ],
+      associations: () => ([
+        ['belongs_to', 'library', Library, 'library_id', 'id'],
+      ]),
+      scopes: {
+        default:  query => query.where({ code: 'abc' }).order('`created_at` DESC').includes('library'),
+        active:   query => query.where({ is_available: true }),
+      }
+    };
+
+    class ScopedBook extends Model(scopedSchema) {}
+
+    it('unscope() without args should remove all scopes', async () => {
+      await ScopedBook.create({ code: 'a' });
+      await ScopedBook.create({ code: 'abc' });
+      const books = await ScopedBook.unscope().list();
+      assert.strictEqual(books.length, 2);
+    });
+
+    it('unscope("where") should remove where added by scope', async () => {
+      await ScopedBook.create({ code: 'a' });
+      await ScopedBook.create({ code: 'abc' });
+      const books = await ScopedBook.unscope('where').list();
+      assert.strictEqual(books.length, 2);
+    });
+
+    it('unscope("includes") should remove includes added by scope', async () => {
+      const library = await Library.create({ title: 'Main' });
+      await ScopedBook.create({ code: 'abc', library_id: library.id });
+      const books = await ScopedBook.unscope('includes').list();
+      assert.strictEqual(books.length, 1);
+      assert.strictEqual(books[0].library, undefined);
+    });
+
+    it('unscope("order") should remove order added by scope', async () => {
+      const b1 = await ScopedBook.create({ code: 'abc' });
+      const b2 = await ScopedBook.create({ code: 'abc' });
+      const books = await ScopedBook.unscope('order').list();
+      // without DESC order, should be ASC (default)
+      assert(books[0].id <= books[1].id);
+    });
+
+    it('unscope("where", "order") should remove both', async () => {
+      await ScopedBook.create({ code: 'a' });
+      const b2 = await ScopedBook.create({ code: 'abc' });
+      const books = await ScopedBook.unscope('where', 'order').list();
+      assert.strictEqual(books.length, 2);
+      assert(books[0].id <= books[1].id);
+    });
+
+    it('should work with chaining: unscope("includes").scope("active")', async () => {
+      const library = await Library.create({ title: 'Main' });
+      await ScopedBook.create({ code: 'abc', is_available: true, library_id: library.id });
+      await ScopedBook.create({ code: 'abc', is_available: false, library_id: library.id });
+      const books = await ScopedBook.unscope('includes').scope('active').list();
+      assert.strictEqual(books.length, 1);
+      assert.strictEqual(books[0].is_available, true);
+      assert.strictEqual(books[0].library, undefined);
     });
   });
 

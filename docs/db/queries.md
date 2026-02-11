@@ -156,12 +156,19 @@ const count = await Book.join('library').where('library.title = ?', 'Main').coun
 ## Scopes
 
 ```js
-// Apply a named scope
+// Apply a named scope (stacks on top of the default scope)
 const users = await User.scope('active').list();
 
-// Remove default scope
-const users = await User.unscoped().list();
+// Remove all scopes (including default)
+const users = await User.unscope().list();
+
+// Remove specific clauses added by scopes
+const users = await User.unscope('where').list();
+const users = await User.unscope('includes').list();
+const users = await User.unscope('where', 'order').list();
 ```
+
+Supported clauses: `where`, `whereNot`, `order`, `includes`, `joins`, `select`, `distinct`, `group`, `limit`, `offset`.
 
 ## First / Last
 
