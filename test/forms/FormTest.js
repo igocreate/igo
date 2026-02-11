@@ -91,6 +91,21 @@ describe('igo.Form', () => {
     assert.strictEqual(_.keys(form.errors).length, 4);
   });
 
+  it('should handle array values on non-array fields', () => {
+    const body = {
+      email:  ['noooo@nooo.fr', 'other@nooo.fr'],
+      int:    ['1 234', '5678'],
+      float:  ['1234,56'],
+      date:   ['24/12/2000'],
+    };
+    const form = new UserForm().submit(reqWithBody(body));
+    assert.strictEqual(form.errors, null);
+    assert.strictEqual(form.email, 'noooo@nooo.fr');
+    assert.strictEqual(form.int, 1234);
+    assert.strictEqual(form.float, 1234.56);
+    assert(_.isDate(form.date));
+  });
+
   it('should handle zeros as a value', () => {
     const body = {
       email: 'noooo@gmail.com',
