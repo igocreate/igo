@@ -1,6 +1,6 @@
 {
   "name": "@igojs/igo",
-  "version": "6.0.0-beta.23",
+  "version": "6.0.0-beta.24",
   "homepage": "https://github.com/igocreate/igo",
   "description": "Igo is a Node.js Web Framework based on Express",
   "keywords": [
@@ -22,6 +22,6 @@
     "@igojs/db": "^6.0.0-beta.8",
     "@igojs/dust": "^6.0.0-beta.3",
     "@igojs/server": "^6.0.0-beta.12",
-    "@igojs/signal": "^6.0.0-beta.15"
+    "@igojs/signal": "^6.0.0-beta.16"
   }
 }
