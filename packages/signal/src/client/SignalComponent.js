@@ -41,8 +41,9 @@ class Igo2Component {
 
   // Server-side rendering: compute derived values (getters) for Dust templates
   static ssr(props) {
-    const instance = new this(null);
     props = props || {};
+    const instance = new this(null, props);
+    // Ensure props are set (handles components that don't forward props to super)
     instance._props = props;
     instance.props = props;
     if (props.form) {
@@ -67,7 +68,7 @@ class Igo2Component {
     return derived;
   }
 
-  constructor(element, template) {
+  constructor(element, template, props) {
 
     this.template = template;
 
@@ -96,7 +97,12 @@ class Igo2Component {
     this._derivedValues = {};
 
     if (isServer) {
+      this._props = props || {};
+      this.props = this._props;
       this.state = this._state;
+      if (this._props.form) {
+        this._state.form = this._props.form;
+      }
     } else {
       // Browser: hydrate props from window and element
       const globalProps = window.__signal_props || {};

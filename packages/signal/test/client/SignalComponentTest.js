@@ -44,6 +44,32 @@ describe('SignalComponent', () => {
     assert.strictEqual(derived.public, 'visible');
   });
 
+  it('should make props available in child constructor during ssr()', () => {
+    class ChildComponent extends SignalComponent {
+      constructor(element, props) {
+        super(element, 'test/template', props);
+        // Simulates a real component accessing this.props during construction
+        this.state.items = this.props.items || [];
+      }
+      get itemCount() { return this.state.items.length; }
+    }
+    const derived = ChildComponent.ssr({ items: [1, 2, 3] });
+    assert.strictEqual(derived.itemCount, 3);
+  });
+
+  it('should make form available in state during child constructor via ssr()', () => {
+    class FormComponent extends SignalComponent {
+      constructor(element, props) {
+        super(element, 'test/form', props);
+        // Simulates accessing form in constructor
+        this.state.validated = !!this.state.form?.email;
+      }
+      get isValid() { return this.state.validated; }
+    }
+    const derived = FormComponent.ssr({ form: { email: 'a@b.com' } });
+    assert.strictEqual(derived.isValid, true);
+  });
+
   it('should handle getter errors gracefully in ssr()', () => {
     class TestComponent extends SignalComponent {
       get failing() { throw new Error('DOM error'); }
