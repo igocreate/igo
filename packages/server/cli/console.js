@@ -72,6 +72,33 @@ const discoverModels = () => {
   return models;
 };
 
+// Discover modules from a directory (services, utils, etc.)
+const discoverModules = (dirName) => {
+  const baseDir = path.resolve(`app/${dirName}`);
+  const files = findJsFiles(baseDir);
+  const modules = {};
+  for (const file of files) {
+    try {
+      const exported = require(file);
+      const relPath = path.relative(baseDir, file);
+      const name = path.basename(relPath, '.js');
+      const dir = path.dirname(relPath);
+      if (dir === '.') {
+        modules[name] = exported;
+      } else {
+        if (!modules[dir]) {
+          modules[dir] = {};
+        }
+        modules[dir][name] = exported;
+      }
+    } catch (err) {
+      const relPath = path.relative(baseDir, file);
+      console.log(yellow(`  ⚠ ${relPath}: ${err.message}`));
+    }
+  }
+  return modules;
+};
+
 // Format model names for display
 const formatModelNames = (models) => {
   const names = [];
@@ -112,15 +139,25 @@ module.exports = async () => {
     await cache.init();
   }
 
-  // Discover models
+  // Discover models, services and utils
   const models = discoverModels();
   const modelNames = formatModelNames(models);
+  const services = discoverModules('services');
+  const serviceNames = formatModelNames(services);
+  const appUtils = discoverModules('utils');
+  const appUtilNames = formatModelNames(appUtils);
 
   // Welcome message
   console.log(green('igo console'));
   console.log(dim('Available: config, cache, db, dbs, Model, logger'));
   if (modelNames.length > 0) {
     console.log(dim('Models: ' + modelNames.join(', ')));
+  }
+  if (serviceNames.length > 0) {
+    console.log(dim('Services: ' + serviceNames.join(', ')));
+  }
+  if (appUtilNames.length > 0) {
+    console.log(dim('Utils: ' + appUtilNames.join(', ')));
   }
   console.log('');
 
@@ -137,6 +174,16 @@ module.exports = async () => {
 
   // Expose discovered models
   for (const [key, value] of Object.entries(models)) {
+    r.context[key] = value;
+  }
+
+  // Expose discovered services
+  for (const [key, value] of Object.entries(services)) {
+    r.context[key] = value;
+  }
+
+  // Expose discovered utils
+  for (const [key, value] of Object.entries(appUtils)) {
     r.context[key] = value;
   }
 
