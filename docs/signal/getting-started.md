@@ -1,35 +1,24 @@
 
 # Getting Started
 
-## Introduction
+@igojs/signal adds reactive components to your server-rendered Igo pages. You write Dust templates that render on the server, then Signal makes them interactive in the browser — with automatic reactivity, form binding, and efficient DOM updates.
 
-@igojs/signal is a reactive frontend framework for Igo.js. It brings deep reactivity to server-rendered pages — without a virtual DOM, without a build-time compiler, and without a heavy runtime.
+## Setup
 
-The idea was simple: we wanted interactive components on our server-rendered Dust templates, with the DX of modern frameworks but without the complexity. Signal uses JavaScript Proxies for automatic dependency tracking, DiffDOM for efficient patching, and Dust templates for rendering — all in a few kilobytes.
+### 1. Routes
 
-### Key Features
-
-* **Deep Reactivity**: State changes at any depth trigger re-renders automatically
-* **Computed Values**: Getters with automatic dependency tracking and memoization
-* **SSR Support**: Server-side rendering with seamless client hydration
-* **Two-way Form Binding**: Automatic input synchronization
-* **Efficient DOM Updates**: DiffDOM-based reconciliation (no full re-render)
-* **Zero Boilerplate**: No decorators, no annotations, no compile step
-
-## Quick Start
-
-### 1. Routes (`app/routes.js`)
-
-Register the Signal middleware and template endpoint in your routes file:
+Register the Signal middleware and template endpoint in `app/routes.js`:
 
 ```js
 const signal = require('@igojs/signal');
 
-module.exports.init = (app) => {
-  // Signal middleware (serializes props, handles SSR)
-  app.use(signal.middleware);
+// Optional: configure translations for client-side i18n
+signal.configure({
+  translations: require('../locales/en/translation.json'),
+});
 
-  // Template endpoint (serves Dust templates to the browser)
+module.exports.init = (app) => {
+  app.use(signal.middleware);
   app.get('/__signal/templates', signal.templates);
 
   // Your routes
@@ -37,23 +26,9 @@ module.exports.init = (app) => {
 };
 ```
 
-### 2. Controller (`app/controllers/ProductsController.js`)
+### 2. Layout
 
-```js
-const ProductList = require('../components/products/List');
-
-module.exports.index = async (req, res) => {
-  const products = await Product.list();
-
-  res.locals.signal_props = { products };
-  res.locals.signal_components = [ProductList]; // SSR: compute getters server-side
-  res.render('products/index');
-};
-```
-
-### 3. Layout (`views/layout.dust`)
-
-The layout must inject the serialized props for client hydration:
+Add the Signal scripts in your layout (`views/layouts/main.dust`):
 
 ```html
 <!DOCTYPE html>
@@ -63,6 +38,7 @@ The layout must inject the serialized props for client hydration:
 </head>
 <body>
   {+body/}
+  <script>window.__signal_translations = {__signal_translations|s};</script>
   <script>window.__signal_props = {__signal_props|s};</script>
   <script src="{assets.vendor.js}"></script>
   <script src="{assets.main.js}"></script>
@@ -70,16 +46,61 @@ The layout must inject the serialized props for client hydration:
 </html>
 ```
 
-### 4. Template (`views/products/index.dust`)
+### 3. Client entry point
+
+Initialize Signal in your JavaScript entry point (`js/main.js`):
+
+```js
+const signal = require('@igojs/signal/src/client');
+
+signal.start({
+  components: require.context('./components', true, /\.js$/),
+  helpers: require('./helpers'),
+});
+```
+
+With `require.context`, component names are derived from file paths: `./products/List.js` becomes `products/List`.
+
+You can also register components manually:
+
+```js
+signal.start({
+  components: {
+    'products/List': require('./components/products/List'),
+    'Counter': require('./components/Counter'),
+  },
+});
+```
+
+## Your first component
+
+### Controller
+
+```js
+// app/controllers/ProductsController.js
+module.exports.index = async (req, res) => {
+  const products = await Product.list();
+
+  res.locals.signal_props = { products };
+  res.locals.signal_components = [ProductList];
+  res.render('products/index');
+};
+```
+
+- `signal_props` — data sent to the browser for client-side reactivity
+- `signal_components` — components whose getters are computed server-side (for SSR)
+
+### Template
 
 ```html
+{! views/products/index.dust !}
 {>layout/}
 {<body}
 <div data-component="products/List">
   <p>{count} product{@gt key=count value=1}s{/gt}</p>
   <ul>
     {#products}
-      <li>{.name} — ${.price}</li>
+      <li>{.name} - ${.price}</li>
     {/products}
   </ul>
   <button class="add-btn">Add product</button>
@@ -87,11 +108,12 @@ The layout must inject the serialized props for client hydration:
 {/body}
 ```
 
-Props set in `signal_props` are available to all components via `window.__signal_props`. Use `data-props` only to pass specific props to a child component (see [Components](./components)).
+The `data-component` attribute links the DOM element to the `products/List` component class.
 
-### 5. Component (`assets/js/components/products/List.js`)
+### Component
 
 ```js
+// js/components/products/List.js
 const { SignalComponent } = require('@igojs/signal/src/client');
 
 class ProductList extends SignalComponent {
@@ -105,6 +127,7 @@ class ProductList extends SignalComponent {
     ];
   }
 
+  // Computed value — available in the template as {count}
   get count() {
     return this.props.products.length;
   }
@@ -117,38 +140,13 @@ class ProductList extends SignalComponent {
 module.exports = ProductList;
 ```
 
-### 6. Client Entry (`public/main.js`)
+That's it. The page renders server-side with the full HTML, then Signal hydrates the component in the browser. Clicking "Add product" pushes to the reactive array, which triggers a re-render automatically.
 
-```js
-const { start } = require('@igojs/signal/src/client');
+## Next steps
 
-start({
-  components: require.context('./components', true, /\.js$/),
-  helpers: require('./helpers'),
-});
-```
-
-## How It Works
-
-```
-Server                          Browser
-──────                          ───────
-Controller sets                 1. Hydrate props from
-  res.locals.signal_props         window.__signal_props
-
-Middleware serializes            2. Mount [data-component]
-  props with devalue               elements
-
-Dust renders HTML with           3. Load Dust template
-  data-component attributes         via /__signal/templates
-
-HTML sent to client →            4. State mutation triggers
-                                    re-render via DiffDOM
-```
-
-## Next Steps
-
-* **[Components](./components)** — Creating and structuring components
+* **[Components](./components)** — Lifecycle, child components, API reference
 * **[Reactivity](./reactivity)** — State, props, and computed values
-* **[Events & Forms](./events-forms)** — Event handling and form binding
-* **[SSR](./ssr)** — Server-side rendering and hydration
+* **[Events & Forms](./events-forms)** — Event handling and two-way form binding
+* **[SSR](./ssr)** — Server-side rendering details
+* **[Translations](./translations)** — Client-side i18n
+* **[Internals](./internals)** — How Signal works under the hood

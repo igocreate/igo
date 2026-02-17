@@ -106,15 +106,9 @@ class ProductList extends SignalComponent {
 }
 ```
 
-### How It Works
+Getters are memoized: they only recompute when their dependencies change. See [Internals](./internals) for details on the caching mechanism.
 
-1. Before computing a getter, Signal enables dependency tracking
-2. As the getter executes, every access to `this.props.*`, `this.state.*`, or other getters is recorded
-3. The result is cached with its dependencies
-4. On the next render, Signal checks if dependencies changed (shallow `Object.is` comparison)
-5. If unchanged, the cached value is reused — otherwise, the getter recomputes
-
-### Getters Can Depend on Other Getters
+### Getters can depend on other getters
 
 ```js
 get selectedId() {

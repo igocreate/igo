@@ -47,15 +47,7 @@ get events() {
 }
 ```
 
-### Performance
-
-EventBinder uses a WeakMap to cache listeners per element:
-
-- If DiffDOM preserves an element, its listener is **reused** (no rebind)
-- If an element is removed, the WeakMap allows garbage collection
-- Multiple state mutations batch into a single event rebind cycle
-
-### Child Component Boundaries
+### Child component boundaries
 
 Events don't cross component boundaries. If a selector matches an element inside a child `data-component`, a warning is logged. Bind events to child elements from within the child component instead.
 
@@ -114,6 +106,13 @@ get selectedProduct() {
 ### Shared Form State
 
 Form state is shared across all components on a page via `window.__signal_form`. This means two components can read and write the same form fields.
+
+The form initialization flow:
+1. In the constructor, `props.form` is copied into `this._state.form`
+2. In `init()`, `FormHandler` replaces it with a shared singleton (`window.__signal_form`)
+3. All components with `props.form` end up pointing to the same form object
+
+This means a single form state is shared across all components on the page. If you need independent forms per component, manage form data in `this.state` manually instead of using `props.form`.
 
 ### Child Component Inputs
 

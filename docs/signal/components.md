@@ -151,14 +151,14 @@ Components can be nested. Parent and child components are independent:
 </div>
 ```
 
-### How Children Work
+### How children work
 
-- **Preserved by DiffDOM**: When the parent re-renders, child component DOM nodes are preserved
-- **Props synced**: After parent render, `data-props` attributes are re-evaluated and child components re-render if props changed
-- **Auto-mounted**: New child components added during parent render are automatically mounted
-- **Independent state**: Each child has its own state, getters, and event bindings
+- **Preserved**: when the parent re-renders, child component DOM nodes are preserved (not re-created)
+- **Props synced**: after parent render, `data-props` are re-evaluated and children re-render if props changed
+- **Auto-mounted**: new child components added during parent render are automatically mounted
+- **Independent state**: each child has its own state, getters, and event bindings
 
-### Parent → Child Communication
+### Parent → child communication
 
 Via props (the `data-props` attribute):
 

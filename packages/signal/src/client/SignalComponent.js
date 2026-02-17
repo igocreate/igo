@@ -41,7 +41,13 @@ class Igo2Component {
 
   // Server-side rendering: compute derived values (getters) for Dust templates
   static ssr(props) {
-    const instance = new this(null, null, props);
+    const instance = new this(null);
+    props = props || {};
+    instance._props = props;
+    instance.props = props;
+    if (props.form) {
+      instance._state.form = props.form;
+    }
 
     const derived = {};
     const descriptors = Object.getOwnPropertyDescriptors(this.prototype);
@@ -61,7 +67,7 @@ class Igo2Component {
     return derived;
   }
 
-  constructor(element, template, props) {
+  constructor(element, template) {
 
     this.template = template;
 
@@ -86,22 +92,18 @@ class Igo2Component {
     this._isTracking = false;
     this._trackedDeps = [];
 
-    // Setup props, state, and derived with tracking proxies
-    let initialProps = {};
+    this._state = {};
+    this._derivedValues = {};
 
     if (isServer) {
-      // SSR: use props passed to constructor
-      initialProps = props || {};
+      this.state = this._state;
     } else {
-      // Browser: hydrate from window and element
+      // Browser: hydrate props from window and element
       const globalProps = window.__signal_props || {};
       let localProps = {};
 
-      // Hydrate local props from data-props attribute (serialized with devalue)
       if (this.element.dataset.props) {
         try {
-          // devalue produces a JS expression, so we need to evaluate it
-          // new Function is safer than eval because it creates a local scope
           const hydrate = new Function('return ' + this.element.dataset.props);
           localProps = hydrate();
         } catch (e) {
@@ -109,26 +111,14 @@ class Igo2Component {
         }
       }
 
-      initialProps = { ...globalProps, ...localProps };
-    }
+      this._props = { ...globalProps, ...localProps };
 
-    this._props = initialProps;
-    this._state = {};
-    this._derivedValues = {};
+      if (this._props.form) {
+        this._state.form = this._props.form;
+      }
 
-    // Initialize form state from props (for SSR and browser)
-    if (initialProps.form) {
-      this._state.form = initialProps.form;
-    }
-
-    // Props (simple object in SSR, tracking proxy in browser)
-    if (isServer) {
-      this.props = this._props;
-      this.state = this._state;
-    } else {
       this.props = this._createTrackingProxy(this._props, 'props');
-      this._stateProxy = new StateProxy(this, 'state');
-      this.state = this._stateProxy.create(this._state);
+      this.state = new StateProxy(this, 'state').create(this._state);
     }
 
     // Initialize component (browser only, async fire-and-forget)
@@ -137,7 +127,6 @@ class Igo2Component {
     }
   }
 
-  // Create a tracking proxy for dependency detection
   _createTrackingProxy(target, namespace) {
     return new Proxy(target, {
       get: (target, property) => {
@@ -380,7 +369,7 @@ class Igo2Component {
     this._dustTemplateFn = null;
     this._eventBinder = null;
     this._derivedCache = null;
-    this._stateProxy = null;
+
     this._state = {};
     this._derivedValues = {};
     this._trackedDeps = [];
