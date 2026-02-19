@@ -28,7 +28,7 @@ if (!isServer) {
 let registry = {};
 
 function mountElement(el) {
-  if (el.__igoInstance) {
+  if (el.__signalInstance) {
     return;
   }
   const Comp = registry[el.dataset.component];

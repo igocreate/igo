@@ -108,7 +108,7 @@ The server-side serializer:
 ### CSR (browser)
 
 ```
-constructor(element)
+constructor(element, props)
     ↓
 1. Hydrate props:
    - globalProps = window.__signal_props
@@ -139,10 +139,11 @@ Key points:
 ```
 static ssr(props)
     ↓
-1. new this(null) — constructor with element=null
+1. new this(null, props) — constructor with element=null
    - isServer=true → no Proxy, no EventBinder, no DiffDOM
-   - this._state = {}
-   - this.state  = this._state  (plain object)
+   - this._props = props, this.props = props
+   - this._state = {}, this.state = this._state
+   - if props.form → this._state.form = props.form
     ↓
 2. Assign props directly:
    - instance.props = props     (plain object, no Proxy)

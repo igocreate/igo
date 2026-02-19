@@ -124,8 +124,8 @@ A typical component with events and form binding:
 
 ```js
 class SearchPage extends SignalComponent {
-  constructor(element) {
-    super(element, 'search/Page');
+  constructor(element, props) {
+    super(element, 'search/Page', props);
   }
 
   get events() {

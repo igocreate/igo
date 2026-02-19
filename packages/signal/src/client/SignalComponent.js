@@ -28,7 +28,7 @@ class Igo2Component {
       const ComponentClass = this._registry[componentName];
 
       if (ComponentClass) {
-        if (element.__igoInstance) {
+        if (element.__signalInstance) {
           console.warn(`Component "${componentName}" already mounted on`, element);
           return;
         }
@@ -75,7 +75,7 @@ class Igo2Component {
     // Browser-only setup
     if (!isServer) {
       this.element = element;
-      this.element.__igoInstance  = this;
+      this.element.__signalInstance  = this;
       this._dustTemplateFn        = null;
       this._eventBinder           = new EventBinder();
       this._derivedCache          = new DerivedCache();
@@ -293,7 +293,7 @@ class Igo2Component {
 
     this.element.querySelectorAll('[data-component]').forEach(childElement => {
       if (childElement === this.element) return;
-      if (childElement.__igoInstance) return;
+      if (childElement.__signalInstance) return;
       mountElement(childElement);
     });
   }
@@ -344,8 +344,8 @@ class Igo2Component {
   _syncChildProps() {
     this.element.querySelectorAll('[data-component]').forEach(childElement => {
       if (childElement === this.element) return;
-      if (childElement.__igoInstance) {
-        childElement.__igoInstance._syncProps();
+      if (childElement.__signalInstance) {
+        childElement.__signalInstance._syncProps();
       }
     });
   }
@@ -369,7 +369,7 @@ class Igo2Component {
 
     // Clear references to help garbage collection
     if (this.element) {
-      this.element.__igoInstance = null;
+      this.element.__signalInstance = null;
     }
     this.element = null;
     this._dustTemplateFn = null;

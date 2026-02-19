@@ -219,7 +219,7 @@ async destroy() {
   this._eventBinder.unbind();
   this._formHandler?.unbind();
   this._derivedCache.clear();
-  this.element.__igoInstance = null;
+  this.element.__signalInstance = null;
   // ... null toutes les références
 }
 ```

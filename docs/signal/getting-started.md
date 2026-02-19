@@ -117,8 +117,8 @@ The `data-component` attribute links the DOM element to the `products/List` comp
 const { SignalComponent } = require('@igojs/signal/src/client');
 
 class ProductList extends SignalComponent {
-  constructor(element) {
-    super(element, 'products/List');
+  constructor(element, props) {
+    super(element, 'products/List', props);
   }
 
   get events() {

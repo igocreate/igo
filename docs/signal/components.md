@@ -9,8 +9,8 @@ A Signal component is a class that extends `SignalComponent`:
 const { SignalComponent } = require('@igojs/signal/src/client');
 
 class Counter extends SignalComponent {
-  constructor(element) {
-    super(element, 'Counter'); // template path (relative to views/)
+  constructor(element, props) {
+    super(element, 'Counter', props); // template path (relative to views/)
   }
 
   get events() {
@@ -75,7 +75,7 @@ With `require.context`, component names are derived from file paths: `./products
 ## Lifecycle
 
 ```
-constructor(element)
+constructor(element, props)
     ↓
 init()                    ← Load template, init form handler
     ↓
