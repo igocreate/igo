@@ -38,6 +38,8 @@
     "csv-write-stream": "^2.0.0",
     "dotenv": "17.2.4",
     "fs-extra": "11.3.3",
+    "gray-matter": "^4.0.3",
+    "marked": "^15.0.0",
     "i18next-fs-backend": "^2.6.1",
     "i18next-http-middleware": "^3.9.2",
     "lodash": "^4.17.23",

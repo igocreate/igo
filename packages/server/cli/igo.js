@@ -13,6 +13,7 @@ const actions = {
   console:  require('./console.js'),
   create:   require('./create.js'),
   db:       require('./db.js'),
+  generate: require('./generate.js'),
   i18n:     require('./i18n.js'),
 };
 
