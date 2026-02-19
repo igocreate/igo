@@ -1,6 +1,6 @@
 {
   "name": "@igojs/server",
-  "version": "6.0.0-beta.12",
+  "version": "6.0.0-beta.13",
   "description": "Igo server framework - Express-based web framework for Node.js",
   "main": "index.js",
   "scripts": {
@@ -50,7 +50,7 @@
     "multiparty": "^4.2.3",
     "nodemailer": "8.0.0",
     "postcss-loader": "^8.1.1",
-    "qs": "^6.14.1",
+    "qs": "^6.15.0",
     "sass-loader": "^16.0.5",
     "style-loader": "^4.0.0",
     "validator": "^13.15.26",
