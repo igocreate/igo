@@ -35,7 +35,7 @@ let registry = {};
 
 // Mount a single element — loads SFC on demand if not in registry
 async function mountElement(el) {
-  if (el.__igoInstance) {
+  if (el.__componentInstance) {
     return;
   }
   const name = el.dataset.component;

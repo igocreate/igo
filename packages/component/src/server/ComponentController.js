@@ -36,14 +36,17 @@ const middleware = async (req, res, next) => {
   next();
 };
 
+// Validate component name to prevent path traversal
+const SAFE_NAME_RE = /^[a-zA-Z0-9_/-]+$/;
+
 const templates = async (req, res) => {
   const file = req.query.file;
+  if (!file || !SAFE_NAME_RE.test(file) || file.includes('..')) {
+    return res.status(400).json({ error: 'Invalid file name' });
+  }
   const source = await IgoDust.getSource(`${file}.dust`);
   res.json({ file, source });
 };
-
-// Validate component name to prevent path traversal
-const SAFE_NAME_RE = /^[a-zA-Z0-9_/-]+$/;
 
 // Serve component data (script + template source) for client hydration
 const component = async (req, res) => {
