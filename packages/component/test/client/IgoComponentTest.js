@@ -1,11 +1,11 @@
 const assert = require('assert');
-const SignalComponent = require('../../src/client/SignalComponent.js');
+const IgoComponent = require('../../src/client/IgoComponent.js');
 
-describe('SignalComponent', () => {
+describe('IgoComponent', () => {
 
   it('should initialize with props in SSR mode', () => {
     const props = { products: [{ id: 1 }] };
-    class TestComponent extends SignalComponent {}
+    class TestComponent extends IgoComponent {}
     const derived = TestComponent.ssr(props);
     // ssr() returns derived getters, but we verify props are accessible
     assert.ok(derived);
@@ -13,7 +13,7 @@ describe('SignalComponent', () => {
 
   it('should initialize form state from props.form via ssr()', () => {
     const props = { form: { search: 'test' } };
-    class TestComponent extends SignalComponent {
+    class TestComponent extends IgoComponent {
       get formSearch() { return this.state.form?.search; }
     }
     const derived = TestComponent.ssr(props);
@@ -21,7 +21,7 @@ describe('SignalComponent', () => {
   });
 
   it('should compute derived values via ssr()', () => {
-    class TestComponent extends SignalComponent {
+    class TestComponent extends IgoComponent {
       get doubled() {
         return (this.props.value || 0) * 2;
       }
@@ -33,7 +33,7 @@ describe('SignalComponent', () => {
   });
 
   it('should skip private and reserved getters in ssr()', () => {
-    class TestComponent extends SignalComponent {
+    class TestComponent extends IgoComponent {
       get _private() { return 'hidden'; }
       get public() { return 'visible'; }
     }
@@ -45,7 +45,7 @@ describe('SignalComponent', () => {
   });
 
   it('should make props available in child constructor during ssr()', () => {
-    class ChildComponent extends SignalComponent {
+    class ChildComponent extends IgoComponent {
       constructor(element, props) {
         super(element, 'test/template', props);
         // Simulates a real component accessing this.props during construction
@@ -58,7 +58,7 @@ describe('SignalComponent', () => {
   });
 
   it('should make form available in state during child constructor via ssr()', () => {
-    class FormComponent extends SignalComponent {
+    class FormComponent extends IgoComponent {
       constructor(element, props) {
         super(element, 'test/form', props);
         // Simulates accessing form in constructor
@@ -71,7 +71,7 @@ describe('SignalComponent', () => {
   });
 
   it('should handle getter errors gracefully in ssr()', () => {
-    class TestComponent extends SignalComponent {
+    class TestComponent extends IgoComponent {
       get failing() { throw new Error('DOM error'); }
       get working() { return 'ok'; }
     }

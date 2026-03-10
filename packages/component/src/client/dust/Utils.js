@@ -111,7 +111,7 @@ h.helpers = {
   serialize: createSerializeHelper(uneval)
 };
 
-// Register application helpers (called by signal.start())
+// Register application helpers (called by component.start())
 const setHelpers = (appHelpers) => {
   Object.assign(h.helpers, appHelpers);
 };

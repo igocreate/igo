@@ -9,7 +9,7 @@ i18next.init({
   fallbackLng: 'en',
   resources: {
     [lang]: {
-      translation: window.__signal_translations || {}
+      translation: window.__component_translations || {}
     }
   },
   interpolation: {

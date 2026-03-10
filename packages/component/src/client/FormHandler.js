@@ -10,12 +10,12 @@ class FormHandler {
   }
 
   // Initialize form from props.form
-  // Uses a shared form object (window.__signal_form) so all components share the same form state
+  // Uses a shared form object (window.__component_form) so all components share the same form state
   initForm(formData) {
-    if (!window.__signal_form) {
-      window.__signal_form = { ...formData };
+    if (!window.__component_form) {
+      window.__component_form = { ...formData };
     }
-    return window.__signal_form;
+    return window.__component_form;
   }
 
   bind() {

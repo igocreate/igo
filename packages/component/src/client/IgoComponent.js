@@ -11,7 +11,7 @@ const FormHandler = require('./FormHandler.js');
 // Detect server-side rendering
 const isServer = typeof window === 'undefined';
 
-class Igo2Component {
+class IgoComponent {
   // Component registry for auto-discovery
   static _registry = {};
 
@@ -28,7 +28,7 @@ class Igo2Component {
       const ComponentClass = this._registry[componentName];
 
       if (ComponentClass) {
-        if (element.__signalInstance) {
+        if (element.__componentInstance) {
           console.warn(`Component "${componentName}" already mounted on`, element);
           return;
         }
@@ -75,7 +75,7 @@ class Igo2Component {
     // Browser-only setup
     if (!isServer) {
       this.element = element;
-      this.element.__signalInstance  = this;
+      this.element.__componentInstance  = this;
       this._dustTemplateFn        = null;
       this._eventBinder           = new EventBinder();
       this._derivedCache          = new DerivedCache();
@@ -96,6 +96,12 @@ class Igo2Component {
     this._state = {};
     this._derivedValues = {};
 
+    // SFC: seed default state from definition
+    const _defaultState = Object.getPrototypeOf(this).__defaultState;
+    if (_defaultState) {
+      Object.assign(this._state, JSON.parse(JSON.stringify(_defaultState)));
+    }
+
     if (isServer) {
       this._props = props || {};
       this.props = this._props;
@@ -105,7 +111,7 @@ class Igo2Component {
       }
     } else {
       // Browser: hydrate props from window and element
-      const globalProps = window.__signal_props || {};
+      const globalProps = window.__igo_props || {};
       let localProps = {};
 
       if (this.element.dataset.props) {
@@ -117,7 +123,9 @@ class Igo2Component {
         }
       }
 
-      this._props = { ...globalProps, ...localProps };
+      // SFC: merge default props from definition
+      const _defaultProps = Object.getPrototypeOf(this).__defaultProps;
+      this._props = { ...(_defaultProps || {}), ...globalProps, ...localProps };
 
       if (this._props.form) {
         this._state.form = this._props.form;
@@ -213,7 +221,9 @@ class Igo2Component {
   // Initialize component (called automatically by constructor)
   // Can be overridden in subclasses for custom initialization
   async init() {
-    this._dustTemplateFn = await Templates.loadTemplate(this.template);
+    // SFC components have template pre-compiled; legacy components fetch from server
+    const _definitionTemplateFn = Object.getPrototypeOf(this).__definitionTemplateFn;
+    this._dustTemplateFn = _definitionTemplateFn || await Templates.loadTemplate(this.template);
     this._isInitialized = true;
 
     // Initialize form handler if props.form exists
@@ -234,7 +244,7 @@ class Igo2Component {
 
       // Merge props + state + derived for template context (flat)
       const context = { ...this._props, ...this._state, ...this._derivedValues };
-      const html = await this._dustTemplateFn(context, window.__signal.IgoDustUtils, null);
+      const html = await this._dustTemplateFn(context, window.__igo.IgoDustUtils, null);
 
       const tempElement = document.createElement('div');
       tempElement.innerHTML = html;
@@ -251,7 +261,7 @@ class Igo2Component {
       await this.afterRender();
 
     } catch (error) {
-      console.error('SignalComponent render failed:', error);
+      console.error('Component render failed:', error);
       await this.onError?.(error);
     }
   }
@@ -279,21 +289,59 @@ class Igo2Component {
 
   _bindEvents() {
     this._formHandler?.unbind();
-    this._eventBinder.bind(this.element, this.events, this);
+    const allEvents = [
+      ...(Array.isArray(this.events) ? this.events : []),
+      ...this._buildOnEvents()
+    ];
+    this._eventBinder.bind(this.element, allEvents, this);
     this._formHandler?.bind();
+  }
+
+  // Scan DOM for data-on-* attributes and build events array
+  _buildOnEvents() {
+    const events = [];
+    const seen = new Set();
+
+    this.element.querySelectorAll('*').forEach(el => {
+      // Skip elements inside child components
+      const closestComponent = el.closest('[data-component]');
+      if (closestComponent && closestComponent !== this.element) return;
+
+      for (const attr of el.attributes) {
+        if (!attr.name.startsWith('data-on-')) continue;
+        const eventType = attr.name.slice(8); // "data-on-click" → "click"
+        const methodName = attr.value;
+        const handler = this[methodName];
+        if (typeof handler !== 'function') {
+          console.warn(`[Component] Method "${methodName}" not found on component "${this.template}"`);
+          continue;
+        }
+        const key = `${eventType}:${methodName}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          events.push({
+            selector: `[data-on-${eventType}="${methodName}"]`,
+            eventType,
+            handler
+          });
+        }
+      }
+    });
+
+    return events;
   }
 
   _mountChildComponents() {
     // Mount any child components that were added during render
-    // Use global mountElement from signal/index.js
-    const mountElement = window.__signal?.mountElement;
+    // Use global mountElement from component/index.js
+    const mountElement = window.__igo?.mountElement;
     if (!mountElement) {
       return;
     }
 
     this.element.querySelectorAll('[data-component]').forEach(childElement => {
       if (childElement === this.element) return;
-      if (childElement.__signalInstance) return;
+      if (childElement.__componentInstance) return;
       mountElement(childElement);
     });
   }
@@ -344,8 +392,8 @@ class Igo2Component {
   _syncChildProps() {
     this.element.querySelectorAll('[data-component]').forEach(childElement => {
       if (childElement === this.element) return;
-      if (childElement.__signalInstance) {
-        childElement.__signalInstance._syncProps();
+      if (childElement.__componentInstance) {
+        childElement.__componentInstance._syncProps();
       }
     });
   }
@@ -369,7 +417,7 @@ class Igo2Component {
 
     // Clear references to help garbage collection
     if (this.element) {
-      this.element.__signalInstance = null;
+      this.element.__componentInstance = null;
     }
     this.element = null;
     this._dustTemplateFn = null;
@@ -388,4 +436,4 @@ class Igo2Component {
 
 }
 
-module.exports = Igo2Component;
+module.exports = IgoComponent;

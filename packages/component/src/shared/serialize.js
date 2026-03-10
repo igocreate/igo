@@ -1,6 +1,6 @@
 
-// Shared serialize helper for @igojs/signal
-// Used both server-side (SignalController) and client-side (Utils)
+// Shared serialize helper for @igojs/component
+// Used both server-side (ComponentController) and client-side (Utils)
 
 const HCHARS = /[&<>"']/;
 

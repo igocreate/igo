@@ -1,8 +1,8 @@
-const { SignalComponent } = require('@igojs/signal/client');
+const { IgoComponent } = require('@igojs/component/client');
 
-class Counter extends SignalComponent {
-  constructor(element, props) {
-    super(element, 'components/Counter', props);
+class Counter extends IgoComponent {
+  constructor(element) {
+    super(element, 'components/Counter');
 
     // initial state
     this.state.count = this.props.count || 0;

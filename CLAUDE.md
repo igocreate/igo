@@ -16,9 +16,9 @@ Igo is a Node.js full-stack web framework built on Express, providing ORM, templ
 ├── packages/                    # Monorepo packages
 │   ├── db/                     # @igojs/db - ORM and database abstraction
 │   ├── dust/                   # @igojs/dust - Template engine
-│   ├── igo/                    # @igojs/igo - Meta-package (dépend de tous les autres)
+│   ├── igo/                    # @igojs/igo - Meta-package (depends on all others)
 │   ├── server/                 # @igojs/server - Express framework core
-│   └── signal/                 # @igojs/signal - Reactive frontend/SSR
+│   └── component/              # @igojs/component - Reactive components with SSR
 ├── docs/                       # Docsify documentation
 ├── package.json                # Root workspace configuration
 └── CHANGELOG.md                # Version history
@@ -38,6 +38,7 @@ Igo is a Node.js full-stack web framework built on Express, providing ORM, templ
 - JavaScript template engine (Dust.js-inspired)
 - Async/await rendering
 - Express.js view engine integration
+- Single-file component support (split `<script>` + template)
 - Browser bundle available
 - **Entry:** `packages/dust/src/index.js`
 - **Browser build:** `packages/dust/dist/igo-dust-6.0.0-min.js`
@@ -53,13 +54,17 @@ Igo is a Node.js full-stack web framework built on Express, providing ORM, templ
 - **Entry:** `packages/server/src/index.js`
 - **CLI:** `packages/server/cli/igo.js`
 
-### @igojs/signal (Reactive Frontend)
+### @igojs/component (Reactive Components)
+- Single-file `.dust` components (`<script>` + template)
 - Deep reactivity via JavaScript Proxy
-- Automatic dependency tracking
-- SSR with hydration
+- Automatic dependency tracking for computed values
+- SSR via `{@component}` Dust helper
+- Client-side auto-loading (no manual registration)
 - DiffDOM-based DOM reconciliation
+- Inline events (`on:click="method"`)
 - Two-way form binding
-- **Entry:** `packages/signal/src/index.js`
+- **Server entry:** `packages/component/index.js`
+- **Client entry:** `packages/component/src/client/index.js`
 
 ## Key Technologies
 
@@ -86,7 +91,7 @@ npm test
 npm run test:db
 npm run test:dust
 npm run test:server
-npm run test:signal
+npm run test:component
 
 # Build dust browser bundle
 npm run build:dust
@@ -102,14 +107,19 @@ npm run build:dust
 
 ## Architecture Notes
 
-### Signal Component Flow
+### Component Flow
 ```
-Props → State (reactive via Proxy) → Derived (computed) → Template → DOM
+Single-file .dust → <script> (definition) + Template
+     ↓
+Server: {@component} → SSR HTML + serialized props
+Client: auto-load   → Hydrate, bind reactivity, events
+     ↓
+Props (immutable) → State (reactive via Proxy) → Derived (computed) → Template → DOM
 ```
 
 ### Database Query Pattern
 ```javascript
-const users = await User.query().where({ active: true }).all();
+const users = await User.where({ active: true }).list();
 ```
 
 ### Template Rendering
@@ -124,20 +134,20 @@ res.render('template', { data });
 
 ## Versioning
 
-Le package principal `@igojs/igo` (`packages/igo/`) est un meta-package qui dépend de tous les autres packages :
+Le package principal `@igojs/igo` (`packages/igo/`) est un meta-package qui depend de tous les autres packages :
 
 ```
 @igojs/igo
 ├── @igojs/db
 ├── @igojs/dust
 ├── @igojs/server
-└── @igojs/signal
+└── @igojs/component
 ```
 
-**Lors d'une mise à jour de version d'un package :**
+**Lors d'une mise a jour de version d'un package :**
 
-1. Mettre à jour la version dans `packages/<package>/package.json`
-2. Mettre à jour la dépendance correspondante dans `packages/igo/package.json`
+1. Mettre a jour la version dans `packages/<package>/package.json`
+2. Mettre a jour la dependance correspondante dans `packages/igo/package.json`
 3. Lancer `npm install` pour synchroniser `package-lock.json`
 
 ## Important Files
