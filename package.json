@@ -4,9 +4,9 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "npm test --workspace=@igojs/server && npm test --workspace=@igojs/db && npm test --workspace=@igojs/dust && npm test --workspace=@igojs/signal",
+    "test": "npm test --workspace=@igojs/server && npm test --workspace=@igojs/db && npm test --workspace=@igojs/dust && npm test --workspace=@igojs/component",
     "test:dust": "npm test --workspace=@igojs/dust",
-    "test:signal": "npm test --workspace=@igojs/signal",
+    "test:component": "npm test --workspace=@igojs/component",
     "test:server": "npm test --workspace=@igojs/server",
     "test:db": "npm test --workspace=@igojs/db",
     "eslint": "eslint ./packages/*/src",

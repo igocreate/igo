@@ -25,8 +25,7 @@
       </div>
     </main>
 
-    <script>window.__signal_translations = {__signal_translations|s};</script>
-    <script>window.__signal_props = {__signal_props|s};</script>
+    <script>window.__component_translations = {__component_translations|s};</script>
     <script src="{assets.vendor.js}" ></script>
     <script src="{assets.main.js}" ></script>
   </body>

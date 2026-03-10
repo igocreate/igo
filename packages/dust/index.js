@@ -42,6 +42,15 @@ module.exports.engine = async (filePath, data, callback) => {
   }
 };
 
+// Component (single-file .dust component) support
+module.exports.getComponent = async (filePath) => {
+  return await Cache.getComponent(filePath);
+};
+
+module.exports.getCompiledComponent = async (filePath) => {
+  return await Cache.getCompiledComponent(filePath);
+};
+
 // Helpers and filters
 module.exports.helpers = Helpers;
 module.exports.filters = Utils.f;

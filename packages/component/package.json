@@ -1,0 +1,39 @@
+{
+  "name": "@igojs/component",
+  "version": "6.0.0-beta.1",
+  "description": "Reactive components with SSR for Igo.js",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./src/client/index.js"
+  },
+  "scripts": {
+    "test": "mocha --exit 'test/**/*.js'"
+  },
+  "keywords": [
+    "frontend",
+    "ssr",
+    "reactive",
+    "components",
+    "reactive"
+  ],
+  "author": "@igocreate",
+  "license": "ISC",
+  "homepage": "https://github.com/igocreate/igo",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/igocreate/igo.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "devalue": "^5.6.4",
+    "diff-dom": "^5.2.1",
+    "lodash": "^4.17.23"
+  },
+  "peerDependencies": {
+    "@igojs/dust": "^6.0.0-beta.3",
+    "i18next": "^25.0.0"
+  }
+}

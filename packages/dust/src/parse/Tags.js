@@ -28,7 +28,7 @@ const _helper = (parser, block) => {
 const ALLOWED_BODIES = [ 'else' ];
 const _body = (parser, block) => {
   if (ALLOWED_BODIES.indexOf(block.tag) === -1) {
-    throw new Error(`Unexpected tag {${block.type}${block.tag}..`)
+    throw new Error(`Unexpected tag {${block.type}${block.tag}..`);
   }
   parser.addBody(block.tag);
 };
@@ -61,17 +61,17 @@ const _insert = (parser, block) => {
 };
 
 const SPECIALS = {
-	s		: ' ',
-	n		: '\\n',
-	r		: '\\r\\n',
-	lb	: '{',
-	rb	: '}',
+  s		: ' ',
+  n		: '\\n',
+  r		: '\\r\\n',
+  lb	: '{',
+  rb	: '}',
 };
 
 const _special = (parser, block) => {
-	if (SPECIALS[block.tag]){
-		parser.pushBlock(SPECIALS[block.tag]);
-	}
+  if (SPECIALS[block.tag]){
+    parser.pushBlock(SPECIALS[block.tag]);
+  }
 };
 
 const TAGS = {
@@ -84,7 +84,7 @@ const TAGS = {
   '>': _include,
   '<': _content,
   '+': _insert,
-	'~': _special,
+  '~': _special,
 };
 
 module.exports = TAGS;

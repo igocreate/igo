@@ -49,7 +49,7 @@ const FORBIDDEN_FIRST_CHARS = [ '\'', '{', '[' ];
 //
 module.exports.parseParams = (s) => {
   const params    = {};
-  const original  = s
+  const original  = s;
   let match;
   
   // string param
@@ -61,6 +61,7 @@ module.exports.parseParams = (s) => {
   }
 
   // ref param
+  // eslint-disable-next-line no-control-regex
   const refParam = new RegExp('(\\w+)=([^" \n\r]+)', 'msg');
   while ((match = refParam.exec(s)) !== null) {
     if (FORBIDDEN_FIRST_CHARS.indexOf(match[2][0]) >= 0) {
@@ -69,6 +70,14 @@ module.exports.parseParams = (s) => {
     params[match[1]] = match[2];
     s = s.substring(0, match.index) + s.substring(refParam.lastIndex);
     refParam.lastIndex = match.index;
+  }
+
+  // shorthand param: `count` is equivalent to `count=count`
+  const shorthandParam = new RegExp('(?:^|\\s)(\\w+)(?=\\s|$)', 'msg');
+  while ((match = shorthandParam.exec(s)) !== null) {
+    if (!params[match[1]]) {
+      params[match[1]] = match[1];
+    }
   }
 
   // unnamed string param

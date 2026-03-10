@@ -9,7 +9,7 @@ class Compiler {
   constructor() {
     this.i      = 0;
     this.parts  = [];
-    this.parts.push(`var r='',l=l||{},c=c||{ctx:[]};`);
+    this.parts.push('var r=\'\',l=l||{},c=c||{ctx:[]};');
     this.parts.push('var a=s?function(x){s.write(String(x))}:function(x){r+=x};');
   }
 
@@ -31,7 +31,7 @@ class Compiler {
         this.parts.push(`a(${this._getReference(block)});`);
       } else if (block.type === '+' && !block.tag) {
         // insert body (invoke content function)
-        this.parts.push(`if(c._$body){a(await c._$body());c._$body=null;}`);
+        this.parts.push('if(c._$body){a(await c._$body());c._$body=null;}');
       } else if (block.type === '+') {
         // insert content (invoke content function)
         this.parts.push(`if(c._${block.tag}){a(await c._${block.tag}())}`);
@@ -81,9 +81,9 @@ class Compiler {
         // precompile buffer as function if it exists
         if (block.buffer) {
           this.parts.push(`c._h_body${i}=async function(l_override){`);
-          this.parts.push(`var l_saved=l;`);
-          this.parts.push(`if(l_override){l={...l,...l_override};}`);
-          this.parts.push(`var r='';`);
+          this.parts.push('var l_saved=l;');
+          this.parts.push('if(l_override){l={...l,...l_override};}');
+          this.parts.push('var r=\'\';');
           this.parts.push('var a=s?function(x){s.write(String(x))}:function(x){r+=x};');
           this.compileBuffer(block.buffer);
           this.parts.push('l=l_saved;');
@@ -109,7 +109,7 @@ class Compiler {
 
         // precompile if buffer
         if (block.buffer) {
-          this.parts.push(`c._$body=async function(){var r='';`);
+          this.parts.push('c._$body=async function(){var r=\'\';');
           this.parts.push('var a=s?function(x){s.write(String(x))}:function(x){r+=x};');
           this.compileBuffer(block.buffer);
           this.parts.push('return r;};');

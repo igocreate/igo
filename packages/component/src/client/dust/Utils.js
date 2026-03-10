@@ -1,38 +1,20 @@
+const Templates = require('./Templates.js');
+const { uneval } = require('devalue');
+const igoDustHelpers = require('@igojs/dust/src/render/Helpers');
+const { createSerializeHelper, htmlencode } = require('../../shared/serialize.js');
 
-const Cache   = require('../Cache');
-const Helpers = require('./Helpers');
-
-// special chars
-const HCHARS  = /[&<>"']/,
-  AMP     = /&/g,
-  LT      = /</g,
-  GT      = />/g,
-  QUOT    = /"/g,
-  SQUOT   = /'/g;
-
+// Special characters
 const BS      = /\\/g,
-  FS      = /\//g,
-  CR      = /\r/g,
   LS      = /\u2028/g,
   PS      = /\u2029/g,
+  LT      = /</g,
+  FS      = /\//g,
+  CR      = /\r/g,
   NL      = /\n/g,
   LF      = /\f/g,
   SQ      = /'/g,
   DQ      = /"/g,
   TB      = /\t/g;
-
-
-const htmlencode = (s)=> {
-  if (!s || !s.replace || !HCHARS.test(s)) {
-    return s;
-  }
-  return s
-  .replace(AMP,'&amp;')
-  .replace(LT,'&lt;')
-  .replace(GT,'&gt;')
-  .replace(QUOT,'&quot;')
-  .replace(SQUOT, '&#39;');
-};
 
 const escapeJs = (s) => {
   if (typeof s === 'string') {
@@ -116,20 +98,39 @@ const a = (v) => {
 };
 
 // helpers
-const h = async (t, p, l, body) => {
+const h = (t, p, l) => {
   if (!h.helpers || !h.helpers[t]) {
     throw new Error(`Error: helper @${t} not found!`);
   }
-  return await h.helpers[t](p, l, body);
+  return h.helpers[t](p, l);
 };
-h.helpers = Helpers;
+
+// Client-side @component helper
+// Generates the wrapper div; the child component auto-mounts via _mountChildComponents()
+const componentHelper = (params) => {
+  const { name, ...props } = params;
+  if (!name) {
+    throw new Error('[@component] "name" parameter is required');
+  }
+  const dataProps = htmlencode(uneval(props));
+  return `<div data-component="${name}" data-props="${dataProps}"></div>`;
+};
+
+// Initialize with igo-dust base helpers
+h.helpers = {
+  ...igoDustHelpers,
+  serialize: createSerializeHelper(uneval),
+  component: componentHelper,
+};
+
+// Register application helpers (called by component.start())
+const setHelpers = (appHelpers) => {
+  Object.assign(h.helpers, appHelpers);
+};
 
 // include file
 const i = async (file) => {
-  if (!file.endsWith('.dust')) {
-    file = file + '.dust';
-  }
-  return await Cache.getCompiled(file);
+  return await Templates.loadTemplate(file);
 };
 
-module.exports = { a, b, v, d, h, f, i };
+module.exports = { a, b, v, d, h, f, i, setHelpers };

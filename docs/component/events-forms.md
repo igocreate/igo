@@ -1,0 +1,151 @@
+
+# Events & Forms
+
+## Event Handling
+
+Define events by implementing the `events` getter. Each entry maps a CSS selector to an event handler.
+
+> **Note:** The event declaration API (`get events()`) is a work in progress and will be simplified in a future release.
+
+```js
+class ProductList extends IgoComponent {
+  get events() {
+    return [
+      { selector: '.add-btn',    eventType: 'click', handler: this.onAdd },
+      { selector: '.delete-btn', eventType: 'click', handler: this.onDelete },
+      { selector: '.search',     eventType: 'input', handler: this.onSearch },
+    ];
+  }
+
+  onAdd(e) {
+    this.state.items.push({ id: Date.now(), name: 'New' });
+  }
+
+  onDelete(e) {
+    const id = Number(e.target.dataset.id);
+    const index = this.state.items.findIndex(i => i.id === id);
+    this.state.items.splice(index, 1);
+  }
+
+  onSearch(e) {
+    this.state.search = e.target.value;
+  }
+}
+```
+
+### Global Events
+
+Use `'document'` or `'window'` as selector for global events:
+
+```js
+get events() {
+  return [
+    { selector: 'document', eventType: 'keydown',  handler: this.onKeydown },
+    { selector: 'window',   eventType: 'scroll',   handler: this.onScroll },
+    { selector: 'window',   eventType: 'resize',   handler: this.onResize },
+  ];
+}
+```
+
+### Child component boundaries
+
+Events don't cross component boundaries. If a selector matches an element inside a child `data-component`, a warning is logged. Bind events to child elements from within the child component instead.
+
+## Two-Way Form Binding
+
+When `props.form` exists, The component system automatically binds all form inputs to `this.state.form`:
+
+### Setup
+
+```js
+// Controller
+res.locals.component_props = {
+  products: await Product.list(),
+  form: {
+    search: req.query.search || '',
+    category: req.query.category || 'all',
+  },
+};
+```
+
+```html
+<input type="text" name="search" value="{form.search}">
+
+<select name="category">
+  <option value="all" {@selected key="all" value=form.category /}>All</option>
+  <option value="electronics" {@selected key="electronics" value=form.category /}>Electronics</option>
+</select>
+```
+
+Typing in the input automatically updates `this.state.form.search`, which triggers a re-render if a getter depends on it.
+
+### Supported Input Types
+
+| Input | State value |
+|-------|-------------|
+| `text`, `email`, `password`, `number` | String |
+| `textarea` | String |
+| `checkbox` (single) | Boolean |
+| `checkbox` (multiple, `name="x[]"`) | Array of strings |
+| `radio` | String |
+| `select` | String |
+| `select[multiple]` | Array of strings |
+| `name="x[0][]"` (nested array) | Array of arrays |
+
+### Type Conversion
+
+Form values are always stored as **strings** (matching HTML form behavior), except checkboxes which store booleans. Convert explicitly in getters:
+
+```js
+get selectedProduct() {
+  const productId = Number(this.state.form?.product_id);
+  return this.props.products.find(p => p.id === productId);
+}
+```
+
+### Shared Form State
+
+Form state is shared across all components on a page via `window.__igo_form`. This means two components can read and write the same form fields.
+
+The form initialization flow:
+1. In the constructor, `props.form` is copied into `this._state.form`
+2. In `init()`, `FormHandler` replaces it with a shared singleton (`window.__igo_form`)
+3. All components with `props.form` end up pointing to the same form object
+
+This means a single form state is shared across all components on the page. If you need independent forms per component, manage form data in `this.state` manually instead of using `props.form`.
+
+### Child Component Inputs
+
+FormHandler skips inputs inside child `data-component` elements. Each component manages its own form inputs.
+
+## Using Both Together
+
+A typical component with events and form binding:
+
+```js
+class SearchPage extends IgoComponent {
+  constructor(element, props) {
+    super(element, 'search/Page', props);
+  }
+
+  get events() {
+    return [
+      { selector: '.reset-btn', eventType: 'click', handler: this.onReset },
+    ];
+  }
+
+  get filtered() {
+    const { search, category } = this.state.form || {};
+    return this.props.items.filter(item => {
+      if (category && category !== 'all' && item.category !== category) return false;
+      if (search && !item.name.toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    });
+  }
+
+  onReset() {
+    this.state.form.search = '';
+    this.state.form.category = 'all';
+  }
+}
+```

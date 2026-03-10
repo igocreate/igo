@@ -33,15 +33,16 @@ const replaceInDirectory = async (dir, replacements) => {
     const stat = await fs.lstat(fullPath);
 
     if (stat.isDirectory() && file !== 'node_modules') {
-      await replaceInDirectory(fullPath);
+      await replaceInDirectory(fullPath, replacements);
     } else if (stat.isFile()) {
       let content = await fs.readFile(fullPath, 'utf8');
       let updated = false;
 
       _.forOwn(replacements, (replacement, regexp) => {
         const regex = new RegExp(regexp, 'g');
-        if (regex.test(content)) {
-          content = content.replace(regex, replacement);
+        const newContent = content.replace(regex, replacement);
+        if (newContent !== content) {
+          content = newContent;
           updated = true;
         }
       });
@@ -60,7 +61,7 @@ module.exports = async function (argv) {
     console.warn('Usage: igo create <project-directory>');
     process.exit(1);
   }
-  
+
   const directory = './' + args[1];
   const model     = 'tailwind';
 

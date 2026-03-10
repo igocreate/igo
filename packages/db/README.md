@@ -1,6 +1,6 @@
 # @igojs/db
 
-Database abstraction layer for MySQL and PostgreSQL with Active Record-style ORM.
+Active Record-style ORM for MySQL and PostgreSQL with query builder, associations, caching, and migrations.
 
 ## Installation
 
@@ -8,29 +8,22 @@ Database abstraction layer for MySQL and PostgreSQL with Active Record-style ORM
 npm install @igojs/db
 ```
 
-**Note:** Database drivers are optional dependencies. Install the one you need:
+Database drivers are peer dependencies. Install the one you need:
 ```sh
 npm install mysql2  # For MySQL
 npm install pg      # For PostgreSQL
 ```
 
-## Features
-
-- **Active Record ORM** - Ruby on Rails-inspired Model API
-- **Query Builder** - Chainable query API with scopes
-- **Associations** - has_many, belongs_to relationships
-- **Caching** - Redis-based query result caching
-- **Migrations** - SQL file-based migrations
-- **Optimized Queries** - PaginatedOptimizedQuery for large tables
-
 ## Quick Start
+
+### Define a Model
 
 ```javascript
 const { Model } = require('@igojs/db');
 
 const schema = {
   table: 'users',
-  columns: ['id', 'email', 'name', 'created_at']
+  columns: ['id', 'email', 'name', 'created_at', 'updated_at'],
 };
 
 class User extends Model(schema) {
@@ -38,33 +31,27 @@ class User extends Model(schema) {
     return `${this.first_name} ${this.last_name}`;
   }
 }
+```
 
-// CRUD operations
+### CRUD Operations
+
+```javascript
+// Create
 const user = await User.create({ email: 'john@example.com', name: 'John' });
+
+// Read
+const user = await User.find(1);
 const users = await User.where({ name: 'John' }).list();
+const first = await User.first();
+
+// Update
 await user.update({ name: 'Jane' });
+
+// Delete
 await user.delete();
 ```
 
-## API
-
-### Exports
-
-| Export | Description |
-|--------|-------------|
-| `Model` | Base model class factory |
-| `Query` | Query builder class |
-| `CachedQuery` | Query with Redis caching |
-| `Schema` | Schema definition utilities |
-| `Sql` | SQL generation utilities |
-| `Db` | Database connection class |
-| `dbs` | Database connections manager |
-| `migrations` | Migration runner |
-| `DataTypes` | Column type definitions |
-| `CacheStats` | Cache statistics |
-| `PaginatedOptimizedQuery` | Optimized pagination for large tables |
-
-### Model Definition
+## Schema Definition
 
 ```javascript
 const schema = {
@@ -72,6 +59,7 @@ const schema = {
   columns: [
     'id',
     'email',
+    'name',
     { name: 'is_active', type: 'boolean' },
     { name: 'settings_json', type: 'json', attr: 'settings' },
   ],
@@ -83,58 +71,179 @@ const schema = {
     default: (q) => q.order('created_at DESC'),
     active: (q) => q.where({ is_active: true }),
   },
-  cache: true, // Enable Redis caching
+  cache: true,       // Enable Redis caching
+  primary: ['id'],   // Composite keys supported
 };
 ```
 
-### Query API
+### Column Types
+
+| Type | Description |
+|------|-------------|
+| (default) | Stored as-is |
+| `boolean` | Converts `0/1` to `true/false` |
+| `json` | Auto `JSON.parse`/`JSON.stringify` |
+
+### Associations
 
 ```javascript
-// Find
-const user = await User.find(1);
+// has_many: ['has_many', alias, TargetModel, localKey, foreignKey]
+['has_many', 'posts', Post, 'id', 'user_id']
 
-// Where
-const users = await User.where({ status: 'active' }).list();
-const users = await User.where('age > ?', [18]).list();
+// belongs_to: ['belongs_to', alias, TargetModel, foreignKey]
+['belongs_to', 'country', Country, 'country_id']
+```
 
-// Chainable
+## Query API
+
+All query methods are chainable and return a Query instance. Terminal methods (`list`, `first`, `find`, `count`, `execute`) await the result.
+
+```javascript
+// Where (object or SQL string)
+await User.where({ status: 'active' }).list();
+await User.where('age > ?', [18]).list();
+await User.whereNot({ role: 'admin' }).list();
+
+// Chaining
 const users = await User
   .where({ status: 'active' })
   .includes('posts')
   .order('name ASC')
   .limit(10)
+  .offset(20)
   .list();
 
 // Scopes
-const users = await User.scope('active').list();
+await User.scope('active').list();
 
 // Pagination
-const result = await User.page(1, 20);
-// => { pagination: {...}, rows: [...] }
+const { pagination, rows } = await User.page(1, 20);
+// pagination: { page, nb, nbPages, count }
 
-// Count
+// Aggregation
 const count = await User.where({ status: 'active' }).count();
+
+// Joins
+await User.join('company', ['company.name']).list();
+
+// Select specific columns
+await User.select(['id', 'email']).list();
+
+// Distinct / Group
+await User.distinct(['country_id']).list();
+await User.group(['country_id']).count();
+
+// Eager loading
+await User.includes(['posts', 'country']).list();
+
+// Unscope (remove default scope)
+await User.unscope().list();
+await User.unscope('order', 'where').list();
 ```
 
-### Optimized Pagination
+### Terminal Methods
 
-For large tables with many joins (100K+ rows), the optimized COUNT/IDS/FULL pattern activates automatically when `.page()` and `.join()` are used together:
+| Method | Returns |
+|--------|---------|
+| `list()` | Array of model instances |
+| `first()` | Single instance or null |
+| `last()` | Single instance or null |
+| `find(id)` | Single instance or null |
+| `count()` | Number |
+| `page(page, perPage)` | `{ pagination, rows }` |
+| `execute()` | Raw query result |
+| `toSQL()` | SQL string (for debugging) |
+
+## Model Instance Methods
+
+| Method | Description |
+|--------|-------------|
+| `update(values)` | Update record (auto-sets `updated_at`) |
+| `reload(includes?)` | Refresh from database |
+| `delete()` | Delete record |
+| `assignValues(values)` | Set values from object |
+| `primaryObject()` | Get primary key as object |
+
+### Lifecycle Hooks
 
 ```javascript
-const result = await User
+class User extends Model(schema) {
+  async beforeCreate() {
+    this.slug = slugify(this.name);
+  }
+
+  async beforeUpdate(values) {
+    if (values.email) {
+      values.email = values.email.toLowerCase();
+    }
+  }
+}
+```
+
+## Bulk Operations
+
+```javascript
+// Update all matching
+await User.where({ status: 'inactive' }).update({ archived: true });
+
+// Delete all matching
+await User.where({ status: 'inactive' }).delete();
+
+// Delete all
+await User.deleteAll();
+```
+
+## Optimized Pagination
+
+For large tables (100K+ rows) with joins, use `PaginatedOptimizedQuery`. It runs a separate count query and ID-based pagination for better performance:
+
+```javascript
+const result = await User.paginatedOptimized()
   .where({
     status: 'active',
-    'company.country.code': 'FR',  // Nested filter
+    'company.country.code': 'FR',
   })
   .join(['company.country'])
   .order('created_at DESC')
   .page(1, 50)
-  .list();
+  .execute();
 ```
 
-## Initialization
+## Caching
 
-When used standalone (without @igojs/server), initialize with dependencies:
+Set `cache: true` in schema to enable Redis-based query caching. Cache is automatically flushed on INSERT, UPDATE, DELETE.
+
+```javascript
+const schema = {
+  table: 'countries',
+  columns: ['id', 'code', 'name'],
+  cache: true,
+};
+```
+
+## Migrations
+
+SQL file-based migrations in `sql/<database>/YYYYMMDD_description.sql`:
+
+```sql
+-- sql/mysql/20240101_create_users.sql
+CREATE TABLE users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(255) NOT NULL,
+  name VARCHAR(255),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+Run migrations:
+```sh
+igo db migrate
+```
+
+## Initialization (Standalone)
+
+When used without @igojs/server, initialize with dependencies:
 
 ```javascript
 const db = require('@igojs/db');
@@ -143,11 +252,21 @@ db.init({
   config: { mysql: { host: 'localhost', database: 'myapp' } },
   cache: myRedisCache,
   logger: myLogger,
-  utils: { toJSON, fromJSON },
-  errorhandler: myErrorHandler,
 });
 ```
 
-## Documentation
+## Exports
 
-See the [full documentation](https://igocreate.github.io/igo/#/db/models).
+| Export | Description |
+|--------|-------------|
+| `Model(schema)` | Model class factory |
+| `Query` | Query builder class |
+| `CachedQuery` | Query with Redis caching |
+| `Schema` | Schema definition utilities |
+| `Sql` | SQL generation utilities |
+| `Db` | Database connection class |
+| `dbs` | Database connections manager |
+| `migrations` | Migration runner |
+| `DataTypes` | Column type definitions |
+| `CacheStats` | Cache statistics |
+| `PaginatedOptimizedQuery` | Optimized pagination |

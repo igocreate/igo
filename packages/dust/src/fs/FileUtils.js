@@ -1,6 +1,6 @@
 
 
-const {isBrowser, isNode} = require('./../environment');
+const {isBrowser} = require('./../environment');
 const config              = require('../Config');
 const path                = require('path');
 const fs                  = require('fs').promises;

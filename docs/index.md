@@ -26,10 +26,10 @@ features:
     details: Async template engine with partials, helpers, filters, and Express integration.
     link: /dust/getting-started
     linkText: Dust docs
-  - title: '@igojs/signal'
+  - title: '@igojs/component'
     details: Reactive frontend with deep reactivity via Proxy, SSR with hydration, and DiffDOM-based DOM reconciliation.
-    link: /signal/components
-    linkText: Signal docs
+    link: /component/components
+    linkText: Component docs
 ---
 
 ## Getting Started
