@@ -9,7 +9,7 @@ module.exports.init = (app) => {
 
   // @igojs/signal routes
   app.use(signal.middleware);
-  app.get('/__signal/templates', signal.templates);
+  app.get('/__signal/templates/*', signal.templates);
 
   app.get('/', WelcomeController.index);
 };

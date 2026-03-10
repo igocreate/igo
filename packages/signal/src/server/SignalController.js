@@ -74,7 +74,7 @@ const middleware = async (req, res, next) => {
 
 //
 const templates = async (req, res) => {
-  const file = req.query.file;
+  const file = req.params[0].replace(/\.json$/, '');
   const source = await IgoDust.getSource(`${file}.dust`);
   res.json({ file, source });
 };

@@ -176,8 +176,8 @@ module.exports = function(schema) {
     }
 
     // delete
-    static delete(id, ) {
-      return newQuery(this, 'delete').unscope().where({ id: id }).execute();
+    static delete(id) {
+      return newQuery(this, 'delete').unscope().where({ id }).execute();
     }
 
     // delete all

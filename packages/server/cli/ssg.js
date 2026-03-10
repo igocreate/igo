@@ -38,66 +38,8 @@ const initI18n = async () => {
   return i18next;
 };
 
-// igo generate
-module.exports = async () => {
-
-  // Initialize config
-  config.init();
-
-  // Initialize Dust standalone (views + helpers)
-  IgoDust.configure({
-    views: config.projectRoot + '/views',
-    cache: true,
-  });
-
-  // load custom helpers
-  try {
-    const helpers = require(config.projectRoot + '/app/helpers');
-    helpers.init(IgoDust);
-  } catch (err) {
-    if (err.code !== 'MODULE_NOT_FOUND') {
-      throw err;
-    }
-  }
-
-  // Initialize i18next
-  const i18next = await initI18n();
-
-  // Load devalue for Signal serialization
-  let uneval;
-  try {
-    const devalue = await import('devalue');
-    uneval = devalue.uneval;
-  } catch (err) {
-    // devalue not available, Signal SSR won't work
-  }
-
-  // Load static config
-  let staticConfig;
-  try {
-    staticConfig = require(config.projectRoot + '/app/static');
-  } catch (err) {
-    console.error('Missing app/static.js configuration file.');
-    process.exit(1);
-  }
-
-  const root      = staticConfig.root || 'static';
-  const outputDir = path.resolve(staticConfig.output || 'public');
-  const mdLayout  = staticConfig.md_layout || (root + '/_md_layout');
-
-  // Load globals
-  const globals = staticConfig.globals ? await staticConfig.globals() : {};
-
-  // Base context for all templates
-  const lang = config.i18n?.fallbackLng || 'en';
-  const baseContext = {
-    env: config.env,
-    lang,
-    t: (params) => i18next.t(params.key, { ...params, lng: lang }),
-    ...globals,
-  };
-
-  // Scan views/<root>/ for .dust and .md files
+// Generate all static pages into outputDir
+const generate = async ({ root, outputDir, mdLayout, baseContext, staticConfig, uneval }) => {
   const viewsRoot = path.resolve('views', root);
   const files     = findFiles(viewsRoot, ['.dust', '.md']);
 
@@ -147,8 +89,9 @@ module.exports = async () => {
   }
 
   // Dynamic pages
+  let dynamicPages;
   if (staticConfig.pages) {
-    const dynamicPages = await staticConfig.pages();
+    dynamicPages = await staticConfig.pages();
 
     for (const page of dynamicPages) {
       const context = { ...baseContext, ...page.data };
@@ -184,6 +127,120 @@ module.exports = async () => {
     }
   }
 
+  // Generate static Signal template JSON files
+  if (dynamicPages) {
+    const templateNames = new Set();
+    for (const page of dynamicPages) {
+      if (page.components) {
+        for (const ComponentClass of page.components) {
+          const instance = new ComponentClass(null, {});
+          if (instance.template) {
+            templateNames.add(instance.template);
+          }
+        }
+      }
+    }
+    if (templateNames.size > 0) {
+      for (const template of templateNames) {
+        const source = await IgoDust.getSource(`${template}.dust`);
+        const templateOutputPath = path.join(outputDir, '__signal', 'templates', `${template}.json`);
+        fs.mkdirSync(path.dirname(templateOutputPath), { recursive: true });
+        fs.writeFileSync(templateOutputPath, JSON.stringify({ file: template, source }));
+        console.log(dim(`  __signal/templates/${template}.json`));
+      }
+      console.log(green(`✓ ${templateNames.size} signal templates generated`));
+    }
+  }
+
   console.log(green(`\n✓ ${count} pages generated`));
-  process.exit(0);
+};
+
+// igo ssg
+module.exports = async (argv) => {
+
+  // Initialize config
+  config.init();
+
+  const serveMode = argv && argv.serve;
+
+  // Initialize Dust standalone (views + helpers)
+  IgoDust.configure({
+    views: config.projectRoot + '/views',
+    cache: !serveMode,
+  });
+
+  // load custom helpers
+  try {
+    const helpers = require(config.projectRoot + '/app/helpers');
+    helpers.init(IgoDust);
+  } catch (err) {
+    if (err.code !== 'MODULE_NOT_FOUND') {
+      throw err;
+    }
+  }
+
+  // Initialize i18next
+  const i18next = await initI18n();
+
+  // Load devalue for Signal serialization
+  let uneval;
+  try {
+    const devalue = await import('devalue');
+    uneval = devalue.uneval;
+  } catch (err) {
+    // devalue not available, Signal SSR won't work
+  }
+
+  // Load static config
+  let staticConfig;
+  try {
+    staticConfig = require(config.projectRoot + '/app/static');
+  } catch (err) {
+    console.error('Missing app/static.js configuration file.');
+    process.exit(1);
+  }
+
+  const root      = staticConfig.root || 'static';
+  const outputDir = path.resolve(staticConfig.output || 'public');
+  const mdLayout  = staticConfig.md_layout || (root + '/_md_layout');
+
+  // Build base context
+  const buildContext = async () => {
+    if (serveMode) {
+      // Clear require cache for app/ files so changes are picked up
+      Object.keys(require.cache).forEach((key) => {
+        if (key.startsWith(config.projectRoot + '/app/')) {
+          delete require.cache[key];
+        }
+      });
+    }
+    const globals = staticConfig.globals ? await staticConfig.globals() : {};
+    const lang = config.i18n?.fallbackLng || 'en';
+    return {
+      env: config.env,
+      lang,
+      t: (params) => i18next.t(params.key, { ...params, lng: lang }),
+      ...globals,
+    };
+  };
+
+  // Run generation
+  const run = async () => {
+    const baseContext = await buildContext();
+    await generate({ root, outputDir, mdLayout, baseContext, staticConfig, uneval });
+  };
+
+  await run();
+
+  if (!serveMode) {
+    process.exit(0);
+  }
+
+  // Serve mode
+  const devServer = require('./ssg-dev-server');
+  devServer(outputDir, {
+    port:      argv.port || 3000,
+    watchDirs: ['views', 'app', 'locales'].map(d => path.resolve(d)),
+    onBeforeReload: run,
+  });
 };

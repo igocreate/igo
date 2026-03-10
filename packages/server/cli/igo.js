@@ -13,11 +13,11 @@ const actions = {
   console:  require('./console.js'),
   create:   require('./create.js'),
   db:       require('./db.js'),
-  generate: require('./generate.js'),
+  ssg:      require('./ssg.js'),
   i18n:     require('./i18n.js'),
 };
 
-console.log('igo version: ' + require('../package.json').version);
+console.log('igo version: ' + require('@igojs/igo/package.json').version);
 
 if (args.length === 0 || !actions[args[0]]) {
   console.warn('Usage: igo <action> <options>');

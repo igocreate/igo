@@ -10,7 +10,7 @@ const getTemplate = (file) => {
 
 const loadTemplate = async (file) => {
   if (!_CACHE[file]) {
-    const response  = await fetch(`/__signal/templates?file=${file}`);
+    const response  = await fetch(`/__signal/templates/${file}.json`);
     const json      = await response.json();
     // console.dir(json);
     const fn        = new AsyncFunction('l', 'u', 'c', 's', json.source);
