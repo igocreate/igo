@@ -246,7 +246,17 @@ query.where({
 
 Multiple conditions in `where()` are combined with AND by default, so `$and` is optional in most cases.
 
-##### $or on same column
+##### $or
+
+```javascript
+query.where({
+  $or: [
+    { applicant_id: null },
+    { pme_folder_id: null }
+  ]
+});
+// → WHERE (applicant_id IS NULL OR pme_folder_id IS NULL)
+```
 
 Use an array (IN) to simulate OR on the same column:
 
