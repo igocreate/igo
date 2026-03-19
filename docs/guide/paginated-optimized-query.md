@@ -281,18 +281,49 @@ query.where({
 });
 ```
 
-**Note :** Par défaut, plusieurs conditions dans `where()` sont combinées avec AND, donc `$and` est optionnel dans la plupart des cas.
+> **Note :** Par défaut, plusieurs conditions dans `where()` sont combinées avec AND, donc `$and` est optionnel dans la plupart des cas.
 
 ##### $or - Au moins une condition doit être vraie
 
-Pour simuler un OR sur la même colonne, utilisez IN :
-
 ```javascript
-// OR sur même colonne → utilisez IN
 query.where({
-  status: ['SUBMITTED', 'VALIDATED']  // Équivalent à OR
+  $or: [
+    { applicant_id: null },
+    { pme_folder_id: null }
+  ]
+});
+// → WHERE (applicant_id IS NULL OR pme_folder_id IS NULL)
+```
+
+> **Note :** Pour simuler un OR sur la même colonne, utilisez IN :
+```javascript
+query.where({
+  status: ['SUBMITTED', 'VALIDATED']
 });
 // → WHERE status IN ('SUBMITTED', 'VALIDATED')
+```
+
+##### Imbrication $or / $and
+
+`$or` et `$and` peuvent être imbriqués à n'importe quel niveau :
+
+```javascript
+query.where({
+  type: 'agp',
+  $or: [
+    { applicant_id: null },
+    {
+      $and: [
+        { pme_folder_id: null },
+        { $or: [
+          { status: { $like: 'TRANS%' } },
+          { status: 'DRAFT' }
+        ]}
+      ]
+    }
+  ]
+});
+// → WHERE (applicant_id IS NULL OR (pme_folder_id IS NULL AND (status LIKE 'TRANS%' OR status = 'DRAFT'))) AND type = 'agp'
 ```
 
 ### .join(associations)
@@ -578,13 +609,13 @@ query.where({
 
 ## Tri sur colonnes jointes
 
-PaginatedOptimizedQuery détecte automatiquement les colonnes de tri qui proviennent de tables jointes et ajoute les INNER JOIN nécessaires dans la phase `SELECT IDS`.
+PaginatedOptimizedQuery détecte automatiquement les colonnes de tri qui proviennent de tables jointes et ajoute les LEFT JOIN nécessaires dans la phase `SELECT IDS`.
 
 Cette fonctionnalité garantit que :
 - Le tri est effectué côté base de données (rapide)
 - La pagination renvoie les bons résultats triés
-- Les INNER JOIN sont ajoutés uniquement dans la phase IDS (pas dans COUNT)
-- Les tables imbriquées sont gérées avec des INNER JOIN en cascade
+- Les LEFT JOIN sont ajoutés uniquement dans la phase IDS (pas dans COUNT)
+- Les tables imbriquées sont gérées avec des LEFT JOIN en cascade
 
 ### Détection Automatique
 
@@ -648,7 +679,7 @@ SQL généré (phase IDS) :
 ```sql
 SELECT `folders`.`id`
 FROM `folders`
-INNER JOIN `applicants` ON `applicants`.`id` = `folders`.`applicant_id`
+LEFT JOIN `applicants` ON `applicants`.`id` = `folders`.`applicant_id`
 WHERE `folders`.`type` IN ('agp', 'avt')
   AND EXISTS (
     SELECT 1 FROM `applicants`
@@ -801,7 +832,7 @@ Les agrégations avec `GROUP BY` sur plusieurs tables ne sont pas supportées.
 ### Fichiers créés
 
 - `src/db/PaginatedOptimizedQuery.js` - Classe principale héritant de `Query`
-- `src/db/PaginatedOptimizedSql.js` - Générateur SQL avec EXISTS et INNER JOIN pour tri
+- `src/db/PaginatedOptimizedSql.js` - Générateur SQL avec EXISTS et LEFT JOIN pour tri
 - `test/db/PaginatedOptimizedQueryTest.js` - Tests unitaires
 - `examples/PaginatedOptimizedQueryExample.js` - Exemples complets d'utilisation (10 exemples)
 
@@ -849,7 +880,7 @@ Les exemples se trouvent dans :
 
 Pour améliorer `PaginatedOptimizedQuery`, veuillez :
 
-1. Ajouter des tests dans `test/db/SimplifiedSyntaxTest.js`
+1. Ajouter des tests dans `test/db/PaginatedOptimizedQueryTest.js`
 2. Documenter les changements dans ce fichier
 3. Mettre à jour les exemples si nécessaire
 
