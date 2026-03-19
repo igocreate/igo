@@ -428,6 +428,54 @@ describe('db.PaginatedOptimizedQuery', function() {
       assert.ok(sql.sql.includes('EXISTS'), 'Should include EXISTS for applicant');
     });
 
+    it('should handle $or with multiple conditions', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'count';
+      query.where({
+        $or: [
+          { applicant_id: null },
+          { pme_folder_id: null }
+        ]
+      });
+
+      const { sql, params } = query.toSQL();
+
+      assert.ok(sql.includes('WHERE (`folders`.`applicant_id` IS NULL OR `folders`.`pme_folder_id` IS NULL)'));
+    });
+
+    it('should include sibling conditions alongside $or', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'count';
+      query.where({
+        status: 'TRANSMIS',
+        $or: [
+          { applicant_id: null },
+          { pme_folder_id: null }
+        ]
+      });
+
+      const { sql, params } = query.toSQL();
+
+      assert.ok(sql.includes('WHERE (`folders`.`applicant_id` IS NULL OR `folders`.`pme_folder_id` IS NULL) AND `folders`.`status` = ?'));
+      assert.deepStrictEqual(params, ['TRANSMIS']);
+    });
+
+    it('should group multiple keys in one $or branch as implicit AND', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'count';
+      query.where({
+        $or: [
+          { applicant_id: null },
+          { pme_folder_id: null, type: 'agp' }
+        ]
+      });
+
+      const { sql, params } = query.toSQL();
+
+      assert.ok(sql.includes('WHERE (`folders`.`applicant_id` IS NULL OR (`folders`.`pme_folder_id` IS NULL AND `folders`.`type` = ?))'));
+      assert.deepStrictEqual(params, ['agp']);
+    });
+
     it('should combine main table and joined table filters', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';

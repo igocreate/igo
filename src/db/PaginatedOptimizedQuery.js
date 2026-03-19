@@ -175,8 +175,13 @@ module.exports = class PaginatedOptimizedQuery extends Query {
 
     // Cas spécial : $or avec des conditions sur tables jointes
     // Ces conditions doivent être transformées en filterJoin avec OR
+    // Les autres conditions du même objet sont traitées séparément
     if (where.$or && _.isArray(where.$or)) {
       this._handleOrWithJoinedTables(where.$or);
+      const siblingConditions = _.omit(where, '$or');
+      if (!_.isEmpty(siblingConditions)) {
+        this.where(siblingConditions);
+      }
       return this;
     }
 
@@ -607,37 +612,44 @@ module.exports = class PaginatedOptimizedQuery extends Query {
     });
 
     // Traiter les conditions sur table principale avec OR
+    // Chaque élément du tableau est une branche OR ; si une branche a plusieurs clés, elles sont combinées avec AND
     if (mainTableConditions.length > 0) {
-      const orClauses = [];
+      const orBranches = [];
       const orParams = [];
 
       _.forEach(mainTableConditions, (cond) => {
+        const branchClauses = [];
+
         _.forOwn(cond, (value, key) => {
           const columnRef = `\`${this.query.table}\`.\`${key}\``;
 
           if (value === null || value === undefined) {
-            orClauses.push(`${columnRef} IS NULL`);
+            branchClauses.push(`${columnRef} IS NULL`);
           } else if (_.isArray(value)) {
             if (value.length === 0) {
-              orClauses.push('FALSE');
+              branchClauses.push('FALSE');
             } else {
-              orClauses.push(`${columnRef} IN ($?)`);
+              branchClauses.push(`${columnRef} IN ($?)`);
               orParams.push(value);
             }
           } else if (_.isString(value) && value.includes('%')) {
-            orClauses.push(`${columnRef} LIKE $?`);
+            branchClauses.push(`${columnRef} LIKE $?`);
             orParams.push(value);
           } else {
-            orClauses.push(`${columnRef} = $?`);
+            branchClauses.push(`${columnRef} = $?`);
             orParams.push(value);
           }
         });
+
+        if (branchClauses.length === 1) {
+          orBranches.push(branchClauses[0]);
+        } else if (branchClauses.length > 1) {
+          orBranches.push(`(${branchClauses.join(' AND ')})`);
+        }
       });
 
-      if (orClauses.length > 0) {
-        const orSQL = `(${orClauses.join(' OR ')})`;
-        super.where(orSQL, orParams);
-      }
+      const orSQL = `(${orBranches.join(' OR ')})`;
+      super.where(orSQL, orParams);
     }
 
     // Traiter les conditions sur tables jointes
