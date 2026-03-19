@@ -476,6 +476,50 @@ describe('db.PaginatedOptimizedQuery', function() {
       assert.deepStrictEqual(params, ['agp']);
     });
 
+    it('should generate OR-ed EXISTS for $or with joined table conditions', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'count';
+      query.where({
+        $or: [
+          { 'applicant.last_name': 'Dupont%' },
+          { 'pme_folder.status': 'ACTIVE' }
+        ]
+      });
+
+      const { sql, params } = query.toSQL();
+
+      // Les deux EXISTS doivent être reliés par OR (pas AND)
+      assert.ok(sql.includes('(EXISTS (SELECT 1 FROM `applicants`'), 'Should have EXISTS on applicants');
+      assert.ok(sql.includes('OR EXISTS (SELECT 1 FROM `pme_folders`'), 'Should have OR EXISTS on pme_folders');
+    });
+
+    it('should support arbitrarily nested $or / $and expressions', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'count';
+      query.where({
+        type: 'agp',
+        $or: [
+          { applicant_id: null },
+          {
+            $and: [
+              { pme_folder_id: null },
+              { $or: [
+                { status: { $like: 'TRANS%' } },
+                { status: 'DRAFT' }
+              ]}
+            ]
+          }
+        ]
+      });
+
+      const { sql, params } = query.toSQL();
+
+      assert.ok(sql.includes(
+        'WHERE (`folders`.`applicant_id` IS NULL OR (`folders`.`pme_folder_id` IS NULL AND (`folders`.`status` LIKE ? OR `folders`.`status` = ?))) AND `folders`.`type` = ?'
+      ));
+      assert.deepStrictEqual(params, ['TRANS%', 'DRAFT', 'agp']);
+    });
+
     it('should combine main table and joined table filters', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
