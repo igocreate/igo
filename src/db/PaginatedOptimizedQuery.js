@@ -38,6 +38,40 @@ module.exports = class PaginatedOptimizedQuery extends Query {
   }
 
   /**
+   * Crée une PaginatedOptimizedQuery à partir d'une Query existante
+   * Retraite les conditions where pour extraire les dot-paths vers filterJoins
+   */
+  static fromQuery(sourceQuery) {
+    const optimized = new PaginatedOptimizedQuery(sourceQuery.modelClass);
+    optimized.query = sourceQuery.query;
+    optimized.query.optimized = true;
+    optimized.query.filterJoins = optimized.query.filterJoins || [];
+
+    // Retraiter les where existants pour extraire les dot-paths vers filterJoins
+    const originalWheres = optimized.query.where;
+    optimized.query.where = [];
+    _.forEach(originalWheres, (where) => {
+      if (_.isArray(where) || _.isString(where)) {
+        // Raw SQL — garder tel quel
+        optimized.query.where.push(where);
+      } else if (_.isPlainObject(where)) {
+        // Objet — extraire les dot-paths
+        const { mainConditions, joinConditions } = optimized._extractJoinConditions(where);
+        if (!_.isEmpty(mainConditions)) {
+          optimized.query.where.push(mainConditions);
+        }
+        if (Object.keys(joinConditions).length > 0) {
+          optimized._buildFilterJoinsFromPaths(joinConditions);
+        }
+      } else {
+        optimized.query.where.push(where);
+      }
+    });
+
+    return optimized;
+  }
+
+  /**
    * Override de join() pour supporter la notation pointée
    *
    * Permet d'utiliser la notation pointée pour les joins imbriqués :

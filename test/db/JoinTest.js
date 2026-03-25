@@ -269,4 +269,25 @@ describe('includes', () => {
     });
   });
 
+  describe('auto-activation of optimized mode (page + join)', () => {
+    it('should return correct paginated results via optimized path', async () => {
+      const library = await Library.create({ title: 'Central' });
+      await Book.create({ library_id: library.id, title: 'Book A' });
+      await Book.create({ library_id: library.id, title: 'Book B' });
+      await Book.create({ title: 'Book C' }); // no library
+
+      const result = await Book
+        .where({ library_id: library.id })
+        .join('library')
+        .page(1, 10)
+        .list();
+
+      assert.ok(result.pagination, 'should return pagination object');
+      assert.strictEqual(result.pagination.count, 2);
+      assert.strictEqual(result.rows.length, 2);
+      assert.strictEqual(result.rows[0].library.id, library.id);
+      assert.strictEqual(result.rows[0].library.title, 'Central');
+    });
+  });
+
 });

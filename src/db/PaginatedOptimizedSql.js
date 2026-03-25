@@ -238,15 +238,20 @@ module.exports = class PaginatedOptimizedSql extends Sql {
         const parts = cleanedClause.split(/\s+/)[0].split('.'); // Take only before ASC/DESC
 
         if (parts.length < 2) {
-          // No dot - could be a column on main table OR a column from a block table
+          // No dot - could be a column on main table OR a column from a joined/block table
           const columnName = parts[0];
 
           // Check if column exists in main table
           const existsInMainTable = query.schema && query.schema.colsByName && query.schema.colsByName[columnName];
 
           if (!existsInMainTable) {
-            // Column not in main table - search in associations (blocks)
-            const assocPath = this._findAssociationByColumn(columnName, query.schema);
+            // Search in associations (blocks)
+            let assocPath = this._findAssociationByColumn(columnName, query.schema);
+
+            // Search in explicitly declared joins
+            if (!assocPath && query.joins && query.joins.length > 0) {
+              assocPath = this._findColumnInJoins(columnName, query.joins);
+            }
 
             if (assocPath && assocPath.length > 0) {
               const pathKey = assocPath.map(p => p.association[1]).join('.');
@@ -263,7 +268,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
             }
           }
 
-          // If column exists in main table or wasn't found in associations, no join needed
+          // If column exists in main table or wasn't found in associations/joins, no join needed
           return;
         }
 
@@ -558,6 +563,33 @@ module.exports = class PaginatedOptimizedSql extends Sql {
       }
     }
 
+    return null;
+  }
+
+  /**
+   * Cherche une colonne dans les tables explicitement jointes (query.joins)
+   *
+   * @param {string} columnName - Nom de la colonne à chercher
+   * @param {Array} joins - Liste des joins déclarés sur la query
+   * @returns {Array|null} Chemin vers l'association contenant la colonne, ou null
+   */
+  _findColumnInJoins(columnName, joins) {
+    for (const join of joins) {
+      const { association } = join;
+      const [, , AssociatedModel] = association;
+
+      if (!AssociatedModel || !AssociatedModel.schema) {
+        continue;
+      }
+
+      const assocSchema = AssociatedModel.schema;
+      if (assocSchema.colsByName && assocSchema.colsByName[columnName]) {
+        return [{
+          association,
+          tableName: assocSchema.table
+        }];
+      }
+    }
     return null;
   }
 

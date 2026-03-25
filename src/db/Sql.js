@@ -196,8 +196,10 @@ module.exports = class Sql {
       _.forEach(where.$and, (child) => {
         const subParts = [];
         this._compileWhereObject(child, params, subParts, not);
-        if (subParts.length > 0) {
-          parts.push(subParts.join('AND ').trim());
+        if (subParts.length > 1) {
+          parts.push('(' + subParts.join('AND ').trim() + ')');
+        } else if (subParts.length === 1) {
+          parts.push(subParts[0].trim());
         }
       });
       // Traiter les clés siblings (hors $and)
@@ -223,8 +225,10 @@ module.exports = class Sql {
       _.forEach(where.$or, (child) => {
         const subParts = [];
         this._compileWhereObject(child, params, subParts, not);
-        if (subParts.length > 0) {
-          orParts.push(subParts.join('AND ').trim());
+        if (subParts.length > 1) {
+          orParts.push('(' + subParts.join('AND ').trim() + ')');
+        } else if (subParts.length === 1) {
+          orParts.push(subParts[0].trim());
         }
       });
       if (orParts.length === 1) {

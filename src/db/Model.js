@@ -4,6 +4,7 @@ const CachedQuery = require('./CachedQuery');
 const Query     = require('./Query');
 const PaginatedOptimizedQuery = require('./PaginatedOptimizedQuery');
 const Schema    = require('./Schema');
+const { error } = require('../connect/errorhandler');
 
 
 const newQuery = (constructor, verb) => {
