@@ -172,11 +172,15 @@ module.exports = class PaginatedOptimizedQuery extends Query {
       return super.where(where, params);
     }
 
-    const joinConditions = {};
-    const { sql, params: compiledParams } = this._compileExpression(where, joinConditions);
+    if (!where || _.isEmpty(where)) {
+      return this;
+    }
 
-    if (sql) {
-      super.where(sql, compiledParams);
+    // Séparer les conditions sur tables jointes (dot-path) des conditions sur la table principale
+    const { mainConditions, joinConditions } = this._extractJoinConditions(where);
+
+    if (!_.isEmpty(mainConditions)) {
+      super.where(mainConditions);
     }
 
     if (Object.keys(joinConditions).length > 0) {
@@ -296,7 +300,8 @@ module.exports = class PaginatedOptimizedQuery extends Query {
 
     // Ne sélectionner que l'ID (ou clés primaires)
     const primaryKeys = this.schema.primary || ['id'];
-    idsQuery.query.select = primaryKeys.map(key => `\`${this.schema.table}\`.\`${key}\``).join(', ');
+    const { esc } = this.getDb().driver.dialect;
+    idsQuery.query.select = primaryKeys.map(key => `${esc}${this.schema.table}${esc}.${esc}${key}${esc}`).join(', ');
 
     const rows = await idsQuery.runQuery();
 
@@ -506,174 +511,77 @@ module.exports = class PaginatedOptimizedQuery extends Query {
   }
 
   /**
-   * Compile récursivement une expression de conditions en SQL
+   * Extrait les conditions sur tables jointes (dot-path) d'une expression
    *
-   * Gère : $and, $or, AND implicite entre clés, et les conditions unitaires.
-   * Les clés avec `.` (joined tables) sont collectées dans joinConditions
-   * pour être traitées via filterJoins.
+   * Parcourt récursivement $and/$or pour séparer :
+   * - mainConditions : objet à passer à super.where() (géré par Sql.whereSQL())
+   * - joinConditions : map des conditions dot-path pour filterJoins
    *
    * @param {object} expr - Expression de conditions
-   * @param {object} joinConditions - Accumulateur pour les conditions sur tables jointes (mutated)
-   * @returns {{ sql: string, params: Array }} Clause SQL compilée et ses paramètres
+   * @returns {{ mainConditions: object, joinConditions: object }}
    */
-  _compileExpression(expr, joinConditions) {
+  _extractJoinConditions(expr) {
+    const joinConditions = {};
+    const mainConditions = {};
+
     if (!expr || _.isEmpty(expr)) {
-      return { sql: '', params: [] };
+      return { mainConditions, joinConditions };
     }
-
-    // $and explicite
-    if (expr.$and && _.isArray(expr.$and)) {
-      const parts = [];
-      const allParams = [];
-
-      _.forEach(expr.$and, (child) => {
-        const compiled = this._compileExpression(child, joinConditions);
-        if (compiled.sql) {
-          parts.push(compiled.sql);
-          allParams.push(...compiled.params);
-        }
-      });
-
-      // Traiter les clés siblings (hors $and)
-      const siblings = _.omit(expr, '$and');
-      if (!_.isEmpty(siblings)) {
-        const compiled = this._compileExpression(siblings, joinConditions);
-        if (compiled.sql) {
-          parts.push(compiled.sql);
-          allParams.push(...compiled.params);
-        }
-      }
-
-      if (parts.length === 0) return { sql: '', params: [] };
-      if (parts.length === 1) return { sql: parts[0], params: allParams };
-      return { sql: `(${parts.join(' AND ')})`, params: allParams };
-    }
-
-    // $or explicite
-    if (expr.$or && _.isArray(expr.$or)) {
-      const allParts = [];
-      const allParams = [];
-
-      // Séparer les branches avec/sans conditions sur tables jointes
-      const orParts = [];
-      const orJoinedConditions = [];
-
-      _.forEach(expr.$or, (child) => {
-        const hasJoinedKey = _.isObject(child) && !_.isArray(child) &&
-          _.some(_.keys(child), k => k.includes('.') && !k.startsWith('$'));
-
-        if (hasJoinedKey) {
-          orJoinedConditions.push(child);
-        } else {
-          const compiled = this._compileExpression(child, joinConditions);
-          if (compiled.sql) {
-            orParts.push(compiled.sql);
-            allParams.push(...compiled.params);
-          }
-        }
-      });
-
-      // Les conditions jointes dans un $or → or_group filterJoin (OR-ed EXISTS)
-      if (orJoinedConditions.length > 0) {
-        this.query.filterJoins.push({
-          type: 'or_group',
-          conditions: orJoinedConditions
-        });
-      }
-
-      if (orParts.length > 0) {
-        allParts.push(`(${orParts.join(' OR ')})`);
-      }
-
-      // Puis les clés siblings (hors $or)
-      const siblings = _.omit(expr, '$or');
-      if (!_.isEmpty(siblings)) {
-        const compiled = this._compileExpression(siblings, joinConditions);
-        if (compiled.sql) {
-          allParts.push(compiled.sql);
-          allParams.push(...compiled.params);
-        }
-      }
-
-      if (allParts.length === 0) return { sql: '', params: [] };
-      if (allParts.length === 1) return { sql: allParts[0], params: allParams };
-      return { sql: allParts.join(' AND '), params: allParams };
-    }
-
-    // Objet de conditions simples : AND implicite entre les clés
-    const parts = [];
-    const allParams = [];
 
     _.forOwn(expr, (value, key) => {
-      if (key.includes('.')) {
-        // Condition sur table jointe : collecter pour filterJoins
+      if (key === '$and' && _.isArray(value)) {
+        // Récurser dans chaque enfant du $and
+        const mainChildren = [];
+        _.forEach(value, (child) => {
+          const extracted = this._extractJoinConditions(child);
+          if (!_.isEmpty(extracted.mainConditions)) {
+            mainChildren.push(extracted.mainConditions);
+          }
+          _.assign(joinConditions, extracted.joinConditions);
+        });
+        if (mainChildren.length > 0) {
+          mainConditions.$and = mainChildren;
+        }
+      } else if (key === '$or' && _.isArray(value)) {
+        // Séparer les branches avec/sans conditions jointes
+        const mainBranches = [];
+        const joinedBranches = [];
+
+        _.forEach(value, (child) => {
+          const hasJoinedKey = _.isObject(child) && !_.isArray(child) &&
+            _.some(_.keys(child), k => k.includes('.') && !k.startsWith('$'));
+
+          if (hasJoinedKey) {
+            joinedBranches.push(child);
+          } else {
+            mainBranches.push(child);
+          }
+        });
+
+        // Branches jointes → or_group filterJoin
+        if (joinedBranches.length > 0) {
+          this.query.filterJoins.push({
+            type: 'or_group',
+            conditions: joinedBranches
+          });
+        }
+
+        if (mainBranches.length > 0) {
+          mainConditions.$or = mainBranches;
+        }
+      } else if (key.includes('.') && !key.startsWith('$')) {
+        // Condition sur table jointe
         const keyParts = key.split('.');
         const column = keyParts[keyParts.length - 1];
         const path = keyParts.slice(0, -1);
         joinConditions[key] = { value, path, column };
       } else {
-        const compiled = this._compileSingleCondition(key, value);
-        if (compiled.sql) {
-          parts.push(compiled.sql);
-          allParams.push(...compiled.params);
-        }
+        // Condition sur table principale
+        mainConditions[key] = value;
       }
     });
 
-    if (parts.length === 0) return { sql: '', params: [] };
-    if (parts.length === 1) return { sql: parts[0], params: allParams };
-    return { sql: `(${parts.join(' AND ')})`, params: allParams };
-  }
-
-  /**
-   * Compile une condition unitaire (colonne + valeur) en SQL
-   *
-   * @param {string} column - Nom de la colonne
-   * @param {any} value - Valeur ou opérateur ($like, $gte, etc.)
-   * @returns {{ sql: string, params: Array }}
-   */
-  _compileSingleCondition(column, value) {
-    const columnRef = `\`${this.query.table}\`.\`${column}\``;
-
-    if (value === null || value === undefined) {
-      return { sql: `${columnRef} IS NULL`, params: [] };
-    }
-
-    if (_.isArray(value)) {
-      if (value.length === 0) {
-        return { sql: 'FALSE', params: [] };
-      }
-      return { sql: `${columnRef} IN ($?)`, params: [value] };
-    }
-
-    // Opérateurs sous forme d'objet : $like, $between, $gte, $lte, $gt, $lt
-    if (_.isObject(value) && !_.isDate(value)) {
-      if (value.$like !== undefined) {
-        return { sql: `${columnRef} LIKE $?`, params: [value.$like] };
-      }
-      if (value.$between && _.isArray(value.$between) && value.$between.length === 2) {
-        return { sql: `${columnRef} BETWEEN $? AND $?`, params: value.$between };
-      }
-      if (value.$gte !== undefined) {
-        return { sql: `${columnRef} >= $?`, params: [value.$gte] };
-      }
-      if (value.$lte !== undefined) {
-        return { sql: `${columnRef} <= $?`, params: [value.$lte] };
-      }
-      if (value.$gt !== undefined) {
-        return { sql: `${columnRef} > $?`, params: [value.$gt] };
-      }
-      if (value.$lt !== undefined) {
-        return { sql: `${columnRef} < $?`, params: [value.$lt] };
-      }
-    }
-
-    // String avec % → LIKE implicite
-    if (_.isString(value) && value.includes('%')) {
-      return { sql: `${columnRef} LIKE $?`, params: [value] };
-    }
-
-    return { sql: `${columnRef} = $?`, params: [value] };
+    return { mainConditions, joinConditions };
   }
 
   /**

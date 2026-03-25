@@ -1,5 +1,6 @@
 const _   = require('lodash');
 const Sql = require('./Sql');
+const { compileCondition } = require('./OperatorCompiler');
 
 /**
  * PaginatedOptimizedSql - Générateur SQL optimisé avec pattern EXISTS
@@ -921,23 +922,10 @@ module.exports = class PaginatedOptimizedSql extends Sql {
 
           // Ajouter la condition sur la colonne
           const columnRef = `${esc}${joinTable}${esc}.${esc}${column}${esc}`;
-
-          if (value === null || value === undefined) {
-            existsSQL += `AND ${columnRef} IS NULL`;
-          } else if (_.isArray(value)) {
-            if (value.length > 0) {
-              existsSQL += `AND ${columnRef} IN (${dialect.param(this.i++)})`;
-              params.push(value);
-            } else {
-              existsSQL += 'AND FALSE';
-            }
-          } else if (_.isString(value) && value.includes('%')) {
-            existsSQL += `AND ${columnRef} LIKE ${dialect.param(this.i++)}`;
-            params.push(value);
-          } else {
-            existsSQL += `AND ${columnRef} = ${dialect.param(this.i++)}`;
-            params.push(value);
-          }
+          const compiled = compileCondition(columnRef, value, dialect, this.i);
+          this.i = compiled.i;
+          existsSQL += `AND ${compiled.sql}`;
+          params.push(...compiled.params);
 
           existsSQL += ')';
           existsClauses.push(existsSQL);
@@ -1017,8 +1005,6 @@ module.exports = class PaginatedOptimizedSql extends Sql {
 
     _.forOwn(conditions, (value, key) => {
       let columnRef;
-
-      // Gérer les colonnes qualifiées (ex: 'applicants.last_name')
       if (key.indexOf('.') > -1) {
         const parts = key.split('.');
         columnRef = _.map(parts, part => `${esc}${part}${esc}`).join('.');
@@ -1026,50 +1012,10 @@ module.exports = class PaginatedOptimizedSql extends Sql {
         columnRef = `${esc}${tableName}${esc}.${esc}${key}${esc}`;
       }
 
-      // Générer la condition selon le type de valeur
-      if (value === null || value === undefined) {
-        sqlConditions.push(`${columnRef} IS NULL `);
-      } else if (_.isArray(value)) {
-        if (value.length === 0) {
-          sqlConditions.push('FALSE ');
-        } else {
-          sqlConditions.push(`${columnRef} ${dialect.in} (${dialect.param(this.i++)}) `);
-          params.push(value);
-        }
-      } else if (_.isObject(value) && !_.isDate(value)) {
-        // Opérateurs spéciaux ($between, $gte, $lte, $gt, $lt, $like)
-        if (value.$between && _.isArray(value.$between) && value.$between.length === 2) {
-          sqlConditions.push(`${columnRef} BETWEEN ${dialect.param(this.i++)} AND ${dialect.param(this.i++)} `);
-          params.push(value.$between[0]);
-          params.push(value.$between[1]);
-        } else if (value.$gte !== undefined) {
-          sqlConditions.push(`${columnRef} >= ${dialect.param(this.i++)} `);
-          params.push(value.$gte);
-        } else if (value.$lte !== undefined) {
-          sqlConditions.push(`${columnRef} <= ${dialect.param(this.i++)} `);
-          params.push(value.$lte);
-        } else if (value.$gt !== undefined) {
-          sqlConditions.push(`${columnRef} > ${dialect.param(this.i++)} `);
-          params.push(value.$gt);
-        } else if (value.$lt !== undefined) {
-          sqlConditions.push(`${columnRef} < ${dialect.param(this.i++)} `);
-          params.push(value.$lt);
-        } else if (value.$like !== undefined) {
-          sqlConditions.push(`${columnRef} LIKE ${dialect.param(this.i++)} `);
-          params.push(value.$like);
-        } else {
-          // Objet non reconnu, traiter comme égalité
-          sqlConditions.push(`${columnRef} = ${dialect.param(this.i++)} `);
-          params.push(value);
-        }
-      } else if (_.isString(value) && value.includes('%')) {
-        // Pattern LIKE détecté
-        sqlConditions.push(`${columnRef} LIKE ${dialect.param(this.i++)} `);
-        params.push(value);
-      } else {
-        sqlConditions.push(`${columnRef} = ${dialect.param(this.i++)} `);
-        params.push(value);
-      }
+      const compiled = compileCondition(columnRef, value, dialect, this.i);
+      this.i = compiled.i;
+      sqlConditions.push(compiled.sql + ' ');
+      params.push(...compiled.params);
     });
 
     if (sqlConditions.length === 0) {

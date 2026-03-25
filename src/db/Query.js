@@ -485,6 +485,15 @@ module.exports = class Query {
       query.limit = 1;
     }
 
+    // Auto-activation du mode optimisé : pagination + joins → pattern 3 phases
+    if (query.verb === 'select' && query.page && query.joins.length > 0) {
+      const PaginatedOptimizedQuery = require('./PaginatedOptimizedQuery');
+      const optimized = new PaginatedOptimizedQuery(this.modelClass);
+      optimized.query = this.query;
+      optimized.query.filterJoins = optimized.query.filterJoins || [];
+      return await optimized.executeOptimized();
+    }
+
     const pagination  = await this.paginate();
     let rows          = await this.runQuery();
 
