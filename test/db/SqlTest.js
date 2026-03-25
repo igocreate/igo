@@ -272,6 +272,46 @@ describe('db.Sql', function() {
       assert.strictEqual('WHERE `books`.`title` NOT LIKE ? ', sql);
       assert.deepStrictEqual(['Draft%'], params);
     });
+
+    it('should invert $lte to > in whereNot', function() {
+      var params  = [];
+      var query   = freshQuery({ where: [], whereNot: [{ price: { $lte: 100 } }] });
+      var sql     = new Sql(query, dialect).whereNotSQL(params);
+      assert.strictEqual('WHERE `books`.`price` > ? ', sql);
+      assert.deepStrictEqual([100], params);
+    });
+
+    it('should invert $gt to <= in whereNot', function() {
+      var params  = [];
+      var query   = freshQuery({ where: [], whereNot: [{ price: { $gt: 5 } }] });
+      var sql     = new Sql(query, dialect).whereNotSQL(params);
+      assert.strictEqual('WHERE `books`.`price` <= ? ', sql);
+      assert.deepStrictEqual([5], params);
+    });
+
+    it('should invert $lt to >= in whereNot', function() {
+      var params  = [];
+      var query   = freshQuery({ where: [], whereNot: [{ price: { $lt: 50 } }] });
+      var sql     = new Sql(query, dialect).whereNotSQL(params);
+      assert.strictEqual('WHERE `books`.`price` >= ? ', sql);
+      assert.deepStrictEqual([50], params);
+    });
+
+    it('should use NOT BETWEEN in whereNot for $between', function() {
+      var params  = [];
+      var query   = freshQuery({ where: [], whereNot: [{ price: { $between: [10, 50] } }] });
+      var sql     = new Sql(query, dialect).whereNotSQL(params);
+      assert.strictEqual('WHERE `books`.`price` NOT BETWEEN ? AND ? ', sql);
+      assert.deepStrictEqual([10, 50], params);
+    });
+
+    it('should use NOT LIKE in whereNot for implicit %', function() {
+      var params  = [];
+      var query   = freshQuery({ where: [], whereNot: [{ title: 'Draft%' }] });
+      var sql     = new Sql(query, dialect).whereNotSQL(params);
+      assert.strictEqual('WHERE `books`.`title` NOT LIKE ? ', sql);
+      assert.deepStrictEqual(['Draft%'], params);
+    });
   });
 
   //
@@ -390,6 +430,14 @@ describe('db.Sql', function() {
       var sql    = new Sql(query, dialect).whereSQL(params);
       assert.strictEqual('WHERE `books`.`price` < ? ', sql);
       assert.deepStrictEqual([50], params);
+    });
+
+    it('should support multiple operators on same column', function() {
+      var params = [];
+      var query  = freshQuery({ where: [{ price: { $gte: 100, $lte: 500 } }] });
+      var sql    = new Sql(query, dialect).whereSQL(params);
+      assert.strictEqual('WHERE (`books`.`price` >= ? AND `books`.`price` <= ?) ', sql);
+      assert.deepStrictEqual([100, 500], params);
     });
 
     it('should support $between operator', function() {

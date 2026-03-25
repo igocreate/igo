@@ -26,25 +26,30 @@ const compileCondition = (columnRef, value, dialect, i) => {
   }
 
   if (_.isObject(value) && !_.isDate(value)) {
-    if (value.$like !== undefined) {
-      return { sql: `${columnRef} LIKE ${dialect.param(i++)}`, params: [value.$like], i };
+    const operators = {
+      $like:    (v) => ({ sql: `${columnRef} LIKE ${dialect.param(i++)}`, params: [v] }),
+      $between: (v) => { const p1 = dialect.param(i++); const p2 = dialect.param(i++); return { sql: `${columnRef} BETWEEN ${p1} AND ${p2}`, params: v }; },
+      $gte:     (v) => ({ sql: `${columnRef} >= ${dialect.param(i++)}`, params: [v] }),
+      $lte:     (v) => ({ sql: `${columnRef} <= ${dialect.param(i++)}`, params: [v] }),
+      $gt:      (v) => ({ sql: `${columnRef} > ${dialect.param(i++)}`, params: [v] }),
+      $lt:      (v) => ({ sql: `${columnRef} < ${dialect.param(i++)}`, params: [v] }),
+    };
+
+    const parts = [];
+    const allParams = [];
+    _.forOwn(value, (v, k) => {
+      if (operators[k]) {
+        const result = operators[k](v);
+        parts.push(result.sql);
+        allParams.push(...result.params);
+      }
+    });
+
+    if (parts.length === 1) {
+      return { sql: parts[0], params: allParams, i };
     }
-    if (value.$between && _.isArray(value.$between) && value.$between.length === 2) {
-      const p1 = dialect.param(i++);
-      const p2 = dialect.param(i++);
-      return { sql: `${columnRef} BETWEEN ${p1} AND ${p2}`, params: value.$between, i };
-    }
-    if (value.$gte !== undefined) {
-      return { sql: `${columnRef} >= ${dialect.param(i++)}`, params: [value.$gte], i };
-    }
-    if (value.$lte !== undefined) {
-      return { sql: `${columnRef} <= ${dialect.param(i++)}`, params: [value.$lte], i };
-    }
-    if (value.$gt !== undefined) {
-      return { sql: `${columnRef} > ${dialect.param(i++)}`, params: [value.$gt], i };
-    }
-    if (value.$lt !== undefined) {
-      return { sql: `${columnRef} < ${dialect.param(i++)}`, params: [value.$lt], i };
+    if (parts.length > 1) {
+      return { sql: `(${parts.join(' AND ')})`, params: allParams, i };
     }
   }
 
@@ -78,25 +83,30 @@ const compileNotCondition = (columnRef, value, dialect, i) => {
 
   // Opérateurs inversés
   if (_.isObject(value) && !_.isDate(value)) {
-    if (value.$like !== undefined) {
-      return { sql: `${columnRef} NOT LIKE ${dialect.param(i++)}`, params: [value.$like], i };
+    const operators = {
+      $like:    (v) => ({ sql: `${columnRef} NOT LIKE ${dialect.param(i++)}`, params: [v] }),
+      $between: (v) => { const p1 = dialect.param(i++); const p2 = dialect.param(i++); return { sql: `${columnRef} NOT BETWEEN ${p1} AND ${p2}`, params: v }; },
+      $gte:     (v) => ({ sql: `${columnRef} < ${dialect.param(i++)}`, params: [v] }),
+      $lte:     (v) => ({ sql: `${columnRef} > ${dialect.param(i++)}`, params: [v] }),
+      $gt:      (v) => ({ sql: `${columnRef} <= ${dialect.param(i++)}`, params: [v] }),
+      $lt:      (v) => ({ sql: `${columnRef} >= ${dialect.param(i++)}`, params: [v] }),
+    };
+
+    const parts = [];
+    const allParams = [];
+    _.forOwn(value, (v, k) => {
+      if (operators[k]) {
+        const result = operators[k](v);
+        parts.push(result.sql);
+        allParams.push(...result.params);
+      }
+    });
+
+    if (parts.length === 1) {
+      return { sql: parts[0], params: allParams, i };
     }
-    if (value.$between && _.isArray(value.$between) && value.$between.length === 2) {
-      const p1 = dialect.param(i++);
-      const p2 = dialect.param(i++);
-      return { sql: `${columnRef} NOT BETWEEN ${p1} AND ${p2}`, params: value.$between, i };
-    }
-    if (value.$gte !== undefined) {
-      return { sql: `${columnRef} < ${dialect.param(i++)}`, params: [value.$gte], i };
-    }
-    if (value.$lte !== undefined) {
-      return { sql: `${columnRef} > ${dialect.param(i++)}`, params: [value.$lte], i };
-    }
-    if (value.$gt !== undefined) {
-      return { sql: `${columnRef} <= ${dialect.param(i++)}`, params: [value.$gt], i };
-    }
-    if (value.$lt !== undefined) {
-      return { sql: `${columnRef} >= ${dialect.param(i++)}`, params: [value.$lt], i };
+    if (parts.length > 1) {
+      return { sql: `(${parts.join(' AND ')})`, params: allParams, i };
     }
   }
 
