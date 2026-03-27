@@ -268,21 +268,13 @@ const users =  await User.list();
 
 ```
 
-> **💡 Performance Optimization for Large Tables**
-> For queries with multiple joins on large tables (millions of rows), use the optimized pagination method:
-> ```js
-> const result = await User.paginatedOptimized()
->   .where({ type: 'admin' })
->   .page(1, 50);
-> ```
-> This uses the **COUNT/IDS/FULL pattern** for 50-100x performance improvement.
-> 📖 See [Paginated Optimized Query](#paginated-optimized-query) section below for details.
-
 #### Where
 
-Examples:
-```js
+The `where()` method supports three syntaxes: raw SQL, SQL with params, and object notation with operators.
 
+##### Basic syntax
+
+```js
 // filter with attribute values
 const users = await User.where({type: 'foo', sub_type: 'bar'}).list();
 
@@ -291,6 +283,81 @@ const users = await User.where('`last_name` IS NOT NULL').list();
 
 // filter with sql and params
 const users = await User.where('`created_at` BETWEEN ? AND ?', [date1, date2]).list();
+```
+
+##### Operators
+
+Object values can use MongoDB-style operators for advanced comparisons:
+
+```js
+// IN (array)
+const users = await User.where({ status: ['active', 'pending'] }).list();
+
+// IS NULL
+const users = await User.where({ deleted_at: null }).list();
+
+// LIKE (auto-detected with %)
+const users = await User.where({ last_name: 'Dup%' }).list();
+
+// $like - explicit LIKE
+const users = await User.where({ last_name: { $like: 'Dup%' } }).list();
+
+// $between - range
+const users = await User.where({ created_at: { $between: ['2024-01-01', '2024-12-31'] } }).list();
+
+// $gte, $lte, $gt, $lt - comparisons
+const users = await User.where({ age: { $gte: 18 } }).list();
+const users = await User.where({ age: { $lt: 65 } }).list();
+```
+
+Operators work everywhere `where()` is used: `select`, `update`, `delete`, `count`.
+
+```js
+// delete with operator
+await User.where({ created_at: { $lt: '2020-01-01' } }).delete();
+
+// count with operator
+const count = await User.where({ price: { $between: [10, 50] } }).count();
+```
+
+##### Logical operators
+
+```js
+// $or - at least one condition must be true
+const users = await User.where({
+  $or: [{ status: 'active' }, { role: 'admin' }]
+}).list();
+
+// $and - all conditions must be true (explicit, usually implicit)
+const users = await User.where({
+  $and: [{ age: { $gte: 18 } }, { age: { $lt: 65 } }]
+}).list();
+
+// $or combined with other conditions
+const users = await User.where({
+  $or: [{ status: 'active' }, { status: 'pending' }],
+  type: 'premium'
+}).list();
+```
+
+> **Note:** Multiple keys in the same object are implicitly AND-ed. Use `$and` only when you need to combine multiple conditions on the same key, or for readability.
+
+##### whereNot
+
+`whereNot()` also supports operators (they are automatically inverted):
+
+```js
+// != 'deleted'
+const users = await User.whereNot({ status: 'deleted' }).list();
+
+// NOT IN
+const users = await User.whereNot({ role: ['banned', 'suspended'] }).list();
+
+// NOT LIKE (inverted $like)
+const users = await User.whereNot({ email: { $like: '%@spam.com' } }).list();
+
+// < 18 (inverted $gte)
+const users = await User.whereNot({ age: { $gte: 18 } }).list();
 ```
 
 #### Limit
@@ -425,66 +492,37 @@ console.dir(user.country_code);
 
 ---
 
-## Paginated Optimized Query
+## Performance Optimization
 
-Pour les requêtes avec de nombreuses jointures sur de grosses tables (>100K lignes), `PaginatedOptimizedQuery` implémente le **pattern COUNT/IDS/FULL** pour améliorer les performances de 50x à 100x.
+When a query uses `.page()` with `.join()`, Igo.js automatically applies the **COUNT/IDS/FULL pattern** for better performance on large tables:
 
-### Exemple d'utilisation
+1. **COUNT** with `EXISTS` subqueries (no LEFT JOIN)
+2. **SELECT IDs** only, with filters and pagination
+3. **SELECT full data** with LEFT JOIN on the found IDs only
 
-```javascript
-// ✅ RAPIDE : ~50-200ms sur 2M de lignes (vs ~5-10 secondes avec Query classique)
-const result = await Folder.paginatedOptimized()
-  .where({
-    // Table principale
-    type: ['agp', 'avt'],
-    status: 'SUBMITTED',
+This replaces the standard approach (COUNT + SELECT with full LEFT JOINs) which becomes slow on large tables with many joins.
 
-    // Tables jointes - notation pointée (filtres via EXISTS)
-    'applicant.last_name': 'Dupont%',
-    'applicant.email': '%@example.com',
-
-    // Tables imbriquées sur plusieurs niveaux
-    'pme_folder.company.country.code': 'FR',
-    'pme_folder.company.siret': '1234%',
-
-    // Opérateurs avancés
-    created_at: { $between: ['2024-01-01', '2024-12-31'] },
-    'pme_folder.amount': { $gte: 1000, $lte: 5000 }
-  })
-  .join(['applicant', 'pme_folder.company.country'])  // Récupérer les données associées
-  .order('folders.created_at DESC')  // Tri automatiquement optimisé
+```js
+// Automatically optimized: page + join detected
+const result = await Folder
+  .where({ type: ['agp', 'avt'], status: 'SUBMITTED' })
+  .join(['applicant', 'pme_folder'])
+  .order('folders.created_at DESC')
   .page(1, 50)
-  .execute();
-
-// Accès aux résultats
-console.log(`Total : ${result.pagination.count} folders`);
-result.rows.forEach(folder => {
-  console.log(`${folder.id}: ${folder.applicant.last_name} - ${folder.pme_folder.company.name}`);
-});
+  .list();
+// Uses EXISTS for COUNT, deferred joins for SELECT
 ```
 
-### Fonctionnalités clés
+| Scenario | Standard | Optimized | Gain |
+|----------|----------|-----------|------|
+| 100K rows, 3 joins | 500ms | 20ms | 25x |
+| 1M rows, 5 joins | 3s | 50ms | 60x |
+| 2M rows, 10 joins | 10s | 100ms | 100x |
 
-- **Syntaxe simplifiée** : Notation pointée pour les filtres sur tables jointes (`'association.column'`)
-- **Performance** : Pattern COUNT/IDS/FULL avec EXISTS pour les filtres (50-100x plus rapide)
-- **Tri optimisé** : Détection automatique des colonnes de tri et ajout de LEFT JOIN uniquement dans la phase IDS
-- **Opérateurs avancés** : `$like`, `$between`, `$gte`, `$lte`, `$gt`, `$lt`
-- **Jointures imbriquées** : Support des chemins multi-niveaux (`'assoc1.assoc2.assoc3.column'`)
-- **Blocks/sous-tables** : Détection automatique des colonnes de blocks dans ORDER BY
+The optimization activates automatically when both conditions are met:
+- `.page()` is called (pagination requested)
+- `.join()` is called (at least one join present)
 
-### Quand l'utiliser ?
+Without joins, the standard 2-query approach (COUNT + SELECT) is used, which is more efficient for simple queries.
 
-**✅ Utilisez `paginatedOptimized()` quand :**
-- Table principale > 100K lignes
-- Nombre de joins > 3
-- Requêtes avec pagination
-- Filtres sur plusieurs tables jointes
-
-**❌ N'utilisez PAS `paginatedOptimized()` quand :**
-- Table principale < 10K lignes (overhead inutile)
-- Pas de jointures
-- Requête sur clé primaire (`.find(id)`)
-
-### Documentation complète
-
-Pour plus de détails (API, exemples, architecture, limitations), consultez la [documentation complète de PaginatedOptimizedQuery](./paginated-optimized-query.md).
+You can also explicitly use `Model.paginatedOptimized()` to force the optimized path, even without pagination.

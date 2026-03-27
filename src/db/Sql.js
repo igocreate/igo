@@ -1,5 +1,6 @@
 
 const _       = require('lodash');
+const { compileCondition, compileNotCondition } = require('./OperatorCompiler');
 
 module.exports = class Sql {
   
@@ -154,7 +155,6 @@ module.exports = class Sql {
           console.warn('Where clause contains a string with whereNot, this is not supported');
           return;
         }
-        // where is an array
         let s = where[0];
         while (s.indexOf('$?') > -1) {
           s = s.replace('$?', dialect.param(this.i++));
@@ -173,36 +173,94 @@ module.exports = class Sql {
         }
         sqlwhere.push(where + ' ');
       } else {
-        // where is an object
-        _.forOwn(where, (value, key) =>{
-          let column_alias;
-          if (key.indexOf('.') > -1 && key.indexOf('`') === -1) {
-            column_alias = _.map(key.split('.'), (part) => (`${esc}${part}${esc}`)).join('.');
-          } else {
-            column_alias = `${esc}${query.table}${esc}.${esc}${key}${esc}`
-          }
-          if (value === null || value === undefined) {
-            sqlwhere.push(`${column_alias} IS ${not ? 'NOT NULL' : 'NULL'} `);
-          } else if (_.isArray(value) && value.length === 0) {
-            // where in empty array
-            sqlwhere.push(not ? 'TRUE ': 'FALSE ');
-          } else if (_.isArray(value)) {
-            sqlwhere.push(`${column_alias} ${not ? dialect.notin : dialect.in} (${dialect.param(this.i++)}) `);
-            params.push(value);
-          } else {
-            sqlwhere.push(`${column_alias} ${not ? '!=' : '='} ${dialect.param(this.i++)} `);
-            params.push(value);
-          }
-        });
+        // where is an object — may contain operators ($and, $or, $like, etc.)
+        this._compileWhereObject(where, params, sqlwhere, not);
       }
     });
-    
+
     if (sqlwhere.length) {
       const ret = (not && query.where.length > 0) ? 'AND ' : 'WHERE ';
       return ret + sqlwhere.join('AND ');
     }
     return '';
   };
+
+  // Compile un objet where en fragments SQL
+  _compileWhereObject(where, params, sqlwhere, not) {
+    const { query, dialect } = this;
+    const { esc } = dialect;
+
+    // $and : AND explicite entre sous-expressions
+    if (where.$and && _.isArray(where.$and)) {
+      const parts = [];
+      _.forEach(where.$and, (child) => {
+        const subParts = [];
+        this._compileWhereObject(child, params, subParts, not);
+        if (subParts.length > 1) {
+          parts.push('(' + subParts.join('AND ').trim() + ')');
+        } else if (subParts.length === 1) {
+          parts.push(subParts[0].trim());
+        }
+      });
+      // Traiter les clés siblings (hors $and)
+      const siblings = _.omit(where, '$and');
+      if (!_.isEmpty(siblings)) {
+        const subParts = [];
+        this._compileWhereObject(siblings, params, subParts, not);
+        if (subParts.length > 0) {
+          parts.push(subParts.join('AND ').trim());
+        }
+      }
+      if (parts.length === 1) {
+        sqlwhere.push(parts[0] + ' ');
+      } else if (parts.length > 1) {
+        sqlwhere.push(`(${parts.join(' AND ')}) `);
+      }
+      return;
+    }
+
+    // $or : OR explicite entre sous-expressions
+    if (where.$or && _.isArray(where.$or)) {
+      const orParts = [];
+      _.forEach(where.$or, (child) => {
+        const subParts = [];
+        this._compileWhereObject(child, params, subParts, not);
+        if (subParts.length > 1) {
+          orParts.push('(' + subParts.join('AND ').trim() + ')');
+        } else if (subParts.length === 1) {
+          orParts.push(subParts[0].trim());
+        }
+      });
+      if (orParts.length === 1) {
+        sqlwhere.push(orParts[0] + ' ');
+      } else if (orParts.length > 1) {
+        sqlwhere.push(`(${orParts.join(' OR ')}) `);
+      }
+      // Traiter les clés siblings (hors $or)
+      const siblings = _.omit(where, '$or');
+      if (!_.isEmpty(siblings)) {
+        this._compileWhereObject(siblings, params, sqlwhere, not);
+      }
+      return;
+    }
+
+    // Clés simples : colonnes avec valeurs (scalaires ou opérateurs)
+    _.forOwn(where, (value, key) => {
+      // Résoudre l'alias de colonne
+      let columnAlias;
+      if (key.indexOf('.') > -1 && key.indexOf(esc) === -1) {
+        columnAlias = _.map(key.split('.'), (part) => (`${esc}${part}${esc}`)).join('.');
+      } else {
+        columnAlias = `${esc}${query.table}${esc}.${esc}${key}${esc}`;
+      }
+
+      const compiler = not ? compileNotCondition : compileCondition;
+      const result = compiler(columnAlias, value, dialect, this.i);
+      this.i = result.i;
+      sqlwhere.push(result.sql + ' ');
+      params.push(...result.params);
+    });
+  }
 
   //
   whereNotSQL(params) {

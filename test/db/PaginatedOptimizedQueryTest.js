@@ -70,12 +70,12 @@ describe('db.PaginatedOptimizedQuery', function() {
   class Applicant extends Model({
     table: 'applicants',
     primary: ['id'],
-    columns: {
-      id: 'integer',
-      first_name: 'string',
-      last_name: 'string',
-      email: 'string'
-    }
+    columns: [
+      'id',
+      'first_name',
+      'last_name',
+      'email'
+    ]
   }) {}
 
   class Folder extends Model({
@@ -298,7 +298,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       query.where({ status: 'SUBMITTED', type: 'agp' });
       const { sql, params } = query.toSQL();
 
-      assert.ok(sql.includes('WHERE (`folders`.`status` = ? AND `folders`.`type` = ?)'));
+      assert.ok(sql.includes('WHERE `folders`.`status` = ? AND `folders`.`type` = ?'));
       assert.deepStrictEqual(params, ['SUBMITTED', 'agp']);
     });
 
@@ -308,7 +308,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       query.where({ $and: [{ status: 'SUBMITTED' }, { type: 'agp' }] });
       const { sql, params } = query.toSQL();
 
-      assert.ok(sql.includes('WHERE (`folders`.`status` = ? AND `folders`.`type` = ?)'));
+      assert.ok(sql.includes('(`folders`.`status` = ? AND `folders`.`type` = ?)'));
       assert.deepStrictEqual(params, ['SUBMITTED', 'agp']);
     });
 
@@ -625,6 +625,17 @@ describe('db.PaginatedOptimizedQuery', function() {
 
       assert.ok(!sql.includes('LEFT JOIN'));
       assert.ok(sql.includes('ORDER BY professional_activity DESC'));
+    });
+
+    it('should add LEFT JOIN for unprefixed column found in explicitly joined table', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'select_ids';
+      query.join('applicant');
+      query.where({ type: 'agp' }).order('first_name ASC').limit(50);
+      const { sql } = query.toSQL();
+
+      assert.ok(sql.includes('LEFT JOIN `applicants`'), 'should add LEFT JOIN for the joined table');
+      assert.ok(sql.includes('ORDER BY'), 'should have ORDER BY');
     });
 
     it('should handle nested path 3 levels (folder -> pme_folder -> block_study)', () => {

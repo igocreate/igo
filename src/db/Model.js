@@ -4,6 +4,7 @@ const CachedQuery = require('./CachedQuery');
 const Query     = require('./Query');
 const PaginatedOptimizedQuery = require('./PaginatedOptimizedQuery');
 const Schema    = require('./Schema');
+const { error } = require('../connect/errorhandler');
 
 
 const newQuery = (constructor, verb) => {
@@ -133,9 +134,10 @@ module.exports = function(schema) {
       return newQuery(this).list();
     }
 
-    // all (deprecated)
+    /**
+     * @deprecated Please use Model.list() instead
+     */
     static all() {
-      console.log('* Model. all() deprecated. Please use Model.list() instead');
       return this.list();
     }
 
@@ -250,29 +252,12 @@ module.exports = function(schema) {
     }
 
     /**
-     * paginatedOptimized - Retourne une PaginatedOptimizedQuery pour des requêtes optimisées avec pattern COUNT/IDS/FULL
+     * @deprecated Le pattern optimisé COUNT/IDS/FULL s'active automatiquement
+     * quand .page() et .join() sont utilisés ensemble. Utilisez simplement :
      *
-     * Cette méthode permet d'utiliser le pattern d'optimisation pour les requêtes avec de nombreuses jointures.
-     * Au lieu de faire un LEFT JOIN complet, on utilise :
-     * 1. COUNT avec EXISTS pour compter sans jointures
-     * 2. SELECT IDS pour récupérer les IDs avec filtres/tris/pagination
-     * 3. SELECT FULL pour récupérer les données complètes avec LEFT JOIN uniquement sur les IDs trouvés
+     *   Model.where({ ... }).join('assoc').page(1, 50).list()
      *
-     * @returns {PaginatedOptimizedQuery} Instance de PaginatedOptimizedQuery
-     *
-     * Exemple d'utilisation :
-     *
-     * const result = await Folder.paginatedOptimized()
-     *   .where({ type: ['agp', 'avt'] })
-     *   .filterJoin('applicant', { last_name: 'Dupont%' })  // Filtre via EXISTS
-     *   .join('pme_folder')                                  // LEFT JOIN dans phase FULL
-     *   .order('folders.created_at DESC')
-     *   .page(1, 50);
-     *
-     * Performance :
-     * - Pour des tables de millions de lignes avec 10 jointures : amélioration de 1000x à 10000x
-     * - Le COUNT passe de plusieurs secondes à quelques millisecondes
-     * - Le SELECT bénéficie d'une pagination efficace sur les IDs seulement
+     * @returns {PaginatedOptimizedQuery}
      */
     static paginatedOptimized() {
       return new PaginatedOptimizedQuery(this);

@@ -332,6 +332,28 @@ module.exports = class Query {
     return dbs[this.schema.database];
   }
 
+  // Vérifie si la query est compatible avec le mode optimisé
+  _checkOptimizedCompatibility() {
+    const { query } = this;
+
+    // Joins avec colonnes personnalisées (aliases dans ORDER BY)
+    if (query.joins.some(j => j.columns)) {
+      return false;
+    }
+
+    // Raw SQL where qui référence des aliases de joins
+    const joinAliases = query.joins.map(j => j.association[1]);
+    const rawWheres = query.where.filter(w => _.isArray(w) || _.isString(w));
+    for (const w of rawWheres) {
+      const sql = _.isArray(w) ? w[0] : w;
+      if (joinAliases.some(alias => sql.includes(`\`${alias}\``))) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   // generate SQL
   toSQL() {
     const { query } = this;
@@ -483,6 +505,16 @@ module.exports = class Query {
     // force limit to 1 for first/last
     if (query.take === 'first' || query.take === 'last') {
       query.limit = 1;
+    }
+
+    // Auto-activation du mode optimisé : pagination + joins → pattern 3 phases
+    if (query.verb === 'select' && query.page && query.joins.length > 0) {
+      if (!this._checkOptimizedCompatibility()) {
+        logger.warn(`[Query] Optimized pagination skipped for '${query.table}': join aliases are not supported, use 'dot' notation instead.`);
+      } else {
+        const PaginatedOptimizedQuery = require('./PaginatedOptimizedQuery');
+        return await PaginatedOptimizedQuery.fromQuery(this).executeOptimized();
+      }
     }
 
     const pagination  = await this.paginate();
