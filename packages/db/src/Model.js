@@ -94,6 +94,9 @@ module.exports = function(schema) {
         const query = newQuery(_this, 'insert').values(obj).options(options);
         const result = await query.execute();
 
+        if (result === null) {
+          return null;
+        }
         if (result.err) {
           throw result.err;
         }

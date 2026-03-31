@@ -18,6 +18,7 @@ describe('db.Model', () => {
       'title',
       {name: 'details_json', type: 'json', attr: 'details'},
       {name:'is_available', type: 'boolean'},
+      'unique_code',
       'library_id',
       'created_at'
     ]
@@ -584,6 +585,16 @@ describe('db.Model', () => {
       const book = await Book.create({ details: '' });
       assert(Array.isArray(book.details));
       assert.strictEqual(book.details.length, 0);
+    });
+  });
+
+  describe('silent option on duplicate entry', () => {
+    it('should return null on duplicate entry with silent: true', async () => {
+      const unique_code = 'dup-' + Date.now();
+      const book1 = await Book.create({ unique_code });
+      assert(book1 && book1.id);
+      const book2 = await Book.create({ unique_code }, { silent: true });
+      assert.strictEqual(book2, null);
     });
   });
 

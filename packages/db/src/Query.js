@@ -533,6 +533,10 @@ module.exports = class Query {
     const pagination  = await this.paginate();
     let rows          = await this.runQuery();
 
+    if (rows === null) {
+      return null;
+    }
+
     if (query.verb === 'insert') {
       const insertId = dialect.insertId(rows);
       return { insertId };
