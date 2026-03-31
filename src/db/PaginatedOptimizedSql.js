@@ -543,7 +543,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
 
     // Chercher dans les associations directes (belongs_to uniquement pour les blocks)
     for (const assoc of associations) {
-      const [assocType, assocName, AssociatedModel, src_column, ref_column] = assoc;
+      const [assocType, _assocName, AssociatedModel, _src_column, _ref_column] = assoc;
 
       // On cherche uniquement dans les belongs_to
       if (assocType !== 'belongs_to' || !AssociatedModel || !AssociatedModel.schema) {
@@ -633,7 +633,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
 
     // Chercher dans les associations directes
     for (const assoc of associations) {
-      const [, assocName, AssociatedModel, src_column, ref_column] = assoc;
+      const [, assocName, AssociatedModel, _src_column, _ref_column] = assoc;
 
       if (!AssociatedModel || !AssociatedModel.schema) {
         continue;
@@ -712,7 +712,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
           return;
         }
 
-        const [, , AssociatedModel, src_column, ref_column, extraWhere] = association;
+        const [, , _AssociatedModel, src_column, ref_column, extraWhere] = association;
 
         // Générer le LEFT JOIN (pour préserver toutes les lignes, même celles avec NULL)
         let joinSql = `LEFT JOIN ${esc}${currentTableName}${esc} `;
@@ -751,7 +751,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
    * - Pour chaque filterJoin nested : créer des EXISTS vraiment imbriqués
    */
   addFilterJoinsAsExists(params) {
-    const { query, dialect } = this;
+    const { query, dialect: _dialect } = this;
 
     if (!query.filterJoins || query.filterJoins.length === 0) {
       return '';
@@ -1150,7 +1150,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
    * @returns {string} Clause transformée (ex: "formation_natures.name DESC" ou "COALESCE(beneficiaries.name, applicants.name)")
    */
   _transformOrderClause(orderClause) {
-    const { query } = this;
+    const { query: _query } = this;
 
     // Parser la clause ORDER BY pour extraire ASC/DESC
     const cleanedClause = orderClause.replace(/`/g, '').trim();
@@ -1202,7 +1202,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
     // Groupe 1: paths avec points (sans backticks) comme table.column
     // Groupe 2: colonnes simples avec backticks comme `column`
     // Groupe 3: identificateurs simples (sans backticks, sans points)
-    const combinedPattern = /(\b[a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)+\b)|(`[a-zA-Z_][a-zA-Z0-9_]*`)(?!\s*\.)|(\b[a-zA-Z_][a-zA-Z0-9_]*\b)(?!\s*[\.\(])/g;
+    const combinedPattern = /(\b[a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)+\b)|(`[a-zA-Z_][a-zA-Z0-9_]*`)(?!\s*\.)|(\b[a-zA-Z_][a-zA-Z0-9_]*\b)(?!\s*[.(])/g;
 
     return expression.replace(combinedPattern, (match, plainPath, backtickColumn, plainIdentifier) => {
       // Cas 1: Chemins avec points (ex: table.column, table1.table2.column)

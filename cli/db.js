@@ -10,7 +10,7 @@ const migrations  = require('../src/db/migrations');
 const verbs   = {
 
   // igo db migrate
-  migrate: async (args) => {
+  migrate: async (_args) => {
     for (const database of config.databases) {
       const db = dbs[database];
       db.config.debugsql = false;
@@ -22,7 +22,7 @@ const verbs   = {
   },
 
   // igo db migrations
-  migrations: async (args) => {
+  migrations: async (_args) => {
 
     for (const database of config.databases) {
       const db = dbs[database];
@@ -90,7 +90,7 @@ const verbs   = {
     });
   },
 
-  reverse: async (args) => {
+  reverse: async (_args) => {
     const db = dbs.main;
     const tables = await db.query('show tables');
     for (const table of tables) {
@@ -143,7 +143,7 @@ module.exports = async (argv) => {
   await dbs.init();
 
   if (args.length > 1 && verbs[args[1]]) {
-    await verbs[args[1]](args)
+    await verbs[args[1]](args);
     console.log('Done.');
     process.exit(0);
   } else {

@@ -23,7 +23,7 @@ const renameUnderscoreFiles = async (dir) => {
       await fse.move(srcPath, destPath, { overwrite: true });
     }
   }
-}
+};
 
 // replace all occurrences of a regexp in files in a directory
 const replaceInDirectory = async (dir, replacements) => {
@@ -64,10 +64,10 @@ module.exports = async function (argv) {
   const directory = './' + args[1];
   const model     = args.length === 3 ? args[2] : 'tailwind';
 
-  await fs.mkdir(directory)
+  await fs.mkdir(directory);
 
   // recursive copy from skel to project directory
-  await fse.copy(path.join(__dirname, '../skel', model), directory, { overwrite: false })
+  await fse.copy(path.join(__dirname, '../skel', model), directory, { overwrite: false });
 
   await renameUnderscoreFiles(directory);
 

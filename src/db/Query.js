@@ -537,8 +537,8 @@ module.exports = class Query {
 
         // parse joins values
         _.forEach(this.query.joins, (join) => {
-          const { src_schema, association } = join;
-          const [assoc_type, name, Obj, src_column, column] = association;
+          const { src_schema: _src_schema, association } = join;
+          const [_assoc_type, name, Obj, _src_column, _column] = association;
           Obj.schema.parseTypes(row, `${name}__`);
         });
       });
@@ -547,17 +547,17 @@ module.exports = class Query {
     if (query.verb === 'select') {
       rows = _.map(rows, row => {
         const instance = this.newInstance(row);
-        
+
         if (this.query.joins.length === 0) {
           return instance;
         }
-        
+
         const createdInstances = new Map();
         createdInstances.set(this.schema, instance);
 
         _.forEach(this.query.joins, (join) => {
           const { src_schema, association } = join;
-          const [assoc_type, name, Obj, src_column, column] = association;
+          const [_assoc_type, name, Obj, _src_column, _column] = association;
           const table_alias = name;
 
           const params = {};

@@ -9,10 +9,10 @@ const mockGetDb = (query) => {
     driver: {
       dialect: {
         esc: '`',
-        param: (i) => '?',
+        param: (_i) => '?',
         in: 'IN',
         notin: 'NOT IN',
-        limit: (offsetParam, limitParam) => `LIMIT ?, ?`
+        limit: (_offsetParam, _limitParam) => 'LIMIT ?, ?'
       }
     }
   });
@@ -464,8 +464,8 @@ describe('db.PaginatedOptimizedQuery', function() {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
       query.where({ type: 'agp', 'applicant.last_name': { $like: 'Dupont%' } })
-        .order('applicants.last_name ASC')
-        .join('applicant');
+      .order('applicants.last_name ASC')
+      .join('applicant');
       const { sql, params } = query.toSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE `folders`.`type` = ? AND EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND `applicants`.`last_name` LIKE ? )');
@@ -476,8 +476,8 @@ describe('db.PaginatedOptimizedQuery', function() {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'select_ids';
       query.where({ type: 'agp', 'applicant.last_name': { $like: 'Dupont%' } })
-        .order('folders.created_at DESC')
-        .limit(50);
+      .order('folders.created_at DESC')
+      .limit(50);
       const { sql, params } = query.toSQL();
 
       assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` WHERE `folders`.`type` = ? AND EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND `applicants`.`last_name` LIKE ? ) ORDER BY folders.created_at DESC LIMIT ?, ?');
@@ -533,8 +533,8 @@ describe('db.PaginatedOptimizedQuery', function() {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'select_ids';
       query.where({ type: 'agp' }).join('applicant')
-        .order('COALESCE(`applicant`.`last_name`, `applicant`.`first_name`) ASC')
-        .limit(50);
+      .order('COALESCE(`applicant`.`last_name`, `applicant`.`first_name`) ASC')
+      .limit(50);
       const { sql, params } = query.toSQL();
 
       assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `applicants` ON `applicants`.`id` = `folders`.`applicant_id` WHERE `folders`.`type` = ? ORDER BY COALESCE(applicants.last_name, applicants.first_name) ASC LIMIT ?, ?');

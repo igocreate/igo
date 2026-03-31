@@ -27,7 +27,7 @@ const getWebpackAssets = () => {
       });
     }
     
-  } catch (err) {
+  } catch (_err) {
     // ignored
   }
   return assets;

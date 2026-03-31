@@ -242,9 +242,9 @@ describe('includes', () => {
       const book    = await Book.create({ library_id: library.id });
 
       const books = await Book.paginatedOptimized()
-        .join('library')
-        .limit(10)
-        .list();
+      .join('library')
+      .limit(10)
+      .list();
 
       assert.strictEqual(books.length, 1);
       assert.strictEqual(books[0].id, book.id);
@@ -255,12 +255,12 @@ describe('includes', () => {
     it('should attach nested joined data in selectFull phase', async () => {
       const city    = await City.create({ name: 'Lyon' });
       const library = await Library.create({ title: 'Municipale', city_id: city.id });
-      const book    = await Book.create({ library_id: library.id });
+      const _book    = await Book.create({ library_id: library.id });
 
       const books = await Book.paginatedOptimized()
-        .join({ library: 'city' })
-        .limit(10)
-        .list();
+      .join({ library: 'city' })
+      .limit(10)
+      .list();
 
       assert.strictEqual(books.length, 1);
       assert.strictEqual(books[0].library.id, library.id);
@@ -277,10 +277,10 @@ describe('includes', () => {
       await Book.create({ title: 'Book C' }); // no library
 
       const result = await Book
-        .where({ library_id: library.id })
-        .join('library')
-        .page(1, 10)
-        .list();
+      .where({ library_id: library.id })
+      .join('library')
+      .page(1, 10)
+      .list();
 
       assert.ok(result.pagination, 'should return pagination object');
       assert.strictEqual(result.pagination.count, 2);

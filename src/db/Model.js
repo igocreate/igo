@@ -4,7 +4,6 @@ const CachedQuery = require('./CachedQuery');
 const Query     = require('./Query');
 const PaginatedOptimizedQuery = require('./PaginatedOptimizedQuery');
 const Schema    = require('./Schema');
-const { error } = require('../connect/errorhandler');
 
 
 const newQuery = (constructor, verb) => {
@@ -50,8 +49,8 @@ module.exports = function(schema) {
         await cache.del('_cached.' + this.constructor.schema.table);
       }
     
-    this.assignValues(values);
-    return this;
+      this.assignValues(values);
+      return this;
     }
 
     // reload
@@ -75,7 +74,7 @@ module.exports = function(schema) {
     }
 
     async beforeCreate() { }
-    async beforeUpdate(values) { }
+    async beforeUpdate(_values) { }
 
 
     // find by id
@@ -191,11 +190,6 @@ module.exports = function(schema) {
       return newQuery(this).count();
     }
 
-    // join
-    static join(association, columns, type, name) {
-      return newQuery(this).join(association, columns, type, name);
-    }
-
     // delete
     static delete(id, ) {
       return newQuery(this, 'delete').unscoped().where({ id: id }).execute();
@@ -228,7 +222,7 @@ module.exports = function(schema) {
       return newQuery(this).includes(includes);
     }
 
-    // includes
+    // join
     static join(associationName, columns, type='LEFT') {
       const query = newQuery(this);
       if (_.isString(associationName)) {
