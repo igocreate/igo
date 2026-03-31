@@ -910,8 +910,8 @@ module.exports = class PaginatedOptimizedSql extends Sql {
    *
    * Exemple :
    * Input: [
-   *   { 'applicant.last_name': 'Dupont%' },
-   *   { 'applicant.first_name': 'Jean%' },
+   *   { 'applicant.last_name': { $like: 'Dupont%' } },
+   *   { 'applicant.first_name': { $like: 'Jean%' } },
    *   { 'beneficiary.email': 'test@test.com' }
    * ]
    * Output: (

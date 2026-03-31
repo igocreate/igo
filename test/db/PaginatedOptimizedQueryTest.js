@@ -467,31 +467,24 @@ describe('db.PaginatedOptimizedQuery', function() {
     it('COUNT should have no LEFT JOIN, no ORDER BY, and use EXISTS for filters', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
-      query.where({ type: 'agp', 'applicant.last_name': 'Dupont%' })
+      query.where({ type: 'agp', 'applicant.last_name': { $like: 'Dupont%' } })
         .order('applicants.last_name ASC')
         .join('applicant');
       const { sql, params } = query.toSQL();
 
-      assert.ok(sql.includes('SELECT COUNT(0)'));
-      assert.ok(sql.includes('EXISTS'));
-      assert.ok(!sql.includes('LEFT JOIN'));
-      assert.ok(!sql.includes('ORDER BY'));
+      assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE `folders`.`type` = ? AND EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND `applicants`.`last_name` LIKE ? )');
       assert.deepStrictEqual(params, ['agp', 'Dupont%']);
     });
 
     it('IDS should SELECT only id, use EXISTS, ORDER BY + LIMIT, and no LEFT JOIN when sort is on main table', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'select_ids';
-      query.where({ type: 'agp', 'applicant.last_name': 'Dupont%' })
+      query.where({ type: 'agp', 'applicant.last_name': { $like: 'Dupont%' } })
         .order('folders.created_at DESC')
         .limit(50);
       const { sql, params } = query.toSQL();
 
-      assert.ok(sql.includes('SELECT `folders`.`id`'));
-      assert.ok(sql.includes('EXISTS (SELECT 1 FROM `applicants`'));
-      assert.ok(sql.includes('ORDER BY folders.created_at DESC'));
-      assert.ok(sql.includes('LIMIT ?, ?'));
-      assert.ok(!sql.includes('LEFT JOIN'));
+      assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` WHERE `folders`.`type` = ? AND EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND `applicants`.`last_name` LIKE ? ) ORDER BY folders.created_at DESC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['agp', 'Dupont%', 0, 50]);
     });
   });
