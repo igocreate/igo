@@ -129,6 +129,9 @@ const all   = await User.unscope().list();
 
 // Remove only the includes added by the default scope
 const users = await User.unscope('includes').list();
+
+// Replace default includes with specific ones
+const users = await User.unscope('includes').includes('profile').list();
 ```
 
 ## API Reference

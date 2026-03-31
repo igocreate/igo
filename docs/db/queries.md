@@ -234,6 +234,9 @@ const users = await User.unscope().list();
 const users = await User.unscope('where').list();
 const users = await User.unscope('includes').list();
 const users = await User.unscope('where', 'order').list();
+
+// Replace default includes with specific ones
+const users = await User.unscope('includes').includes('profile').list();
 ```
 
 Supported clauses: `where`, `whereNot`, `order`, `includes`, `joins`, `select`, `distinct`, `group`, `limit`, `offset`.

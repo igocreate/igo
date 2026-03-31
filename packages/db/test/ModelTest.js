@@ -433,6 +433,17 @@ describe('db.Model', () => {
       assert.strictEqual(books[0].library, undefined);
     });
 
+    it('unscope("includes").includes() should only keep the new includes', async () => {
+      const library = await Library.create({ title: 'Main' });
+      await ScopedBook.create({ code: 'abc', library_id: library.id });
+      // unscope default includes, then re-add includes explicitly
+      // This should load the library (explicit includes should not be cleared by unscope)
+      const books = await ScopedBook.unscope('includes').includes('library').list();
+      assert.strictEqual(books.length, 1);
+      assert(books[0].library, 'explicit includes after unscope("includes") should be preserved');
+      assert.strictEqual(books[0].library.id, library.id);
+    });
+
     it('unscope("order") should remove order added by scope', async () => {
       const b1 = await ScopedBook.create({ code: 'abc' });
       const b2 = await ScopedBook.create({ code: 'abc' });

@@ -264,6 +264,8 @@ module.exports = class Query {
   // SCOPES
   applyScopes() {
     const { query, schema } = this;
+    // Save manually added includes before applying scopes
+    const manualIncludes = { ...query.includes };
     _.forOwn(query.scopes, (scope) => {
       if (!schema.scopes[scope]) {
         return;
@@ -284,6 +286,10 @@ module.exports = class Query {
       case 'limit':    delete query.limit;  break;
       case 'offset':   delete query.offset; break;
       }
+    }
+    // Restore manually added includes after unscoping
+    if (query.unscopes.includes('includes')) {
+      merge(query.includes, manualIncludes);
     }
   }
 
