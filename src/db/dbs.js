@@ -1,7 +1,5 @@
 
 
-const _           = require('lodash');
-
 const Db          = require('./Db');
 const config      = require('../config');
 const migrations  = require('./migrations');

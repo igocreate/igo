@@ -240,7 +240,7 @@ describe('db.Sql', function() {
       var params  = [];
       var query   = freshQuery({ where: [{ status: 'active' }], whereNot: [{ type: 'draft' }] });
       // First generate the where SQL
-      var whereSql = new Sql(query, dialect).whereSQL(params);
+      var _whereSql = new Sql(query, dialect).whereSQL(params);
       // Then generate whereNot - needs a fresh Sql instance
       var params2 = [];
       var whereNotSql = new Sql(query, dialect).whereNotSQL(params2);

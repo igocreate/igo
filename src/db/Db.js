@@ -1,6 +1,4 @@
 
-const _             = require('lodash');
-
 const config        = require('../config');
 const logger        = require('../logger');
 
@@ -22,7 +20,7 @@ const logQuery = (sql, params, err) => {
   if (err) {
     errorhandler.errorSQL(err);
   }
-}
+};
 
 
 //

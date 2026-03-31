@@ -7,7 +7,7 @@ const csvWriter   = require('csv-write-stream');
 const config      = require('../src/config');
 
 const readJson = async(path) => {
-  const data = await fs.readFile(path)
+  const data = await fs.readFile(path);
   return JSON.parse(data);
 };
 
@@ -63,7 +63,7 @@ const writeTranslationFiles = async (translations) => {
 const verbs   = {
 
   // igo i18n update
-  update: async function(args) {
+  update: async function(_args) {
     if (!config.i18n.spreadsheet_id) {
       return console.error('Missing config.i18n.spreadsheet_id');
     }
@@ -86,11 +86,11 @@ const verbs   = {
         const translations = parseJson(json);
         await writeTranslationFiles(translations);
       });
-    })
+    });
   },
 
   // igo i18n csv
-  csv: async function(args) {
+  csv: async function(_args) {
 
     const langs = config.i18n.whitelist;
     const translations = [];
@@ -138,7 +138,7 @@ module.exports = function(argv) {
   config.init();
 
   if (args.length > 1 && verbs[args[1]]) {
-    verbs[args[1]](args)
+    verbs[args[1]](args);
     // process.exit(0);
   } else {
     console.error('ERROR: Wrong options');

@@ -3,7 +3,7 @@
 module.exports.toJSON = (s) => {
   try {
     return JSON.stringify(s);
-  } catch(err) {
+  } catch(_err) {
     return null;
   }
 };
@@ -12,7 +12,7 @@ module.exports.toJSON = (s) => {
 module.exports.fromJSON = (json) => {
   try {
     return JSON.parse(json);
-  } catch(err) {
+  } catch(_err) {
     return null;
   }
 };

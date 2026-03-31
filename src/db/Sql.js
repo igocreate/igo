@@ -24,7 +24,7 @@ module.exports = class Sql {
     } else if (query.select) {
       let select_sql = query.select;
       _.each(query.joins, join => {
-        const [assoc_type, name, Obj] = join.association;
+        const [_assoc_type, name, Obj] = join.association;
         select_sql = select_sql.replace(new RegExp(`\\b${Obj.schema.table}\\b`, 'g'), name);
       });
       sql += select_sql + ' ';
@@ -32,8 +32,8 @@ module.exports = class Sql {
       sql += `${esc}${query.table}${esc}.*`;
 
       _.each(query.joins, join => {
-        const { src_schema, association } = join;
-        const [ assoc_type, name, Obj, src_column, column] = association;
+        const { src_schema: _src_schema, association } = join;
+        const [ _assoc_type, name, Obj, _src_column, _column] = association;
         const table_alias = name;
         sql += ', ';
         if (join.columns) {
@@ -126,7 +126,7 @@ module.exports = class Sql {
     let sql = '';
     _.each(query.joins, join => {
       const { src_schema, type, association, src_alias } = join;
-      const [ assoc_type, name, Obj, src_column, column, extraWhere] = association;
+      const [ _assoc_type, name, Obj, src_column, column, extraWhere] = association;
       const src_table_alias = src_alias || src_schema.table;
       const table       = Obj.schema.table;
       let joinSql = `${type.toUpperCase()} JOIN ${esc}${table}${esc} AS ${esc}${name}${esc} ON ${esc}${name}${esc}.${esc}${column}${esc} = ${esc}${src_table_alias}${esc}.${esc}${src_column}${esc}`;
@@ -144,7 +144,7 @@ module.exports = class Sql {
   // WHERE
   whereSQL(params, not) {
     const { query, dialect } = this;
-    const { esc } = dialect;
+    const { esc: _esc } = dialect;
 
     const sqlwhere = [];
     const wheres = not ? query.whereNot : query.where;
