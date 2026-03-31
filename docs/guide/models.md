@@ -296,10 +296,7 @@ const users = await User.where({ status: ['active', 'pending'] }).list();
 // IS NULL
 const users = await User.where({ deleted_at: null }).list();
 
-// LIKE (auto-detected with %)
-const users = await User.where({ last_name: 'Dup%' }).list();
-
-// $like - explicit LIKE
+// $like - LIKE
 const users = await User.where({ last_name: { $like: 'Dup%' } }).list();
 
 // $between - range

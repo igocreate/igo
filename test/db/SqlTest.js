@@ -304,14 +304,6 @@ describe('db.Sql', function() {
       assert.strictEqual('WHERE `books`.`price` NOT BETWEEN ? AND ? ', sql);
       assert.deepStrictEqual([10, 50], params);
     });
-
-    it('should use NOT LIKE in whereNot for implicit %', function() {
-      var params  = [];
-      var query   = freshQuery({ where: [], whereNot: [{ title: 'Draft%' }] });
-      var sql     = new Sql(query, dialect).whereNotSQL(params);
-      assert.strictEqual('WHERE `books`.`title` NOT LIKE ? ', sql);
-      assert.deepStrictEqual(['Draft%'], params);
-    });
   });
 
   //
@@ -387,14 +379,6 @@ describe('db.Sql', function() {
     it('should support $like operator', function() {
       var params = [];
       var query  = freshQuery({ where: [{ title: { $like: 'Node%' } }] });
-      var sql    = new Sql(query, dialect).whereSQL(params);
-      assert.strictEqual('WHERE `books`.`title` LIKE ? ', sql);
-      assert.deepStrictEqual(['Node%'], params);
-    });
-
-    it('should support implicit LIKE with %', function() {
-      var params = [];
-      var query  = freshQuery({ where: [{ title: 'Node%' }] });
       var sql    = new Sql(query, dialect).whereSQL(params);
       assert.strictEqual('WHERE `books`.`title` LIKE ? ', sql);
       assert.deepStrictEqual(['Node%'], params);
