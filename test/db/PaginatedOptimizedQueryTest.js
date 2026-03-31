@@ -238,16 +238,6 @@ describe('db.PaginatedOptimizedQuery', function() {
       assert.deepStrictEqual(params, []);
     });
 
-    it('should generate implicit LIKE for string with %', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
-      query.query.verb = 'count';
-      query.where({ status: 'TRANS%' });
-      const { sql, params } = query.toSQL();
-
-      assert.ok(sql.includes('WHERE `folders`.`status` LIKE ?'));
-      assert.deepStrictEqual(params, ['TRANS%']);
-    });
-
     it('should generate explicit $like', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
@@ -395,7 +385,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     it('should generate 1-level EXISTS', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
-      query.where({ status: 'SUBMITTED', 'applicant.last_name': 'Dupont%' });
+      query.where({ status: 'SUBMITTED', 'applicant.last_name': { $like: 'Dupont%' } });
       const { sql, params } = query.toSQL();
 
       assert.ok(sql.includes('WHERE `folders`.`status` = ?'));
@@ -406,7 +396,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     it('should group conditions on the same table into one EXISTS', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
-      query.where({ 'applicant.last_name': 'Dupont%', 'applicant.email': 'test@test.com' });
+      query.where({ 'applicant.last_name': { $like: 'Dupont%' }, 'applicant.email': 'test@test.com' });
       const { sql, params } = query.toSQL();
 
       assert.ok(sql.includes('EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND `applicants`.`last_name` LIKE ? AND `applicants`.`email` = ? )'));
@@ -417,7 +407,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     it('should generate 2 separate EXISTS for 2 different joined tables', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
-      query.where({ 'applicant.last_name': 'Dupont%', 'pme_folder.status': 'ACTIVE' });
+      query.where({ 'applicant.last_name': { $like: 'Dupont%' }, 'pme_folder.status': 'ACTIVE' });
       const { sql, params } = query.toSQL();
 
       assert.ok(sql.includes('EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND `applicants`.`last_name` LIKE ? )'));
@@ -447,7 +437,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       query.query.verb = 'count';
       query.where({
         $or: [
-          { 'applicant.last_name': 'Dupont%' },
+          { 'applicant.last_name': { $like: 'Dupont%' } },
           { 'pme_folder.status': 'ACTIVE' }
         ]
       });
@@ -461,7 +451,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     it('should include extraWhere in EXISTS clause', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(BookWithExtraWhere));
       query.query.verb = 'count';
-      query.where({ 'library.title': 'Test%' });
+      query.where({ 'library.title': { $like: 'Test%' } });
       const { sql, params } = query.toSQL();
 
       assert.ok(sql.includes('EXISTS (SELECT 1 FROM `libraries` WHERE `libraries`.`id` = `books`.`library_id` AND `libraries`.`collection` = ?'));
@@ -694,7 +684,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     it('should apply extraWhere in both EXISTS and LEFT JOIN when combined', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(BookWithExtraWhere));
       query.query.verb = 'select_ids';
-      query.where({ code: 'ABC', 'library.title': 'Test%' }).order('library.title ASC').limit(50);
+      query.where({ code: 'ABC', 'library.title': { $like: 'Test%' } }).order('library.title ASC').limit(50);
       const { sql, params } = query.toSQL();
 
       assert.ok(sql.includes('EXISTS'));
@@ -716,7 +706,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     it('should apply multiple extraWhere conditions', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(BookWithMultipleExtraWhere));
       query.query.verb = 'count';
-      query.where({ 'library.title': 'Test%' });
+      query.where({ 'library.title': { $like: 'Test%' } });
       const { sql, params } = query.toSQL();
 
       assert.ok(sql.includes('`libraries`.`collection` = ?'));

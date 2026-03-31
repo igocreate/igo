@@ -5,7 +5,7 @@ const _ = require('lodash');
  * Compile une condition unitaire (colonne + valeur) en SQL
  *
  * Supporte : null (IS NULL), array (IN), $like, $between, $gte, $lte, $gt, $lt,
- * string avec % (LIKE implicite), et égalité par défaut.
+ * et égalité par défaut.
  *
  * @param {string} columnRef - Référence qualifiée de la colonne (ex: `table`.`col`)
  * @param {any} value - Valeur ou objet opérateur
@@ -51,10 +51,6 @@ const compileCondition = (columnRef, value, dialect, i) => {
     if (parts.length > 1) {
       return { sql: `(${parts.join(' AND ')})`, params: allParams, i };
     }
-  }
-
-  if (_.isString(value) && value.includes('%')) {
-    return { sql: `${columnRef} LIKE ${dialect.param(i++)}`, params: [value], i };
   }
 
   return { sql: `${columnRef} = ${dialect.param(i++)}`, params: [value], i };
@@ -108,11 +104,6 @@ const compileNotCondition = (columnRef, value, dialect, i) => {
     if (parts.length > 1) {
       return { sql: `(${parts.join(' AND ')})`, params: allParams, i };
     }
-  }
-
-  // String avec % → NOT LIKE implicite
-  if (_.isString(value) && value.includes('%')) {
-    return { sql: `${columnRef} NOT LIKE ${dialect.param(i++)}`, params: [value], i };
   }
 
   return { sql: `${columnRef} != ${dialect.param(i++)}`, params: [value], i };

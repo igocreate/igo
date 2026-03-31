@@ -1022,7 +1022,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
    * - Égalité : { status: 'ACTIVE' }
    * - IN : { status: ['ACTIVE', 'PENDING'] }
    * - IS NULL : { email: null }
-   * - LIKE : { last_name: 'Dupont%' }
+   * - LIKE : { last_name: { $like: 'Dupont%' } }
    * - BETWEEN : { created_at: { $between: ['2024-01-01', '2024-12-31'] } }
    * - >= : { created_at: { $gte: '2024-01-01' } }
    * - <= : { created_at: { $lte: '2024-12-31' } }
