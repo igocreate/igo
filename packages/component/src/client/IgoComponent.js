@@ -131,7 +131,7 @@ class IgoComponent {
         this._state.form = this._props.form;
       }
 
-      this.props = this._createTrackingProxy(this._props, 'props');
+      this.props = new StateProxy(this, 'props').create(this._props);
       this.state = new StateProxy(this, 'state').create(this._state);
     }
 
@@ -139,17 +139,6 @@ class IgoComponent {
     if (!isServer) {
       this.init();
     }
-  }
-
-  _createTrackingProxy(target, namespace) {
-    return new Proxy(target, {
-      get: (target, property) => {
-        if (this._isTracking) {
-          this._trackedDeps.push([namespace, property]);
-        }
-        return target[property];
-      }
-    });
   }
 
   // Expose raw state for internal use (bypasses Proxy, no auto-render)
@@ -368,20 +357,9 @@ class IgoComponent {
       const hydrate = new Function('return ' + this.element.dataset.props);
       const newLocalProps = hydrate();
 
-      // Check if any prop changed
-      let hasChanges = false;
+      // Write through the reactive proxy — triggers re-render automatically if changed
       for (const key in newLocalProps) {
-        if (this._props[key] !== newLocalProps[key]) {
-          hasChanges = true;
-          break;
-        }
-      }
-
-      if (hasChanges) {
-        // Update _props with new local values
-        Object.assign(this._props, newLocalProps);
-        // Re-render (getters that depend on props will return new values)
-        this._triggerRender();
+        this.props[key] = newLocalProps[key];
       }
     } catch (e) {
       console.error('Failed to sync props', e);

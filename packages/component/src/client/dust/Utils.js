@@ -105,10 +105,22 @@ const h = (t, p, l) => {
   return h.helpers[t](p, l);
 };
 
+// Client-side @component helper
+// Generates the wrapper div; the child component auto-mounts via _mountChildComponents()
+const componentHelper = (params) => {
+  const { name, ...props } = params;
+  if (!name) {
+    throw new Error('[@component] "name" parameter is required');
+  }
+  const dataProps = htmlencode(uneval(props));
+  return `<div data-component="${name}" data-props="${dataProps}"></div>`;
+};
+
 // Initialize with igo-dust base helpers
 h.helpers = {
   ...igoDustHelpers,
-  serialize: createSerializeHelper(uneval)
+  serialize: createSerializeHelper(uneval),
+  component: componentHelper,
 };
 
 // Register application helpers (called by component.start())

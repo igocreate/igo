@@ -212,7 +212,12 @@ Recalculates only when `this.props.products` or `this.state.filter` changes.
 
 ### Props
 
-Props come from the server via `data-props`. They are tracked for dependency detection but not meant to be mutated from outside the component.
+Props come from the server via `data-props`. They are **reactive** — mutations trigger a re-render, just like state:
+
+```javascript
+this.props.count++;                              // Triggers render
+this.props.products = this.props.products.filter(p => p.id !== id);  // Triggers render
+```
 
 ## Form Handling
 
