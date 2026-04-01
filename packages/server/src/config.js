@@ -18,13 +18,37 @@ module.exports.init = function() {
   config.httpport       = process.env.HTTP_PORT || 3000;
   config.projectRoot    = process.cwd();
 
-  config.cookieSecret  = process.env.COOKIE_SECRET || 'abcdefghijklmnopqrstuvwxyz';
+  // Security: Require strong secrets in production
+  if (config.env === 'production') {
+    if (!process.env.COOKIE_SECRET) {
+      throw new Error('COOKIE_SECRET must be set in production environment');
+    }
+    if (!process.env.COOKIE_SESSION_KEYS) {
+      throw new Error('COOKIE_SESSION_KEYS must be set in production environment');
+    }
+  }
+
+  // Use secure defaults for development and test
+  const generateTestSecret = () => {
+    return 'test-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  };
+
+  config.cookieSecret  = process.env.COOKIE_SECRET || 
+    (config.env === 'test' ? generateTestSecret() : 'dev-secret-change-in-production');
+  
   config.cookieSession = {
     name: 'app',
-    keys: process.env.COOKIE_SESSION_KEYS ? process.env.COOKIE_SESSION_KEYS.split(',') : [ 'aaaaaaaaaaa' ],
+    keys: process.env.COOKIE_SESSION_KEYS ? 
+      process.env.COOKIE_SESSION_KEYS.split(',') : 
+      (config.env === 'test' ? [generateTestSecret()] : ['dev-key-change-in-production']),
     maxAge: 31 * 24 * 60 * 60 * 1000, // 31 days
     sameSite: 'Lax'
   };
+
+  // Warn in development if using default secrets
+  if (config.env === 'dev' && !process.env.COOKIE_SECRET) {
+    console.warn('⚠️  WARNING: Using default COOKIE_SECRET in development. Set COOKIE_SECRET in .env for security.');
+  }
 
   config.igodust = {
     stream: false   // experimental!

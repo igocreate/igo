@@ -106,13 +106,14 @@ const send = async (templateName, data) => {
     headers
   };
 
-  transport.sendMail(mailOptions, (err, res) => {
-    if (err) {
-      logger.error(err);
-    } else {
-      logger.info(`mailer.send: Message ${templateName} sent: ${res.response}`);
-    }
-  });
+  try {
+    const res = await transport.sendMail(mailOptions);
+    logger.info(`mailer.send: Message ${templateName} sent: ${res.response}`);
+    return res;
+  } catch (err) {
+    logger.error(`mailer.send: Failed to send ${templateName}:`, err);
+    throw err;
+  }
 };
 
 module.exports = {

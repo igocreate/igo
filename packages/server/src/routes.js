@@ -6,8 +6,8 @@ const routes = require(config.projectRoot + '/app/routes');
 module.exports.init = function(app) {
   routes.init(app);
 
-  // 404
-  app.all(/.*/, (req, res) => {
+  // 404 - catch all unmatched routes (more efficient than regex)
+  app.use((req, res) => {
     res.status(404).render('errors/404');
   });
 };

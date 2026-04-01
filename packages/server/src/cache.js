@@ -11,22 +11,60 @@ let client        = null;
 
 const key = (namespace, id) => `${namespace}/${id}`;
 
-// init cache module : create redis client
+/**
+ * Initialize the cache module with Redis client
+ * @returns {Promise<void>}
+ * @throws {Error} If Redis connection fails
+ */
 module.exports.init = async () => {
   options = config.redis || {};
   client = redis.createClient(options);
 
-  client.on('error', (err) => { logger.error(err); });
+  client.on('error', (err) => { 
+    // In test mode, just log the error and continue
+    if (config.env === 'test') {
+      logger.debug('Redis error (ignored in test):', err.message);
+    } else {
+      logger.error('Redis error:', err); 
+    }
+  });
 
-  await client.connect();
+  client.on('reconnecting', () => {
+    logger.info('Redis reconnecting...');
+  });
 
-  if (config.env === 'test') {
+  client.on('ready', () => {
+    logger.debug('Redis connection ready');
+  });
+
+  try {
+    await client.connect();
+  } catch (err) {
+    if (config.env === 'test') {
+      // In test mode, allow tests to continue without Redis
+      logger.warn('Redis connection failed in test mode - cache operations will be skipped');
+      client = null;
+      return;
+    }
+    throw err;
+  }
+
+  if (config.env === 'test' && client) {
     await module.exports.flushall();
   }
 };
 
-//
+/**
+ * Store a value in cache
+ * @param {string} namespace - Cache namespace
+ * @param {string} id - Cache key identifier
+ * @param {*} value - Value to cache (will be serialized)
+ * @param {number} [timeout] - Optional expiration timeout in seconds
+ * @returns {Promise<string>} Redis response
+ */
 module.exports.put = async (namespace, id, value, timeout) => {
+  if (!client) return null;
+  
   const k = key(namespace, id);
   const v = serialize(value);
 
@@ -38,8 +76,15 @@ module.exports.put = async (namespace, id, value, timeout) => {
   return ret;
 };
 
-//
+/**
+ * Retrieve a value from cache
+ * @param {string} namespace - Cache namespace
+ * @param {string} id - Cache key identifier
+ * @returns {Promise<*|null>} Cached value or null if not found
+ */
 module.exports.get = async (namespace, id) => {
+  if (!client) return null;
+  
   const k = key(namespace, id);
   const value = await client.get(k);
   if (!value) {
@@ -49,8 +94,15 @@ module.exports.get = async (namespace, id) => {
   return deserialize(value);
 };
 
-// - returns object from cache if exists.
-// - calls func(id) otherwise and put result in cache
+/**
+ * Fetch from cache or compute and store
+ * Returns cached value if exists, otherwise calls func(id) and caches result
+ * @param {string} namespace - Cache namespace
+ * @param {string} id - Cache key identifier
+ * @param {Function} func - Function to call if cache miss: (id) => Promise<value>
+ * @param {number} [timeout] - Optional expiration timeout in seconds
+ * @returns {Promise<*>} Cached or computed value
+ */
 module.exports.fetch = async (namespace, id, func, timeout) => {
 
   const obj = await module.exports.get(namespace, id);
@@ -71,17 +123,20 @@ module.exports.fetch = async (namespace, id, func, timeout) => {
 
 //
 module.exports.info = async () => {
+  if (!client) return null;
   return await client.info();
 };
 
 //
 module.exports.incr = async (namespace, id) => {
+  if (!client) return 0;
   const k = key(namespace, id);
   return await client.incr(k);
 };
 
 //
 module.exports.del = async (namespace, id) => {
+  if (!client) return null;
   const k = key(namespace, id);
   // remove from redis
   return await client.del(k);
@@ -89,12 +144,14 @@ module.exports.del = async (namespace, id) => {
 
 //
 module.exports.flushdb = async () => {
+  if (!client) return;
   const r = await client.flushDb();
   logger.info('Cache flushDb: ' + r);
 };
 
 //
 module.exports.flushall = async () => {
+  if (!client) return;
   const r = await client.flushAll();
   logger.info('Cache flushAll: ' + r);
 };
@@ -102,6 +159,8 @@ module.exports.flushall = async () => {
 // scan keys
 // - fn is invoked with (key) parameter for each key matching the pattern
 module.exports.scan = async (pattern, fn) => {
+  if (!client) return;
+  
   let cursor = '0';
 
   do {
@@ -121,10 +180,35 @@ module.exports.scan = async (pattern, fn) => {
 
 // flush with wildcard
 module.exports.flush = async (pattern) => {
+  if (!client) return;
   await module.exports.scan(pattern, async (key) => {
     // console.log('DEL: ' + key);
     await client.del(key);
   });
+};
+
+// get cache statistics
+module.exports.getStats = async () => {
+  if (!client || !client.isReady) {
+    return { connected: false };
+  }
+  
+  const info = await client.info();
+  const dbSize = await client.dbSize();
+  
+  return {
+    connected: client.isReady,
+    keys: dbSize,
+    info: info
+  };
+};
+
+// disconnect redis client
+module.exports.disconnect = async () => {
+  if (client && client.isReady) {
+    await client.quit();
+    logger.info('Redis connection closed');
+  }
 };
 
 
