@@ -51,6 +51,10 @@ const compileCondition = (columnRef, value, dialect, i) => {
     if (parts.length > 1) {
       return { sql: `(${parts.join(' AND ')})`, params: allParams, i };
     }
+
+    // Object with no recognized operator keys — reject to prevent injection
+    const unknownKeys = Object.keys(value).join(', ');
+    throw new Error(`Unknown operator(s) in where clause: ${unknownKeys}. Supported: $like, $between, $gte, $lte, $gt, $lt`);
   }
 
   return { sql: `${columnRef} = ${dialect.param(i++)}`, params: [value], i };
@@ -104,6 +108,10 @@ const compileNotCondition = (columnRef, value, dialect, i) => {
     if (parts.length > 1) {
       return { sql: `(${parts.join(' AND ')})`, params: allParams, i };
     }
+
+    // Object with no recognized operator keys — reject to prevent injection
+    const unknownKeys = Object.keys(value).join(', ');
+    throw new Error(`Unknown operator(s) in where clause: ${unknownKeys}. Supported: $like, $between, $gte, $lte, $gt, $lt`);
   }
 
   return { sql: `${columnRef} != ${dialect.param(i++)}`, params: [value], i };
