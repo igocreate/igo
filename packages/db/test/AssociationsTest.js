@@ -160,8 +160,8 @@ describe('includes', () => {
     });
 
     it('should return an empty array if ref null', async () => {
-      const book1 = await Book.create();
-      const book2 = await Book.create();
+      const _book1 = await Book.create();
+      const _book2 = await Book.create();
       const library = await Library.create({ books_ids: null });
       const foundLibrary = await Library.includes('books').find(library.id);
       assert(Array.isArray(foundLibrary.books));
@@ -169,8 +169,8 @@ describe('includes', () => {
     });
 
     it('should return an empty array if wrong id', async () => {
-      const book1 = await Book.create();
-      const book2 = await Book.create();
+      const _book1 = await Book.create();
+      const _book2 = await Book.create();
       const library = await Library.create({ books_ids: [99999] });
       const foundLibrary = await Library.includes('books').find(library.id);
       assert(Array.isArray(foundLibrary.books));

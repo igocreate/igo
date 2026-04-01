@@ -235,17 +235,18 @@ describe('includes', () => {
     });
   });
 
-  describe('paginatedOptimized join', () => {
+  describe('optimized join (page + join)', () => {
     it('should attach joined data in selectFull phase (cloneDeep regression)', async () => {
       const city    = await City.create({ name: 'Paris' });
       const library = await Library.create({ title: 'BNF', city_id: city.id });
       const book    = await Book.create({ library_id: library.id });
 
-      const books = await Book.paginatedOptimized()
-        .join('library')
-        .limit(10)
-        .list();
+      const result = await Book
+      .join('library')
+      .page(1, 10)
+      .list();
 
+      const books = result.rows;
       assert.strictEqual(books.length, 1);
       assert.strictEqual(books[0].id, book.id);
       assert.strictEqual(books[0].library.id, library.id);
@@ -255,17 +256,40 @@ describe('includes', () => {
     it('should attach nested joined data in selectFull phase', async () => {
       const city    = await City.create({ name: 'Lyon' });
       const library = await Library.create({ title: 'Municipale', city_id: city.id });
-      const book    = await Book.create({ library_id: library.id });
+      await Book.create({ library_id: library.id });
 
-      const books = await Book.paginatedOptimized()
-        .join({ library: 'city' })
-        .limit(10)
-        .list();
+      const result = await Book
+      .join({ library: 'city' })
+      .page(1, 10)
+      .list();
+      const books = result.rows;
 
       assert.strictEqual(books.length, 1);
       assert.strictEqual(books[0].library.id, library.id);
       assert.strictEqual(books[0].library.city.id, city.id);
       assert.strictEqual(books[0].library.city.name, 'Lyon');
+    });
+
+  });
+
+  describe('auto-activation of optimized mode (page + join)', () => {
+    it('should return correct paginated results via optimized path', async () => {
+      const library = await Library.create({ title: 'Central' });
+      await Book.create({ library_id: library.id, title: 'Book A' });
+      await Book.create({ library_id: library.id, title: 'Book B' });
+      await Book.create({ title: 'Book C' }); // no library
+
+      const result = await Book
+      .where({ library_id: library.id })
+      .join('library')
+      .page(1, 10)
+      .list();
+
+      assert.ok(result.pagination, 'should return pagination object');
+      assert.strictEqual(result.pagination.count, 2);
+      assert.strictEqual(result.rows.length, 2);
+      assert.strictEqual(result.rows[0].library.id, library.id);
+      assert.strictEqual(result.rows[0].library.title, 'Central');
     });
   });
 

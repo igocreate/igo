@@ -154,12 +154,6 @@ module.exports = class Query {
     return this;
   }
 
-  // UNSCOPED (deprecated, use unscope())
-  unscoped() {
-    console.warn('Query.unscoped() is deprecated, use unscope() instead.');
-    return this.unscope();
-  }
-
   // UNSCOPE
   unscope(...clauses) {
     if (clauses.length === 0) {
@@ -279,16 +273,16 @@ module.exports = class Query {
     // Apply unscopes after scopes
     for (const clause of query.unscopes) {
       switch (clause) {
-        case 'where':    query.where = [];    break;
-        case 'whereNot': query.whereNot = []; break;
-        case 'order':    query.order = [];    break;
-        case 'includes': query.includes = {}; break;
-        case 'joins':    query.joins = [];    break;
-        case 'select':   query.select = null; break;
-        case 'distinct': query.distinct = null; break;
-        case 'group':    query.group = null;  break;
-        case 'limit':    delete query.limit;  break;
-        case 'offset':   delete query.offset; break;
+      case 'where':    query.where = [];    break;
+      case 'whereNot': query.whereNot = []; break;
+      case 'order':    query.order = [];    break;
+      case 'includes': query.includes = {}; break;
+      case 'joins':    query.joins = [];    break;
+      case 'select':   query.select = null; break;
+      case 'distinct': query.distinct = null; break;
+      case 'group':    query.group = null;  break;
+      case 'limit':    delete query.limit;  break;
+      case 'offset':   delete query.offset; break;
       }
     }
   }
@@ -349,6 +343,28 @@ module.exports = class Query {
 
   getDb() {
     return dbs[this.schema.database];
+  }
+
+  // Vérifie si la query est compatible avec le mode optimisé
+  _checkOptimizedCompatibility() {
+    const { query } = this;
+
+    // Joins avec colonnes personnalisées (aliases dans ORDER BY)
+    if (query.joins.some(j => j.columns)) {
+      return false;
+    }
+
+    // Raw SQL where qui référence des aliases de joins
+    const joinAliases = query.joins.map(j => j.association[1]);
+    const rawWheres = query.where.filter(w => _.isArray(w) || _.isString(w));
+    for (const w of rawWheres) {
+      const sql = _.isArray(w) ? w[0] : w;
+      if (joinAliases.some(alias => sql.includes(`\`${alias}\``))) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   // generate SQL
@@ -504,6 +520,16 @@ module.exports = class Query {
       query.limit = 1;
     }
 
+    // Auto-activation du mode optimisé : pagination + joins → pattern 3 phases
+    if (query.verb === 'select' && query.page && query.joins.length > 0) {
+      if (!this._checkOptimizedCompatibility()) {
+        context.logger.warn(`[Query] Optimized pagination skipped for '${query.table}': join aliases are not supported, use 'dot' notation instead.`);
+      } else {
+        const PaginatedOptimizedQuery = require('./PaginatedOptimizedQuery');
+        return await PaginatedOptimizedQuery.fromQuery(this).executeOptimized();
+      }
+    }
+
     const pagination  = await this.paginate();
     let rows          = await this.runQuery();
 
@@ -524,8 +550,8 @@ module.exports = class Query {
 
         // parse joins values
         _.forEach(this.query.joins, (join) => {
-          const { src_schema, association } = join;
-          const [assoc_type, name, Obj, src_column, column] = association;
+          const { src_schema: _src_schema, association } = join;
+          const [_assoc_type, name, Obj, _src_column, _column] = association;
           Obj.schema.parseTypes(row, `${name}__`);
         });
       });
@@ -544,7 +570,7 @@ module.exports = class Query {
 
         _.forEach(this.query.joins, (join) => {
           const { src_schema, association } = join;
-          const [assoc_type, name, Obj, src_column, column] = association;
+          const [_assoc_type, name, Obj, _src_column, _column] = association;
           const table_alias = name;
 
           const params = {};

@@ -1,5 +1,6 @@
 const _   = require('lodash');
 const Sql = require('./Sql');
+const { compileCondition } = require('./OperatorCompiler');
 
 /**
  * PaginatedOptimizedSql - Générateur SQL optimisé avec pattern EXISTS
@@ -237,15 +238,20 @@ module.exports = class PaginatedOptimizedSql extends Sql {
         const parts = cleanedClause.split(/\s+/)[0].split('.'); // Take only before ASC/DESC
 
         if (parts.length < 2) {
-          // No dot - could be a column on main table OR a column from a block table
+          // No dot - could be a column on main table OR a column from a joined/block table
           const columnName = parts[0];
 
           // Check if column exists in main table
           const existsInMainTable = query.schema && query.schema.colsByName && query.schema.colsByName[columnName];
 
           if (!existsInMainTable) {
-            // Column not in main table - search in associations (blocks)
-            const assocPath = this._findAssociationByColumn(columnName, query.schema);
+            // Search in associations (blocks)
+            let assocPath = this._findAssociationByColumn(columnName, query.schema);
+
+            // Search in explicitly declared joins
+            if (!assocPath && query.joins && query.joins.length > 0) {
+              assocPath = this._findColumnInJoins(columnName, query.joins);
+            }
 
             if (assocPath && assocPath.length > 0) {
               const pathKey = assocPath.map(p => p.association[1]).join('.');
@@ -262,7 +268,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
             }
           }
 
-          // If column exists in main table or wasn't found in associations, no join needed
+          // If column exists in main table or wasn't found in associations/joins, no join needed
           return;
         }
 
@@ -537,7 +543,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
 
     // Chercher dans les associations directes (belongs_to uniquement pour les blocks)
     for (const assoc of associations) {
-      const [assocType, assocName, AssociatedModel, src_column, ref_column] = assoc;
+      const [assocType, _assocName, AssociatedModel, _src_column, _ref_column] = assoc;
 
       // On cherche uniquement dans les belongs_to
       if (assocType !== 'belongs_to' || !AssociatedModel || !AssociatedModel.schema) {
@@ -557,6 +563,33 @@ module.exports = class PaginatedOptimizedSql extends Sql {
       }
     }
 
+    return null;
+  }
+
+  /**
+   * Cherche une colonne dans les tables explicitement jointes (query.joins)
+   *
+   * @param {string} columnName - Nom de la colonne à chercher
+   * @param {Array} joins - Liste des joins déclarés sur la query
+   * @returns {Array|null} Chemin vers l'association contenant la colonne, ou null
+   */
+  _findColumnInJoins(columnName, joins) {
+    for (const join of joins) {
+      const { association } = join;
+      const [, , AssociatedModel] = association;
+
+      if (!AssociatedModel || !AssociatedModel.schema) {
+        continue;
+      }
+
+      const assocSchema = AssociatedModel.schema;
+      if (assocSchema.colsByName && assocSchema.colsByName[columnName]) {
+        return [{
+          association,
+          tableName: assocSchema.table
+        }];
+      }
+    }
     return null;
   }
 
@@ -600,7 +633,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
 
     // Chercher dans les associations directes
     for (const assoc of associations) {
-      const [, assocName, AssociatedModel, src_column, ref_column] = assoc;
+      const [, assocName, AssociatedModel, _src_column, _ref_column] = assoc;
 
       if (!AssociatedModel || !AssociatedModel.schema) {
         continue;
@@ -679,7 +712,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
           return;
         }
 
-        const [, , AssociatedModel, src_column, ref_column, extraWhere] = association;
+        const [, , , src_column, ref_column, extraWhere] = association;
 
         // Générer le LEFT JOIN (pour préserver toutes les lignes, même celles avec NULL)
         let joinSql = `LEFT JOIN ${esc}${currentTableName}${esc} `;
@@ -718,7 +751,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
    * - Pour chaque filterJoin nested : créer des EXISTS vraiment imbriqués
    */
   addFilterJoinsAsExists(params) {
-    const { query, dialect } = this;
+    const { query, dialect: _dialect } = this;
 
     if (!query.filterJoins || query.filterJoins.length === 0) {
       return '';
@@ -877,8 +910,8 @@ module.exports = class PaginatedOptimizedSql extends Sql {
    *
    * Exemple :
    * Input: [
-   *   { 'applicant.last_name': 'Dupont%' },
-   *   { 'applicant.first_name': 'Jean%' },
+   *   { 'applicant.last_name': { $like: 'Dupont%' } },
+   *   { 'applicant.first_name': { $like: 'Jean%' } },
    *   { 'beneficiary.email': 'test@test.com' }
    * ]
    * Output: (
@@ -921,23 +954,10 @@ module.exports = class PaginatedOptimizedSql extends Sql {
 
           // Ajouter la condition sur la colonne
           const columnRef = `${esc}${joinTable}${esc}.${esc}${column}${esc}`;
-
-          if (value === null || value === undefined) {
-            existsSQL += `AND ${columnRef} IS NULL`;
-          } else if (_.isArray(value)) {
-            if (value.length > 0) {
-              existsSQL += `AND ${columnRef} IN (${dialect.param(this.i++)})`;
-              params.push(value);
-            } else {
-              existsSQL += 'AND FALSE';
-            }
-          } else if (_.isString(value) && value.includes('%')) {
-            existsSQL += `AND ${columnRef} LIKE ${dialect.param(this.i++)}`;
-            params.push(value);
-          } else {
-            existsSQL += `AND ${columnRef} = ${dialect.param(this.i++)}`;
-            params.push(value);
-          }
+          const compiled = compileCondition(columnRef, value, dialect, this.i);
+          this.i = compiled.i;
+          existsSQL += `AND ${compiled.sql}`;
+          params.push(...compiled.params);
 
           existsSQL += ')';
           existsClauses.push(existsSQL);
@@ -1002,7 +1022,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
    * - Égalité : { status: 'ACTIVE' }
    * - IN : { status: ['ACTIVE', 'PENDING'] }
    * - IS NULL : { email: null }
-   * - LIKE : { last_name: 'Dupont%' }
+   * - LIKE : { last_name: { $like: 'Dupont%' } }
    * - BETWEEN : { created_at: { $between: ['2024-01-01', '2024-12-31'] } }
    * - >= : { created_at: { $gte: '2024-01-01' } }
    * - <= : { created_at: { $lte: '2024-12-31' } }
@@ -1017,8 +1037,6 @@ module.exports = class PaginatedOptimizedSql extends Sql {
 
     _.forOwn(conditions, (value, key) => {
       let columnRef;
-
-      // Gérer les colonnes qualifiées (ex: 'applicants.last_name')
       if (key.indexOf('.') > -1) {
         const parts = key.split('.');
         columnRef = _.map(parts, part => `${esc}${part}${esc}`).join('.');
@@ -1026,50 +1044,10 @@ module.exports = class PaginatedOptimizedSql extends Sql {
         columnRef = `${esc}${tableName}${esc}.${esc}${key}${esc}`;
       }
 
-      // Générer la condition selon le type de valeur
-      if (value === null || value === undefined) {
-        sqlConditions.push(`${columnRef} IS NULL `);
-      } else if (_.isArray(value)) {
-        if (value.length === 0) {
-          sqlConditions.push('FALSE ');
-        } else {
-          sqlConditions.push(`${columnRef} ${dialect.in} (${dialect.param(this.i++)}) `);
-          params.push(value);
-        }
-      } else if (_.isObject(value) && !_.isDate(value)) {
-        // Opérateurs spéciaux ($between, $gte, $lte, $gt, $lt, $like)
-        if (value.$between && _.isArray(value.$between) && value.$between.length === 2) {
-          sqlConditions.push(`${columnRef} BETWEEN ${dialect.param(this.i++)} AND ${dialect.param(this.i++)} `);
-          params.push(value.$between[0]);
-          params.push(value.$between[1]);
-        } else if (value.$gte !== undefined) {
-          sqlConditions.push(`${columnRef} >= ${dialect.param(this.i++)} `);
-          params.push(value.$gte);
-        } else if (value.$lte !== undefined) {
-          sqlConditions.push(`${columnRef} <= ${dialect.param(this.i++)} `);
-          params.push(value.$lte);
-        } else if (value.$gt !== undefined) {
-          sqlConditions.push(`${columnRef} > ${dialect.param(this.i++)} `);
-          params.push(value.$gt);
-        } else if (value.$lt !== undefined) {
-          sqlConditions.push(`${columnRef} < ${dialect.param(this.i++)} `);
-          params.push(value.$lt);
-        } else if (value.$like !== undefined) {
-          sqlConditions.push(`${columnRef} LIKE ${dialect.param(this.i++)} `);
-          params.push(value.$like);
-        } else {
-          // Objet non reconnu, traiter comme égalité
-          sqlConditions.push(`${columnRef} = ${dialect.param(this.i++)} `);
-          params.push(value);
-        }
-      } else if (_.isString(value) && value.includes('%')) {
-        // Pattern LIKE détecté
-        sqlConditions.push(`${columnRef} LIKE ${dialect.param(this.i++)} `);
-        params.push(value);
-      } else {
-        sqlConditions.push(`${columnRef} = ${dialect.param(this.i++)} `);
-        params.push(value);
-      }
+      const compiled = compileCondition(columnRef, value, dialect, this.i);
+      this.i = compiled.i;
+      sqlConditions.push(compiled.sql + ' ');
+      params.push(...compiled.params);
     });
 
     if (sqlConditions.length === 0) {
@@ -1172,7 +1150,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
    * @returns {string} Clause transformée (ex: "formation_natures.name DESC" ou "COALESCE(beneficiaries.name, applicants.name)")
    */
   _transformOrderClause(orderClause) {
-    const { query } = this;
+    const { query: _query } = this;
 
     // Parser la clause ORDER BY pour extraire ASC/DESC
     const cleanedClause = orderClause.replace(/`/g, '').trim();
@@ -1224,7 +1202,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
     // Groupe 1: paths avec points (sans backticks) comme table.column
     // Groupe 2: colonnes simples avec backticks comme `column`
     // Groupe 3: identificateurs simples (sans backticks, sans points)
-    const combinedPattern = /(\b[a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)+\b)|(`[a-zA-Z_][a-zA-Z0-9_]*`)(?!\s*\.)|(\b[a-zA-Z_][a-zA-Z0-9_]*\b)(?!\s*[\.\(])/g;
+    const combinedPattern = /(\b[a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)+\b)|(`[a-zA-Z_][a-zA-Z0-9_]*`)(?!\s*\.)|(\b[a-zA-Z_][a-zA-Z0-9_]*\b)(?!\s*[.(])/g;
 
     return expression.replace(combinedPattern, (match, plainPath, backtickColumn, plainIdentifier) => {
       // Cas 1: Chemins avec points (ex: table.column, table1.table2.column)

@@ -118,10 +118,10 @@ const count = await User.where({ status: 'active' }).count();
 
 ### Optimized Pagination
 
-For large tables with many joins (100K+ rows), use `PaginatedOptimizedQuery`:
+For large tables with many joins (100K+ rows), the optimized COUNT/IDS/FULL pattern activates automatically when `.page()` and `.join()` are used together:
 
 ```javascript
-const result = await User.paginatedOptimized()
+const result = await User
   .where({
     status: 'active',
     'company.country.code': 'FR',  // Nested filter
@@ -129,7 +129,7 @@ const result = await User.paginatedOptimized()
   .join(['company.country'])
   .order('created_at DESC')
   .page(1, 50)
-  .execute();
+  .list();
 ```
 
 ## Initialization

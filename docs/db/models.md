@@ -159,8 +159,6 @@ const users = await User.unscope('includes').list();
 | `Model.join(assocs)` | `Query` | SQL JOIN |
 | `Model.scope(name)` | `Query` | Apply named scope |
 | `Model.unscope(...clauses)` | `Query` | Remove all scopes (no args) or specific clauses |
-| `Model.unscoped()` | `Query` | *Deprecated* — use `unscope()` |
-| `Model.paginatedOptimized()` | `PaginatedOptimizedQuery` | Optimized pagination (see [POQ](./paginated-optimized-query.md)) |
 
 ### Instance Methods
 

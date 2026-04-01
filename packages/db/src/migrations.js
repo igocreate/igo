@@ -120,13 +120,13 @@ module.exports.migrate = async (db, rootDir = '.') => {
       logger.error('SQL error in file %s', file.path);
       throw err;
     }
-  }
+  };
 
   let files = [];
   const filenames = await fs.readdir(sqldir);
   _.forEach(filenames, (filename) => {
     files.push({ filename, path: path.join(sqldir, filename) });
-  })
+  });
 
   files = _.sortBy(files, 'filename');
   await module.exports.initmigrations(db);

@@ -55,7 +55,7 @@ const loadThrottleData = () => {
     if (fs.existsSync(THROTTLE_FILE)) {
       return JSON.parse(fs.readFileSync(THROTTLE_FILE, 'utf8'));
     }
-  } catch (e) {
+  } catch {
     // Ignore read errors, start fresh
   }
   return { emails: [], blocked: {} };
@@ -65,7 +65,7 @@ const loadThrottleData = () => {
 const saveThrottleData = (data) => {
   try {
     fs.writeFileSync(THROTTLE_FILE, JSON.stringify(data), 'utf8');
-  } catch (e) {
+  } catch {
     // Ignore write errors
   }
 };

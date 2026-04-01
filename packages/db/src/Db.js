@@ -22,7 +22,7 @@ const logQuery = (sql, params, err) => {
   if (err) {
     errorhandler.errorSQL(err);
   }
-}
+};
 
 
 //
@@ -86,7 +86,6 @@ class Db {
         }
         logQuery(sql, params, err);
         throw err;
-
       } finally {
         if (!keep) {
           // console.log('query: release transaction');
