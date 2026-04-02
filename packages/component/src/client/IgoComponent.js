@@ -316,7 +316,7 @@ class IgoComponent {
             events.push({
               selector: 'document',
               eventType: 'click',
-              handler: function(e) {
+              handler: (e) => {
                 if (!targetEl.contains(e.target)) {
                   handler.call(this, e);
                 }

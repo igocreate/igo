@@ -11,6 +11,9 @@ const getTemplate = (file) => {
 const loadTemplate = async (file) => {
   if (!_CACHE[file]) {
     const response  = await fetch(`/__component/templates?file=${file}`);
+    if (!response.ok) {
+      throw new Error(`[Templates] Failed to load template "${file}": ${response.status}`);
+    }
     const json      = await response.json();
     // console.dir(json);
     const fn        = new AsyncFunction('l', 'u', 'c', 's', json.source);
