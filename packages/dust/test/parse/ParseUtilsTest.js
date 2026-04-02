@@ -34,4 +34,19 @@ describe('ParseUtils', () => {
     assert.equal(params.url, '"/search?q={.q}"');
   });
 
+  it('should handle shorthand params', () => {
+    const tag = '@component name="components/Counter" count ';
+    const params = ParseUtils.parseParams(tag);
+
+    assert.equal(params.name, '"components/Counter"');
+    assert.equal(params.count, 'count');
+  });
+
+  it('should not override explicit params with shorthand', () => {
+    const tag = '@component name="components/Counter" count=otherVar ';
+    const params = ParseUtils.parseParams(tag);
+
+    assert.equal(params.count, 'otherVar');
+  });
+
 });

@@ -71,6 +71,14 @@ module.exports.parseParams = (s) => {
     refParam.lastIndex = match.index;
   }
 
+  // shorthand param: `count` is equivalent to `count=count`
+  const shorthandParam = new RegExp('(?:^|\\s)(\\w+)(?=\\s|$)', 'msg');
+  while ((match = shorthandParam.exec(s)) !== null) {
+    if (!params[match[1]]) {
+      params[match[1]] = match[1];
+    }
+  }
+
   // unnamed string param
   const unnamedStringParam = new RegExp('[^=] ?("[^"]*")', 'msg');
   if ((match = unnamedStringParam.exec(s)) !== null) {
