@@ -10,7 +10,7 @@
   </div>
 
   <div class="flex justify-center my-10">
-    {> "components/Counter" count=count /}
+    {@component name="components/Counter" count=count /}
   </div>
 
 {/content}

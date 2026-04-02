@@ -96,7 +96,7 @@ const generate = async ({ root, outputDir, mdLayout, baseContext, staticConfig, 
     for (const page of dynamicPages) {
       const context = { ...baseContext, ...page.data };
 
-      // SSR for Signal components
+      // SSR for components
       if (page.components && page.components.length > 0) {
         for (const ComponentClass of page.components) {
           if (ComponentClass?.ssr) {
@@ -105,14 +105,14 @@ const generate = async ({ root, outputDir, mdLayout, baseContext, staticConfig, 
           }
         }
 
-        // Serialize signal_props for client hydration
+        // Serialize component props for client hydration
         if (uneval) {
           try {
-            const SignalServer = require('@igojs/signal/server');
-            const serializedProps = SignalServer.serialize(page.data);
-            context.__signal_props = uneval(serializedProps);
+            const ComponentServer = require('@igojs/component/server');
+            const serializedProps = ComponentServer.serialize(page.data);
+            context.__component_props = uneval(serializedProps);
           } catch (err) {
-            context.__signal_props = '{}';
+            context.__component_props = '{}';
           }
         }
       }
@@ -127,7 +127,7 @@ const generate = async ({ root, outputDir, mdLayout, baseContext, staticConfig, 
     }
   }
 
-  // Generate static Signal template JSON files
+  // Generate static component template JSON files
   if (dynamicPages) {
     const templateNames = new Set();
     for (const page of dynamicPages) {
@@ -143,12 +143,12 @@ const generate = async ({ root, outputDir, mdLayout, baseContext, staticConfig, 
     if (templateNames.size > 0) {
       for (const template of templateNames) {
         const source = await IgoDust.getSource(`${template}.dust`);
-        const templateOutputPath = path.join(outputDir, '__signal', 'templates', `${template}.json`);
+        const templateOutputPath = path.join(outputDir, '__component', 'templates', `${template}.json`);
         fs.mkdirSync(path.dirname(templateOutputPath), { recursive: true });
         fs.writeFileSync(templateOutputPath, JSON.stringify({ file: template, source }));
-        console.log(dim(`  __signal/templates/${template}.json`));
+        console.log(dim(`  __component/templates/${template}.json`));
       }
-      console.log(green(`✓ ${templateNames.size} signal templates generated`));
+      console.log(green(`✓ ${templateNames.size} component templates generated`));
     }
   }
 
@@ -182,13 +182,13 @@ module.exports = async (argv) => {
   // Initialize i18next
   const i18next = await initI18n();
 
-  // Load devalue for Signal serialization
+  // Load devalue for component serialization
   let uneval;
   try {
     const devalue = await import('devalue');
     uneval = devalue.uneval;
   } catch (err) {
-    // devalue not available, Signal SSR won't work
+    // devalue not available, component SSR won't work
   }
 
   // Load static config

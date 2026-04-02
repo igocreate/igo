@@ -291,10 +291,13 @@ class IgoComponent {
     const events = [];
     const seen = new Set();
 
-    this.element.querySelectorAll('*').forEach(el => {
+    const allElements = [this.element, ...this.element.querySelectorAll('*')];
+    allElements.forEach(el => {
       // Skip elements inside child components
-      const closestComponent = el.closest('[data-component]');
-      if (closestComponent && closestComponent !== this.element) return;
+      if (el !== this.element) {
+        const closestComponent = el.closest('[data-component]');
+        if (closestComponent && closestComponent !== this.element) return;
+      }
 
       for (const attr of el.attributes) {
         if (!attr.name.startsWith('data-on-')) continue;
@@ -308,11 +311,24 @@ class IgoComponent {
         const key = `${eventType}:${methodName}`;
         if (!seen.has(key)) {
           seen.add(key);
-          events.push({
-            selector: `[data-on-${eventType}="${methodName}"]`,
-            eventType,
-            handler
-          });
+          if (eventType === 'clickoutside') {
+            const targetEl = el;
+            events.push({
+              selector: 'document',
+              eventType: 'click',
+              handler: function(e) {
+                if (!targetEl.contains(e.target)) {
+                  handler.call(this, e);
+                }
+              }
+            });
+          } else {
+            events.push({
+              selector: `[data-on-${eventType}="${methodName}"]`,
+              eventType,
+              handler
+            });
+          }
         }
       }
     });

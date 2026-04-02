@@ -44,7 +44,9 @@ const templates = async (req, res) => {
   if (!file || !SAFE_NAME_RE.test(file) || file.includes('..')) {
     return res.status(400).json({ error: 'Invalid file name' });
   }
-  const source = await IgoDust.getSource(`${file}.dust`);
+  // Use getComponent to split out <script> block from single-file components
+  const { templateSource }  = await IgoDust.getComponent(`${file}.dust`);
+  const source              = templateSource || await IgoDust.getSource(`${file}.dust`);
   res.json({ file, source });
 };
 
