@@ -86,14 +86,23 @@ const componentHelper = async (params, _locals) => {
   }
 
   // Evaluate the definition
-  const def = evalDefinition(scriptSrc);
+  let def;
+  try {
+    def = evalDefinition(scriptSrc);
+  } catch (e) {
+    console.error(`[@component] "${name}" script evaluation error:`, e.message);
+    throw e;
+  }
 
   // Merge props: definition defaults + caller-passed props
   const defaultProps = def.props || {};
   const mergedProps = { ...defaultProps, ...callerProps };
 
-  // Default state
+  // Default state (mirror client-side: copy form from props to state)
   const state = def.state ? JSON.parse(JSON.stringify(def.state)) : {};
+  if (mergedProps.form) {
+    state.form = mergedProps.form;
+  }
 
   // Compute derived values (getters)
   const derived = computeDerived(def, mergedProps, state);
@@ -104,11 +113,13 @@ const componentHelper = async (params, _locals) => {
   // Render the template server-side
   const html = await templateFn(context, Utils, null, null);
 
-  // Serialize props for client hydration
-  const serializedProps = SerializeUtils.serialize(mergedProps);
+  // Serialize props for client hydration (exclude key from serialized props)
+  const { key, ...propsToSerialize } = mergedProps;
+  const serializedProps = SerializeUtils.serialize(propsToSerialize);
   const dataProps = htmlencode(uneval(serializedProps));
 
-  return `<div data-component="${name}" data-props="${dataProps}">${html}</div>`;
+  // Default key to component name; explicit key= recommended for dynamic lists
+  return `<div data-component-key="${key || name}" data-component="${name}" data-props="${dataProps}">${html}</div>`;
 };
 
 module.exports = { componentHelper, evalDefinition, computeDerived, devalueReady };

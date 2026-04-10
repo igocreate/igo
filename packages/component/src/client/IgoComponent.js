@@ -1,4 +1,4 @@
-/* global document, window, cancelAnimationFrame, requestAnimationFrame */
+/* global document, window, cancelAnimationFrame, requestAnimationFrame, DataTransfer */
 // Isomorphic imports (safe for Node.js)
 const DerivedCache = require('./DerivedCache.js');
 const StateProxy = require('./StateProxy.js');
@@ -130,6 +130,8 @@ class IgoComponent {
 
       if (this._props.form) {
         this._state.form = this._props.form;
+      } else if (FormHandler.getSharedForm()) {
+        this._state.form = FormHandler.getSharedForm();
       }
 
       this.props = new StateProxy(this, 'props').create(this._props);
@@ -239,9 +241,27 @@ class IgoComponent {
       const tempElement = document.createElement('div');
       tempElement.innerHTML = html;
 
+      // Preserve wrapper attributes: the template root doesn't have data-component/data-props/id
+      // but the actual element does — copy them so DiffDOM doesn't remove them
+      const virtualRoot = tempElement.firstElementChild;
+      if (virtualRoot) {
+        for (const attr of this.element.attributes) {
+          if (!virtualRoot.hasAttribute(attr.name)) {
+            virtualRoot.setAttribute(attr.name, attr.value);
+          }
+        }
+      }
+
+      // Detach child components and save file inputs before diff
+      const savedChildren = this._detachChildComponents();
+      const savedFiles = this._saveFileInputs();
+
       const diff = this._diffDom.diff(this.element, tempElement.firstElementChild);
-      const filteredDiff = this._filterChildComponentDiffs(diff);
-      this._diffDom.apply(this.element, filteredDiff);
+      this._diffDom.apply(this.element, diff);
+
+      // Restore child components and file inputs after diff
+      this._reattachChildComponents(savedChildren);
+      this._restoreFileInputs(savedFiles);
 
       // Sync props for child components (after DiffDOM updated data-props)
       this._syncChildProps();
@@ -256,27 +276,6 @@ class IgoComponent {
     }
   }
 
-  // Filter diffs that touch child components (preserve their state)
-  // Allow attribute modifications (like data-props) to pass through
-  _filterChildComponentDiffs(diff) {
-    return diff.filter(d => {
-      if (d.action === 'modifyAttribute' || d.action === 'addAttribute' || d.action === 'removeAttribute') {
-        return true;
-      }
-      let el = this.element;
-      for (const step of d.route || []) {
-        if (step === 'childNodes') continue;
-        if (typeof step === 'number') {
-          el = el?.childNodes?.[step];
-          if (el?.nodeType === 1 && el.hasAttribute?.('data-component') && el !== this.element) {
-            return false;
-          }
-        }
-      }
-      return true;
-    });
-  }
-
   _bindEvents() {
     this._formHandler?.unbind();
     const allEvents = [
@@ -285,6 +284,67 @@ class IgoComponent {
     ];
     this._eventBinder.bind(this.element, allEvents, this);
     this._formHandler?.bind();
+  }
+
+  _detachChildComponents() {
+    const saved = new Map();
+    this.element.querySelectorAll('[data-component]').forEach(el => {
+      // Only direct child components (skip grandchildren nested in other components)
+      if (el.parentElement?.closest('[data-component]') !== this.element) {
+        return;
+      }
+      const key = el.dataset.componentKey;
+      if (!key) {
+        return;
+      }
+      if (saved.has(key)) {
+        console.warn(`[Component] Duplicate child key "${key}" on <${el.dataset.component}>. Add a unique key= to {@component} to preserve state correctly.`);
+        return;
+      }
+      saved.set(key, el);
+      const placeholder = document.createElement('div');
+      placeholder.setAttribute('data-component-key', key);
+      placeholder.setAttribute('data-component', el.dataset.component);
+      if (el.dataset.props) {
+        placeholder.setAttribute('data-props', el.dataset.props);
+      }
+      el.replaceWith(placeholder);
+    });
+    return saved;
+  }
+
+  _reattachChildComponents(saved) {
+    saved.forEach((el, key) => {
+      const target = this.element.querySelector(`[data-component-key="${key}"]`);
+      if (target) {
+        if (target.dataset.props) {
+          el.dataset.props = target.dataset.props;
+        }
+        target.replaceWith(el);
+      }
+    });
+  }
+
+  _saveFileInputs() {
+    const saved = new Map();
+    this.element.querySelectorAll('input[type="file"]').forEach(input => {
+      if (input.files?.length > 0) {
+        saved.set(input.name, Array.from(input.files));
+      }
+    });
+    return saved;
+  }
+
+  _restoreFileInputs(saved) {
+    if (saved.size === 0) return;
+    this.element.querySelectorAll('input[type="file"]').forEach(input => {
+      const files = saved.get(input.name);
+      if (files) {
+        const dt = new DataTransfer();
+        files.forEach(f => dt.items.add(f));
+        input.files = dt.files;
+      }
+    });
   }
 
   // Scan DOM for data-on-* attributes and build events array

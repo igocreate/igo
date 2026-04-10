@@ -1,5 +1,21 @@
 # Changelog
 
+## 6.0.0-beta.12 - 2026-04-10
+
+- **@igojs/component 6.0.0-beta.3**:
+  - Robust child component preservation across re-renders via `data-component-key` (detach/reattach instead of diff filtering)
+  - `{@component}` helper now defaults `data-component-key` to the component name when no `key=` is provided; warns on duplicate keys among siblings
+  - Preserve wrapper attributes (`data-component`, `data-props`, `id`, etc.) during DiffDOM apply
+  - Preserve `<input type="file">` selection across re-renders using `DataTransfer`
+  - Replace `window.__component_form` with module-level shared form state
+  - Skip file inputs in `FormHandler` (handled separately)
+  - SSR: mirror client-side behavior by copying `props.form` into `state.form`
+  - SSR: log component name on script evaluation errors for better DX
+  - Exclude `key` parameter from serialized props on both client and server `@component` helpers
+- **@igojs/igo 6.0.0-beta.27**:
+  - Remove invalid `main` field from meta-package
+- **skel/tailwind**: rename `webpack-prod` script to `build`
+
 ## 6.0.0-beta.11 - 2026-02-09
 
 - Fixed LEFT JOIN 1-N duplicates with JavaScript deduplication in paginated optimized queries
@@ -22,6 +38,7 @@
 - Full ESM (`"type": "module"` across all packages)
 - Vite for builds and dev server
 - Vitest for testing
+- Replace `diff-dom` with `morphdom` in `@igojs/component` (smaller bundle, native key matching via `getNodeKey`, simpler child-component preservation via `onBeforeElUpdated`)
 
 ## 5.2.3 - 2025-10-16
 

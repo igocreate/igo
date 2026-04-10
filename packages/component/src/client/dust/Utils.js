@@ -108,12 +108,13 @@ const h = (t, p, l) => {
 // Client-side @component helper
 // Generates the wrapper div; the child component auto-mounts via _mountChildComponents()
 const componentHelper = (params) => {
-  const { name, ...props } = params;
+  const { name, key, ...props } = params;
   if (!name) {
     throw new Error('[@component] "name" parameter is required');
   }
   const dataProps = htmlencode(uneval(props));
-  return `<div data-component="${name}" data-props="${dataProps}"></div>`;
+  // Default key to component name; explicit key= recommended for dynamic lists
+  return `<div data-component-key="${key || name}" data-component="${name}" data-props="${dataProps}"></div>`;
 };
 
 // Initialize with igo-dust base helpers

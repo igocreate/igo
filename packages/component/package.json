@@ -1,6 +1,6 @@
 {
   "name": "@igojs/component",
-  "version": "6.0.0-beta.2",
+  "version": "6.0.0-beta.3",
   "description": "Reactive components with SSR for Igo.js",
   "main": "index.js",
   "exports": {

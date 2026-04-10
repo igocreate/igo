@@ -1,4 +1,5 @@
-/* global window */
+let _sharedForm = null;
+
 class FormHandler {
   constructor(component, formData) {
     this.component = component;
@@ -11,12 +12,16 @@ class FormHandler {
   }
 
   // Initialize form from props.form
-  // Uses a shared form object (window.__component_form) so all components share the same form state
+  // Uses a module-level shared object so all components share the same form state
   initForm(formData) {
-    if (!window.__component_form) {
-      window.__component_form = { ...formData };
+    if (!_sharedForm) {
+      _sharedForm = { ...formData };
     }
-    return window.__component_form;
+    return _sharedForm;
+  }
+
+  static getSharedForm() {
+    return _sharedForm;
   }
 
   bind() {
@@ -29,6 +34,11 @@ class FormHandler {
       const parentComponent = element.closest('[data-component]');
       if (parentComponent && parentComponent !== this.element) {
         return; // Skip this input, it belongs to a child component
+      }
+
+      // Skip file inputs: they are preserved separately during re-renders
+      if (element.type === 'file') {
+        return;
       }
 
       const eventType = ['checkbox', 'radio'].includes(element.type) || element.tagName === 'SELECT' ? 'change' : 'input';
