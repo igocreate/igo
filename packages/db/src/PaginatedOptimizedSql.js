@@ -1111,147 +1111,73 @@ module.exports = class PaginatedOptimizedSql extends Sql {
    * @returns {string} Clause transformée avec alias (ex: "studies.studies_year DESC")
    */
   _transformOrderClauseForFullQuery(orderClause) {
-    // Parser la clause ORDER BY pour extraire ASC/DESC
-    const cleanedClause = orderClause.replace(/`/g, '').trim();
-    const match = cleanedClause.match(/^(.+?)\s+(ASC|DESC)$/i);
-
-    let expression, direction;
-    if (match) {
-      expression = match[1];
-      direction = match[2];
-    } else {
-      expression = cleanedClause;
-      direction = '';
-    }
-
-    // Détecter si c'est une fonction SQL
-    const hasSqlFunction = /\b(COALESCE|IFNULL|CONCAT|CONCAT_WS|UPPER|LOWER|SUBSTRING|TRIM)\s*\(/i.test(expression);
-
-    if (hasSqlFunction) {
-      // Pour les fonctions, transformer les chemins à l'intérieur
-      // Note: _transformPathsInExpression utilise _transformSinglePath, donc on ne peut pas l'utiliser directement
-      // Pour l'instant, on retourne tel quel (les fonctions dans FULL query sont rares avec des blocks)
-      // TODO: créer une version spéciale si nécessaire
-    } else {
-      // Transformation simple
-      expression = this._transformPathForFullQuery(expression);
-    }
-
-    // Reconstruire avec direction
-    return direction ? `${expression} ${direction}` : expression;
+    return this._transformPathsInExpression(
+      orderClause.replace(/`/g, '').trim(),
+      (path) => this._transformPathForFullQuery(path)
+    );
   }
 
   /**
    * Transforme une clause ORDER BY en remplaçant les noms d'associations par les noms de tables
    *
-   * Gère aussi les fonctions SQL comme COALESCE, IFNULL, CONCAT, etc.
+   * Gère tout type d'expression SQL (CASE, fonctions, arithmétique, clauses composées)
+   * en faisant un find-and-replace au niveau des tokens plutôt qu'en parsant la structure.
    *
    * @param {string} orderClause - Clause ORDER BY (ex: "formationNature.name DESC" ou "COALESCE(beneficiary.name, applicant.name)")
    * @returns {string} Clause transformée (ex: "formation_natures.name DESC" ou "COALESCE(beneficiaries.name, applicants.name)")
    */
   _transformOrderClause(orderClause) {
-    const { query: _query } = this;
-
-    // Parser la clause ORDER BY pour extraire ASC/DESC
-    const cleanedClause = orderClause.replace(/`/g, '').trim();
-    const match = cleanedClause.match(/^(.+?)\s+(ASC|DESC)$/i);
-
-    let expression, direction;
-    if (match) {
-      expression = match[1];
-      direction = match[2];
-    } else {
-      expression = cleanedClause;
-      direction = '';
-    }
-
-    // Détecter si c'est une fonction SQL (COALESCE, IFNULL, CONCAT, etc.)
-    const hasSqlFunction = /\b(COALESCE|IFNULL|CONCAT|CONCAT_WS|UPPER|LOWER|SUBSTRING|TRIM)\s*\(/i.test(expression);
-
-    if (hasSqlFunction) {
-      // Transformer tous les chemins table.colonne à l'intérieur de la fonction
-      expression = this._transformPathsInExpression(expression);
-    } else {
-      // Transformation simple (pas de fonction)
-      expression = this._transformSinglePath(expression);
-    }
-
-    return direction ? `${expression} ${direction}` : expression;
+    return this._transformPathsInExpression(
+      orderClause.replace(/`/g, '').trim(),
+      (path) => this._transformSinglePath(path)
+    );
   }
 
   /**
-   * Transforme tous les chemins association.colonne dans une expression SQL
-   * Gère également les colonnes simples (sans préfixe) qui proviennent de blocks
+   * Remplace tous les tokens identifiants (paths et colonnes isolées) dans une expression SQL
+   * via le transformer fourni. Les mots-clés SQL, noms de fonctions, littéraux et opérateurs
+   * sont laissés intacts.
    *
-   * @param {string} expression - Expression SQL (ex: "COALESCE(beneficiary.name, applicant.name)" ou "COALESCE(studies_year, 'N/A')")
-   * @returns {string} Expression transformée (ex: "COALESCE(beneficiaries.name, applicants.name)" ou "COALESCE(block_studies.studies_year, 'N/A')")
+   * @param {string} expression - Expression SQL (ORDER BY complet, CASE, fonction, etc.)
+   * @param {(path: string) => string} transformPath - Transformer appelé sur chaque path/identifiant
+   * @returns {string} Expression transformée
    */
-  _transformPathsInExpression(expression) {
-    const { query } = this;
-
-    // Mots-clés SQL à ne pas transformer
+  _transformPathsInExpression(expression, transformPath) {
+    // Mots-clés SQL à ne pas traiter comme des identifiants de colonne
     const sqlKeywords = new Set([
       'SELECT', 'FROM', 'WHERE', 'ORDER', 'BY', 'ASC', 'DESC',
       'COALESCE', 'IFNULL', 'CONCAT', 'CONCAT_WS', 'SUBSTRING',
-      'UPPER', 'LOWER', 'TRIM', 'LENGTH', 'DATE', 'NOW', 'NULL', 'AND', 'OR'
+      'UPPER', 'LOWER', 'TRIM', 'LENGTH', 'DATE', 'NOW', 'NULL', 'AND', 'OR',
+      'CASE', 'WHEN', 'THEN', 'ELSE', 'END',
+      'IF', 'NULLIF', 'GREATEST', 'LEAST', 'CAST', 'CONVERT',
+      'AS', 'IS', 'IN', 'LIKE', 'BETWEEN', 'NOT', 'DISTINCT',
+      'TRUE', 'FALSE'
     ]);
 
-    // Regex combiné qui capture TOUS les types de chemins/colonnes en une seule passe
-    // Cette approche évite la re-transformation des chemins déjà transformés
-    //
-    // Groupe 1: paths avec points (sans backticks) comme table.column
-    // Groupe 2: colonnes simples avec backticks comme `column`
-    // Groupe 3: identificateurs simples (sans backticks, sans points)
+    // Groupe 1 : paths avec points (table.col, a.b.c)
+    // Groupe 2 : colonnes entre backticks (`col`)
+    // Groupe 3 : identifiants simples non suivis de '.' ou '(' (donc ni path ni appel de fonction)
     const combinedPattern = /(\b[a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)+\b)|(`[a-zA-Z_][a-zA-Z0-9_]*`)(?!\s*\.)|(\b[a-zA-Z_][a-zA-Z0-9_]*\b)(?!\s*[.(])/g;
 
     return expression.replace(combinedPattern, (match, plainPath, backtickColumn, plainIdentifier) => {
-      // Cas 1: Chemins avec points (ex: table.column, table1.table2.column)
       if (plainPath) {
-        const transformed = this._transformSinglePath(plainPath);
-        return transformed;
+        return transformPath(plainPath);
       }
 
-      // Cas 2: Colonne simple avec backticks (ex: `column`)
       if (backtickColumn) {
-        const columnName = backtickColumn.replace(/`/g, '');
-
-        // Vérifier si c'est dans la table principale
-        const existsInMainTable = query.schema?.colsByName?.[columnName];
-        if (existsInMainTable) {
-          return match; // Garder tel quel
+        const columnName = backtickColumn.slice(1, -1);
+        const transformed = transformPath(columnName);
+        if (transformed === columnName) {
+          return match;
         }
-
-        // Chercher dans les associations (blocks)
-        const assocPath = this._findAssociationByColumn(columnName, query.schema);
-        if (assocPath && assocPath.length > 0) {
-          const tableName = assocPath[0].tableName;
-          return `\`${tableName}\`.\`${columnName}\``;
-        }
-
-        return match;
+        return transformed.split('.').map((s) => `\`${s}\``).join('.');
       }
 
-      // Cas 3: Identifiant simple sans backticks (ex: column)
       if (plainIdentifier) {
-        // Ignorer les mots-clés SQL
         if (sqlKeywords.has(plainIdentifier.toUpperCase())) {
           return match;
         }
-
-        // Vérifier si c'est dans la table principale
-        const existsInMainTable = query.schema?.colsByName?.[plainIdentifier];
-        if (existsInMainTable) {
-          return match;
-        }
-
-        // Chercher dans les associations (blocks)
-        const assocPath = this._findAssociationByColumn(plainIdentifier, query.schema);
-        if (assocPath && assocPath.length > 0) {
-          const tableName = assocPath[0].tableName;
-          return `${tableName}.${plainIdentifier}`;
-        }
-
-        return match;
+        return transformPath(plainIdentifier);
       }
 
       return match;

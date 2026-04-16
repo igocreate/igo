@@ -552,6 +552,143 @@ describe('db.PaginatedOptimizedQuery', function() {
       assert.strictEqual(transformed1, transformed2);
     });
 
+    // Bug repro: CASE expression in ORDER BY gets mangled by _transformOrderClauseForFullQuery.
+    // Encountered on Certigo's CRM /crm/clients page, where the Client model's default scope is:
+    //   order("CASE `clients`.`type` WHEN 'P' THEN `clients`.`last_name` ELSE `clients`.`name` END ASC, `clients`.`first_name`")
+    // The transform strips backticks then calls _transformPathForFullQuery, which splits by '.'
+    // and mangles the CASE into invalid SQL like "name END ASC, clients.first_name", producing
+    // a MySQL syntax error at the FULL phase of paginated queries.
+    it('should preserve CASE expression with trailing column in ORDER BY (FULL phase)', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const sqlGenerator = new PaginatedOptimizedSql(query);
+      const orderClause = 'CASE `folders`.`type` WHEN \'P\' THEN `folders`.`status` ELSE `folders`.`created_at` END ASC, `folders`.`id`';
+
+      const transformed = sqlGenerator._transformOrderClauseForFullQuery(orderClause);
+
+      // The transformed clause must be valid SQL. Current buggy output:
+      //   "name END ASC, clients.first_name"-style mangle where split-by-dot treats
+      //   the CASE body as an association path.
+      assert.ok(
+        !/\bEND\b(?!\s+(ASC|DESC))/i.test(transformed) || /CASE/i.test(transformed),
+        `CASE expression was mangled: ${transformed}`
+      );
+      assert.ok(
+        /CASE/i.test(transformed),
+        `CASE keyword lost: ${transformed}`
+      );
+    });
+
+    it('should preserve CASE-only ORDER BY clause (FULL phase)', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const sqlGenerator = new PaginatedOptimizedSql(query);
+      const orderClause = 'CASE `folders`.`type` WHEN \'P\' THEN `folders`.`status` ELSE `folders`.`created_at` END ASC';
+
+      const transformed = sqlGenerator._transformOrderClauseForFullQuery(orderClause);
+
+      assert.ok(
+        /CASE/i.test(transformed),
+        `CASE keyword lost: ${transformed}`
+      );
+      assert.ok(
+        /\bEND\s+ASC$/i.test(transformed),
+        `CASE...END structure mangled: ${transformed}`
+      );
+    });
+
+    it('should transform association paths inside CASE (IDS phase)', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const sqlGenerator = new PaginatedOptimizedSql(query);
+      const orderClause = 'CASE `folders`.`type` WHEN \'P\' THEN `applicant`.`last_name` ELSE `applicant`.`first_name` END ASC';
+
+      const transformed = sqlGenerator._transformOrderClause(orderClause);
+
+      assert.strictEqual(
+        transformed,
+        'CASE folders.type WHEN \'P\' THEN applicants.last_name ELSE applicants.first_name END ASC'
+      );
+    });
+
+    it('should handle multi-clause ORDER BY with comma (IDS phase)', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const sqlGenerator = new PaginatedOptimizedSql(query);
+
+      const transformed = sqlGenerator._transformOrderClause(
+        'applicant.last_name ASC, applicant.first_name DESC'
+      );
+
+      assert.strictEqual(
+        transformed,
+        'applicants.last_name ASC, applicants.first_name DESC'
+      );
+    });
+
+    it('should handle multi-clause ORDER BY with comma (FULL phase)', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const sqlGenerator = new PaginatedOptimizedSql(query);
+
+      const transformed = sqlGenerator._transformOrderClauseForFullQuery(
+        '`applicant`.`last_name` ASC, `applicant`.`first_name` DESC'
+      );
+
+      assert.strictEqual(
+        transformed,
+        'applicant.last_name ASC, applicant.first_name DESC'
+      );
+    });
+
+    it('should transform paths inside IF() (IDS phase)', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const sqlGenerator = new PaginatedOptimizedSql(query);
+
+      const transformed = sqlGenerator._transformOrderClause(
+        'IF(`folders`.`type` = \'P\', `applicant`.`last_name`, `applicant`.`first_name`) ASC'
+      );
+
+      assert.strictEqual(
+        transformed,
+        'IF(folders.type = \'P\', applicants.last_name, applicants.first_name) ASC'
+      );
+    });
+
+    it('should transform paths inside NULLIF() (IDS phase)', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const sqlGenerator = new PaginatedOptimizedSql(query);
+
+      const transformed = sqlGenerator._transformOrderClause(
+        'NULLIF(`applicant`.`last_name`, \'\') ASC'
+      );
+
+      assert.strictEqual(
+        transformed,
+        'NULLIF(applicants.last_name, \'\') ASC'
+      );
+    });
+
+    it('should handle arithmetic expressions with block columns (IDS phase)', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      const sqlGenerator = new PaginatedOptimizedSql(query);
+
+      const transformed = sqlGenerator._transformOrderClause('studies_year + bac_year DESC');
+
+      assert.strictEqual(transformed, 'block_studies.studies_year + block_studies.bac_year DESC');
+    });
+
+    it('should preserve CASE keyword and transform block columns (IDS phase)', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      const sqlGenerator = new PaginatedOptimizedSql(query);
+
+      const transformed = sqlGenerator._transformOrderClause(
+        'CASE WHEN `studies_year` > 2020 THEN 1 ELSE 0 END DESC'
+      );
+
+      assert.ok(/^CASE /i.test(transformed), `CASE prefix lost: ${transformed}`);
+      assert.ok(/\bEND\s+DESC$/i.test(transformed), `END DESC suffix lost: ${transformed}`);
+      assert.ok(
+        /block_studies\.studies_year/.test(transformed) || /`block_studies`\.`studies_year`/.test(transformed),
+        `studies_year not prefixed with block table: ${transformed}`
+      );
+    });
+
   });
 
   // -------------------------------------------------------
