@@ -1,6 +1,6 @@
 {
   "name": "@igojs/igo",
-  "version": "6.0.0-beta.27",
+  "version": "6.0.0-beta.28",
   "homepage": "https://github.com/igocreate/igo",
   "description": "Igo is a Node.js Web Framework based on Express",
   "keywords": [
@@ -18,7 +18,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@igojs/db": "^6.0.0-beta.9",
+    "@igojs/db": "^6.0.0-beta.10",
     "@igojs/dust": "^6.0.0-beta.4",
     "@igojs/server": "^6.0.0-beta.14",
     "@igojs/component": "^6.0.0-beta.3"
