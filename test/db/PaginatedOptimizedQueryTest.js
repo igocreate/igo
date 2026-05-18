@@ -9,10 +9,10 @@ const mockGetDb = (query) => {
     driver: {
       dialect: {
         esc: '`',
-        param: (_i) => '?',
+        param: (i) => '?',
         in: 'IN',
         notin: 'NOT IN',
-        limit: (_offsetParam, _limitParam) => 'LIMIT ?, ?'
+        limit: (offsetParam, limitParam) => `LIMIT ?, ?`
       }
     }
   });
@@ -445,6 +445,39 @@ describe('db.PaginatedOptimizedQuery', function() {
       assert.deepStrictEqual(params, ['Dupont%', 'ACTIVE']);
     });
 
+    it('should consolidate multiple $or conditions on the same relation into a single EXISTS', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'count';
+      query.where({
+        $or: [
+          { 'applicant.last_name':  { $like: 'Dupont%' } },
+          { 'applicant.first_name': { $like: 'Jean%' } },
+          { 'applicant.email':      'a@b.c' },
+        ]
+      });
+      const { sql, params } = query.toSQL();
+
+      assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND (`applicants`.`last_name` LIKE ? OR `applicants`.`first_name` LIKE ? OR `applicants`.`email` = ?))');
+      assert.deepStrictEqual(params, ['Dupont%', 'Jean%', 'a@b.c']);
+    });
+
+    it('should group conditions by relation: one EXISTS per relation, OR-joined', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'count';
+      query.where({
+        $or: [
+          { 'applicant.last_name':   { $like: 'Dupont%' } },
+          { 'applicant.first_name':  { $like: 'Jean%' } },
+          { 'pme_folder.status':     'ACTIVE' },
+          { 'pme_folder.country':    'FR' },
+        ]
+      });
+      const { sql, params } = query.toSQL();
+
+      assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE (EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND (`applicants`.`last_name` LIKE ? OR `applicants`.`first_name` LIKE ?)) OR EXISTS (SELECT 1 FROM `pme_folders` WHERE `pme_folders`.`id` = `folders`.`pme_folder_id` AND (`pme_folders`.`status` = ? OR `pme_folders`.`country` = ?)))');
+      assert.deepStrictEqual(params, ['Dupont%', 'Jean%', 'ACTIVE', 'FR']);
+    });
+
     it('should include extraWhere in EXISTS clause', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(BookWithExtraWhere));
       query.query.verb = 'count';
@@ -464,8 +497,8 @@ describe('db.PaginatedOptimizedQuery', function() {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'count';
       query.where({ type: 'agp', 'applicant.last_name': { $like: 'Dupont%' } })
-      .order('applicants.last_name ASC')
-      .join('applicant');
+        .order('applicants.last_name ASC')
+        .join('applicant');
       const { sql, params } = query.toSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE `folders`.`type` = ? AND EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND `applicants`.`last_name` LIKE ? )');
@@ -476,8 +509,8 @@ describe('db.PaginatedOptimizedQuery', function() {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'select_ids';
       query.where({ type: 'agp', 'applicant.last_name': { $like: 'Dupont%' } })
-      .order('folders.created_at DESC')
-      .limit(50);
+        .order('folders.created_at DESC')
+        .limit(50);
       const { sql, params } = query.toSQL();
 
       assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` WHERE `folders`.`type` = ? AND EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND `applicants`.`last_name` LIKE ? ) ORDER BY folders.created_at DESC LIMIT ?, ?');
@@ -533,8 +566,8 @@ describe('db.PaginatedOptimizedQuery', function() {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'select_ids';
       query.where({ type: 'agp' }).join('applicant')
-      .order('COALESCE(`applicant`.`last_name`, `applicant`.`first_name`) ASC')
-      .limit(50);
+        .order('COALESCE(`applicant`.`last_name`, `applicant`.`first_name`) ASC')
+        .limit(50);
       const { sql, params } = query.toSQL();
 
       assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `applicants` ON `applicants`.`id` = `folders`.`applicant_id` WHERE `folders`.`type` = ? ORDER BY COALESCE(applicants.last_name, applicants.first_name) ASC LIMIT ?, ?');
