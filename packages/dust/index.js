@@ -23,13 +23,13 @@ module.exports.getSource = async (filePath) => {
 };
 
 // render template
-module.exports.render = async (src, data, stream=null) => {
-  return await new Renderer().render(src, data, stream);
+module.exports.render = async (src, data) => {
+  return await new Renderer().render(src, data);
 };
 
 // render template file
-module.exports.renderFile = async (filePath, data, stream=null) => {
-  return await new Renderer().renderFile(filePath, data, stream);
+module.exports.renderFile = async (filePath, data) => {
+  return await new Renderer().renderFile(filePath, data);
 };
 
 // expressjs engine

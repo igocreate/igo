@@ -10,7 +10,7 @@ class Compiler {
     this.i      = 0;
     this.parts  = [];
     this.parts.push('var r=\'\',l=l||{},c=c||{ctx:[]};');
-    this.parts.push('var a=s?function(x){s.write(String(x))}:function(x){r+=x};');
+    this.parts.push('var a=function(x){r+=x};');
   }
 
   compileBuffer(buffer) {
@@ -18,7 +18,7 @@ class Compiler {
     buffer.forEach(block => {
       if (block.type === '<') {
         this.parts.push(`c._${block.tag}=async function(){var r='';`);
-        this.parts.push('var a=s?function(x){s.write(String(x))}:function(x){r+=x};');
+        this.parts.push('var a=function(x){r+=x};');
         this.compileBuffer(block.buffer);
         this.parts.push('return r;};');
       }
@@ -84,7 +84,7 @@ class Compiler {
           this.parts.push('var l_saved=l;');
           this.parts.push('if(l_override){l={...l,...l_override};}');
           this.parts.push('var r=\'\';');
-          this.parts.push('var a=s?function(x){s.write(String(x))}:function(x){r+=x};');
+          this.parts.push('var a=function(x){r+=x};');
           this.compileBuffer(block.buffer);
           this.parts.push('l=l_saved;');
           this.parts.push('return r;};');
@@ -110,14 +110,14 @@ class Compiler {
         // precompile if buffer
         if (block.buffer) {
           this.parts.push('c._$body=async function(){var r=\'\';');
-          this.parts.push('var a=s?function(x){s.write(String(x))}:function(x){r+=x};');
+          this.parts.push('var a=function(x){r+=x};');
           this.compileBuffer(block.buffer);
           this.parts.push('return r;};');
         }
 
         this._pushContext(block.params);
         const file = this._getParam(block.file);
-        this.parts.push(`a(await (await u.i(${file}))(l,u,c,s));`);
+        this.parts.push(`a(await (await u.i(${file}))(l,u,c));`);
         this._popContext(block.params);
       } else if (!block.type){
         // default: raw text
@@ -137,7 +137,7 @@ class Compiler {
   compile(buffer) {
     const sourceCode = this.toSource(buffer);
     // console.log(sourceCode);
-    return new ASYNC_FUNCTION('l', 'u', 'c', 's', sourceCode);
+    return new ASYNC_FUNCTION('l', 'u', 'c', sourceCode);
   }
 
   _else(block) {

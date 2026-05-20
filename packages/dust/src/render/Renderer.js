@@ -8,21 +8,21 @@ const Compiler  = require('../compile/Compiler');
 class Renderer {
 
   // render string template
-  async render(str, data, res) {
+  async render(str, data) {
     const buffer    = new Parser().parse(str);
     const compiled  = new Compiler().compile(buffer);
-    return await this.renderCompiled(compiled, data, res);
+    return await this.renderCompiled(compiled, data);
   }
 
   // render file template
-  async renderFile(filePath, data, res) {
+  async renderFile(filePath, data) {
     const compiled = await Cache.getCompiled(filePath);
-    return await this.renderCompiled(compiled, data, res);
+    return await this.renderCompiled(compiled, data);
   }
 
   // render compiled template
-  async renderCompiled(compiled, data, res) {
-    return await compiled(data, Utils, null, res);
+  async renderCompiled(compiled, data) {
+    return await compiled(data, Utils, null);
   }
 
 }

@@ -2,7 +2,6 @@ require('./init');
 
 const assert = require('assert');
 const igo = require('@igojs/server');
-const config = igo.config;
 const agent = igo.dev.agent;
 
 
@@ -37,14 +36,6 @@ describe('controllers', function() {
   //
   describe('/template', function() {
     it('should render template', async () => {
-      config.igodust.stream = false;
-      const res = await agent.get('/template');
-      assert.strictEqual(res.statusCode, 200);
-      assert.strictEqual(res.body, 'Igo Dust OK');
-    });
-
-    it('should render template with streaming', async () => {
-      config.igodust.stream = true;
       const res = await agent.get('/template');
       assert.strictEqual(res.statusCode, 200);
       assert.strictEqual(res.body, 'Igo Dust OK');

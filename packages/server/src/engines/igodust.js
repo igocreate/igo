@@ -19,18 +19,6 @@ module.exports.init = (app) => {
 //
 module.exports.middleware = (req, res, next) => {
   res.locals.t = (params) => req.t(params.key, params);
-
-  // override render method to stream response
-  if (config.igodust.stream) {
-    res.render = async (template, locals) => {
-      const data = {...res.locals, ...locals};
-      res.type('html');
-      // TODO: handle ETAgs and status 304
-      await IgoDust.renderFile(template + '.dust', data, res);
-      res.end();
-    };
-  }
-
   next();
 };
 
