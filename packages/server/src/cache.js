@@ -13,6 +13,9 @@ const key = (namespace, id) => `${namespace}/${id}`;
 
 // init cache module : create redis client
 module.exports.init = async () => {
+  if (client) {
+    return;
+  }
   options = config.redis || {};
   client = redis.createClient(options);
 

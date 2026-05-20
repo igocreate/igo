@@ -20,7 +20,7 @@ const dim   = (s) => `\x1b[2m${s}\x1b[0m`;
 const verbs   = {
 
   // igo db migrate
-  migrate: async (args) => {
+  migrate: async () => {
     for (const database of config.databases) {
       const dbInstance = db.dbs[database];
       dbInstance.config.debugsql = false;
@@ -32,7 +32,7 @@ const verbs   = {
   },
 
   // igo db migrations
-  migrations: async (args) => {
+  migrations: async () => {
 
     for (const database of config.databases) {
       const dbInstance = db.dbs[database];
@@ -54,21 +54,17 @@ const verbs   = {
 
   // igo db reset
   reset: async (args) => {
-    if (config.databases.length > 1 && !args[2]) {
-      console.log(`Please select database to reset : igo db reset [${config.databases.join('|')}]`);
-      return;
-    }
-
     if (args[2] && config.databases.indexOf(args[2]) < 0) {
       console.log('ERROR: Wrong database name');
       return;
     }
 
-    const dbInstance = args[2] ? db.dbs[args[2]] : db.dbs.main;
-    const database = dbInstance.config.database;
+    const targets = args[2] ? [args[2]] : config.databases;
+    const databaseNames = targets.map((name) => db.dbs[name].config.database);
+    const confirmation  = databaseNames.join(',');
 
     console.log('WARNING: Database will be reset, data will be lost!');
-    console.log('Confirm the database name (' + database + '):');
+    console.log(`Confirm the database name${targets.length > 1 ? 's (comma-separated)' : ''} (${confirmation}):`);
 
     await new Promise((resolve) => {
       process.stdin.resume();
@@ -76,24 +72,36 @@ const verbs   = {
 
       process.stdin.on('data', async (data) => {
         const input = data.toString().trim();
-        if (input !== database) {
-
+        if (input !== confirmation) {
           return resolve();
         }
 
-        dbInstance.config.debugsql = false;
-        dbInstance.config.database = null;
-        await dbInstance.init();
+        for (const name of targets) {
+          const dbInstance = db.dbs[name];
+          const database   = dbInstance.config.database;
 
-        const { dialect }     = dbInstance.driver;
-        const DROP_DATABASE   = dialect.dropDb(database);
-        const CREATE_DATABASE = dialect.createDb(database);
+          if (targets.length > 1) {
+            console.log(`database: ${database}`);
+          }
 
-        await dbInstance.query(DROP_DATABASE);
-        await dbInstance.query(CREATE_DATABASE);
-        dbInstance.config.database = database;
-        await dbInstance.init();
-        await db.migrations.migrate(dbInstance);
+          dbInstance.config.debugsql = false;
+          dbInstance.config.database = null;
+          await dbInstance.init();
+
+          const { dialect }     = dbInstance.driver;
+          const DROP_DATABASE   = dialect.dropDb(database);
+          const CREATE_DATABASE = dialect.createDb(database);
+
+          await dbInstance.query(DROP_DATABASE);
+          await dbInstance.query(CREATE_DATABASE);
+          dbInstance.config.database = database;
+          await dbInstance.init();
+          await db.migrations.migrate(dbInstance);
+        }
+
+        // Cached entries reference the dropped data, so flush Redis after the reset
+        await cache.init();
+        await cache.flushdb();
 
         resolve();
       });
@@ -103,7 +111,7 @@ const verbs   = {
   // igo db reseed
   reseed: async (args) => {
     await verbs.reset(args);
-    await verbs.seed();
+    await verbs.seed(args);
   },
 
   // igo db seed
@@ -120,8 +128,8 @@ const verbs   = {
     }
 
     const files = fs.readdirSync(seedsDir)
-      .filter(f => f.match(/^\d+.*\.js$/))
-      .sort();
+    .filter(f => f.match(/^\d+.*\.js$/))
+    .sort();
 
     if (!files.length) {
       console.log(yellow('No seed files found.'));
@@ -157,7 +165,7 @@ module.exports = async (argv) => {
   await db.dbs.init();
 
   if (args.length > 1 && verbs[args[1]]) {
-    await verbs[args[1]](args)
+    await verbs[args[1]](args);
     console.log(green('Done.'));
     process.exit(0);
   } else {
