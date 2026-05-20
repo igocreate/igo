@@ -19,7 +19,7 @@ Igo is a Node.js full-stack web framework built on Express, providing ORM, templ
 │   ├── igo/                    # @igojs/igo - Meta-package (depends on all others)
 │   ├── server/                 # @igojs/server - Express framework core
 │   └── component/              # @igojs/component - Reactive components with SSR
-├── docs/                       # Docsify documentation
+├── docs/                       # VitePress documentation (deployed to GitHub Pages)
 ├── package.json                # Root workspace configuration
 └── CHANGELOG.md                # Version history
 ```
@@ -69,7 +69,8 @@ Igo is a Node.js full-stack web framework built on Express, providing ORM, templ
 ## Key Technologies
 
 - **Backend:** Express 5, Node.js
-- **Build:** Vite (replaced Webpack in v6)
+- **Build:** Webpack (dust browser bundle, server CSS/assets)
+- **Docs:** VitePress (deployed to GitHub Pages)
 - **Database:** MySQL2, PostgreSQL (pg)
 - **Caching:** Redis
 - **Testing:** Mocha
@@ -94,7 +95,10 @@ npm run test:server
 npm run test:component
 
 # Build dust browser bundle
-npm run build:dust
+npm run build --workspace=@igojs/dust
+
+# Build docs (deployed to GitHub Pages via .github/workflows/docs.yml)
+npm run docs:build
 ```
 
 ## Code Style
@@ -157,5 +161,5 @@ Le package principal `@igojs/igo` (`packages/igo/`) est un meta-package qui depe
 | `packages/*/package.json` | Package configurations |
 | `.mocharc.js` | Mocha test config |
 | `.eslintrc.json` | ESLint rules |
-| `packages/dust/vite.config.js` | Dust browser build config |
+| `packages/dust/webpack.config.js` | Dust browser build config |
 | `packages/server/cli/igo.js` | CLI entry point |
