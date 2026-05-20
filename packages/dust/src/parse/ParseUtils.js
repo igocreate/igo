@@ -9,7 +9,6 @@ module.exports.cleanStr = (s) => {
 
 // strip comments
 module.exports.removeComments = (str) => {
-  let index = 0;
   let openCommentMatch, closeCommentMatch;
 
   const openCommentRegexp   = new RegExp('{!', 'msg');
@@ -17,7 +16,7 @@ module.exports.removeComments = (str) => {
 
   // find opening '{!'
   while ((openCommentMatch = openCommentRegexp.exec(str)) !== null) {
-    index = openCommentMatch.index + 2;
+    const index = openCommentMatch.index + 2;
     // find closing '!}'
     closeCommentRegexp.lastIndex = index;
     while ((closeCommentMatch = closeCommentRegexp.exec(str)) !== null) {
