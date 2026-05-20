@@ -1,17 +1,11 @@
 
 
-const {isBrowser} = require('./../environment');
 const config              = require('../Config');
 const path                = require('path');
 const fs                  = require('fs').promises;
 
 // get absolute path
 module.exports.getFilePath = (filePath) => {
-  if (isBrowser) {
-    console.error('not implemented for browser'); 
-    return '';
-  }
-
   if (!path.isAbsolute(filePath) && filePath[0] !== '.') {
     // prefix views folder
     filePath = `${config.views}/${filePath}`;
@@ -21,9 +15,5 @@ module.exports.getFilePath = (filePath) => {
 
 //
 module.exports.loadFile = async (filePath) => {
-  if (isBrowser) {
-    console.error('not implemented for browser');
-    return '';
-  }
   return await fs.readFile(filePath, 'utf8');
 };

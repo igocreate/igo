@@ -4,8 +4,7 @@
   "description": "Javascript template engine for Igo",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --exit --recursive",
-    "build": "webpack --mode=production"
+    "test": "mocha --exit --recursive"
   },
   "keywords": [
     "dust",
@@ -21,9 +20,5 @@
   },
   "publishConfig": {
     "access": "public"
-  },
-  "devDependencies": {
-    "webpack": "^5.107.0",
-    "webpack-cli": "^7.0.2"
   }
 }

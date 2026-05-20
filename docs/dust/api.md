@@ -110,13 +110,3 @@ dust.filters.money = (value) => {
 
 See [Filters](./filters.md) for built-in filters (`h`, `s`, `j`, `u`, `uc`, `js`, `jp`, `uppercase`, `lowercase`).
 
-## Browser Bundle
-
-A browser-compatible build is available at `@igojs/dust/dist/igo-dust-6.0.0-min.js`:
-
-```html
-<script src="/dist/igo-dust-6.0.0-min.js"></script>
-<script>
-  const html = await igodust.render('Hello, {name}!', { name: 'World' });
-</script>
-```

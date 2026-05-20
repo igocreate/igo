@@ -218,22 +218,6 @@ const { scriptSrc, templateSource } = await dust.getComponent('components/List.d
 const { scriptSrc, templateFn } = await dust.getCompiledComponent('components/List.dust');
 ```
 
-## Browser Bundle
-
-A minified browser bundle is available at `dist/igo-dust-6.0.0-min.js`.
-
-```html
-<script src="igo-dust-6.0.0-min.js"></script>
-<script>
-  const html = await igodust.render(template, data);
-</script>
-```
-
-Build the bundle:
-```sh
-cd packages/dust && npm run build
-```
-
 ## Exports
 
 | Export | Description |
