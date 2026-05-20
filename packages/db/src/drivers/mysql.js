@@ -3,7 +3,7 @@ const _       = require('lodash');
 const mysql   = require('mysql2/promise');
 const OPTIONS = [
   'host', 'port', 'user', 'password', 'database',
-  'charset', 'debug', 'connectionLimit'
+  'charset', 'debug', 'connectionLimit', 'enableKeepAlive'
 ];
 
 

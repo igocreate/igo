@@ -28,6 +28,8 @@
 
 - Added `igo db seed` command to run seed files from `seeds/` directory
 - Added `igo db reseed` command to reset database and run seeds
+- Enabled MySQL `enableKeepAlive: true` by default and exposed it as a pool option in `@igojs/db`
+- Enabled PostgreSQL `keepAlive: true` by default
 - **BREAKING**: `silent` query option now swallows errors and returns `null` instead of just suppressing logs
 - **BREAKING**: Upgraded to Express 5.1
 - **BREAKING**: Removed Bootstrap skeleton template

@@ -13,12 +13,13 @@ config.mysql = {
   password:        process.env.MYSQL_PASSWORD || '',
   database:        process.env.MYSQL_DATABASE || 'igo',
   connectionLimit: 5,   // 10 in production
+  enableKeepAlive: true,
   debug:           false,
   debugsql:        false
 };
 ```
 
-This configuration is passed to [mysql2](https://github.com/sidorares/node-mysql2) `createPool()`.
+This configuration is passed to [mysql2](https://github.com/sidorares/node-mysql2) `createPool()`. `enableKeepAlive` keeps pooled TCP connections alive to avoid drops from idle-timeout proxies/load balancers.
 
 Enable SQL logging in development:
 
@@ -41,11 +42,12 @@ config.pg = {
   user:     process.env.PG_USER     || '',
   password: process.env.PG_PASSWORD || '',
   connectionLimit: 5,   // 10 in production
+  keepAlive: true,
   debugsql: false
 };
 ```
 
-This configuration is passed to [pg](https://node-postgres.com/) `Pool()`.
+This configuration is passed to [pg](https://node-postgres.com/) `Pool()`. `keepAlive` enables TCP keep-alive on pooled sockets to avoid drops from idle-timeout proxies/load balancers.
 
 ## Multiple Databases
 

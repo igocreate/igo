@@ -78,6 +78,7 @@ module.exports.init = function() {
     database:           process.env.MYSQL_DATABASE || 'igo',
     charset:            process.env.MYSQL_CHARSET  || 'utf8mb4',
     connectionLimit:    Number(process.env.MYSQL_MAX_CONNECTIONS) || (config.env === 'production' ? 10 : 5),
+    enableKeepAlive:    true,
     debug:              false,
     debugsql:           false
   };
@@ -93,6 +94,7 @@ module.exports.init = function() {
     max:                Number(process.env.POSTGRESQL_MAX_CONNECTIONS) || (config.env === 'production' ? 10 : 5),
     idleTimeoutMillis:  30000,
     connectionTimeoutMillis: 2000,
+    keepAlive:          true,
     debugsql:           false
   };
 
