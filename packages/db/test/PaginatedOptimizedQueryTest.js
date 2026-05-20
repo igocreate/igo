@@ -495,6 +495,39 @@ describe('db.PaginatedOptimizedQuery', function() {
       assert.deepStrictEqual(params, ['Dupont%', 'ACTIVE']);
     });
 
+    it('should consolidate multiple $or conditions on the same relation into a single EXISTS', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'count';
+      query.where({
+        $or: [
+          { 'applicant.last_name':  { $like: 'Dupont%' } },
+          { 'applicant.first_name': { $like: 'Jean%' } },
+          { 'applicant.email':      'a@b.c' },
+        ]
+      });
+      const { sql, params } = query.toSQL();
+
+      assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND (`applicants`.`last_name` LIKE ? OR `applicants`.`first_name` LIKE ? OR `applicants`.`email` = ?))');
+      assert.deepStrictEqual(params, ['Dupont%', 'Jean%', 'a@b.c']);
+    });
+
+    it('should group conditions by relation: one EXISTS per relation, OR-joined', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'count';
+      query.where({
+        $or: [
+          { 'applicant.last_name':   { $like: 'Dupont%' } },
+          { 'applicant.first_name':  { $like: 'Jean%' } },
+          { 'pme_folder.status':     'ACTIVE' },
+          { 'pme_folder.country':    'FR' },
+        ]
+      });
+      const { sql, params } = query.toSQL();
+
+      assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE (EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND (`applicants`.`last_name` LIKE ? OR `applicants`.`first_name` LIKE ?)) OR EXISTS (SELECT 1 FROM `pme_folders` WHERE `pme_folders`.`id` = `folders`.`pme_folder_id` AND (`pme_folders`.`status` = ? OR `pme_folders`.`country` = ?)))');
+      assert.deepStrictEqual(params, ['Dupont%', 'Jean%', 'ACTIVE', 'FR']);
+    });
+
     it('should include extraWhere in EXISTS clause', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(BookWithExtraWhere));
       query.query.verb = 'count';
@@ -919,7 +952,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       });
       const { sql, params } = query.toSQL();
 
-      assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `books_null` WHERE (EXISTS (SELECT 1 FROM `libraries` WHERE `libraries`.`id` = `books_null`.`library_id` AND `libraries`.`collection` IS NULL AND `libraries`.`title` LIKE ?) OR EXISTS (SELECT 1 FROM `libraries` WHERE `libraries`.`id` = `books_null`.`library_id` AND `libraries`.`collection` IS NULL AND `libraries`.`collection` = ?))');
+      assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `books_null` WHERE EXISTS (SELECT 1 FROM `libraries` WHERE `libraries`.`id` = `books_null`.`library_id` AND `libraries`.`collection` IS NULL AND (`libraries`.`title` LIKE ? OR `libraries`.`collection` = ?))');
       assert.deepStrictEqual(params, ['Dupont%', 'B']);
     });
   });

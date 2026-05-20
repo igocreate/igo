@@ -908,6 +908,10 @@ module.exports = class PaginatedOptimizedSql extends Sql {
    * @param {Array} params - Paramètres SQL
    * @returns {string} SQL avec EXISTS joints par OR
    *
+   * Les conditions sont regroupées par chemin d'association :
+   * toutes les conditions sur une même relation sont combinées avec OR
+   * à l'intérieur d'un unique EXISTS (au lieu d'un EXISTS par condition).
+   *
    * Exemple :
    * Input: [
    *   { 'applicant.last_name': { $like: 'Dupont%' } },
@@ -915,58 +919,78 @@ module.exports = class PaginatedOptimizedSql extends Sql {
    *   { 'beneficiary.email': 'test@test.com' }
    * ]
    * Output: (
-   *   EXISTS (SELECT 1 FROM applicants WHERE applicants.id = folders.applicant_id AND applicants.last_name LIKE ?)
-   *   OR EXISTS (SELECT 1 FROM applicants WHERE applicants.id = folders.applicant_id AND applicants.first_name LIKE ?)
-   *   OR EXISTS (SELECT 1 FROM beneficiaries WHERE beneficiaries.id = folders.beneficiary_id AND beneficiaries.email = ?)
+   *   EXISTS (SELECT 1 FROM applicants WHERE applicants.id = folders.applicant_id
+   *           AND (applicants.last_name LIKE ? OR applicants.first_name LIKE ?))
+   *   OR EXISTS (SELECT 1 FROM beneficiaries WHERE beneficiaries.id = folders.beneficiary_id
+   *              AND beneficiaries.email = ?)
    * )
    */
   _buildOrGroupExists(conditions, parentTable, params) {
     const { query, dialect } = this;
     const { esc } = dialect;
 
-    const existsClauses = [];
+    // Regrouper les conditions par chemin d'association, en préservant l'ordre d'apparition
+    const groupsByPath = new Map();
 
     _.forEach(conditions, (cond) => {
       _.forOwn(cond, (value, key) => {
-        // Parser le chemin (ex: 'applicant.last_name')
         const parts = key.split('.');
         const column = parts[parts.length - 1];
         const path = parts.slice(0, -1);
+        const pathKey = path.join('.');
 
-        // Trouver l'association
-        const association = this._findAssociationByPath(path, query.schema);
-
-        if (association) {
-          const [, , AssociatedModel, src_column, ref_column, extraWhere] = association;
-          const joinTable = AssociatedModel.schema.table;
-
-          // Construire l'EXISTS pour cette condition
-          let existsSQL = `EXISTS (SELECT 1 FROM ${esc}${joinTable}${esc} `;
-          existsSQL += `WHERE ${esc}${joinTable}${esc}.${esc}${ref_column}${esc} = ${esc}${parentTable}${esc}.${esc}${src_column}${esc} `;
-
-          // Ajouter les conditions extraWhere si présentes
-          if (extraWhere) {
-            const compiledExtra = compileExtraWhere(extraWhere, joinTable, dialect, this.i);
-            this.i = compiledExtra.i;
-            params.push(...compiledExtra.params);
-            compiledExtra.parts.forEach(p => existsSQL += `AND ${p} `);
-          }
-
-          // Ajouter la condition sur la colonne
-          const columnRef = `${esc}${joinTable}${esc}.${esc}${column}${esc}`;
-          const compiled = compileCondition(columnRef, value, dialect, this.i);
-          this.i = compiled.i;
-          existsSQL += `AND ${compiled.sql}`;
-          params.push(...compiled.params);
-
-          existsSQL += ')';
-          existsClauses.push(existsSQL);
+        if (!groupsByPath.has(pathKey)) {
+          groupsByPath.set(pathKey, { path, items: [] });
         }
+        groupsByPath.get(pathKey).items.push({ column, value });
       });
+    });
+
+    const existsClauses = [];
+
+    groupsByPath.forEach(({ path, items }) => {
+      const association = this._findAssociationByPath(path, query.schema);
+      if (!association) {
+        return;
+      }
+      const [, , AssociatedModel, src_column, ref_column, extraWhere] = association;
+      const joinTable = AssociatedModel.schema.table;
+
+      let existsSQL = `EXISTS (SELECT 1 FROM ${esc}${joinTable}${esc} `;
+      existsSQL += `WHERE ${esc}${joinTable}${esc}.${esc}${ref_column}${esc} = ${esc}${parentTable}${esc}.${esc}${src_column}${esc} `;
+
+      // Ajouter les conditions extraWhere si présentes
+      if (extraWhere) {
+        const compiledExtra = compileExtraWhere(extraWhere, joinTable, dialect, this.i);
+        this.i = compiledExtra.i;
+        params.push(...compiledExtra.params);
+        compiledExtra.parts.forEach(p => existsSQL += `AND ${p} `);
+      }
+
+      // Combiner toutes les conditions de cette relation avec OR à l'intérieur du EXISTS
+      const innerClauses = [];
+      _.forEach(items, ({ column, value }) => {
+        const columnRef = `${esc}${joinTable}${esc}.${esc}${column}${esc}`;
+        const compiled = compileCondition(columnRef, value, dialect, this.i);
+        this.i = compiled.i;
+        innerClauses.push(compiled.sql);
+        params.push(...compiled.params);
+      });
+
+      if (innerClauses.length === 1) {
+        existsSQL += `AND ${innerClauses[0]})`;
+      } else {
+        existsSQL += `AND (${innerClauses.join(' OR ')}))`;
+      }
+      existsClauses.push(existsSQL);
     });
 
     if (existsClauses.length === 0) {
       return '';
+    }
+
+    if (existsClauses.length === 1) {
+      return `${existsClauses[0]} `;
     }
 
     return `(${existsClauses.join(' OR ')}) `;
