@@ -1,6 +1,6 @@
 
 const _       = require('lodash');
-const { compileCondition, compileNotCondition } = require('./OperatorCompiler');
+const { compileCondition, compileNotCondition, compileExtraWhere } = require('./OperatorCompiler');
 
 module.exports = class Sql {
   
@@ -131,10 +131,10 @@ module.exports = class Sql {
       const table       = Obj.schema.table;
       let joinSql = `${type.toUpperCase()} JOIN ${esc}${table}${esc} AS ${esc}${name}${esc} ON ${esc}${name}${esc}.${esc}${column}${esc} = ${esc}${src_table_alias}${esc}.${esc}${src_column}${esc}`;
       if (extraWhere) {
-        _.forOwn(extraWhere, (value, key) => {
-          joinSql += ` AND ${esc}${name}${esc}.${esc}${key}${esc} = ${dialect.param(this.i++)}`;
-          params.push(value);
-        });
+        const compiled = compileExtraWhere(extraWhere, name, dialect, this.i);
+        this.i = compiled.i;
+        params.push(...compiled.params);
+        compiled.parts.forEach(p => joinSql += ` AND ${p}`);
       }
       sql += joinSql + ' ';
     });

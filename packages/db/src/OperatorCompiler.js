@@ -117,4 +117,31 @@ const compileNotCondition = (columnRef, value, dialect, i) => {
   return { sql: `${columnRef} != ${dialect.param(i++)}`, params: [value], i };
 };
 
-module.exports = { compileCondition, compileNotCondition };
+/**
+ * Compile un extraWhere d'association en clauses SQL prêtes à être insérées
+ * après un `AND` (clause ON d'un JOIN, ou corps d'un EXISTS).
+ *
+ * Chaque entrée de l'objet est passée à compileCondition, ce qui donne accès
+ * à toute la grammaire des where (null → IS NULL, array → IN, $like, etc.).
+ *
+ * @param {object} extraWhere - Conditions { col: value, ... }
+ * @param {string} tableRef - Nom (non-échappé) de la table ou alias
+ * @param {object} dialect - Dialect SQL { esc, param, in, notin }
+ * @param {number} i - Index courant du paramètre
+ * @returns {{ parts: string[], params: Array, i: number }} - parts ne contient PAS le mot-clé AND
+ */
+const compileExtraWhere = (extraWhere, tableRef, dialect, i) => {
+  const { esc } = dialect;
+  const parts  = [];
+  const params = [];
+  _.forOwn(extraWhere, (value, key) => {
+    const columnRef = `${esc}${tableRef}${esc}.${esc}${key}${esc}`;
+    const compiled  = compileCondition(columnRef, value, dialect, i);
+    i = compiled.i;
+    parts.push(compiled.sql);
+    params.push(...compiled.params);
+  });
+  return { parts, params, i };
+};
+
+module.exports = { compileCondition, compileNotCondition, compileExtraWhere };

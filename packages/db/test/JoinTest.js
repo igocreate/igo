@@ -233,6 +233,37 @@ describe('includes', () => {
       assert.strictEqual(foundBookB.id, bookB.id);
       assert.strictEqual(foundBookB.library, null);
     });
+
+    it('should apply extraWhere with null value as IS NULL on join', async () => {
+      class BookWithNullExtraWhere extends Model({
+        table: 'books',
+        primary: ['id'],
+        columns: [
+          'id',
+          'code',
+          'title',
+          'library_id',
+        ],
+        associations: () => ([
+          ['belongs_to', 'library', Library, 'library_id', 'id', { collection: null }],
+        ])
+      }) {}
+
+      const libraryNull = await Library.create({ title: 'Library null', collection: null });
+      const libraryA    = await Library.create({ title: 'Library A',    collection: 'A' });
+      const bookNull    = await BookWithNullExtraWhere.create({ library_id: libraryNull.id });
+      const bookA       = await BookWithNullExtraWhere.create({ library_id: libraryA.id });
+
+      // Library with collection IS NULL should match extraWhere { collection: null }
+      const foundBookNull = await BookWithNullExtraWhere.join('library').find(bookNull.id);
+      assert.strictEqual(foundBookNull.id, bookNull.id);
+      assert.strictEqual(foundBookNull.library?.id, libraryNull.id);
+
+      // Library with collection = 'A' should NOT match extraWhere { collection: null }
+      const foundBookA = await BookWithNullExtraWhere.join('library').find(bookA.id);
+      assert.strictEqual(foundBookA.id, bookA.id);
+      assert.strictEqual(foundBookA.library, null);
+    });
   });
 
   describe('optimized join (page + join)', () => {

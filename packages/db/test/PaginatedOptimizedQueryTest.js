@@ -195,6 +195,56 @@ describe('db.PaginatedOptimizedQuery', function() {
     ])
   }) {}
 
+  class BookWithNullExtraWhere extends Model({
+    table: 'books_null',
+    primary: ['id'],
+    columns: {
+      id: 'integer',
+      code: 'string',
+      title: 'string',
+      library_id: 'integer'
+    },
+    associations: () => ([
+      ['belongs_to', 'library', Library, 'library_id', 'id', { collection: null }]
+    ])
+  }) {}
+
+  class Author extends Model({
+    table: 'authors',
+    primary: ['id'],
+    columns: {
+      id: 'integer',
+      name: 'string',
+      pseudonym: 'string'
+    }
+  }) {}
+
+  class LibraryWithNullExtraAuthor extends Model({
+    table: 'libraries_with_author',
+    primary: ['id'],
+    columns: {
+      id: 'integer',
+      title: 'string',
+      author_id: 'integer'
+    },
+    associations: () => ([
+      ['belongs_to', 'author', Author, 'author_id', 'id', { pseudonym: null }]
+    ])
+  }) {}
+
+  class BookWithNestedNullExtra extends Model({
+    table: 'books_nested_null',
+    primary: ['id'],
+    columns: {
+      id: 'integer',
+      title: 'string',
+      library_id: 'integer'
+    },
+    associations: () => ([
+      ['belongs_to', 'library', LibraryWithNullExtraAuthor, 'library_id', 'id']
+    ])
+  }) {}
+
   // -------------------------------------------------------
   // 1. Unit operators
   // -------------------------------------------------------
@@ -826,6 +876,51 @@ describe('db.PaginatedOptimizedQuery', function() {
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `books_multi` WHERE EXISTS (SELECT 1 FROM `libraries` WHERE `libraries`.`id` = `books_multi`.`library_id` AND `libraries`.`collection` = ? AND `libraries`.`title` = ? AND `libraries`.`title` LIKE ? )');
       assert.deepStrictEqual(params, ['A', 'Main', 'Test%']);
+    });
+
+    it('should render extraWhere with null value as IS NULL in simple EXISTS', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(BookWithNullExtraWhere));
+      query.query.verb = 'count';
+      query.where({ 'library.title': { $like: 'Test%' } });
+      const { sql, params } = query.toSQL();
+
+      assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `books_null` WHERE EXISTS (SELECT 1 FROM `libraries` WHERE `libraries`.`id` = `books_null`.`library_id` AND `libraries`.`collection` IS NULL AND `libraries`.`title` LIKE ? )');
+      assert.deepStrictEqual(params, ['Test%']);
+    });
+
+    it('should render extraWhere with null value as IS NULL in LEFT JOIN sort', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(BookWithNullExtraWhere));
+      query.query.verb = 'select_ids';
+      query.where({ code: 'ABC' }).order('library.title ASC').limit(50);
+      const { sql, params } = query.toSQL();
+
+      assert.strictEqual(sql, 'SELECT `books_null`.`id` FROM `books_null` LEFT JOIN `libraries` ON `libraries`.`id` = `books_null`.`library_id` AND `libraries`.`collection` IS NULL WHERE `books_null`.`code` = ? ORDER BY libraries.title ASC LIMIT ?, ?');
+      assert.deepStrictEqual(params, ['ABC', 0, 50]);
+    });
+
+    it('should render extraWhere with null value as IS NULL in nested EXISTS', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(BookWithNestedNullExtra));
+      query.query.verb = 'count';
+      query.where({ 'library.author.name': 'Hugo' });
+      const { sql, params } = query.toSQL();
+
+      assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `books_nested_null` WHERE EXISTS (SELECT 1 FROM `libraries_with_author` WHERE `libraries_with_author`.`id` = `books_nested_null`.`library_id` AND EXISTS (SELECT 1 FROM `authors` WHERE `authors`.`id` = `libraries_with_author`.`author_id` AND `authors`.`pseudonym` IS NULL AND `authors`.`name` = ? ) )');
+      assert.deepStrictEqual(params, ['Hugo']);
+    });
+
+    it('should render extraWhere with null value as IS NULL in OR-group EXISTS', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(BookWithNullExtraWhere));
+      query.query.verb = 'count';
+      query.where({
+        $or: [
+          { 'library.title': { $like: 'Dupont%' } },
+          { 'library.collection': 'B' }
+        ]
+      });
+      const { sql, params } = query.toSQL();
+
+      assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `books_null` WHERE (EXISTS (SELECT 1 FROM `libraries` WHERE `libraries`.`id` = `books_null`.`library_id` AND `libraries`.`collection` IS NULL AND `libraries`.`title` LIKE ?) OR EXISTS (SELECT 1 FROM `libraries` WHERE `libraries`.`id` = `books_null`.`library_id` AND `libraries`.`collection` IS NULL AND `libraries`.`collection` = ?))');
+      assert.deepStrictEqual(params, ['Dupont%', 'B']);
     });
   });
 });

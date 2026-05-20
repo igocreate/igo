@@ -1,6 +1,6 @@
 const _   = require('lodash');
 const Sql = require('./Sql');
-const { compileCondition } = require('./OperatorCompiler');
+const { compileCondition, compileExtraWhere } = require('./OperatorCompiler');
 
 /**
  * PaginatedOptimizedSql - Générateur SQL optimisé avec pattern EXISTS
@@ -720,10 +720,10 @@ module.exports = class PaginatedOptimizedSql extends Sql {
 
         // Ajouter les conditions extraWhere si présentes
         if (extraWhere) {
-          _.forOwn(extraWhere, (value, key) => {
-            joinSql += ` AND ${esc}${currentTableName}${esc}.${esc}${key}${esc} = ${dialect.param(this.i++)}`;
-            params.push(value);
-          });
+          const compiled = compileExtraWhere(extraWhere, currentTableName, dialect, this.i);
+          this.i = compiled.i;
+          params.push(...compiled.params);
+          compiled.parts.forEach(p => joinSql += ` AND ${p}`);
         }
 
         sql += joinSql + ' ';
@@ -838,10 +838,10 @@ module.exports = class PaginatedOptimizedSql extends Sql {
 
     // Ajouter les conditions extraWhere si présentes
     if (extraWhere) {
-      _.forOwn(extraWhere, (value, key) => {
-        sql += `AND ${esc}${joinTable}${esc}.${esc}${key}${esc} = ${dialect.param(this.i++)} `;
-        params.push(value);
-      });
+      const compiled = compileExtraWhere(extraWhere, joinTable, dialect, this.i);
+      this.i = compiled.i;
+      params.push(...compiled.params);
+      compiled.parts.forEach(p => sql += `AND ${p} `);
     }
 
     // Ajouter les conditions de ce niveau (si présentes)
@@ -885,10 +885,10 @@ module.exports = class PaginatedOptimizedSql extends Sql {
 
     // Ajouter les conditions extraWhere si présentes
     if (extraWhere) {
-      _.forOwn(extraWhere, (value, key) => {
-        sql += `AND ${esc}${joinTable}${esc}.${esc}${key}${esc} = ${dialect.param(this.i++)} `;
-        params.push(value);
-      });
+      const compiled = compileExtraWhere(extraWhere, joinTable, dialect, this.i);
+      this.i = compiled.i;
+      params.push(...compiled.params);
+      compiled.parts.forEach(p => sql += `AND ${p} `);
     }
 
     if (conditions && !_.isEmpty(conditions)) {
@@ -946,10 +946,10 @@ module.exports = class PaginatedOptimizedSql extends Sql {
 
           // Ajouter les conditions extraWhere si présentes
           if (extraWhere) {
-            _.forOwn(extraWhere, (ewValue, ewKey) => {
-              existsSQL += `AND ${esc}${joinTable}${esc}.${esc}${ewKey}${esc} = ${dialect.param(this.i++)} `;
-              params.push(ewValue);
-            });
+            const compiledExtra = compileExtraWhere(extraWhere, joinTable, dialect, this.i);
+            this.i = compiledExtra.i;
+            params.push(...compiledExtra.params);
+            compiledExtra.parts.forEach(p => existsSQL += `AND ${p} `);
           }
 
           // Ajouter la condition sur la colonne
