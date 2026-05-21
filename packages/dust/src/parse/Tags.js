@@ -36,7 +36,7 @@ const _body = (parser, block) => {
 const _end = (parser, block) => {
   const opening = parser.pop();
   if (opening && opening.type !== '>' && opening.tag !== block.tag)  {
-    console.error(`Open/close tag mismatch! '${opening.tag}' <> '${block.tag}'`);
+    throw new Error(`Open/close tag mismatch! '${opening.tag}' <> '${block.tag}'`);
   }
 };
 

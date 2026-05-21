@@ -19,10 +19,9 @@ module.exports.removeComments = (str) => {
     const index = openCommentMatch.index + 2;
     // find closing '!}'
     closeCommentRegexp.lastIndex = index;
-    while ((closeCommentMatch = closeCommentRegexp.exec(str)) !== null) {
+    if ((closeCommentMatch = closeCommentRegexp.exec(str)) !== null) {
       str = str.slice(0, openCommentMatch.index) + str.slice(closeCommentMatch.index + 2);
-      break;
-    };
+    }
   }
 
   return str;
