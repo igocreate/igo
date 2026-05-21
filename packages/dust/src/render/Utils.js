@@ -2,19 +2,24 @@
 const Cache   = require('../Cache');
 const Helpers = require('./Helpers');
 
-// special chars
-const HCHARS  = /[&<>"']/,
-  AMP     = /&/g,
-  LT      = /</g,
-  GT      = />/g,
-  QUOT    = /"/g,
-  SQUOT   = /'/g;
+// HTML escape: single regex + char\u2192entity lookup, scanned once.
+const HCHARS  = /[&<>"']/;
+const HCHARS_G = /[&<>"']/g;
+const ESCAPES = {
+  '&':  '&amp;',
+  '<':  '&lt;',
+  '>':  '&gt;',
+  '"':  '&quot;',
+  '\'': '&#39;',
+};
+const escapeChar = c => ESCAPES[c];
 
 const BS      = /\\/g,
   FS      = /\//g,
   CR      = /\r/g,
   LS      = /\u2028/g,
   PS      = /\u2029/g,
+  LT      = /</g,
   NL      = /\n/g,
   LF      = /\f/g,
   SQ      = /'/g,
@@ -26,12 +31,7 @@ const htmlencode = (s)=> {
   if (!s || !s.replace || !HCHARS.test(s)) {
     return s;
   }
-  return s
-  .replace(AMP,'&amp;')
-  .replace(LT,'&lt;')
-  .replace(GT,'&gt;')
-  .replace(QUOT,'&quot;')
-  .replace(SQUOT, '&#39;');
+  return s.replace(HCHARS_G, escapeChar);
 };
 
 const escapeJs = (s) => {
@@ -80,6 +80,21 @@ const d = (s, t, l) => {
     return '';
   }
   return s;
+};
+
+// combined deref + htmlencode for `{x}` refs (the hot path)
+// equivalent to f.h(d(s, t, l)) but in one call.
+const dh = (s, t, l) => {
+  if (s == null) {
+    return '';
+  }
+  if (typeof s === 'function') {
+    s = s.call(t, l);
+  }
+  if (typeof s !== 'string' || !HCHARS.test(s)) {
+    return s;
+  }
+  return s.replace(HCHARS_G, escapeChar);
 };
 
 // return value (if it's a function, invoke it with locals)
@@ -132,4 +147,4 @@ const i = async (file) => {
   return await Cache.getCompiled(file);
 };
 
-module.exports = { a, b, v, d, h, f, i };
+module.exports = { a, b, v, d, dh, h, f, i };

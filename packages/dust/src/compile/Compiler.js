@@ -9,8 +9,7 @@ class Compiler {
   constructor() {
     this.i      = 0;
     this.parts  = [];
-    this.parts.push('var r=\'\',l=l||{},c=c||{ctx:[]};');
-    this.parts.push('var a=function(x){r+=x};');
+    this.parts.push('var r=\'\',l=l||{},c=c||{};');
   }
 
   compileBuffer(buffer) {
@@ -18,7 +17,6 @@ class Compiler {
     buffer.forEach(block => {
       if (block.type === '<') {
         this.parts.push(`c._${block.tag}=async function(){var r='';`);
-        this.parts.push('var a=function(x){r+=x};');
         this.compileBuffer(block.buffer);
         this.parts.push('return r;};');
       }
@@ -28,13 +26,13 @@ class Compiler {
     buffer.forEach(block => {
       if (block.type === 'r') {
         // reference
-        this.parts.push(`a(${this._getReference(block)});`);
+        this.parts.push(`r+=${this._getReference(block)};`);
       } else if (block.type === '+' && !block.tag) {
         // insert body (invoke content function)
-        this.parts.push('if(c._$body){a(await c._$body());c._$body=null;}');
+        this.parts.push('if(c._$body){r+=await c._$body();c._$body=null;}');
       } else if (block.type === '+') {
         // insert content (invoke content function)
-        this.parts.push(`if(c._${block.tag}){a(await c._${block.tag}())}`);
+        this.parts.push(`if(c._${block.tag}){r+=await c._${block.tag}()}`);
         if (block.buffer) {
           this.parts.push('else{');
           this.compileBuffer(block.buffer);
@@ -42,22 +40,22 @@ class Compiler {
         }
       } else if (block.type === '?' || block.type === '^' ) {
         // conditional block
+        const i = ++this.i;
         const not = block.type === '^' ? '!' : '';
-        this._pushContext(block.params);
+        this._pushContext(block.params, false, i);
         this.parts.push(`if(${not}u.b(${this._getValue(block.tag)})){`);
         this.compileBuffer(block.buffer);
         this.parts.push('}');
         this._else(block);
-        this._popContext(block.params);
+        this._popContext(block.params, false, i);
       } else if (block.type === '#') {
         // loop block
-        this.i = this.i + 1;
-        const { i } = this;
-        this._pushContext(block.params, true);
+        const i = ++this.i;
+        this._pushContext(block.params, true, i);
         this.parts.push(`var a${i}=u.a(${this._getValue(block.tag)});`);
         this.parts.push(`if(a${i}){`);
         if (!block.buffer) {
-          this.parts.push(`a(a${i})`);
+          this.parts.push(`r+=a${i}`);
         } else {
           const it = block.params.it && ParseUtils.stripDoubleQuotes(block.params.it);
           this.parts.push(`l.$length=a${i}.length;`); // current array length
@@ -72,7 +70,7 @@ class Compiler {
         }
         this.parts.push('}');
         this._else(block);
-        this._popContext(block.params, true);
+        this._popContext(block.params, true, i);
       } else if (block.type === '@') {
         // helper
         this.i = this.i + 1;
@@ -84,7 +82,6 @@ class Compiler {
           this.parts.push('var l_saved=l;');
           this.parts.push('if(l_override){l={...l,...l_override};}');
           this.parts.push('var r=\'\';');
-          this.parts.push('var a=function(x){r+=x};');
           this.compileBuffer(block.buffer);
           this.parts.push('l=l_saved;');
           this.parts.push('return r;};');
@@ -95,33 +92,33 @@ class Compiler {
 
         if (block.buffer) {
           this.parts.push(`var h${i}_t=typeof h${i};`);
-          this.parts.push(`if(h${i}_t==='string'||h${i}_t==='number'){a(h${i});}`);
-          this.parts.push(`else if(h${i}){a(await c._h_body${i}());}`);
+          this.parts.push(`if(h${i}_t==='string'||h${i}_t==='number'){r+=h${i};}`);
+          this.parts.push(`else if(h${i}){r+=await c._h_body${i}();}`);
           this._else(block);
         } else {
           this.parts.push(`if(h${i}!==null&&h${i}!==undefined){`);
-          this.parts.push(`a(h${i});`);
+          this.parts.push(`r+=h${i};`);
           this.parts.push('}');
           this._else(block);
         }
       } else if (block.type === '>') {
         // include
+        const i = ++this.i;
 
         // precompile if buffer
         if (block.buffer) {
           this.parts.push('c._$body=async function(){var r=\'\';');
-          this.parts.push('var a=function(x){r+=x};');
           this.compileBuffer(block.buffer);
           this.parts.push('return r;};');
         }
 
-        this._pushContext(block.params);
+        this._pushContext(block.params, false, i);
         const file = this._getParam(block.file);
-        this.parts.push(`a(await (await u.i(${file}))(l,u,c));`);
-        this._popContext(block.params);
+        this.parts.push(`r+=await (await u.i(${file}))(l,u,c);`);
+        this._popContext(block.params, false, i);
       } else if (!block.type){
         // default: raw text
-        this.parts.push(`a('${block}');`);
+        this.parts.push(`r+='${block}';`);
       }
     });
   }
@@ -148,13 +145,17 @@ class Compiler {
     }
   }
 
-  _pushContext(params, isArray) {
-    const { i } = this;
+  _ctxParamKeys(params) {
+    return Object.keys(params).filter(k => k !== '$');
+  }
+
+  _pushContext(params, isArray, i) {
+    const keys = this._ctxParamKeys(params);
+    if (keys.length === 0 && !isArray) {
+      return;
+    }
     this.parts.push(`var ctx${i}={};`);
-    Object.keys(params).forEach(key => {
-      if (key === '$') {
-        return;
-      }
+    keys.forEach(key => {
       this.parts.push(`ctx${i}.${key}=l.${key};`);
       this.parts.push(`l.${key}=${this._getParam(params[key])};`);
     });
@@ -163,23 +164,20 @@ class Compiler {
       this.parts.push(`ctx${i}.idx=l.$idx;`);
       this.parts.push(`ctx${i}.length=l.$length;`);
     }
-
-    this.parts.push(`c.ctx.push(ctx${i});`);
   }
 
-  _popContext(params, isArray) {
-    const { i } = this;
-    this.parts.push(`var p_ctx${i}=c.ctx.pop();`);
-    Object.keys(params).forEach(key => {
-      if (key === '$') {
-        return;
-      }
-      this.parts.push(`l.${key}=p_ctx${i}.${key};`);
+  _popContext(params, isArray, i) {
+    const keys = this._ctxParamKeys(params);
+    if (keys.length === 0 && !isArray) {
+      return;
+    }
+    keys.forEach(key => {
+      this.parts.push(`l.${key}=ctx${i}.${key};`);
     });
     if (isArray) {
-      this.parts.push(`l._it=p_ctx${i}._it;`);
-      this.parts.push(`l.$idx=p_ctx${i}.idx;`);
-      this.parts.push(`l.$length=p_ctx${i}.length;`);
+      this.parts.push(`l._it=ctx${i}._it;`);
+      this.parts.push(`l.$idx=ctx${i}.idx;`);
+      this.parts.push(`l.$length=ctx${i}.length;`);
     }
   }
 
@@ -246,16 +244,16 @@ class Compiler {
     return this._getValue(param);
   }
 
-  //
-  _getValue(tag, utilFn='u.v') {
-    
+  // Returns either { literal } (already-resolved JS expression, no util wrapping)
+  // or { expr, t } (a deref chain that needs u.v / u.d wrapping for function/null handling).
+  _getValueParts(tag) {
     if (!isNaN(tag)) {
-      return tag;
+      return { literal: tag };
     }
-    
+
     // . notation
     if (tag === '.') {
-      return 'l._it';
+      return { literal: 'l._it' };
     } else if (tag[0] === '.') {
       tag = '_it' + tag;
     }
@@ -283,7 +281,7 @@ class Compiler {
       elements.push(tag.substring(idx, i));
     }
 
-    // build string
+    // build chain
     let current = 'l', ret = [];
     elements.forEach((element) => {
       if (element[0] === '[') {
@@ -294,13 +292,19 @@ class Compiler {
       ret.push(current);
     });
 
-    // use utilFn (u.v by default) to invoke function on last element
     if (ret.length === 1) {
-      return `${utilFn}(${ret[0]},null,l)`;
+      return { expr: ret[0], t: 'null' };
     }
     const _this = ret.slice(0,-1);
-    return `${utilFn}(${ret.join('&&')},${_this.join('&&')},l)`;
+    return { expr: ret.join('&&'), t: _this.join('&&') };
+  }
 
+  _getValue(tag, utilFn='u.v') {
+    const p = this._getValueParts(tag);
+    if (p.literal !== undefined) {
+      return p.literal;
+    }
+    return `${utilFn}(${p.expr},${p.t},l)`;
   }
 
   _getParams(params) {
@@ -313,6 +317,16 @@ class Compiler {
   }
 
   _getReference(block) {
+    // Fast path: a reference with only the default 'h' filter is the hot path.
+    // Collapse f.h(d(...)) into a single u.dh() call to avoid the double
+    // function-call boundary on every reference.
+    if (block.f && block.f.length === 1 && block.f[0] === 'h') {
+      const p = this._getValueParts(block.tag);
+      if (p.literal !== undefined) {
+        return `u.f.h(${p.literal})`;
+      }
+      return `u.dh(${p.expr},${p.t},l)`;
+    }
     let ret = this._getValue(block.tag, 'u.d');
     if (!block.f) {
       return ret;
