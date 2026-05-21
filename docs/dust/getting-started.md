@@ -14,7 +14,13 @@ Dust.js was a great templating engine, maintained and then abandoned by LinkedIn
 * **Zero Dependencies**: Lightweight and fast
 * **Express Integration**: Works as an Express view engine
 
-> The VSCode extension for Igo Dust is available [here](https://marketplace.visualstudio.com/items?itemName=IGOCREATE.igo-dust-language-support).
+### Benchmark
+
+We benchmark Igo Dust against other templating engines (Mustache, Handlebars, EJS, Pug, …) — see [arnaudm/templating-engine-bench](https://github.com/arnaudm/templating-engine-bench) for the latest numbers.
+
+### Tooling
+
+The VSCode extension for Igo Dust is available [on the marketplace](https://marketplace.visualstudio.com/items?itemName=IGOCREATE.igo-dust-language-support) (also vendored as the syntax grammar in this site).
 
 ### Differences from Dust.js
 
