@@ -44,7 +44,7 @@ describe('ComponentController', () => {
 
   describe('templates endpoint', () => {
 
-    it('rejects requests with path traversal characters', async () => {
+    it('rejects path traversal', async () => {
       const req = makeReq({ query: { file: '../etc/passwd' } });
       const res = makeRes();
       await ComponentController.templates(req, res);
@@ -54,18 +54,27 @@ describe('ComponentController', () => {
     });
 
     it('rejects requests with disallowed characters', async () => {
-      const req = makeReq({ query: { file: 'foo$bar' } });
+      const req = makeReq({ query: { file: 'components/foo$bar' } });
       const res = makeRes();
       await ComponentController.templates(req, res);
 
       assert.strictEqual(res.statusCode, 400);
     });
 
+    it('rejects paths outside components/ (layouts, emails, partials)', async () => {
+      for (const file of ['layouts/main', 'emails/welcome', 'Counter']) {
+        const req = makeReq({ query: { file } });
+        const res = makeRes();
+        await ComponentController.templates(req, res);
+        assert.strictEqual(res.statusCode, 400, `${file} should be rejected`);
+      }
+    });
+
   });
 
   describe('component endpoint', () => {
 
-    it('rejects requests with path traversal characters', async () => {
+    it('rejects path traversal', async () => {
       const req = makeReq({ query: { name: '../secrets' } });
       const res = makeRes();
       await ComponentController.component(req, res);
@@ -74,8 +83,17 @@ describe('ComponentController', () => {
       assert.match(res.body.error, /Invalid component name/);
     });
 
+    it('rejects paths outside components/', async () => {
+      for (const name of ['layouts/main', 'emails/welcome', 'Counter']) {
+        const req = makeReq({ query: { name } });
+        const res = makeRes();
+        await ComponentController.component(req, res);
+        assert.strictEqual(res.statusCode, 400, `${name} should be rejected`);
+      }
+    });
+
     it('returns 404 when the component file does not exist', async () => {
-      const req = makeReq({ query: { name: 'does/not/exist' } });
+      const req = makeReq({ query: { name: 'components/does/not/exist' } });
       const res = makeRes();
       await ComponentController.component(req, res);
 
