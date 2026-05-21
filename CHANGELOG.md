@@ -6,11 +6,10 @@ First stable release of Igo.js 6, now distributed as an npm monorepo under the `
 
 ### General
 
-- **BREAKING**: Packages migrated from individual repos to a monorepo. Imports change:
-  - `igo` → `@igojs/server`
-  - `igo-dust` → `@igojs/dust`
-  - `igo-db` → `@igojs/db`
-  - `@igojs/signal` → `@igojs/component` (with significant rework)
+- **BREAKING**: Reorganized as an npm monorepo under the `@igojs/*` scope:
+  - `igo` is now split between `@igojs/server` (Express framework) and `@igojs/db` (database layer — previously bundled inside `igo`)
+  - `igo-dust` becomes `@igojs/dust`
+  - `@igojs/component` is new in v6 — a reactive components module with SSR
 - The meta-package `@igojs/igo` pulls in all sub-packages.
 
 ### @igojs/dust
@@ -58,7 +57,7 @@ First stable release of Igo.js 6, now distributed as an npm monorepo under the `
 
 ### @igojs/component
 
-Replaces and significantly extends the former `@igojs/signal`:
+New reactive components module shipped with v6:
 
 - **Added**: Single-file `.dust` components — `<script>` block (definition) + template, no manual registration
 - **Added**: Deep reactivity via JavaScript Proxy with automatic dependency tracking for computed values
@@ -72,7 +71,7 @@ Replaces and significantly extends the former `@igojs/signal`:
 - Preserve wrapper attributes (`data-component`, `data-props`, `id`) during DiffDOM apply
 - Replace `window.__component_form` with module-level shared form state
 - Exclude `key` parameter from serialized props
-- `@igojs/dust` and `i18next` moved to `peerDependencies`
+- `@igojs/dust` and `i18next` declared as `peerDependencies`
 
 ### @igojs/igo (meta-package)
 
