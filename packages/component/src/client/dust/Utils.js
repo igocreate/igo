@@ -1,101 +1,8 @@
 const Templates = require('./Templates.js');
 const { uneval } = require('devalue');
 const igoDustHelpers = require('@igojs/dust/src/render/Helpers');
+const shared = require('@igojs/dust/src/render/shared');
 const { createSerializeHelper, htmlencode } = require('../../shared/serialize.js');
-
-// Special characters
-const BS      = /\\/g,
-  LS      = /\u2028/g,
-  PS      = /\u2029/g,
-  LT      = /</g,
-  FS      = /\//g,
-  CR      = /\r/g,
-  NL      = /\n/g,
-  LF      = /\f/g,
-  SQ      = /'/g,
-  DQ      = /"/g,
-  TB      = /\t/g;
-
-const escapeJs = (s) => {
-  if (typeof s === 'string') {
-    return s
-    .replace(BS, '\\\\')
-    .replace(FS, '\\/')
-    .replace(DQ, '\\"')
-    .replace(SQ, '\\\'')
-    .replace(CR, '\\r')
-    .replace(LS, '\\u2028')
-    .replace(PS, '\\u2029')
-    .replace(NL, '\\n')
-    .replace(LF, '\\f')
-    .replace(TB, '\\t');
-  }
-  return s;
-};
-
-const stringifyJson = (o) => {
-  return o && JSON.stringify(o)
-  .replace(LS, '\\u2028')
-  .replace(PS, '\\u2029')
-  .replace(LT, '\\u003c');
-};
-
-// Filters
-const f = {
-  h:          htmlencode,
-  j:          escapeJs,
-  u:          encodeURI,
-  uc:         encodeURIComponent,
-  js:         stringifyJson,
-  jp:         JSON.parse,
-  uppercase:  s => s.toUpperCase(),
-  lowercase:  s => s.toLowerCase(),
-};
-
-
-// return value to be displayed
-const d = (s, t, l) => {
-  if (typeof s === 'function') {
-    return s.call(t, l);
-  }
-  if (s === null || s === undefined) {
-    return '';
-  }
-  return s;
-};
-
-// return value (if it's a function, invoke it with locals)
-const v = (s, t, l) => {
-  if (typeof s === 'function') {
-    return s.call(t, l);
-  }
-  return s;
-};
-
-// return boolean
-const b = (v) => {
-  if (!v) {
-    return false;
-  }
-  if (v.length === 0) {
-    return false;
-  }
-  return true;
-};
-
-// return array
-const a = (v) => {
-  if (Array.isArray(v)) {
-    if (v.length === 0) {
-      return null;
-    }
-    return v;
-  }
-  if (v) {
-    return [v];
-  }
-  return null;
-};
 
 // helpers
 const h = (t, p, l) => {
@@ -134,4 +41,4 @@ const i = async (file) => {
   return await Templates.loadTemplate(file);
 };
 
-module.exports = { a, b, v, d, h, f, i, setHelpers };
+module.exports = { ...shared, h, i, setHelpers };
