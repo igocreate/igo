@@ -1,46 +1,90 @@
 # Changelog
 
-## 6.0.0-beta.12 - 2026-04-10
+## 6.0.0 - 2026-05-21
 
-- **@igojs/component 6.0.0-beta.3**:
-  - Robust child component preservation across re-renders via `data-component-key` (detach/reattach instead of diff filtering)
-  - `{@component}` helper now defaults `data-component-key` to the component name when no `key=` is provided; warns on duplicate keys among siblings
-  - Preserve wrapper attributes (`data-component`, `data-props`, `id`, etc.) during DiffDOM apply
-  - Preserve `<input type="file">` selection across re-renders using `DataTransfer`
-  - Replace `window.__component_form` with module-level shared form state
-  - Skip file inputs in `FormHandler` (handled separately)
-  - SSR: mirror client-side behavior by copying `props.form` into `state.form`
-  - SSR: log component name on script evaluation errors for better DX
-  - Exclude `key` parameter from serialized props on both client and server `@component` helpers
-- **@igojs/igo 6.0.0-beta.27**:
-  - Remove invalid `main` field from meta-package
-- **skel/tailwind**: rename `webpack-prod` script to `build`
+First stable release of Igo.js 6, now distributed as an npm monorepo under the `@igojs/*` scope.
 
-## 6.0.0-beta.11 - 2026-02-09
+### General
 
-- Fixed LEFT JOIN 1-N duplicates with JavaScript deduplication in paginated optimized queries
-- Fixed migrations line return issue
-- Added per-error email throttling to prevent crash loop spam
-- Moved heavy dependencies (express, redis, sass, etc.) to peerDependencies in @igojs/server
-- Moved @igojs/dust and i18next to peerDependencies in @igojs/signal
+- **BREAKING**: Packages migrated from individual repos to a monorepo. Imports change:
+  - `igo` → `@igojs/server`
+  - `igo-dust` → `@igojs/dust`
+  - `igo-db` → `@igojs/db`
+  - `@igojs/signal` → `@igojs/component` (with significant rework)
+- The meta-package `@igojs/igo` pulls in all sub-packages.
 
-## 6.0.0 - TBD
+### @igojs/dust
 
-- Added `igo db seed` command to run seed files from `seeds/` directory
-- Added `igo db reseed` command to reset database and run seeds
-- Enabled MySQL `enableKeepAlive: true` by default and exposed it as a pool option in `@igojs/db`
-- Enabled PostgreSQL `keepAlive: true` by default
-- **BREAKING**: `silent` query option now swallows errors and returns `null` instead of just suppressing logs
+- **Added**: Single-file `.dust` component support (`<script>` + template), consumed by `@igojs/component` for SSR (`getComponent`, `getCompiledComponent`)
+- **Added**: `@select`, `@any`, `@none` helpers for grouping comparators under a single key
+- **Added**: Helpers can receive an async `body` function as third parameter (enables helpers like `@repeat`)
+- **Added**: `getSource()` to retrieve compiled template source as a JS string
+- **Added**: Shorthand parameter syntax in tags
+- **Removed**: Experimental stream mode (`render(src, data, stream)` third parameter) — never validated for ETag/304 handling
+- **Removed**: Browser bundle (`dist/igo-dust-*.min.js`) and webpack build — `@igojs/dust` is now Node-only
+- Improved whitespace handling: preserves multiple spaces on same line, normalizes newlines, removes whitespace between HTML tags
+
+### @igojs/db
+
+- **Added**: `igo db seed` and `igo db reseed` CLI commands
+- **Added**: `PaginatedOptimizedQuery` — automatic COUNT/IDS/FULL pattern for large tables with joins (activates when `.page()` + `.join()` are used together)
+- **Added**: MongoDB-style operators (`$like`, `$between`, `$gte`, `$lte`, `$gt`, `$lt`, `$or`, `$and`) — with explicit errors on unknown operators
+- **Added**: PostgreSQL driver alongside MySQL
+- **Added**: Multi-database support (`config.databases`)
+- **Added**: MySQL `enableKeepAlive: true` by default (exposed as pool option)
+- **Added**: PostgreSQL `keepAlive: true` by default
+- **BREAKING**: `silent` query option now swallows errors and returns `null` (previously just suppressed logs)
+- Transactions API on `Db` is internal/test-only (used by the test framework for per-test isolation). Renamed with `_` prefix to make the contract explicit.
+- Fixed LEFT JOIN 1-N duplicates in paginated optimized queries (JS-side dedup)
+- Migrations: silently skip hidden files (`.gitkeep`, etc.)
+- Fixed migration line-return handling
+
+### @igojs/server
+
 - **BREAKING**: Upgraded to Express 5.1
 - **BREAKING**: Removed Bootstrap skeleton template
-- Improved migration system to silently skip hidden files (`.gitkeep`, etc.)
+- **BREAKING**: Plugin system removed (unused)
+- **BREAKING**: `igo compress` CLI removed (use `npm run compress`)
+- Express, Redis, Sass and other heavy dependencies moved to `peerDependencies`
+- Error handler migrated from deprecated `domain` module to `AsyncLocalStorage`
+- Added per-error email throttling to prevent crash-loop spam
+- Flash middleware: automatic Redis-backed fallback for large objects (>1KB), warnings >10KB, parallel loading
+- Parallel service initialization for faster startup
+- Language validation uses `Set` for O(1) lookup
+- Replaced `clean-webpack-plugin` with Webpack 5 native `output.clean`
+- Removed IE 11 compatibility for smaller bundles
+- Removed dependencies: sharp, cheerio, pg-hstore, file-loader, url-loader, imagemin, imagemin-cli
 - Removed Tailwind UI placeholder image from default template
 
-**v7 roadmap**:
+### @igojs/component
+
+Replaces and significantly extends the former `@igojs/signal`:
+
+- **Added**: Single-file `.dust` components — `<script>` block (definition) + template, no manual registration
+- **Added**: Deep reactivity via JavaScript Proxy with automatic dependency tracking for computed values
+- **Added**: SSR via `{@component}` Dust helper with client-side hydration
+- **Added**: Inline events (`on:click="method"`) and two-way form binding
+- **Added**: DiffDOM-based DOM reconciliation
+- **Added**: Robust child component preservation across re-renders via `data-component-key` (detach/reattach)
+- **Added**: `{@component}` helper defaults `data-component-key` to the component name; warns on duplicate keys among siblings
+- **Added**: SSR mirrors client-side `props.form` → `state.form` copying
+- Preserve `<input type="file">` selection across re-renders using `DataTransfer`
+- Preserve wrapper attributes (`data-component`, `data-props`, `id`) during DiffDOM apply
+- Replace `window.__component_form` with module-level shared form state
+- Exclude `key` parameter from serialized props
+- `@igojs/dust` and `i18next` moved to `peerDependencies`
+
+### @igojs/igo (meta-package)
+
+- New meta-package that depends on all sub-packages
+- Single version line for the whole stack
+
+### Roadmap (v7)
+
 - Full ESM (`"type": "module"` across all packages)
 - Vite for builds and dev server
 - Vitest for testing
-- Replace `diff-dom` with `morphdom` in `@igojs/component` (smaller bundle, native key matching via `getNodeKey`, simpler child-component preservation via `onBeforeElUpdated`)
+- Replace `diff-dom` with `morphdom` in `@igojs/component` (smaller bundle, native key matching, simpler child-component preservation)
 
 ## 5.2.3 - 2025-10-16
 
