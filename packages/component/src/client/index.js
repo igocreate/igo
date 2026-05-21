@@ -17,20 +17,10 @@
 
 const IgoComponent = require('./IgoComponent.js');
 const ComponentLoader = require('./ComponentLoader.js');
-
-const isServer = typeof window === 'undefined';
-
-if (!isServer) {
-  require('./dust/i18n.js');
-}
-
+const initI18n = require('./dust/i18n.js');
 const Utils = require('./dust/Utils.js');
 
-if (!isServer) {
-  window.__igo = {
-    IgoDustUtils: Utils
-  };
-}
+window.__igo = { IgoDustUtils: Utils };
 
 let registry = {};
 
@@ -69,7 +59,7 @@ async function mountAll(root = document) {
   }
 }
 
-function start(config = {}) {
+async function start(config = {}) {
   const { components, helpers } = config;
 
   // Register application helpers
@@ -93,7 +83,9 @@ function start(config = {}) {
     }
   }
 
-  // Mount components
+  // Load translations before mounting so the t() helper resolves correctly
+  await initI18n();
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => mountAll());
   } else {
@@ -101,8 +93,6 @@ function start(config = {}) {
   }
 }
 
-if (!isServer) {
-  window.__igo.mountElement = mountElement;
-}
+window.__igo.mountElement = mountElement;
 
 module.exports = { IgoComponent, start };

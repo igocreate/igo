@@ -1,16 +1,10 @@
 /* global document, window, cancelAnimationFrame, requestAnimationFrame, DataTransfer */
-// Isomorphic imports (safe for Node.js)
 const DerivedCache = require('./DerivedCache.js');
 const StateProxy = require('./StateProxy.js');
-
-// Browser-only imports (top-level, but only used in browser methods)
 const { DiffDOM } = require('diff-dom');
 const EventBinder = require('./EventBinder.js');
 const Templates = require('./dust/Templates.js');
 const FormHandler = require('./FormHandler.js');
-
-// Detect server-side rendering
-const isServer = typeof window === 'undefined';
 
 class IgoComponent {
   // Component registry for auto-discovery
@@ -40,50 +34,18 @@ class IgoComponent {
     });
   }
 
-  // Server-side rendering: compute derived values (getters) for Dust templates
-  static ssr(props) {
-    props = props || {};
-    const instance = new this(null, props);
-    // Ensure props are set (handles components that don't forward props to super)
-    instance._props = props;
-    instance.props = props;
-    if (props.form) {
-      instance._state.form = props.form;
-    }
-
-    const derived = {};
-    const descriptors = Object.getOwnPropertyDescriptors(this.prototype);
-
-    for (const [key, desc] of Object.entries(descriptors)) {
-      if (!desc.get || key.startsWith('_') || key === 'rawState' || key === 'events') {
-        continue;
-      }
-      try {
-        derived[key] = desc.get.call(instance);
-      } catch (e) {
-        // Getter may access DOM or throw → log and skip
-        console.error(`SSR getter "${key}" error:`, e.message);
-      }
-    }
-
-    return derived;
-  }
-
-  constructor(element, template, props) {
+  constructor(element, template) {
 
     this.template = template;
 
-    // Browser-only setup
-    if (!isServer) {
-      this.element = element;
-      this.element.__componentInstance  = this;
-      this._dustTemplateFn        = null;
-      this._eventBinder           = new EventBinder();
-      this._derivedCache          = new DerivedCache();
-      this._isInitialized         = false;
-      this._renderFrame           = null;
-      this._diffDom               = new DiffDOM();
-    }
+    this.element = element;
+    this.element.__componentInstance  = this;
+    this._dustTemplateFn        = null;
+    this._eventBinder           = new EventBinder();
+    this._derivedCache          = new DerivedCache();
+    this._isInitialized         = false;
+    this._renderFrame           = null;
+    this._diffDom               = new DiffDOM();
 
     // Default events array (only if not defined as getter in subclass)
     if (!Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), 'events')?.get) {
@@ -103,45 +65,32 @@ class IgoComponent {
       Object.assign(this._state, JSON.parse(JSON.stringify(_defaultState)));
     }
 
-    if (isServer) {
-      this._props = props || {};
-      this.props = this._props;
-      this.state = this._state;
-      if (this._props.form) {
-        this._state.form = this._props.form;
+    // Hydrate props from element
+    let localProps = {};
+    if (this.element.dataset.props) {
+      try {
+        const hydrate = new Function('return ' + this.element.dataset.props);
+        localProps = hydrate();
+      } catch (e) {
+        console.error('Failed to parse data-props for component', this.element, e);
       }
-    } else {
-      // Browser: hydrate props from window and element
-      const globalProps = window.__igo_props || {};
-      let localProps = {};
-
-      if (this.element.dataset.props) {
-        try {
-          const hydrate = new Function('return ' + this.element.dataset.props);
-          localProps = hydrate();
-        } catch (e) {
-          console.error('Failed to parse data-props for component', this.element, e);
-        }
-      }
-
-      // SFC: merge default props from definition
-      const _defaultProps = Object.getPrototypeOf(this).__defaultProps;
-      this._props = { ...(_defaultProps || {}), ...globalProps, ...localProps };
-
-      if (this._props.form) {
-        this._state.form = this._props.form;
-      } else if (FormHandler.getSharedForm()) {
-        this._state.form = FormHandler.getSharedForm();
-      }
-
-      this.props = new StateProxy(this, 'props').create(this._props);
-      this.state = new StateProxy(this, 'state').create(this._state);
     }
 
-    // Initialize component (browser only, async fire-and-forget)
-    if (!isServer) {
-      this.init();
+    // SFC: merge default props from definition
+    const _defaultProps = Object.getPrototypeOf(this).__defaultProps;
+    this._props = { ...(_defaultProps || {}), ...localProps };
+
+    if (this._props.form) {
+      this._state.form = this._props.form;
+    } else if (FormHandler.getSharedForm()) {
+      this._state.form = FormHandler.getSharedForm();
     }
+
+    this.props = new StateProxy(this, 'props').create(this._props);
+    this.state = new StateProxy(this, 'state').create(this._state);
+
+    // Async init (fire-and-forget): load template, set up form handler, first render
+    this.init();
   }
 
   // Expose raw state for internal use (bypasses Proxy, no auto-render)

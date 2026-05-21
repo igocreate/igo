@@ -4,37 +4,15 @@ const IgoDust = require('@igojs/dust');
 const { createSerializeHelper } = require('../shared/serialize.js');
 const { componentHelper } = require('./ComponentHelper.js');
 
-// Translations are loaded from user's project (configured via component.configure())
-let translations = {};
-
 // devalue is ESM-only, load it dynamically at startup
-let uneval;
-const devalueReady = import('devalue').then(m => {
-  uneval = m.uneval;
+import('devalue').then(m => {
   // Register @serialize helper once devalue is loaded
-  IgoDust.helpers.serialize = createSerializeHelper(uneval);
+  IgoDust.helpers.serialize = createSerializeHelper(m.uneval);
 });
 
 // Register @component helper
 IgoDust.helpers.component = componentHelper;
 
-
-/**
- * Component middleware
- *
- * Handles:
- * - Injecting translations for client-side i18n
- */
-const middleware = async (req, res, next) => {
-
-  // Ensure devalue is loaded
-  await devalueReady;
-
-  // Inject translations for frontend i18next
-  res.locals.__component_translations = uneval(translations);
-
-  next();
-};
 
 // Validate component name to prevent path traversal
 const SAFE_NAME_RE = /^[a-zA-Z0-9_/-]+$/;
@@ -64,11 +42,23 @@ const component = async (req, res) => {
   }
 };
 
-// Configure (called from user's app)
-const configure = (options) => {
-  if (options.translations) {
-    translations = options.translations;
+// Serve the current request's translations as JSON.
+// Read from req.i18n (attached by i18next-http-middleware) using the request language;
+// returns {} when no i18next is attached.
+const translations = (req, res) => {
+  let data = {};
+  if (req.i18n && typeof req.i18n.getResourceBundle === 'function') {
+    const lang = req.language || req.i18n.language;
+    data = req.i18n.getResourceBundle(lang, 'translation') || {};
   }
+  res.json(data);
 };
 
-module.exports = { middleware, templates, component, configure };
+// Register the three GET endpoints used by the client runtime.
+const init = (app) => {
+  app.get('/__component/templates',    templates);
+  app.get('/__component/component',    component);
+  app.get('/__component/translations', translations);
+};
+
+module.exports = { init, templates, component, translations };

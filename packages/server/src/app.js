@@ -121,6 +121,16 @@ module.exports.configure = async () => {
   app.use(assets);
   app.use(igodust.middleware);
 
+  // Auto-wire @igojs/component if installed in the project.
+  // Registers component.middleware + GET /__component/templates and /__component/component.
+  try {
+    require('@igojs/component').init(app);
+  } catch (err) {
+    if (err.code !== 'MODULE_NOT_FOUND') {
+      throw err;
+    }
+  }
+
   // load routes
   const routes = require('./routes');
   routes.init(app);

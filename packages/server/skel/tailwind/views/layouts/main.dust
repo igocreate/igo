@@ -8,6 +8,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
     <link rel="icon" href="/favicon.ico">
+    <link rel="preload" href="/__component/translations" as="fetch">
 
     <title>{+title}Igo running{/title}</title>
 
@@ -25,7 +26,6 @@
       </div>
     </main>
 
-    <script>window.__component_translations = {__component_translations|s};</script>
     <script src="{assets.vendor.js}" ></script>
     <script src="{assets.main.js}" ></script>
   </body>

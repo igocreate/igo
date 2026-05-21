@@ -1,22 +1,16 @@
 /* global document, window */
 const i18next = require('i18next');
 
-// Get language from <html lang="..."> attribute (set by server)
-const lang = document.documentElement.lang || 'en';
-
-// Initialize i18next with translations injected from the server
-i18next.init({
-  lng: lang,
-  fallbackLng: 'en',
-  resources: {
-    [lang]: {
-      translation: window.__component_translations || {}
-    }
-  },
-  interpolation: {
-    escapeValue: false
-  }
-});
-
-// Expose globally for use in components
-window.i18next = i18next;
+// Fetch translations from the server, init i18next, expose globally.
+module.exports = async () => {
+  const lang = document.documentElement.lang || 'en';
+  const resp = await fetch('/__component/translations');
+  const translation = await resp.json();
+  await i18next.init({
+    lng:         lang,
+    fallbackLng: 'en',
+    resources:   { [lang]: { translation } },
+    interpolation: { escapeValue: false }
+  });
+  window.i18next = i18next;
+};

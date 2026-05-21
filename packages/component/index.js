@@ -4,9 +4,9 @@
 const server = require('./src/server/index.js');
 
 module.exports = {
-  middleware: server.middleware,
-  templates: server.templates,
-  component: server.component,
-  configure: server.configure,
-  serialize: server.serialize,
+  init:         server.init,
+  templates:    server.templates,
+  component:    server.component,
+  translations: server.translations,
+  serialize:    server.serialize,
 };
