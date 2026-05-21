@@ -41,6 +41,15 @@ class Cache {
     });
   }
 
+  // Sync cache lookup for the hot path: returns the compiled fn or undefined.
+  // Lets renderFile skip the async chain entirely on cache hits.
+  getCompiledCached(filePath) {
+    if (!config.cache) {
+      return undefined;
+    }
+    return this._CACHE['compiled:' + FileUtils.getFilePath(filePath)];
+  }
+
   async getSource(filePath) {
     return this._getOrSet(filePath, 'source', async (filePath) => {
       const buffer = await this._getParsed(filePath);

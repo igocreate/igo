@@ -29,6 +29,11 @@ module.exports.render = async (src, data) => {
 
 // render template file
 module.exports.renderFile = async (filePath, data) => {
+  // Fast path: compiled fn already cached → skip Renderer + Cache async chain.
+  const compiled = Cache.getCompiledCached(filePath);
+  if (compiled) {
+    return await compiled(data, Utils, null);
+  }
   return await new Renderer().renderFile(filePath, data);
 };
 

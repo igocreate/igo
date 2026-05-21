@@ -1,8 +1,17 @@
 
 
 const ParseUtils  = require('../parse/ParseUtils');
+const Helpers     = require('../render/Helpers');
 
-const ASYNC_FUNCTION = Object.getPrototypeOf(async function(){}).constructor;
+const ASYNC_FUNCTION       = Object.getPrototypeOf(async function(){}).constructor;
+const ASYNC_FUNCTION_PROTO = Object.getPrototypeOf(async function(){});
+
+// A registered helper is "known sync" if it exists and is not an async function.
+// Unknown helpers stay defensive (treated as potentially async).
+const isHelperSync = (name) => {
+  const fn = Helpers[name];
+  return typeof fn === 'function' && Object.getPrototypeOf(fn) !== ASYNC_FUNCTION_PROTO;
+};
 
 class Compiler {
 
@@ -75,10 +84,12 @@ class Compiler {
         // helper
         this.i = this.i + 1;
         const { i } = this;
+        const bodyAsync   = block.buffer && this._bufferNeedsAwait(block.buffer);
+        const helperAsync = !isHelperSync(block.tag);
 
         // precompile buffer as function if it exists
         if (block.buffer) {
-          this.parts.push(`c._h_body${i}=async function(l_override){`);
+          this.parts.push(`c._h_body${i}=${bodyAsync ? 'async ' : ''}function(l_override){`);
           this.parts.push('var l_saved=l;');
           this.parts.push('if(l_override){l={...l,...l_override};}');
           this.parts.push('var r=\'\';');
@@ -88,12 +99,12 @@ class Compiler {
         }
 
         const bodyParam = block.buffer ? `c._h_body${i}` : 'null';
-        this.parts.push(`var h${i}=await u.h('${block.tag}',${this._getParams(block.params)},l,${bodyParam});`);
+        this.parts.push(`var h${i}=${helperAsync ? 'await ' : ''}u.h('${block.tag}',${this._getParams(block.params)},l,${bodyParam});`);
 
         if (block.buffer) {
           this.parts.push(`var h${i}_t=typeof h${i};`);
           this.parts.push(`if(h${i}_t==='string'||h${i}_t==='number'){r+=h${i};}`);
-          this.parts.push(`else if(h${i}){r+=await c._h_body${i}();}`);
+          this.parts.push(`else if(h${i}){r+=${bodyAsync ? 'await ' : ''}c._h_body${i}();}`);
           this._else(block);
         } else {
           this.parts.push(`if(h${i}!==null&&h${i}!==undefined){`);
@@ -130,11 +141,15 @@ class Compiler {
     return this.parts.join('');
   }
 
-  // Compiles the template into an executable function
+  // Compiles the template into an executable function.
+  // Returns a sync function when the template has no async constructs.
   compile(buffer) {
+    const needsAwait = this._bufferNeedsAwait(buffer);
     const sourceCode = this.toSource(buffer);
     // console.log(sourceCode);
-    return new ASYNC_FUNCTION('l', 'u', 'c', sourceCode);
+    return needsAwait
+      ? new ASYNC_FUNCTION('l', 'u', 'c', sourceCode)
+      : new Function('l', 'u', 'c', sourceCode);
   }
 
   _else(block) {
@@ -143,6 +158,29 @@ class Compiler {
       this.compileBuffer(block.bodies.else);
       this.parts.push('}');
     }
+  }
+
+  // True if the buffer (or anything nested) contains a construct that emits `await`.
+  // `@` helpers only force async when the helper is unknown or async.
+  _bufferNeedsAwait(buffer) {
+    if (!buffer) {
+      return false;
+    }
+    for (const block of buffer) {
+      if (block.type === '+' || block.type === '>') {
+        return true;
+      }
+      if (block.type === '@' && !isHelperSync(block.tag)) {
+        return true;
+      }
+      if (block.buffer && this._bufferNeedsAwait(block.buffer)) {
+        return true;
+      }
+      if (block.bodies && block.bodies.else && this._bufferNeedsAwait(block.bodies.else)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   _ctxParamKeys(params) {
