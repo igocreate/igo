@@ -1,6 +1,6 @@
 {
   "name": "@igojs/db",
-  "version": "6.0.0-rc.1",
+  "version": "6.0.0",
   "description": "Igo ORM - Database abstraction layer for MySQL and PostgreSQL",
   "main": "index.js",
   "scripts": {
