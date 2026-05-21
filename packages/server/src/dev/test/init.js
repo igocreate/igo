@@ -57,7 +57,7 @@ beforeEach(async () => {
     if (dbInstance.config.noMigrations) {
       continue;
     }
-    await dbInstance.beginTransaction();
+    await dbInstance._beginTransaction();
   }
 });
 
@@ -68,6 +68,6 @@ afterEach(async() => {
     if (dbInstance.config.noMigrations) {
       continue;
     }
-    await dbInstance.rollbackTransaction();
+    await dbInstance._rollbackTransaction();
   }
 });

@@ -17,6 +17,8 @@ const schema = {
 class User extends Model(schema) {}
 ```
 
+`cache: true` is also accepted as a shorthand — the TTL falls back to the Redis cache default (no per-model expiry).
+
 Redis must be configured and running (see [Server Cache](/server/cache)).
 
 ## How It Works

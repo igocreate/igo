@@ -112,15 +112,20 @@ class Db {
 
 
 
-  //
-  async beginTransaction() {
+  // Internal — used by the test framework (@igojs/server dev/test) to wrap
+  // each test in a transaction that gets rolled back, isolating mutations.
+  // Relies on connection caching that only happens when NODE_ENV=test
+  // (see getConnection above). Not a general-purpose transaction API —
+  // outside of test mode, the connection acquired here is not reused by
+  // subsequent query() calls, so commit/rollback would target the wrong
+  // connection.
+  async _beginTransaction() {
     const { driver } = this;
     const { connection } = await this.getConnection();
     await driver.beginTransaction(connection);
   }
 
-  //
-  async commitTransaction() {
+  async _commitTransaction() {
     const { driver, TEST_ENV } = this;
     const { connection } = await this.getConnection();
     await driver.commit(connection);
@@ -130,8 +135,7 @@ class Db {
     }
   }
 
-  //
-  async rollbackTransaction() {
+  async _rollbackTransaction() {
     const { driver, TEST_ENV } = this;
 
     // No connection = no transaction to rollback

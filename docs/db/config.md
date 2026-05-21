@@ -118,16 +118,23 @@ const [rows] = await db.dbs.main.query('SELECT NOW() AS now');
 
 ## Transactions
 
+The test framework wraps each test in a transaction that gets rolled back, providing per-test isolation. This relies on test-mode connection caching internal to `@igojs/db` and is not exposed as a public API in v6 — if you need to run a sequence of statements atomically outside tests, use database-side transactions through raw SQL (`BEGIN` / `COMMIT` / `ROLLBACK`).
+
+## Standalone usage
+
+When used inside `@igojs/server`, `@igojs/db` is wired up automatically. To use it on its own (e.g. in a script or a non-Igo project), inject the dependencies it expects:
+
 ```js
 const db = require('@igojs/db');
-const connection = await db.dbs.main.beginTransaction();
 
-try {
-  await db.dbs.main.query('INSERT INTO users ...', [], { connection });
-  await db.dbs.main.query('INSERT INTO profiles ...', [], { connection });
-  await db.dbs.main.commitTransaction(connection);
-} catch (err) {
-  await db.dbs.main.rollbackTransaction(connection);
-  throw err;
-}
+db.init({
+  config: {
+    databases: ['main'],
+    mysql: { host: 'localhost', database: 'myapp' },
+  },
+  cache:         myRedisCache,    // optional, required only for cache: true on models
+  logger:        console,
+  utils:         { toJSON: JSON.stringify, fromJSON: JSON.parse },
+  errorhandler:  { errorSQL: (err) => console.error(err) },
+});
 ```

@@ -292,6 +292,19 @@ The optimization activates automatically when both conditions are met:
 
 Without joins, the standard 2-query approach (COUNT + SELECT) is used, which is more efficient for simple queries.
 
+### Forcing the optimization
+
+You can also opt in explicitly via `Model.paginatedOptimized()`, which is useful when you want the COUNT/IDS/FULL pattern even without joins, or to make the intent obvious at the call site:
+
+```js
+const result = await Folder.paginatedOptimized()
+  .where({ type: ['agp', 'avt'], status: 'SUBMITTED' })
+  .join(['applicant', 'pme_folder'])
+  .order('folders.created_at DESC')
+  .page(1, 50)
+  .execute();
+```
+
 
 ## SQL Debugging
 

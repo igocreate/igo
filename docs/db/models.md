@@ -185,6 +185,8 @@ const user = await User.create({
 
 If the primary key is `AUTO_INCREMENT`, it is set automatically on the returned instance.
 
+`create(values, options)` accepts a second argument forwarded to the underlying driver query (`silent`, etc. — see the [config](./config.md) page).
+
 ### Find
 
 ```js
