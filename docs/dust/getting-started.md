@@ -37,21 +37,11 @@ You can also rename the iterator with `it=`:
 {#users it="user"}{user.name}{/users}
 ```
 
-**2. HTML encoding by default**
-
-All output is HTML-encoded by default (prevents XSS). Use the `|s` filter to output raw HTML:
-
-```js
-{content|s}
-```
-
-In Dust.js, output is not encoded by default.
-
-**3. No hierarchical scope chain**
+**2. No hierarchical scope chain**
 
 Dust.js searches up a scope chain to resolve variables. Igo Dust uses a flat context with explicit save/restore. Inside a section, only `.property` accesses the current context — there is no automatic fallback to parent contexts.
 
-**4. Empty arrays are falsy**
+**3. Empty arrays are falsy**
 
 In Igo Dust, `[]` evaluates to `false` in conditionals:
 
@@ -60,7 +50,7 @@ In Igo Dust, `[]` evaluates to `false` in conditionals:
 // With items = [] → "No items"
 ```
 
-**5. Async rendering only**
+**4. Async rendering only**
 
 All rendering methods return Promises. There is no callback-based API.
 

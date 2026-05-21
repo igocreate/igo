@@ -54,11 +54,12 @@ Errors can be sent by email to the admin. Email throttling prevents spam during 
 - Max 3 emails per unique error within 1 minute
 - After 3 emails, the error is silenced for 5 minutes
 
-Configure the crash email recipient:
+Configure the crash email recipient (string or array):
 
 ```js
 // app/config.js
-config.mailer.crashemailto = 'admin@example.com';
+config.mailcrashto = 'admin@example.com';
+// or: config.mailcrashto = ['admin@example.com', 'ops@example.com'];
 ```
 
 ## Logging

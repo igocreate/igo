@@ -124,4 +124,32 @@ npx igo db reseed        # Reset database and run seeds
 # i18n
 npx igo i18n update      # Update translations from Google Spreadsheet
 npx igo i18n csv         # Export translations to CSV
+
+# Interactive console (Node REPL)
+npx igo console          # REPL with config, db, models, services, utils preloaded
 ```
+
+## Interactive Console
+
+`igo console` opens a Node REPL with your project context already wired up — config loaded, database connected, Redis connected (if configured), and all your `app/models/`, `app/services/`, `app/utils/` auto-discovered.
+
+```bash
+$ npx igo console
+igo console
+Available: config, cache, db, dbs, Model, logger
+Models: User, Product, elearning.Training
+Services: AuthService, PaymentService
+
+igo> await User.where({ email: 'alice@example.com' }).first()
+User { id: 1, email: 'alice@example.com', ... }
+
+igo> await Product.count()
+142
+
+igo> await AuthService.verifyToken('xyz')
+{ valid: true, userId: 1 }
+```
+
+Models in subdirectories are namespaced — `app/models/elearning/Training.js` becomes `elearning.Training`. Files that fail to require (missing deps, etc.) are logged as warnings and skipped.
+
+Useful for one-off queries, debugging data issues, or testing service methods without writing a script.

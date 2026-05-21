@@ -41,7 +41,7 @@ npm install
 npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and start coding.
+Open `http://localhost:3000` and start coding.
 
 ## Configuration
 

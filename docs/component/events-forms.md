@@ -1,151 +1,142 @@
 
 # Events & Forms
 
-## Event Handling
+## Inline event syntax
 
-Define events by implementing the `events` getter. Each entry maps a CSS selector to an event handler.
+In single-file components, declare events directly in the template with `on:<event>="methodName"`:
 
-> **Note:** The event declaration API (`get events()`) is a work in progress and will be simplified in a future release.
-
-```js
-class ProductList extends IgoComponent {
-  get events() {
-    return [
-      { selector: '.add-btn',    eventType: 'click', handler: this.onAdd },
-      { selector: '.delete-btn', eventType: 'click', handler: this.onDelete },
-      { selector: '.search',     eventType: 'input', handler: this.onSearch },
-    ];
-  }
-
-  onAdd(e) {
-    this.state.items.push({ id: Date.now(), name: 'New' });
-  }
-
-  onDelete(e) {
-    const id = Number(e.target.dataset.id);
-    const index = this.state.items.findIndex(i => i.id === id);
-    this.state.items.splice(index, 1);
-  }
-
-  onSearch(e) {
-    this.state.search = e.target.value;
-  }
-}
+```dust
+<button on:click="onIncrement">+1</button>
+<input on:input="onFilter">
+<select on:change="onSort">
+<form on:submit="onSubmit">
 ```
 
-### Global Events
-
-Use `'document'` or `'window'` as selector for global events:
+Methods are looked up on the definition object:
 
 ```js
-get events() {
-  return [
-    { selector: 'document', eventType: 'keydown',  handler: this.onKeydown },
-    { selector: 'window',   eventType: 'scroll',   handler: this.onScroll },
-    { selector: 'window',   eventType: 'resize',   handler: this.onResize },
-  ];
-}
+({
+  state: { count: 0 },
+
+  onIncrement(e) {
+    this.state.count++;
+  },
+
+  onFilter(e) {
+    this.state.filter = e.target.value;
+  }
+})
 ```
 
-### Child component boundaries
+The `on:` attributes are rewritten to `data-on-<event>` at parse time, so the original markup is preserved through DiffDOM and event listeners are reused across renders (WeakMap-cached per element).
 
-Events don't cross component boundaries. If a selector matches an element inside a child `data-component`, a warning is logged. Bind events to child elements from within the child component instead.
+### Bubbling boundaries
 
-## Two-Way Form Binding
+Events don't cross component boundaries. If you `on:click` an element that lives inside a nested `[data-component]`, a warning is logged — bind events from the child component instead. Each component manages its own surface.
 
-When `props.form` exists, The component system automatically binds all form inputs to `this.state.form`:
+## Two-way form binding
+
+When a component receives a `form` prop, all named inputs in its template are automatically synced to `this.state.form`.
 
 ### Setup
 
+Pass the form via the `@component` helper:
+
+```dust
+{@component name="components/Search" form=form /}
+```
+
+`form` is typically built in the controller — for example from the query string on a search page:
+
 ```js
-// Controller
-res.locals.component_props = {
-  products: await Product.list(),
-  form: {
-    search: req.query.search || '',
+module.exports.index = async (req, res) => {
+  const form = {
+    search:   req.query.search || '',
     category: req.query.category || 'all',
-  },
+  };
+  res.render('products/index', { form, products: await Product.list() });
 };
 ```
 
-```html
+### Template
+
+Just name your inputs — no `on:` handler needed for binding:
+
+```dust
 <input type="text" name="search" value="{form.search}">
 
 <select name="category">
-  <option value="all" {@selected key="all" value=form.category /}>All</option>
-  <option value="electronics" {@selected key="electronics" value=form.category /}>Electronics</option>
+  <option value="all">All</option>
+  <option value="electronics">Electronics</option>
 </select>
 ```
 
-Typing in the input automatically updates `this.state.form.search`, which triggers a re-render if a getter depends on it.
+Typing in the input updates `this.state.form.search`. Any getter that reads it recomputes; the DOM updates via DiffDOM.
 
-### Supported Input Types
+### Supported input types
 
 | Input | State value |
 |-------|-------------|
 | `text`, `email`, `password`, `number` | String |
 | `textarea` | String |
 | `checkbox` (single) | Boolean |
-| `checkbox` (multiple, `name="x[]"`) | Array of strings |
+| `checkbox` (multiple, `name="tags[]"`) | Array of strings |
 | `radio` | String |
 | `select` | String |
 | `select[multiple]` | Array of strings |
-| `name="x[0][]"` (nested array) | Array of arrays |
+| `name="x[0][]"` (nested arrays) | Array of arrays |
 
-### Type Conversion
+### Type coercion
 
-Form values are always stored as **strings** (matching HTML form behavior), except checkboxes which store booleans. Convert explicitly in getters:
+Form values are always stored as **strings** (matching HTML form behavior), except checkboxes which store booleans. Convert in getters:
 
 ```js
 get selectedProduct() {
-  const productId = Number(this.state.form?.product_id);
-  return this.props.products.find(p => p.id === productId);
+  const id = Number(this.state.form?.product_id);
+  return this.props.products.find(p => p.id === id);
 }
 ```
 
-### Shared Form State
+### Shared form state
 
-Form state is shared across all components on a page via `window.__igo_form`. This means two components can read and write the same form fields.
+Form state is shared across all components on a page via `window.__igo_form`. Two components rendering inputs of the same form read and write the same state — useful for splitting a long form across multiple components.
 
-The form initialization flow:
-1. In the constructor, `props.form` is copied into `this._state.form`
-2. In `init()`, `FormHandler` replaces it with a shared singleton (`window.__igo_form`)
-3. All components with `props.form` end up pointing to the same form object
+The flow on mount:
 
-This means a single form state is shared across all components on the page. If you need independent forms per component, manage form data in `this.state` manually instead of using `props.form`.
+1. Constructor copies `props.form` into `_state.form`
+2. `init()` lets `FormHandler` replace it with the page-wide singleton (`window.__igo_form`)
+3. All components with `props.form` end up pointing at the same form object
 
-### Child Component Inputs
+If you need independent forms in two components on the same page, keep the data in `state` directly rather than going through `props.form`.
 
-FormHandler skips inputs inside child `data-component` elements. Each component manages its own form inputs.
+### Inputs inside child components
 
-## Using Both Together
+`FormHandler` only binds inputs that belong to the component instance — inputs inside a nested `[data-component]` are left to that child. Each component owns its own form surface.
 
-A typical component with events and form binding:
+## Class-based events (legacy)
+
+In the class-based pattern, events are declared via the `events` getter rather than inline `on:`:
 
 ```js
-class SearchPage extends IgoComponent {
-  constructor(element, props) {
-    super(element, 'search/Page', props);
-  }
-
+class ProductList extends IgoComponent {
   get events() {
     return [
-      { selector: '.reset-btn', eventType: 'click', handler: this.onReset },
+      { selector: '.add-btn',    eventType: 'click', handler: this.onAdd },
+      { selector: '.delete-btn', eventType: 'click', handler: this.onDelete }
     ];
-  }
-
-  get filtered() {
-    const { search, category } = this.state.form || {};
-    return this.props.items.filter(item => {
-      if (category && category !== 'all' && item.category !== category) return false;
-      if (search && !item.name.toLowerCase().includes(search.toLowerCase())) return false;
-      return true;
-    });
-  }
-
-  onReset() {
-    this.state.form.search = '';
-    this.state.form.category = 'all';
   }
 }
 ```
+
+Selectors can be plain CSS selectors or the special `'document'` / `'window'` strings for global events:
+
+```js
+get events() {
+  return [
+    { selector: 'document', eventType: 'keydown', handler: this.onKeydown },
+    { selector: 'window',   eventType: 'scroll',  handler: this.onScroll }
+  ];
+}
+```
+
+In SFC components, use lifecycle hooks (`afterRender`) plus `document.addEventListener` for global events.

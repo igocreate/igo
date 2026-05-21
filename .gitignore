@@ -5,7 +5,8 @@ node_modules
 coverage
 *.log
 
-docs/.vitepress
+docs/.vitepress/cache
+docs/.vitepress/dist
 
 skel/public/dist
 .env

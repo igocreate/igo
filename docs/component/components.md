@@ -1,199 +1,207 @@
 
 # Components
 
-## Creating a Component
+## Single-file component (SFC)
 
-An Igo component is a class that extends `IgoComponent`:
+A component is a `.dust` file that contains a `<script>` block followed by the template. The script returns a bare object — no class, no `import`, no manual registration.
 
-```js
-const { IgoComponent } = require('@igojs/component/src/client');
+```dust
+{! views/components/ProductList.dust !}
+<script>
+({
+  props: {
+    products: [],
+    title: 'Products'
+  },
 
-class Counter extends IgoComponent {
-  constructor(element, props) {
-    super(element, 'Counter', props); // template path (relative to views/)
+  state: {
+    filter: ''
+  },
+
+  get filteredProducts() {
+    const q = this.state.filter.toLowerCase();
+    return this.props.products.filter(p => p.name.toLowerCase().includes(q));
+  },
+
+  onFilter(e) {
+    this.state.filter = e.target.value;
+  },
+
+  async onDelete(e) {
+    const id = Number(e.target.dataset.id);
+    await fetch(`/api/products/${id}`, { method: 'DELETE' });
+    this.props.products = this.props.products.filter(p => p.id !== id);
   }
+})
+</script>
 
-  get events() {
-    return [
-      { selector: '.increment', eventType: 'click', handler: this.increment },
-    ];
-  }
+<div>
+  <h2>{title}</h2>
+  <input type="text" on:input="onFilter" value="{filter}" placeholder="Filter…">
 
-  get count() {
-    return this.state.count || 0;
-  }
-
-  increment() {
-    this.state.count = (this.state.count || 0) + 1;
-  }
-}
-
-module.exports = Counter;
-```
-
-## Template
-
-Each component has a Dust template. The root element **must** have `data-component`:
-
-```html
-{! views/Counter.dust !}
-<div data-component="Counter">
-  <p>Count: {count}</p>
-  <button class="increment">+1</button>
+  <ul>
+    {#filteredProducts}
+      <li>
+        {.name} — ${.price}
+        <button on:click="onDelete" data-id="{.id}">Delete</button>
+      </li>
+    {/filteredProducts}
+  </ul>
 </div>
 ```
 
-The template context is a flat merge of `props`, `state`, and computed values (getters).
+### Definition object
 
-## Registering Components
+The `<script>` block returns a single object literal. Its keys are picked up as follows:
 
-Register components in your client entry point:
+| Key | Type | Purpose |
+|-----|------|---------|
+| `props` | Object | Default values for props. Overridden by caller-passed values from `{@component}` or `data-props`. |
+| `state` | Object | Initial reactive state. Cloned per instance. |
+| `get xyz()` | Getter | Computed value with auto-tracked dependencies, available as `{xyz}` in the template. |
+| `methodName()` | Function | Event handler (called by `on:click="methodName"`) or any custom method. |
 
-```js
-// public/main.js
-const { start } = require('@igojs/component/src/client');
+Inside getters and methods, `this.props`, `this.state`, and `this.<getter>` are all available. Mutating `state` or `props` triggers a re-render — see [Reactivity](./reactivity).
 
-start({
-  components: {
-    'Counter': require('./components/Counter'),
-    'products/List': require('./components/products/List'),
-  },
-  helpers: require('./helpers'),
-});
+### Template context
+
+The template receives a flat merge of `{ ...props, ...state, ...derivedGetters }`. So in the example above, `{title}` resolves to `props.title`, `{filter}` to `state.filter`, and `{filteredProducts}` to the getter result.
+
+## Rendering a component
+
+Use the `{@component}` Dust helper:
+
+```dust
+{@component name="components/ProductList" products=products title="Soldes" /}
 ```
 
-Or with Webpack `require.context` for automatic discovery:
+This renders the component server-side and emits a hydration-ready wrapper:
 
-```js
-start({
-  components: require.context('./components', true, /\.js$/),
-});
+```html
+<div data-component="components/ProductList" data-props="…serialized…">
+  <!-- fully rendered HTML -->
+</div>
 ```
 
-With `require.context`, component names are derived from file paths: `./products/List.js` becomes `products/List`.
+Caller params (`products=…`, `title=…`) override the corresponding `props` defaults from the definition.
 
 ## Lifecycle
 
 ```
-constructor(element, props)
+constructor(element)
     ↓
-init()                    ← Load template, init form handler
+init()                          ← load template, set up form binding
     ↓
-render()  ←────────────┐
-    ↓                   │
-beforeRender()          │
-    ↓                   │
-compute getters         │
-    ↓                   │
-dust.render()           │
-    ↓                   │
-DiffDOM.apply()         │
-    ↓                   │
-bind events             │
-    ↓                   │
-mount child components  │
-    ↓                   │
-afterRender()           │
-    ↓                   │
-[state mutation] ───────┘
+render() ←──────────────────┐
+    ↓                        │
+beforeRender()                │
+    ↓                        │
+compute getters (memoized)    │
+    ↓                        │
+dust.render(template, ctx)    │
+    ↓                        │
+DiffDOM.apply()               │
+    ↓                        │
+sync child props              │
+    ↓                        │
+bind events (WeakMap-cached)  │
+    ↓                        │
+mount child components        │
+    ↓                        │
+afterRender()                 │
+    ↓                        │
+[state mutation] ─────────────┘
 ```
 
-### Lifecycle Hooks
+### Hooks
 
-Override these methods for custom logic:
+Add any of these as methods in the definition object:
 
 ```js
-class MyComponent extends IgoComponent {
-  async init() {
-    // Called once after constructor
-    // Template is loaded here — call super.init() or handle manually
-    await super.init();
-  }
-
-  async beforeRender() {
-    // Called before each render
-  }
-
-  async afterRender() {
-    // Called after each render — DOM is updated
-    // Good for: focus management, scroll position, third-party libs
-  }
-
-  async onError(error) {
-    // Called if render throws
-  }
-
-  async destroy() {
-    // Cleanup: cancel pending renders, unbind events, clear cache
-    await super.destroy();
-  }
-}
+({
+  async beforeRender() { /* before each render */ },
+  async afterRender()  { /* after each render — DOM is updated */ },
+  async onError(err)   { /* if render throws */ }
+})
 ```
 
-## Child Components
+`afterRender` is the right place for focus management, scroll restoration, or initialising third-party libs that need a stable DOM.
 
-Components can be nested. Parent and child components are independent:
+## Child components
 
-```html
+Components can be nested. Each `[data-component]` element becomes its own component instance with isolated state.
+
+Inline:
+
+```dust
 {! Parent template !}
-<div data-component="products/Page">
-  <input type="text" name="search" value="{form.search}">
-
-  {! Child component !}
-  <div data-component="products/List"
-       data-props="{@serialize props="filtered" /}">
-    <ul>
-      {#filtered}
-        <li>{.name}</li>
-      {/filtered}
-    </ul>
-  </div>
+<div>
+  <h1>Dashboard</h1>
+  {@component name="components/ProductList" products=products /}
+  {@component name="components/CartSummary" cart=cart /}
 </div>
 ```
 
-### How children work
+Each child component manages its own state, getters and events. When the parent re-renders, child DOM nodes are **preserved** (not recreated). Their `data-props` are re-evaluated and the child re-renders if its props changed.
 
-- **Preserved**: when the parent re-renders, child component DOM nodes are preserved (not re-created)
-- **Props synced**: after parent render, `data-props` are re-evaluated and children re-render if props changed
-- **Auto-mounted**: new child components added during parent render are automatically mounted
-- **Independent state**: each child has its own state, getters, and event bindings
+### Stable identity in dynamic lists
 
-### Parent → child communication
+When you render a list of components, give each one a `key=` param. The helper writes it as `data-component-key`; the runtime uses that to match instances across re-renders.
 
-Via props (the `data-props` attribute):
-
-```html
-<div data-component="ProductDetail"
-     data-props="{@serialize props="selectedProduct" /}">
+```dust
+{#products}
+  {@component name="components/ProductCard" product=. key=.id /}
+{/products}
 ```
 
-When the parent recomputes `selectedProduct`, the child receives the new value and re-renders.
+Without an explicit `key=`, the component name is used — fine for one-off mounts but ambiguous for repeated children.
 
-## API Reference
+## Class-based components (advanced)
 
-### Static Methods
+For cases where you need lifecycle methods that don't fit the definition object — heavy custom logic, dynamic component classes, etc. — you can also extend `IgoComponent` directly:
 
-| Method | Description |
-|--------|-------------|
-| `ssr(props)` | Compute derived values for server-side rendering |
+```js
+const { IgoComponent } = require('@igojs/component/client');
 
-### Instance Properties
+class Counter extends IgoComponent {
+  constructor(element) {
+    super(element, 'components/Counter');
+  }
+
+  get events() {
+    return [
+      { selector: '.increment', eventType: 'click', handler: this.onIncrement }
+    ];
+  }
+
+  onIncrement() {
+    this.state.count = (this.state.count || 0) + 1;
+  }
+}
+
+// Register at startup
+start({ components: { 'components/Counter': Counter } });
+```
+
+This pre-`6.0` pattern is still supported. Most apps should reach for SFC first — the `on:` event syntax replaces the `events` getter, and the definition object handles the boilerplate.
+
+## API reference
+
+### Instance properties
 
 | Property | Description |
 |----------|-------------|
 | `element` | The DOM element this component is mounted on |
-| `template` | Template file path |
-| `props` | Read-only props (tracking Proxy) |
-| `state` | Reactive state (deep Proxy) |
-| `rawState` | Internal state (no auto-render on access) |
+| `props` | Reactive Proxy over the props (read + mutate, triggers render) |
+| `state` | Deep reactive Proxy over state |
+| `rawState` | Plain state object — access without triggering renders |
 
-### Lifecycle Methods
+### Lifecycle methods
 
 | Method | Description |
 |--------|-------------|
-| `init()` | Called once after constructor |
-| `render()` | Render the component (called automatically) |
-| `beforeRender()` | Hook before each render |
-| `afterRender()` | Hook after each render |
-| `onError(error)` | Hook on render error |
-| `destroy()` | Cleanup and unbind everything |
+| `init()` | Called once after the constructor — template load + form handler setup |
+| `render()` | Render the component (called automatically on state mutation) |
+| `beforeRender()` / `afterRender()` | Render hooks |
+| `onError(error)` | Hook for render errors |
+| `destroy()` | Cleanup: cancel pending renders, unbind events, clear caches |

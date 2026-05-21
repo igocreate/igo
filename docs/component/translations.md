@@ -1,44 +1,30 @@
 
 # Translations
 
-Igo component provides client-side i18n so that translations work in both server-rendered templates and interactive components.
+`@igojs/component` provides client-side i18n so translations work in both server-rendered templates and interactive components.
 
 ## Setup
 
-### 1. Configure translations
+Nothing to configure — `component.init(app)` (auto-called by `@igojs/server`) registers a `GET /__component/translations` endpoint that returns the current request's translations as JSON. When `start()` runs in the browser, it fetches that endpoint, initialises i18next, and only then mounts components.
 
-In your routes file, pass your translation data to the component system:
+On the server, the endpoint reads from i18next via `req.i18n.getResourceBundle(req.language, 'translation')` — so the visitor's language is detected per-request, no hardcoded `require('./locales/en/translation.json')` needed.
 
-```js
-const component = require('@igojs/component');
+### Preload (optional)
 
-component.configure({
-  translations: require('../locales/en/translation.json'),
-});
+To hide the fetch round-trip behind the JS bundle download, add a `<link rel="preload">` in the layout `<head>`. The browser fetches translations in parallel; when `start()` later calls `fetch('/__component/translations')`, the response is already in the HTTP cache.
+
+```dust
+<link rel="preload" href="/__component/translations" as="fetch">
 ```
 
-The middleware serializes translations into `res.locals.__igo_translations`.
-
-### 2. Layout script tag
-
-Add the translations script tag in your layout, **before** the props and application scripts:
-
-```html
-<script>window.__igo_translations = {__igo_translations|s};</script>
-<script>window.__igo_props = {__igo_props|s};</script>
-<script src="{assets.vendor.js}"></script>
-<script src="{assets.main.js}"></script>
-```
-
-### 3. Register the `t` helper
+### Register the `t` helper
 
 To use `{@t}` in client-side component templates, register a `t` helper in your entry point:
 
 ```js
-const component = require('@igojs/component/src/client');
+const { start } = require('@igojs/component/client');
 
-component.start({
-  components: require.context('./components', true, /\.js$/),
+start({
   helpers: {
     t: (params) => window.i18next.t(params.key, params),
   },
@@ -51,29 +37,28 @@ component.start({
 
 The `{@t}` helper works both server-side and client-side:
 
-```html
+```dust
 <h1>{@t key="welcome" name=user.name /}</h1>
 <p>{@t key="products.count" count=count /}</p>
 ```
 
 ### In components
 
-Use `window.i18next.t()` in your getters:
+Use `window.i18next.t()` in getters:
 
 ```js
-class ProductList extends IgoComponent {
-  get emptyMessage() {
-    return window.i18next.t('products.empty');
-  }
+get emptyMessage() {
+  return window.i18next.t('products.empty');
 }
 ```
 
 ## How it works
 
-When `component.start()` is called in the browser:
+When `start()` runs in the browser:
 
 1. Detects the language from the `<html lang="...">` attribute
-2. Loads translations from `window.__igo_translations`
-3. Initializes i18next and exposes it as `window.i18next`
+2. Fetches `/__component/translations` — the server returns the right language's translations from i18next
+3. Initializes i18next with that data and exposes it as `window.i18next`
+4. Then mounts components — so `{@t}` and `window.i18next.t()` are ready for the first render
 
 No additional i18n setup is needed on the client side.

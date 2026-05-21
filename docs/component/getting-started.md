@@ -1,152 +1,133 @@
 
-# Getting Started
+# Igo Component
 
-@igojs/component adds reactive components to your server-rendered Igo pages. You write Dust templates that render on the server, then the component system makes them interactive in the browser — with automatic reactivity, form binding, and efficient DOM updates.
+## Introduction
+
+`@igojs/component` adds reactive components to your server-rendered Igo pages. A component lives in a single `.dust` file — definition + template — and runs both on the server (full SSR) and in the browser (hydration with auto-reactivity).
+
+Server-rendered apps stay fast on first paint and play well with SEO, but interactive UI typically meant either a heavy SPA framework on top, or hand-rolled jQuery-style sprinkles. The component system is the in-between we wanted: real reactivity and clean composition, but the page still ships as HTML and the components hydrate in place.
+
+### Key Features
+
+* **Single-file `.dust` components** — `<script>` block + template, no manual registration
+* **Deep reactivity via JavaScript Proxy** — Vue 3-like; mutating state at any depth triggers a re-render
+* **Automatic dependency tracking for getters** — computed values are memoized and recompute only when inputs change
+* **Server-side rendering with hydration** — the page is fully HTML before any JS runs
+* **Auto-loading from the server** — `start()` with no arguments picks up `[data-component]` elements on demand
+* **DiffDOM reconciliation** — minimal DOM updates, child components and form inputs preserved across re-renders
+* **Inline event syntax** — `on:click="onIncrement"` in templates, no boilerplate handler registration
+* **Two-way form binding** — `name="email"` inputs sync into `this.state.form` automatically
+* **Render batching** — multiple state mutations in the same tick coalesce into one render
 
 ## Setup
 
-### 1. Routes
+### 1. Install
 
-Register the component middleware and template endpoint in `app/routes.js`:
+`@igojs/server` auto-wires the component middleware and endpoints when it detects `@igojs/component` is installed. Nothing to add to `app/routes.js` — your routes stay focused on your own app:
 
 ```js
-const component = require('@igojs/component');
-
-// Optional: configure translations for client-side i18n
-component.configure({
-  translations: require('../locales/en/translation.json'),
-});
+// app/routes.js
+const ProductsController = require('./controllers/ProductsController');
 
 module.exports.init = (app) => {
-  app.use(component.middleware);
-  app.get('/__component/templates', component.templates);
-
-  // Your routes
   app.get('/products', ProductsController.index);
 };
 ```
 
+A regular controller — no component-specific API, just render the template with the data you want to expose:
+
+```js
+// app/controllers/ProductsController.js
+module.exports.index = async (req, res) => {
+  const products = await Product.where({ active: true }).list();
+  res.render('products/index', { products });
+};
+```
+
+Behind the scenes, the server registers `component.middleware` (which injects the current request's translations into `res.locals`), `GET /__component/templates`, and `GET /__component/component`. For advanced cases (custom paths, manual wiring without `@igojs/server`), the individual exports `component.middleware`, `component.templates`, `component.component` and `component.init(app)` remain available.
+
 ### 2. Layout
 
-Add the component scripts in your layout (`views/layouts/main.dust`):
+A standard Igo layout — nothing component-specific to add. The `lang` attribute lets the runtime detect the language; translations are loaded on the fly via the `/__component/translations` endpoint.
 
-```html
+```dust
+{! views/layouts/main.dust !}
 <!DOCTYPE html>
 <html lang="{lang}">
-<head>
-  <link rel="stylesheet" href="{assets.main.css}" />
-</head>
-<body>
-  {+body/}
-  <script>window.__igo_translations = {__igo_translations|s};</script>
-  <script>window.__igo_props = {__igo_props|s};</script>
-  <script src="{assets.vendor.js}"></script>
-  <script src="{assets.main.js}"></script>
-</body>
+  <head>
+    <link rel="stylesheet" href="{assets.main.css}" />
+  </head>
+  <body>
+    {+body/}
+    <script src="{assets.vendor.js}"></script>
+    <script src="{assets.main.js}"></script>
+  </body>
 </html>
 ```
 
 ### 3. Client entry point
 
-Initialize the component system in your JavaScript entry point (`js/main.js`):
+In your JavaScript bundle entry (`js/main.js`):
 
 ```js
-const component = require('@igojs/component/src/client');
+const { start } = require('@igojs/component/client');
 
-component.start({
-  components: require.context('./components', true, /\.js$/),
-  helpers: require('./helpers'),
-});
+start();
 ```
 
-With `require.context`, component names are derived from file paths: `./products/List.js` becomes `products/List`.
-
-You can also register components manually:
-
-```js
-component.start({
-  components: {
-    'products/List': require('./components/products/List'),
-    'Counter': require('./components/Counter'),
-  },
-});
-```
+That's it — no manual registration. Components are loaded on demand from the server.
 
 ## Your first component
 
-### Controller
+A component is a single `.dust` file with a `<script>` block (definition) followed by the template:
 
-```js
-// app/controllers/ProductsController.js
-module.exports.index = async (req, res) => {
-  const products = await Product.list();
+```dust
+{! views/components/Counter.dust !}
+<script>
+({
+  props: {
+    count: 0
+  },
 
-  res.locals.component_props = { products };
-  res.locals.component_components = [ProductList];
-  res.render('products/index');
-};
-```
+  onIncrement() {
+    this.props.count++;
+  }
+})
+</script>
 
-- `component_props` — data sent to the browser for client-side reactivity
-- `component_components` — components whose getters are computed server-side (for SSR)
-
-### Template
-
-```html
-{! views/products/index.dust !}
-{>layout/}
-{<body}
-<div data-component="products/List">
-  <p>{count} product{@gt key=count value=1}s{/gt}</p>
-  <ul>
-    {#products}
-      <li>{.name} - ${.price}</li>
-    {/products}
-  </ul>
-  <button class="add-btn">Add product</button>
+<div>
+  <p>Count: {count}</p>
+  <button on:click="onIncrement">+1</button>
 </div>
-{/body}
 ```
 
-The `data-component` attribute links the DOM element to the `products/List` component class.
+Props are reactive — mutating `this.props.count` directly triggers a re-render. For a counter this trivial, there's no need for a separate `state`: a single `props` object with a method is enough.
 
-### Component
+### Rendering from a page
 
-```js
-// js/components/products/List.js
-const { IgoComponent } = require('@igojs/component/src/client');
+Use the `{@component}` helper to render a component anywhere in a Dust template:
 
-class ProductList extends IgoComponent {
-  constructor(element, props) {
-    super(element, 'products/List', props);
-  }
-
-  get events() {
-    return [
-      { selector: '.add-btn', eventType: 'click', handler: this.onAdd },
-    ];
-  }
-
-  // Computed value — available in the template as {count}
-  get count() {
-    return this.props.products.length;
-  }
-
-  onAdd() {
-    this.props.products.push({ name: 'New product', price: 0 });
-  }
-}
-
-module.exports = ProductList;
+```dust
+{! views/home.dust !}
+<h1>Demo</h1>
+{@component name="components/Counter" count=5 /}
 ```
 
-That's it. The page renders server-side with the full HTML, then Igo hydrates the component in the browser. Clicking "Add product" pushes to the reactive array, which triggers a re-render automatically.
+The helper does, in one shot:
 
-## Next steps
+1. Loads the `.dust` file
+2. Merges caller params with `props` defaults (`count=5` overrides the default `0`)
+3. Computes derived values (getters, if any) for SSR
+4. Renders the template server-side — the page is **fully rendered HTML**
+5. Serializes props into `data-props` for client hydration
 
-* **[Components](./components)** — Lifecycle, child components, API reference
-* **[Reactivity](./reactivity)** — State, props, and computed values
-* **[Events & Forms](./events-forms)** — Event handling and two-way form binding
-* **[SSR](./ssr)** — Server-side rendering details
+In the browser, `start()` finds the `[data-component]` element, fetches the definition from `/__component/component?name=components/Counter`, builds a class, hydrates it, and binds events. Clicking `+1` mutates `this.props.count`, which triggers an automatic re-render via DiffDOM.
+
+## What's next
+
+* **[Components](./components)** — Definition object, child components, lifecycle hooks
+* **[Reactivity](./reactivity)** — How state, props, and computed values work
+* **[Events & Forms](./events-forms)** — `on:` event syntax and two-way form binding
+* **[SSR](./ssr)** — Server-side rendering details and `@serialize`
 * **[Translations](./translations)** — Client-side i18n
-* **[Internals](./internals)** — How the component system works under the hood
+* **[Internals](./internals)** — How the system works under the hood

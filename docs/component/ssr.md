@@ -1,108 +1,91 @@
 
 # Server-Side Rendering
 
-Component pages are fully rendered on the server, then hydrated in the browser. This means the page is visible and complete before JavaScript loads.
+Component pages are fully rendered on the server, then hydrated in the browser. The HTML is complete before any JavaScript runs.
 
-## component_props
+## The `@component` helper
 
-Set `res.locals.component_props` in your controller to pass data to Igo components:
+In a single-file component setup, you render a component with the `@component` Dust helper:
 
-```js
-module.exports.index = async (req, res) => {
-  const products = await Product.list();
-
-  res.locals.component_props = {
-    products,
-    user: req.session.user,
-  };
-  res.render('products/index');
-};
+```dust
+{! views/products/index.dust !}
+<h1>Products</h1>
+{@component name="components/ProductList" products=products title="On sale" /}
 ```
 
-The middleware:
-1. Serializes the props using [devalue](https://github.com/Rich-Harris/devalue) (XSS-safe)
-2. Stores the result in `res.locals.__igo_props` for the layout script tag
-3. Merges the raw props into `res.locals` so they're available in the Dust template
+The helper:
 
-This means `{products}` works directly in your template, and the same data is available to components in the browser via `this.props.products`.
+1. Loads the SFC (`views/components/ProductList.dust`)
+2. Merges caller params with `props` defaults from the definition
+3. Computes all derived values (getters) with the merged props
+4. Renders the Dust template with the full context
+5. Serializes the merged props using [devalue](https://github.com/Rich-Harris/devalue) (XSS-safe)
+6. Wraps the output in `<div data-component data-props>` for client hydration
 
-## component_components
+The result the browser receives looks like:
 
-Register components in `res.locals.component_components` to compute their getters server-side:
-
-```js
-res.locals.component_components = [ProductList];
+```html
+<div data-component="components/ProductList" data-props="…serialized…">
+  <!-- full HTML, getters already evaluated -->
+</div>
 ```
 
-The middleware calls each component's `ssr()` method, which evaluates all getters and merges the results into `res.locals`. For example:
+When `start()` mounts in the browser, it reads `data-props`, runs the definition's `init()`, and the component is interactive — no re-render needed for the initial paint.
 
-```js
-class ProductList extends IgoComponent {
-  get totalPrice() {
-    return this.props.products.reduce((sum, p) => sum + p.price, 0);
-  }
-}
+### Stable keys for dynamic lists
+
+In a loop, pass `key=` to give each instance a stable identity across re-renders:
+
+```dust
+{#products}
+  {@component name="components/ProductCard" product=. key=.id /}
+{/products}
 ```
 
-With `component_components = [ProductList]`, the template can use `{totalPrice}` directly — even before JavaScript loads.
+`key=` is written as `data-component-key` and used by the runtime to match instances when the parent re-renders. Without it, the component name is used as the key — fine for single mounts, ambiguous for lists.
 
 ## Serialization
 
-### Automatic handling
-
-The serializer handles these types:
+The serializer handles common types automatically:
 
 | Type | Behavior |
 |------|----------|
 | Plain objects, arrays | Recursively serialized |
-| Dates | Preserved as Date objects |
-| Models (with `.serialize()`) | `.serialize()` is called |
-| Forms (with `.getValues()`) | `.getValues()` is called |
+| Dates | Preserved as `Date` objects on the client |
+| Model instances (with `.serialize()`) | `.serialize()` is called automatically |
+| Form instances (with `.getValues()`) | `.getValues()` is called automatically |
 | Circular references | Detected and skipped |
 
-Pass your raw Model instances in `component_props` — don't call `.serialize()` yourself. The serializer handles it and deduplicates repeated references.
+You pass raw Model instances in props; the serializer takes care of `.serialize()` and deduplicates repeated references (WeakMap-based).
 
-### The @serialize helper
+### The `@serialize` helper
 
-Use `@serialize` to pass local props to a specific component instance via `data-props`:
+If you mount a component the manual way — by writing the wrapper `<div data-component>` in a template instead of using `{@component}` — use `@serialize` to embed local props on the wrapper:
 
-```html
-<div data-component="products/List"
-     data-props="{@serialize props="products,form" /}">
-  ...
-</div>
-```
-
-This serializes only the listed keys from template locals and embeds them as an HTML-safe attribute.
-
-## Global vs local props
-
-| Source | Scope | Set by |
-|--------|-------|--------|
-| `component_props` | All components on the page | Controller via `res.locals.component_props` |
-| `data-props` | Single component instance | Template via `{@serialize}` |
-
-Local props override global props for the same key.
-
-**When to use `data-props`:** when a child component needs specific data that differs from the global props, or when you have multiple instances of the same component with different data.
-
-```html
-{! Global props available to all components !}
-<script>window.__igo_props = {__igo_props|s};</script>
-
-{! Local props for this specific component instance !}
+```dust
 <div data-component="products/Detail"
-     data-props="{@serialize props="selectedProduct" /}">
-  ...
+     data-props="{@serialize props="selectedProduct,form" /}">
+  …
 </div>
 ```
 
-## Template endpoint
+This serializes only the listed keys from template locals and emits an HTML-safe attribute. Most apps don't need this — the `{@component}` helper builds `data-props` for you.
 
-Igo components load their Dust template source in the browser via:
+## Endpoints
 
+Two endpoints serve component assets to the browser. Register them in `app/routes.js`:
+
+```js
+app.get('/__component/templates', component.templates);
+app.get('/__component/component', component.component);
 ```
-GET /__component/templates?file=products/List
-```
 
-This endpoint is registered in your routes (`component.templates`). Templates are cached in the browser after the first load.
+### `GET /__component/templates?file=<name>`
+
+Returns the compiled Dust template source as JSON. Used by class-based components that load their template lazily.
+
+### `GET /__component/component?name=<name>`
+
+Returns `{ scriptSrc, templateSource }` — the SFC `<script>` block and the compiled template source. The runtime evaluates the definition and builds an `IgoComponent` subclass on the fly. This is the path used by the SFC auto-loader.
+
+Both endpoints validate the file/name with a strict regex (`/^[a-zA-Z0-9_/-]+$/`, no `..`) to prevent path traversal.

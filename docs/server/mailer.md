@@ -20,8 +20,10 @@ Or in `app/config.js`:
 ```js
 config.mailer = {
   defaultfrom: 'noreply@example.com',
-  crashemailto: 'admin@example.com',
 };
+
+// Crash email recipient (string or array — see Error Handling)
+config.mailcrashto = 'admin@example.com';
 ```
 
 ## Sending Emails
@@ -103,7 +105,7 @@ const html = await mailer.getHtml('welcome', { name: 'John' });
 
 ## Crash Emails
 
-Configure `config.mailer.crashemailto` to receive error notification emails. See [Error Handling](./errors) for throttling details.
+Set `config.mailcrashto` (string or array of addresses) to receive error notification emails. See [Error Handling](./errors) for throttling details.
 
 ## Test Environment
 

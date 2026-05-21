@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@igojs/db": "^6.0.0-beta.10",
-    "@igojs/dust": "^6.0.0-beta.4",
+    "@igojs/dust": "^6.0.0",
     "@igojs/server": "^6.0.0-beta.14",
     "@igojs/component": "^6.0.0-beta.3"
   }

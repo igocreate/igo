@@ -1,0 +1,256 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Igo Dust",
+	"patterns": [
+    { "include": "#dust_block_comments" },
+    { "include": "#dust_block_start" },
+    { "include": "#dust_block_end" },
+    { "include": "#dust_inline" },
+    { "include": "#dust_html_tags" },
+    { "include": "text.html.basic" }
+	],
+	"repository": {
+		"dust_block_comments": { 
+      "patterns": [
+        {
+          "begin": "\\{!",
+          "end": "\\!}",
+          "name": "comment.block.dust"
+        }
+      ]
+    },
+    "dust_generic_attribute": {
+      "begin": "\\b([a-zA-Z0-9_-]+)\\b\\s*(=)",
+      "captures": {
+        "1": {
+          "name": "entity.other.attribute.generic.html"
+        },
+        "2": {
+          "name": "punctuation.separator.key-value.html"
+        }
+      },
+      "end": "(?<='|\"|)",
+      "name": "entity.other.attribute-name.html",
+      "patterns": [
+        { "include": "#dust_strings" }
+      ]
+    },
+    "dust_block_start": {
+      "begin": "(\\{)(\\+|\\?|\\^|\\@|\\#|\\:|\\<|\\>)([-a-zA-Z0-9_\\./ ]+)\\s?(@?[-a-zA-Z0-9_\\./]+)*",
+      "beginCaptures": {
+        "1": {
+          "name": "entity.name.tag.delimiter.dust"
+        },
+        "2": {
+          "name": "constant.character.dust"
+        },
+        "3": {
+          "name": "entity.name.tag.helper.dust"
+        },
+        "4": {
+          "name": "entity.other.attribute-name.generic.dust"
+        }
+      },
+      "end": "(~?\\})",
+      "endCaptures": {
+        "1": {
+          "name": "entity.name.tag.block.closed.dust"
+        }
+      },
+      "name": "meta.function.block.start.dust",
+      "patterns": [
+        { "include": "#dust_strings" },
+        { "include": "#dust_html_tags" },
+        { "include": "#dust_generic_attribute" }
+      ]
+    },
+    "dust_block_end": {
+      "begin": "(\\{~?/)([a-zA-Z0-9_\\.\\->]+)\\s*",
+      "beginCaptures": {
+        "1": {
+          "name": "entity.name.tag.block.open.dust"
+        },
+        "2": {
+          "name": "entity.name.tag.helper.dust"
+        }
+      },
+      "end": "(~?\\})",
+      "endCaptures": {
+        "1": {
+          "name": "entity.name.tag.block.closed.dust"
+        }
+      },
+      "name": "meta.function.block.end.dust",
+      "patterns": []
+    },
+    "dust_html_tags": {
+      "patterns": [{
+        "begin": "(<)([a-zA-Z0-9\\-:]++)(?=[^>]*></\\2>)",
+        "beginCaptures": {
+          "1": {
+            "name": "punctuation.definition.tag.html"
+          },
+          "2": {
+            "name": "entity.name.tag.html"
+          }
+        },
+        "end": "(>(<)/)(\\2)(>)",
+        "endCaptures": {
+          "1": {
+            "name": "punctuation.definition.tag.html"
+          },
+          "2": {
+            "name": "meta.scope.between-tag-pair.html"
+          },
+          "3": {
+            "name": "entity.name.tag.html"
+          },
+          "4": {
+            "name": "punctuation.definition.tag.html"
+          }
+        },
+        "name": "meta.tag.any.html",
+        "patterns": [
+            { "include": "#dust_tags" }
+        ]
+      }]
+    },
+    "dust_id_attribute": {
+      "begin": "\\b(id)\\b\\s*(=)",
+      "captures": {
+        "1": {
+          "name": "entity.other.attribute-name.id.html"
+        },
+        "2": {
+          "name": "punctuation.separator.key-value.html"
+        }
+      },
+      "end": "(?<='|\"|)",
+      "name": "meta.attribute-with-value.id.html",
+      "patterns": [
+          { "include": "#dust_strings" }
+      ]
+    },
+    "dust_inline": {
+      "begin": "\\{\\s*([-a-zA-Z0-9_\\./\\$]+)",
+      "beginCaptures": {
+        "0": {
+          "name": "entity.name.tag.delimiter.dust"
+        },
+        "1": {
+          "name": "constant.character.dust"
+        }
+      },
+      "end": "(~?\\})",
+      "endCaptures": {
+        "1": {
+          "name": "entity.name.tag.delimiter.dust"
+        },
+        "2": {
+          "name": "entity.name.tag.delimiter.dust"
+        }
+      },
+      "name": "meta.function.inline",
+      "patterns": [
+          { "include": "#dust_generic_attribute" },
+          { "include": "#dust_strings" }
+      ]
+    },
+    "dust_string_double_quoted": {
+      "begin": "\"",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.html"
+        }
+      },
+      "end": "\"",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.html"
+        }
+      },
+      "name": "string.quoted.double.dust",
+      "patterns": [
+          { "include": "#dust_comments" },
+          { "include": "#dust_block_comments" },
+          { "include": "#dust_comments" },
+          { "include": "#dust_block_start" },
+          { "include": "#dust_block_end" }
+      ]
+    },
+    "dust_string_single_quoted": {
+      "begin": "'",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.html"
+        }
+      },
+      "end": "'",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.html"
+        }
+      },
+      "name": "string.quoted.single.dust",
+      "patterns": [
+          { "include": "#dust_block_comments" },
+          { "include": "#dust_comments" },
+          { "include": "#dust_inline" },
+          { "include": "#dust_block_start" },
+          { "include": "#dust_block_end" },
+          { "include": "#dust_strings" }
+      ]
+    },
+    "dust_strings": {
+      "patterns": [
+          { "include": "#dust_string_single_quoted" },
+          { "include": "#dust_string_double_quoted" }
+      ]
+    },
+    "dust_tags": {
+      "patterns": [
+          { "include": "#dust_id_attribute" },
+          { "include": "#dust_generic_attribute" },
+          { "include": "#dust_strings" },
+          { "include": "#dust_block_comments" },
+          { "include": "#dust_comments" },
+          { "include": "#dust_inline" },
+          { "include": "#dust_block_start" },
+          { "include": "#dust_block_end" }
+      ]
+    },
+    "entities": {
+      "patterns": [
+        {
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.entity.html"
+            },
+            "2": {
+              "name": "punctuation.definition.entity.html"
+            },
+            "3": {
+              "name": "punctuation.definition.entity.html"
+            }
+          },
+          "match": "(&)([a-zA-Z0-9]+|#[0-9]+|#x[0-9a-fA-F]+)(;)",
+          "name": "constant.character.entity.html"
+        },
+        {
+          "match": "&",
+          "name": "invalid.illegal.bad-ampersand.html"
+        }
+      ]
+    },
+    "escaped_double_quote": {
+      "match": "\\\\\"",
+      "name": "constant.character.escape.html"
+    },
+    "escaped_single_quote": {
+      "match": "\\\\'",
+      "name": "constant.character.escape.html"
+    }
+	},
+	"scopeName": "source.igo-dust"
+}
+

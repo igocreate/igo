@@ -29,8 +29,9 @@ Define routes in `app/routes.js`, controllers in `app/controllers/`, templates i
 
 ## Documentation
 
-Full documentation: <https://igocreate.github.io/igo/>
+Full documentation: <https://igocreate.github.io/igo/server/getting-started>
 
+- [Getting started](https://igocreate.github.io/igo/server/getting-started)
 - [Routes & controllers](https://igocreate.github.io/igo/server/routes)
 - [Forms](https://igocreate.github.io/igo/server/forms)
 - [Views & view helpers](https://igocreate.github.io/igo/server/views)

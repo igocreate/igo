@@ -6,13 +6,16 @@ This page explains how the component system works under the hood. You don't need
 ## Architecture overview
 
 ```
-Server                              Browser
-──────                              ──────
-Controller sets component_props        1. Parse __igo_props (devalue)
-Middleware serializes props         2. Mount [data-component] elements
-Component.ssr() computes getters    3. Create reactive Proxies
-Dust renders full HTML              4. Load template via /__component/templates
-HTML sent to client →               5. Render with DiffDOM on state change
+Server                                       Browser
+──────                                       ──────
+1. Template invokes {@component .../}        1. start() finds [data-component]
+2. componentHelper loads .dust SFC           2. Fetch /__component/component
+3. evalDefinition() runs <script>            3. evalDefinition() rebuilds class
+4. computeDerived() runs getters             4. Hydrate props from data-props
+5. Template renders to HTML                  5. Create reactive Proxies
+6. Props serialized via devalue              6. Bind events (on:*)
+7. Wrapped in <div data-component data-props> 7. Re-render with DiffDOM on mutation
+       ↓ HTML over the wire ↓
 ```
 
 ## Reactive state (StateProxy)
@@ -105,74 +108,70 @@ The server-side serializer:
 
 ## Initialization flow: props, state, and form
 
-### CSR (browser)
+### SSR (server, `{@component}` helper)
 
 ```
-constructor(element, props)
+{@component name="foo" x=1 y=2 /} in a Dust template
     ↓
-1. Hydrate props:
-   - globalProps = window.__igo_props
-   - localProps  = JSON.parse(element.dataset.props)
-   - this._props = { ...globalProps, ...localProps }
+1. IgoDust.getCompiledComponent('foo.dust')
+   - Splits the file: <script> source + compiled template
     ↓
-2. Initialize form in state (if props.form exists):
-   - this._state.form = this._props.form
+2. evalDefinition(scriptSrc)
+   - new Function('return (' + scriptSrc + ')')() → bare object literal
+    ↓
+3. Merge props:
+   - mergedProps = { ...definition.props, ...callerParams }
+    ↓
+4. Seed state:
+   - state = { ...definition.state }
+   - if mergedProps.form → state.form = mergedProps.form
+    ↓
+5. computeDerived(definition, mergedProps, state)
+   - Evaluate every prototype getter on a context object
+   - Getters can call other getters (defined on ctx with descriptors)
+   - Errors are caught and skipped (DOM-accessing getters fail silently)
+    ↓
+6. templateFn({ ...mergedProps, ...state, ...derived })
+    ↓
+7. devalue.uneval(mergedProps) → serializable string
+    ↓
+8. <div data-component-key="..." data-component="..." data-props="...">html</div>
+```
+
+Key points:
+- No Proxy on server — props and state are plain objects
+- No `init()` is called — no template loading, no FormHandler
+- Getters that access the DOM will throw and are caught/skipped
+
+### CSR (browser, hydration)
+
+```
+mountElement(el)
+    ↓
+1. ComponentLoader.load(name):
+   - fetch /__component/component?name=<name>
+   - evalDefinition(scriptSrc) → bare object
+   - buildClass(name, def, templateSource) → IgoComponent subclass
+    ↓
+2. new ComponentClass(element):
+   - this._state = { ...definition.state }
+   - this._props = { ...definition.props, ...JSON.parse(element.dataset.props) }
+   - if props.form → this._state.form = props.form
     ↓
 3. Create reactive proxies:
-   - this.props = trackingProxy(this._props)    ← read-only, tracks deps
-   - this.state = StateProxy(this._state)       ← deep reactive, triggers render
+   - this.props = StateProxy(this._props)        ← reactive, mutations trigger render
+   - this.state = StateProxy(this._state)        ← reactive, mutations trigger render
     ↓
 4. init() (async):
-   - Load Dust template
+   - Load Dust template via /__component/templates (or use the one bundled with the definition)
    - If props.form: create FormHandler
      → FormHandler.initForm() replaces _state.form with window.__igo_form (shared singleton)
    - First render()
 ```
 
 Key points:
-- `this.props` is a tracking Proxy (records dependency access, no setter)
-- `this.state` is a deep reactive Proxy (triggers `_triggerRender()` on mutation)
+- Both `this.props` and `this.state` are reactive Proxies — mutating either triggers `_triggerRender()`
 - State mutations before `init()` completes don't trigger renders (`_isInitialized` is false)
-
-### SSR (server)
-
-```
-static ssr(props)
-    ↓
-1. new this(null, props) — constructor with element=null
-   - isServer=true → no Proxy, no EventBinder, no DiffDOM
-   - this._props = props, this.props = props
-   - this._state = {}, this.state = this._state
-   - if props.form → this._state.form = props.form
-    ↓
-2. Assign props directly:
-   - instance.props = props     (plain object, no Proxy)
-   - instance._props = props    (defensive, not used by SSR getters)
-    ↓
-3. Initialize form (if props.form exists):
-   - instance._state.form = props.form
-    ↓
-4. Evaluate all prototype getters:
-   - desc.get.call(instance) for each non-reserved getter
-   - Getters access this.state.form and this.props directly (no Proxy)
-    ↓
-5. Return derived values → merged into res.locals
-```
-
-Key points:
-- No Proxy on server — `this.state` and `this.props` are plain objects
-- No `init()` is called — no template loading, no FormHandler
-- Getters that access the DOM will throw and are caught/skipped
-
-## SSR mechanism
-
-When `component_components` is set:
-
-1. For each component, the middleware creates a temporary instance with `element=null`
-2. Props are passed directly (no DOM)
-3. All prototype getters are evaluated (excluding `_private`, `rawState`, `events`)
-4. Results are merged into `res.locals` for the Dust template
-5. The page renders with full HTML — no JavaScript needed for the initial view
 
 ## Template loading
 

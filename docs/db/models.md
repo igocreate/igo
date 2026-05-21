@@ -1,8 +1,6 @@
 
 # Models
 
-We were looking for a simple ORM for Node.js — something lightweight, with a clean API inspired by [Active Record](http://guides.rubyonrails.org/active_record_basics.html). We couldn't find one that fit, so we decided to see if it was hard to build... It wasn't, and @igojs/db was born!
-
 ## Model Definition
 
 ```js
@@ -31,9 +29,9 @@ module.exports = User;
 
 The `schema` object defines the table name, columns, associations, and scopes.
 
-## Column Types
+## Special column types
 
-Columns can have a type for automatic conversion:
+By default, columns are listed as plain strings — no type spec needed. For automatic conversion between database and JavaScript representations, declare the column as an object with `type`:
 
 ```js
 const schema = {

@@ -32,11 +32,13 @@ Fatal errors that escape all handlers are logged, an email is sent, and the proc
 
 ## Crash Emails
 
-Configure a recipient for error notification emails:
+Configure one or more recipients for error notification emails:
 
 ```js
 // app/config.js
-config.mailer.crashemailto = 'admin@example.com';
+config.mailcrashto = 'admin@example.com';
+// or, for several recipients:
+config.mailcrashto = ['admin@example.com', 'ops@example.com'];
 ```
 
 The email includes: error message, stack trace, request context (method, URL, user-agent, body, session).

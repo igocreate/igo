@@ -138,23 +138,38 @@ const active = await User.where({ status: 'active' }).count();
 
 ## Pagination
 
+`page(pageNumber, perPage)` — both arguments are 1-based for `pageNumber`. Defaults to no pagination when not called.
+
 ```js
+// page 1 (the first page), 25 results per page
 const result = await User.page(1, 25).list();
 
 result.pagination;
 // {
-//   page: 1,
-//   nb: 25,
-//   previous: null,
-//   next: 2,
-//   nb_pages: 4,
-//   count: 100,
-//   links: [...]
+//   page:      1,    // current page number
+//   nb:        25,   // results per page
+//   previous:  null, // previous page number, or null on page 1
+//   next:      2,    // next page number, or null on the last page
+//   nb_pages:  4,    // total number of pages
+//   count:     100,  // total number of matching rows
+//   links:     [...] // array of page numbers, useful for rendering pagers
 // }
 
 result.rows;
 // [User, User, ...]
 ```
+
+Combine with filters and ordering as usual:
+
+```js
+const { pagination, rows } = await User
+  .where({ status: 'active' })
+  .order('created_at DESC')
+  .page(req.query.page || 1, 50)
+  .list();
+```
+
+When `.page()` is used together with `.join()`, an [optimized COUNT/IDS/FULL pattern](./optimized-pagination) is applied automatically.
 
 ## Includes (Eager Loading)
 
@@ -241,70 +256,119 @@ const users = await User.unscope('includes').includes('profile').list();
 
 Supported clauses: `where`, `whereNot`, `order`, `includes`, `joins`, `select`, `distinct`, `group`, `limit`, `offset`.
 
-## First / Last
+## First / Last / Find
 
 ```js
 const user = await User.first();
 const user = await User.last();
 const user = await User.where({ status: 'active' }).first();
+
+// Lookup by primary key — bypasses the default scope
+const user = await User.find(42);
+
+// Pass an array of ids to fetch several at once; returns an array
+const users = await User.find([1, 2, 3]);
 ```
 
-## Update / Delete
+## Create
 
 ```js
-// Bulk update
+const user = await User.create({
+  email: 'alice@example.com',
+  first_name: 'Alice'
+});
+// → User { id: 1, email: 'alice@example.com', first_name: 'Alice', created_at: …, updated_at: … }
+```
+
+`created_at` and `updated_at` are set automatically. The returned instance has the auto-generated primary key set.
+
+`create(values, options)` accepts a second argument forwarded to the driver — notably `silent: true` to swallow query errors and return `null` instead of throwing (useful for `INSERT IGNORE`-style attempts).
+
+The `beforeCreate()` lifecycle hook runs first — see [Models › Hooks](./models#hooks).
+
+## Update
+
+Three patterns, depending on what you have in hand:
+
+```js
+// 1. Instance update — the most common case
+const user = await User.find(id);
+await user.update({ email: 'new@example.com' });
+// updated_at is set automatically; beforeUpdate(values) hook runs first
+
+// 2. Bulk update — apply to all matching rows
 await User.where({ country: 'France' }).update({ language: 'French' });
 
-// Bulk delete
-await User.where({ status: 'banned' }).delete();
+// 3. Update all rows
+await User.update({ status: 'inactive' });
 ```
 
-## Performance Optimization
+The instance form returns the same instance with the new values assigned. Bulk updates skip lifecycle hooks (no per-row `beforeUpdate`).
 
-When a query uses `.page()` with `.join()`, Igo.js automatically applies the **COUNT/IDS/FULL pattern** for better performance on large tables:
-
-1. **COUNT** with `EXISTS` subqueries (no LEFT JOIN)
-2. **SELECT IDs** only, with filters and pagination
-3. **SELECT full data** with LEFT JOIN on the found IDs only
-
-This replaces the standard approach (COUNT + SELECT with full LEFT JOINs) which becomes slow on large tables with many joins.
+## Delete
 
 ```js
-// Automatically optimized: page + join detected
-const result = await Folder
-  .where({ type: ['agp', 'avt'], status: 'SUBMITTED' })
-  .join(['applicant', 'pme_folder'])
-  .order('folders.created_at DESC')
-  .page(1, 50)
-  .list();
-// Uses EXISTS for COUNT, deferred joins for SELECT
+// 1. Instance delete
+const user = await User.find(id);
+await user.delete();
+
+// 2. Delete by primary key
+await User.delete(id);
+
+// 3. Bulk delete by criteria
+await User.where({ status: 'banned' }).delete();
+
+// 4. Delete all rows
+await User.deleteAll();
 ```
 
-| Scenario | Standard | Optimized | Gain |
-|----------|----------|-----------|------|
-| 100K rows, 3 joins | 500ms | 20ms | 25x |
-| 1M rows, 5 joins | 3s | 50ms | 60x |
-| 2M rows, 10 joins | 10s | 100ms | 100x |
+## Reload
 
-The optimization activates automatically when both conditions are met:
-- `.page()` is called (pagination requested)
-- `.join()` is called (at least one join present)
+Refresh an instance from the database — handy after a bulk update touched it, or to load associations after the fact:
 
-Without joins, the standard 2-query approach (COUNT + SELECT) is used, which is more efficient for simple queries.
+```js
+const user = await User.find(id);
+await user.reload();
 
-### Forcing the optimization
+// Reload with associations
+await user.reload('country');
+await user.reload(['country', 'projects']);
+```
 
-You can also opt in explicitly via `Model.paginatedOptimized()`, which is useful when you want the COUNT/IDS/FULL pattern even without joins, or to make the intent obvious at the call site:
+## Optimized pagination
+
+Paginated queries with joins automatically use a COUNT/IDS/FULL pattern that avoids `LEFT JOIN` row multiplication. See [Optimized pagination](./optimized-pagination) for details and the `Model.paginatedOptimized()` opt-in.
+
+## Advanced
+
+### `from(table)` — override the table
+
+Run the same model against a different table — useful for views, sharded tables, or running a one-off query without declaring a separate model:
+
+```js
+const users = await User.from('users_archive').where({ status: 'inactive' }).list();
+```
+
+### `options(opts)` — driver options
+
+Forward an options object to the underlying driver `query()`. The most useful is `silent: true`, which swallows query errors and returns `null` instead of throwing — handy for tolerant `INSERT IGNORE`-style operations:
+
+```js
+await User.options({ silent: true }).where({ email: 'dup@example.com' }).first();
+// → returns null instead of throwing on a bad query
+```
+
+### `execute()` — manual run
+
+`list()`, `first()`, `count()`, etc. all call `execute()` internally. You usually don't need to call it yourself, but it's the terminal method when you're combining chains explicitly — for example with `paginatedOptimized()`:
 
 ```js
 const result = await Folder.paginatedOptimized()
-  .where({ type: ['agp', 'avt'], status: 'SUBMITTED' })
-  .join(['applicant', 'pme_folder'])
-  .order('folders.created_at DESC')
+  .where({ status: 'SUBMITTED' })
+  .join('applicant')
   .page(1, 50)
   .execute();
 ```
-
 
 ## SQL Debugging
 
