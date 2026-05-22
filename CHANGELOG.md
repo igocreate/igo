@@ -1,5 +1,15 @@
 # Changelog
 
+## 6.0.1 - 2026-05-22
+
+### @igojs/dust
+
+- **Performance**: built-in helpers (`eq`, `ne`, `lt`, `lte`, `gt`, `gte`, `first`, `last`, `sep`, `select`, `none`, `any`) are now inlined at compile time, skipping the runtime helper dispatch.
+
+### @igojs/component
+
+- **Fix**: relaxed component name validation — components no longer need to live under `views/components/`. The `SAFE_NAME_RE` regex now only guards against path traversal.
+
 ## 6.0.0 - 2026-05-21
 
 First stable release of Igo.js 6, now distributed as an npm monorepo under the `@igojs/*` scope.
@@ -33,6 +43,7 @@ First stable release of Igo.js 6, now distributed as an npm monorepo under the `
 - **Added**: MySQL `enableKeepAlive: true` by default (exposed as pool option)
 - **Added**: PostgreSQL `keepAlive: true` by default
 - **BREAKING**: `silent` query option now swallows errors and returns `null` (previously just suppressed logs)
+- **BREAKING**: `Model.unscoped()` renamed to `Model.unscope()` and made selective — pass clause names (e.g. `Model.unscope('order', 'limit')`) to remove only those, or no args to drop the default scope entirely.
 - Transactions API on `Db` is internal/test-only (used by the test framework for per-test isolation). Renamed with `_` prefix to make the contract explicit.
 - Fixed LEFT JOIN 1-N duplicates in paginated optimized queries (JS-side dedup)
 - Migrations: silently skip hidden files (`.gitkeep`, etc.)
