@@ -1,6 +1,5 @@
 const Templates = require('./Templates.js');
 const { uneval } = require('devalue');
-const igoDustHelpers = require('@igojs/dust/src/render/Helpers');
 const shared = require('@igojs/dust/src/render/shared');
 const { createSerializeHelper, htmlencode } = require('../../shared/serialize.js');
 
@@ -24,9 +23,7 @@ const componentHelper = (params) => {
   return `<div data-component-key="${key || name}" data-component="${name}" data-props="${dataProps}"></div>`;
 };
 
-// Initialize with igo-dust base helpers
 h.helpers = {
-  ...igoDustHelpers,
   serialize: createSerializeHelper(uneval),
   component: componentHelper,
 };

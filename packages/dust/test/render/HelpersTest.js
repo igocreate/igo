@@ -1,9 +1,6 @@
-/* global describe, it */
-
-
-const assert        = require('assert');
-const Renderer      = require('../../src/render/Renderer');
-const Helpers       = require('../../src/render/Helpers');
+const assert   = require('assert');
+const Renderer = require('../../src/render/Renderer');
+const Helpers  = require('../../src/render/Helpers');
 
 const HELPERS = {
 

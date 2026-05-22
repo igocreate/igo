@@ -1,7 +1,8 @@
 
 
-const ParseUtils  = require('../parse/ParseUtils');
-const Helpers     = require('../render/Helpers');
+const ParseUtils     = require('../parse/ParseUtils');
+const Helpers        = require('../render/Helpers');
+const BuiltinHelpers = require('./BuiltinHelpers');
 
 const ASYNC_FUNCTION       = Object.getPrototypeOf(async function(){}).constructor;
 const ASYNC_FUNCTION_PROTO = Object.getPrototypeOf(async function(){});
@@ -84,6 +85,11 @@ class Compiler {
         // helper
         this.i = this.i + 1;
         const { i } = this;
+
+        if (BuiltinHelpers.tryCompile(this, block)) {
+          return;
+        }
+
         const bodyAsync   = block.buffer && this._bufferNeedsAwait(block.buffer);
         const helperAsync = !isHelperSync(block.tag);
 
@@ -170,7 +176,9 @@ class Compiler {
       if (block.type === '+' || block.type === '>') {
         return true;
       }
-      if (block.type === '@' && !isHelperSync(block.tag)) {
+      if (block.type === '@'
+          && !BuiltinHelpers.BUILTIN_TAGS.has(block.tag)
+          && !isHelperSync(block.tag)) {
         return true;
       }
       if (block.buffer && this._bufferNeedsAwait(block.buffer)) {
@@ -245,6 +253,9 @@ class Compiler {
   }
 
   _getParam(param) {
+    if (param === undefined) {
+      return undefined;
+    }
     if (param[0] === '"') {
       // string
       let ret = [], match, index = 0, s;
