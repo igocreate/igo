@@ -14,10 +14,8 @@ import('devalue').then(m => {
 IgoDust.helpers.component = componentHelper;
 
 
-// Validate component path: must start with `components/` and stay within it.
-// Prevents path traversal AND restricts the endpoints to actual components
-// (no layouts, no email templates, no partials).
-const SAFE_NAME_RE = /^components\/[a-zA-Z0-9_/-]+$/;
+// Validate component path: prevents path traversal.
+const SAFE_NAME_RE = /^[a-zA-Z0-9_/-]+$/;
 
 const templates = async (req, res) => {
   const file = req.query.file;

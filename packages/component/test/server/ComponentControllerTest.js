@@ -61,15 +61,6 @@ describe('ComponentController', () => {
       assert.strictEqual(res.statusCode, 400);
     });
 
-    it('rejects paths outside components/ (layouts, emails, partials)', async () => {
-      for (const file of ['layouts/main', 'emails/welcome', 'Counter']) {
-        const req = makeReq({ query: { file } });
-        const res = makeRes();
-        await ComponentController.templates(req, res);
-        assert.strictEqual(res.statusCode, 400, `${file} should be rejected`);
-      }
-    });
-
   });
 
   describe('component endpoint', () => {
@@ -83,12 +74,12 @@ describe('ComponentController', () => {
       assert.match(res.body.error, /Invalid component name/);
     });
 
-    it('rejects paths outside components/', async () => {
+    it('returns 404 (not 400) for valid names with no matching file', async () => {
       for (const name of ['layouts/main', 'emails/welcome', 'Counter']) {
         const req = makeReq({ query: { name } });
         const res = makeRes();
         await ComponentController.component(req, res);
-        assert.strictEqual(res.statusCode, 400, `${name} should be rejected`);
+        assert.strictEqual(res.statusCode, 404, `${name} should pass validation`);
       }
     });
 
