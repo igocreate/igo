@@ -1,0 +1,4 @@
+<article class="post">
+  <header>{> "./test/templates/blog/tag" /}<h1>{title}</h1></header>
+  <section class="body">{+/}</section>
+</article>

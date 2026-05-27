@@ -19,14 +19,14 @@ class Compiler {
   constructor() {
     this.i      = 0;
     this.parts  = [];
-    this.parts.push('var r=\'\',l=l||{},c=c||{};');
+    this.parts.push('let r=\'\';l=l||{};c=c||{};');
   }
 
   compileBuffer(buffer) {
     // precompile, for content functions
     buffer.forEach(block => {
       if (block.type === '<') {
-        this.parts.push(`c._${block.tag}=async function(){var r='';`);
+        this.parts.push(`c._${block.tag}=async function(){let r='';`);
         this.compileBuffer(block.buffer);
         this.parts.push('return r;};');
       }
@@ -62,14 +62,14 @@ class Compiler {
         // loop block
         const i = ++this.i;
         this._pushContext(block.params, true, i);
-        this.parts.push(`var a${i}=u.a(${this._getValue(block.tag)});`);
+        this.parts.push(`const a${i}=u.a(${this._getValue(block.tag)});`);
         this.parts.push(`if(a${i}){`);
         if (!block.buffer) {
           this.parts.push(`r+=a${i}`);
         } else {
           const it = block.params.it && ParseUtils.stripDoubleQuotes(block.params.it);
           this.parts.push(`l.$length=a${i}.length;`); // current array length
-          this.parts.push(`for(var i${i}=0;i${i}<a${i}.length;i${i}++){`);
+          this.parts.push(`for(let i${i}=0;i${i}<a${i}.length;i${i}++){`);
           if (it) {
             this.parts.push(`l.${it}=a${i}[i${i}];`);
           }
@@ -96,19 +96,19 @@ class Compiler {
         // precompile buffer as function if it exists
         if (block.buffer) {
           this.parts.push(`c._h_body${i}=${bodyAsync ? 'async ' : ''}function(l_override){`);
-          this.parts.push('var l_saved=l;');
+          this.parts.push('const l_saved=l;');
           this.parts.push('if(l_override){l={...l,...l_override};}');
-          this.parts.push('var r=\'\';');
+          this.parts.push('let r=\'\';');
           this.compileBuffer(block.buffer);
           this.parts.push('l=l_saved;');
           this.parts.push('return r;};');
         }
 
         const bodyParam = block.buffer ? `c._h_body${i}` : 'null';
-        this.parts.push(`var h${i}=${helperAsync ? 'await ' : ''}u.h('${block.tag}',${this._getParams(block.params)},l,${bodyParam});`);
+        this.parts.push(`const h${i}=${helperAsync ? 'await ' : ''}u.h('${block.tag}',${this._getParams(block.params)},l,${bodyParam});`);
 
         if (block.buffer) {
-          this.parts.push(`var h${i}_t=typeof h${i};`);
+          this.parts.push(`const h${i}_t=typeof h${i};`);
           this.parts.push(`if(h${i}_t==='string'||h${i}_t==='number'){r+=h${i};}`);
           this.parts.push(`else if(h${i}){r+=${bodyAsync ? 'await ' : ''}c._h_body${i}();}`);
           this._else(block);
@@ -122,17 +122,21 @@ class Compiler {
         // include
         const i = ++this.i;
 
-        // precompile if buffer
+        // Scope c._$body to this call so a stray {+/} can't steal an enclosing body.
+        this.parts.push(`const _body${i}=c._$body;`);
         if (block.buffer) {
-          this.parts.push('c._$body=async function(){var r=\'\';');
+          this.parts.push('c._$body=async function(){let r=\'\';');
           this.compileBuffer(block.buffer);
           this.parts.push('return r;};');
+        } else {
+          this.parts.push('c._$body=null;');
         }
 
         this._pushContext(block.params, false, i);
         const file = this._getParam(block.file);
         this.parts.push(`r+=await (await u.i(${file}))(l,u,c);`);
         this._popContext(block.params, false, i);
+        this.parts.push(`c._$body=_body${i};`);
       } else if (!block.type){
         // default: raw text
         this.parts.push(`r+='${block}';`);
@@ -200,7 +204,7 @@ class Compiler {
     if (keys.length === 0 && !isArray) {
       return;
     }
-    this.parts.push(`var ctx${i}={};`);
+    this.parts.push(`const ctx${i}={};`);
     keys.forEach(key => {
       this.parts.push(`ctx${i}.${key}=l.${key};`);
       this.parts.push(`l.${key}=${this._getParam(params[key])};`);

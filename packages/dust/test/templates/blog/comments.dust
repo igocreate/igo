@@ -1,0 +1,1 @@
+<ul class="comments">{#comments}<li class="comment">{+/}</li>{/comments}</ul>

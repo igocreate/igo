@@ -55,7 +55,7 @@ function emitSelect(compiler, block) {
   }
   const i = ++compiler.i;
   const keyExpr = compiler._getParam(block.params.key) || 'undefined';
-  compiler.parts.push(`var matched${i}=false;`);
+  compiler.parts.push(`let matched${i}=false;`);
   compiler.selectStack.push({ keyExpr, matchedVar: `matched${i}` });
   compiler.compileBuffer(block.buffer);
   compiler.selectStack.pop();
