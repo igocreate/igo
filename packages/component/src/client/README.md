@@ -1,13 +1,13 @@
 # @igojs/component - Internal architecture (client)
 
-Reactive framework built on Igo-Dust, with deep reactivity and automatic dependency tracking.
+Reactive framework built on Igo-Dust, with deep reactivity via Proxy.
 
 ## Overview
 
 ```
 Props (immutable) → State (reactive) → Derived (computed) → Template → DOM
                           ↓                                           ↓
-                    Proxy tracking                         DiffDOM reconciliation
+                    Proxy tracking                       morphdom reconciliation
 ```
 
 ## Files
@@ -17,8 +17,8 @@ Props (immutable) → State (reactive) → Derived (computed) → Template → D
 | `IgoComponent.js` | IgoComponent base class, lifecycle, render |
 | `ComponentLoader.js` | Auto-loading of SFCs from the server |
 | `StateProxy.js` | Deep reactivity via Proxy |
-| `EventBinder.js` | Optimized event handling |
-| `DerivedCache.js` | Getter memoization |
+| `Store.js` | Page-level reactive shared store |
+| `EventDelegator.js` | Delegated event handling |
 | `FormHandler.js` | Two-way form binding |
 
 ---
@@ -46,31 +46,23 @@ this.state.items[0].name = 'Updated';    // Array item mutation
 
 ---
 
-## DerivedCache.js
+## Computed getters
 
-Getter memoization with automatic dependency tracking.
-
-### How it works
-
-1. On a getter's first call, `_isTracking = true`
-2. Each access to `this.props.x` or `this.state.y` is recorded
-3. The result is cached along with its dependencies
-4. On subsequent renders, it recomputes only if the dependencies changed
+Getters defined on the component are computed each render by `_computeGettersAsDerived()`, stored in `_derivedValues`. A `_computedThisCycle` set guarantees each getter runs at most once per render, even when composed. There is no cross-render memoization — getters re-run on every render (cheap for typical derivations).
 
 ---
 
-## EventBinder.js
+## EventDelegator.js
 
-Optimized event handling with a WeakMap.
+Delegated event handling — one listener per event type on the component root.
 
 ### How it works
 
-1. `WeakMap<Element, Map<eventType, handler>>` stores the listeners
-2. On render, checks whether the listener already exists
-3. If the element is preserved by DiffDOM, the listener is reused
-4. If the element is replaced, a new listener is created
-5. Removed elements are garbage-collected automatically
-6. Supports `selector: 'document'` and `selector: 'window'`
+1. Event types are collected from the rendered HTML each render
+2. A single listener per type is attached to the root **once** and kept across renders
+3. On an event, the delegator walks up from `event.target` and invokes every owned element declaring `data-on-<type>` (or matching a manual `events` selector)
+4. "Owned" = the element's nearest `[data-component]` ancestor is this root — child-owned elements are skipped
+5. Supports the manual `events` array, including `selector: 'document'` / `'window'` and `clickoutside`
 
 ---
 
@@ -150,7 +142,7 @@ _computeGettersAsDerived()
     ↓                   │
 dust.render()           │
     ↓                   │
-DiffDOM.apply()         │
+morphdom reconcile      │
     ↓                   │
 _syncChildProps()       │
     ↓                   │
@@ -169,7 +161,7 @@ Renders are debounced via `requestAnimationFrame`.
 
 ### Child components
 
-1. Preserved by DiffDOM (only attributes can be modified)
+1. Preserved by morphdom (`onBeforeElUpdated → false`; only `data-props` is refreshed)
 2. Mounted automatically after the parent render
 3. Synchronized via `_syncChildProps()` when their `data-props` change
 4. Only top-level components are mounted at startup (not the children)

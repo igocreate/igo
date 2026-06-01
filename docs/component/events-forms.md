@@ -28,7 +28,7 @@ Methods are looked up on the definition object:
 })
 ```
 
-The `on:` attributes are rewritten to `data-on-<event>` at parse time, so the original markup is preserved through DiffDOM and event listeners are reused across renders (WeakMap-cached per element).
+The `on:` attributes are rewritten to `data-on-<event>` at parse time. Handlers are dispatched by delegation: a single listener per event type sits on the component root and resolves the target handler by walking up from `event.target`, so nothing is rebound across renders.
 
 ### Bubbling boundaries
 
@@ -71,7 +71,7 @@ Just name your inputs — no `on:` handler needed for binding:
 </select>
 ```
 
-Typing in the input updates `this.state.form.search`. Any getter that reads it recomputes; the DOM updates via DiffDOM.
+Typing in the input updates `this.state.form.search`. Any getter that reads it recomputes; the DOM updates via morphdom.
 
 ### Supported input types
 

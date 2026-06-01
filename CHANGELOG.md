@@ -14,6 +14,10 @@
 - **Changed**: lifecycle — `init()` now runs once before the first render (replaces `beforeRender`); shared form state via `FormHandler.getSharedForm()`.
 - **Added**: page-level shared store — `this.store`, deeply reactive (nested objects and array mutators), auto-subscribing components that read it during render.
 - **Added**: `watch` map — react to changes on `state.` / `props.` / `store.` paths, called with `(newValue, oldValue)`.
+- **Changed**: DOM reconciliation now uses `morphdom` instead of `diff-dom` — smaller bundle (~8 KB vs 31 KB min), native key matching, and child-component / file-input preservation via `onBeforeElUpdated` (replaces the detach/reattach + save/restore dance).
+- **Changed**: inline events are now **delegated** — one listener per event type on the component root, resolved at dispatch by walking up from `event.target`; no per-render DOM scan or rebinding (replaces `EventBinder`). `FormHandler` is delegated the same way.
+- **Removed**: getter `DerivedCache` — its memoization never engaged (getters were always recomputed to collect dependencies). Getters now recompute once per render cycle; the tracking machinery it required is gone. No behaviour change; slightly less per-render work.
+- **Fixed**: array mutators on `state` (`push`, `splice`, …) now fire `watch` handlers, matching the store's behaviour.
 
 ## 6.0.1 - 2026-05-22
 
@@ -109,7 +113,6 @@ New reactive components module shipped with v6:
 - Full ESM (`"type": "module"` across all packages)
 - Vite for builds and dev server
 - Vitest for testing
-- Replace `diff-dom` with `morphdom` in `@igojs/component` (smaller bundle, native key matching, simpler child-component preservation)
 
 ## 5.2.3 - 2025-10-16
 

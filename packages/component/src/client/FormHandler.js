@@ -2,10 +2,10 @@ let _sharedForm = null;
 
 class FormHandler {
   constructor(component, formData) {
-    this.component = component;
-    this.element = component.element;
-    this._state = component.rawState;
-    this._boundListeners = [];
+    this.component  = component;
+    this.element    = component.element;
+    this._state     = component.rawState;
+    this._bound     = false;
 
     // Initialize form state
     this._state.form = this.initForm(formData);
@@ -24,36 +24,48 @@ class FormHandler {
     return _sharedForm;
   }
 
+  // Delegated: two listeners on the root (attached once) cover every field,
+  // including those added by later renders. Idempotent.
   bind() {
-    this.element.querySelectorAll('input, select, textarea').forEach(element => {
-      if (!element.name) {
-        return;
-      }
-
-      // Skip inputs that are inside child components
-      const parentComponent = element.closest('[data-component]');
-      if (parentComponent && parentComponent !== this.element) {
-        return; // Skip this input, it belongs to a child component
-      }
-
-      // Skip file inputs: they are preserved separately during re-renders
-      if (element.type === 'file') {
-        return;
-      }
-
-      const eventType = ['checkbox', 'radio'].includes(element.type) || element.tagName === 'SELECT' ? 'change' : 'input';
-      const handler = (e) => this.handleInput(e.target);
-
-      element.addEventListener(eventType, handler);
-      this._boundListeners.push({ element, eventType, handler });
-    });
+    if (this._bound) {
+      return;
+    }
+    this._onInput  = (e) => this._delegate(e, 'input');
+    this._onChange = (e) => this._delegate(e, 'change');
+    this.element.addEventListener('input', this._onInput);
+    this.element.addEventListener('change', this._onChange);
+    this._bound = true;
   }
 
   unbind() {
-    this._boundListeners.forEach(({ element, eventType, handler }) => {
-      element?.removeEventListener(eventType, handler);
-    });
-    this._boundListeners = [];
+    if (!this._bound) {
+      return;
+    }
+    this.element.removeEventListener('input', this._onInput);
+    this.element.removeEventListener('change', this._onChange);
+    this._bound = false;
+  }
+
+  // Route a delegated event to handleInput when the field is a named form field
+  // owned by this component (not a child) and the event type matches its kind.
+  _delegate(e, phase) {
+    const el = e.target;
+    if (!el || !el.name || el.type === 'file') {
+      return;
+    }
+    if (el.tagName !== 'INPUT' && el.tagName !== 'SELECT' && el.tagName !== 'TEXTAREA') {
+      return;
+    }
+    // Skip fields belonging to a child component.
+    const owner = el.closest('[data-component]');
+    if (owner && owner !== this.element) {
+      return;
+    }
+    const expected = (['checkbox', 'radio'].includes(el.type) || el.tagName === 'SELECT') ? 'change' : 'input';
+    if (phase !== expected) {
+      return;
+    }
+    this.handleInput(el);
   }
 
   // Handle form input change

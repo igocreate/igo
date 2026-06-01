@@ -97,15 +97,15 @@ init()                          ← once, before the first render
     ↓
 render() ←──────────────────┐
     ↓                        │
-compute getters (memoized)    │
+compute getters              │
     ↓                        │
 dust.render(template, ctx)    │
     ↓                        │
-DiffDOM.apply()               │
+morphdom reconcile            │
     ↓                        │
 sync child props              │
     ↓                        │
-bind events (WeakMap-cached)  │
+sync delegated events         │
     ↓                        │
 mount child components        │
     ↓                        │

@@ -18,11 +18,6 @@ class StateProxy {
 
     const proxy = new Proxy(target, {
       get: (target, property) => {
-        // Track dependency
-        if (this.component._isTracking) {
-          this.component._trackedDeps.push([this.namespace, ...path, property]);
-        }
-
         const value = target[property];
 
         // Don't wrap primitives, functions, Date, RegExp
@@ -30,7 +25,10 @@ class StateProxy {
           return value;
         }
 
-        // Recursively wrap objects/arrays
+        // Reuse the cached child proxy when present — only build the extended path
+        // (an allocation) on the first wrap.
+        const cached = this.cache.get(value);
+        if (cached) return cached;
         return this.create(value, [...path, property]);
       },
 
@@ -48,14 +46,18 @@ class StateProxy {
       }
     });
 
-    // Wrap array methods
+    // Wrap array methods — in-place mutations re-render and fire watchers on the
+    // array's own path (mirrors Store; the array ref is both old and new value).
     if (Array.isArray(target)) {
       ['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse'].forEach(method => {
         const original = Array.prototype[method];
         Object.defineProperty(target, method, {
           value: (...args) => {
             const result = original.apply(target, args);
-            if (this.component._isInitialized) this.component._triggerRender();
+            if (this.component._isInitialized) {
+              this.component._triggerRender();
+              this.component._fireLocalWatchers?.(this.namespace, path, target);
+            }
             return result;
           },
           enumerable: false,

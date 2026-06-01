@@ -5,8 +5,6 @@ const Store = require('../../src/client/Store.js');
 const mockComponent = () => ({
   _destroyed:   false,
   _storeKeys:   new Set(),
-  _isTracking:  false,
-  _trackedDeps: [],
   renders:      0,
   _triggerRender() { this.renders++; },
 });
@@ -61,14 +59,6 @@ describe('Store', () => {
       s.items.push(2);
       assert.strictEqual(c.renders, 1);
       assert.deepStrictEqual(store.getRaw('items'), [1, 2]);
-    });
-
-    it('records dotted dependency paths for memoisation', () => {
-      s.user = { name: 'a' };
-      const c = mockComponent();
-      c._isTracking = true;
-      track(store, c, () => s.user.name);
-      assert.deepStrictEqual(c._trackedDeps, [['store', 'user'], ['store', 'user', 'name']]);
     });
 
     it('stops re-rendering destroyed subscribers', () => {

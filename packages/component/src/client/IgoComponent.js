@@ -1,11 +1,12 @@
-/* global document, window, cancelAnimationFrame, requestAnimationFrame, DataTransfer */
-const { DiffDOM }   = require('diff-dom');
+/* global document, window, cancelAnimationFrame, requestAnimationFrame */
+// webpack resolves morphdom's ESM build (`export default`), so the require yields
+// a `{ default }` namespace; in plain CJS (Node tests) it's the function directly.
+const morphdom      = require('morphdom').default || require('morphdom');
 const { parse }     = require('devalue');
 
-const DerivedCache  = require('./DerivedCache.js');
 const StateProxy    = require('./StateProxy.js');
 const Store         = require('./Store.js');
-const EventBinder   = require('./EventBinder.js');
+const EventDelegator = require('./EventDelegator.js');
 const FormHandler   = require('./FormHandler.js');
 
 const Templates     = require('./dust/Templates.js');
@@ -48,11 +49,11 @@ class IgoComponent {
     this.element = element;
     this.element.__componentInstance  = this;
     this._dustTemplateFn        = null;
-    this._eventBinder           = new EventBinder();
-    this._derivedCache          = new DerivedCache();
+    this._eventDelegator        = new EventDelegator(this.element, this);
+    this._inlineEventTypes      = new Set();
     this._isInitialized         = false;
     this._renderFrame           = null;
-    this._diffDom               = new DiffDOM();
+    this._morphOptions          = this._buildMorphOptions();
 
     // Child → parent events. `_listeners` holds programmatic on()/off() handlers;
     // `_emitBindings` maps event → parent method name, read from the wrapper's
@@ -64,10 +65,6 @@ class IgoComponent {
     if (!Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), 'events')?.get) {
       this.events = [];
     }
-
-    // Auto-tracking system for smart dependencies
-    this._isTracking = false;
-    this._trackedDeps = [];
 
     this._state = {};
     this._derivedValues = {};
@@ -260,20 +257,6 @@ class IgoComponent {
     return this._state;
   }
 
-  // Compute a derived value with automatic dependency tracking
-  _computeDerived(value, cacheKey) {
-    if (typeof value !== 'function') return value;
-
-    this._isTracking = true;
-    this._trackedDeps = [];
-    const boundFn = value.bind(this);
-    const computedValue = boundFn();
-    const deps = [...this._trackedDeps];
-    this._isTracking = false;
-
-    return this._derivedCache.memoize(cacheKey, boundFn, deps, this, computedValue);
-  }
-
   // Initialize getters once (redefine on instance for lazy computation)
   _initGetters() {
     if (this._getterKeys) return; // Already initialized
@@ -289,14 +272,11 @@ class IgoComponent {
 
     this._getterDescriptors = descriptors;
 
-    // Redefine getters on instance for lazy computation and tracking
+    // Redefine getters on instance for lazy, once-per-cycle computation. A getter
+    // reading another getter triggers its computation on demand.
     this._getterKeys.forEach(key => {
       Object.defineProperty(this, key, {
         get: () => {
-          if (this._isTracking) {
-            this._trackedDeps.push(['derived', key]);
-          }
-          // Compute if not yet computed this cycle
           if (!this._computedThisCycle?.has(key)) {
             this._computeGetter(key);
           }
@@ -307,11 +287,10 @@ class IgoComponent {
     });
   }
 
-  // Compute a single getter
+  // Compute a single getter, caching its value for the rest of the render cycle.
   _computeGetter(key) {
     this._computedThisCycle?.add(key);
-    const getterFn = this._getterDescriptors[key].get.bind(this);
-    this._derivedValues[key] = this._computeDerived(getterFn, key);
+    this._derivedValues[key] = this._getterDescriptors[key].get.call(this);
   }
 
   // Compute all getters for this render cycle
@@ -352,7 +331,7 @@ class IgoComponent {
       store.unsubscribeAll(this);
 
       // Tracker active during getter eval — `this.store.X` reads subscribe this
-      // component and register as memoization deps.
+      // component so store changes re-render it.
       store.pushTracker(this);
       try {
         this._computeGettersAsDerived();
@@ -363,32 +342,28 @@ class IgoComponent {
       const html = await this._dustTemplateFn(this._templateContext, Utils, null);
       if (this._destroyed) return;
 
+      // Collect inline event types straight from the rendered markup — cheaper
+      // than walking the DOM, and catches types that appear conditionally.
+      this._inlineEventTypes = this._collectEventTypes(html);
+
       const tempElement = document.createElement('div');
       tempElement.innerHTML = html;
+      const newRoot = tempElement.firstElementChild;
 
-      // Preserve wrapper attributes: the template root doesn't have data-component/data-props/id
-      // but the actual element does — copy them so DiffDOM doesn't remove them
-      const virtualRoot = tempElement.firstElementChild;
-      if (virtualRoot) {
+      // The template root lacks the wrapper attributes (data-component/data-props/id)
+      // that live on the mounted element — copy them so morphdom keeps them.
+      if (newRoot) {
         for (const attr of this.element.attributes) {
-          if (!virtualRoot.hasAttribute(attr.name)) {
-            virtualRoot.setAttribute(attr.name, attr.value);
+          if (!newRoot.hasAttribute(attr.name)) {
+            newRoot.setAttribute(attr.name, attr.value);
           }
         }
       }
 
-      // Detach child components and save file inputs before diff
-      const savedChildren = this._detachChildComponents();
-      const savedFiles = this._saveFileInputs();
+      // Child components and file inputs are preserved in-place via _morphOptions.
+      morphdom(this.element, newRoot, this._morphOptions);
 
-      const diff = this._diffDom.diff(this.element, tempElement.firstElementChild);
-      this._diffDom.apply(this.element, diff);
-
-      // Restore child components and file inputs after diff
-      this._reattachChildComponents(savedChildren);
-      this._restoreFileInputs(savedFiles);
-
-      // Sync props for child components (after DiffDOM updated data-props)
+      // Sync props for child components (after morphdom refreshed their data-props)
       this._syncChildProps();
 
       this._bindEvents();
@@ -402,126 +377,57 @@ class IgoComponent {
   }
 
   _bindEvents() {
-    this._formHandler?.unbind();
-    const allEvents = [
-      ...(Array.isArray(this.events) ? this.events : []),
-      ...this._buildOnEvents()
-    ];
-    this._eventBinder.bind(this.element, allEvents, this);
+    // Delegated listeners on the root — attached once, resolved at dispatch.
+    this._eventDelegator.sync(this._inlineEventTypes, this.events);
+    // Idempotent: the form's input/change listeners also live on the root.
     this._formHandler?.bind();
   }
 
-  _detachChildComponents() {
-    const saved = new Map();
-    this.element.querySelectorAll('[data-component]').forEach(el => {
-      // Only direct child components (skip grandchildren nested in other components)
-      if (el.parentElement?.closest('[data-component]') !== this.element) {
-        return;
-      }
-      const key = el.dataset.componentKey;
-      if (!key) {
-        return;
-      }
-      if (saved.has(key)) {
-        console.warn(`[Component] Duplicate child key "${key}" on <${el.dataset.component}>. Add a unique key= to {@component} to preserve state correctly.`);
-        return;
-      }
-      saved.set(key, el);
-      const placeholder = document.createElement('div');
-      placeholder.setAttribute('data-component-key', key);
-      placeholder.setAttribute('data-component', el.dataset.component);
-      if (el.dataset.props) {
-        placeholder.setAttribute('data-props', el.dataset.props);
-      }
-      el.replaceWith(placeholder);
-    });
-    return saved;
+  // Extract the set of inline event types (`data-on-<type>`) from rendered HTML.
+  _collectEventTypes(html) {
+    const types = new Set();
+    const re = /\bdata-on-([a-z]+)=/g;
+    let m;
+    while ((m = re.exec(html)) !== null) {
+      types.add(m[1]);
+    }
+    return types;
   }
 
-  _reattachChildComponents(saved) {
-    saved.forEach((el, key) => {
-      const target = this.element.querySelector(`[data-component-key="${key}"]`);
-      if (target) {
-        if (target.dataset.props) {
-          el.dataset.props = target.dataset.props;
+  // morphdom hooks, built once per instance. They replace the old detach/reattach
+  // dance: child components are matched by key and left untouched (props refreshed
+  // in place), and file-input selections are protected from being cleared.
+  _buildMorphOptions() {
+    return {
+      // Key matching: child components by data-component-key, else fall back to id
+      // (morphdom's default) so keyed list items keep their nodes across renders.
+      getNodeKey: (el) => (el.dataset && el.dataset.componentKey) || el.id,
+
+      onBeforeElUpdated: (fromEl, toEl) => {
+        // A mounted child component owns its own subtree — refresh its props from
+        // the new markup, then skip morphing inside it (returning false stops
+        // descent, so grandchildren are never touched either).
+        if (fromEl !== this.element && fromEl.dataset && fromEl.dataset.component) {
+          if (toEl.dataset.props) {
+            fromEl.dataset.props = toEl.dataset.props;
+          } else {
+            delete fromEl.dataset.props;
+          }
+          return false;
         }
-        target.replaceWith(el);
-      }
-    });
-  }
 
-  _saveFileInputs() {
-    const saved = new Map();
-    this.element.querySelectorAll('input[type="file"]').forEach(input => {
-      if (input.files?.length > 0) {
-        saved.set(input.name, Array.from(input.files));
-      }
-    });
-    return saved;
-  }
+        // morphdom's INPUT handler resets `.value` to '', which clears a file
+        // input's selection — skip it while files are selected.
+        if (fromEl.tagName === 'INPUT' && fromEl.type === 'file' && fromEl.files?.length) {
+          return false;
+        }
 
-  _restoreFileInputs(saved) {
-    if (saved.size === 0) return;
-    this.element.querySelectorAll('input[type="file"]').forEach(input => {
-      const files = saved.get(input.name);
-      if (files) {
-        const dt = new DataTransfer();
-        files.forEach(f => dt.items.add(f));
-        input.files = dt.files;
-      }
-    });
+        return true;
+      },
+    };
   }
 
   // Scan DOM for data-on-* attributes and build events array
-  _buildOnEvents() {
-    const events = [];
-    const seen = new Set();
-
-    const allElements = [this.element, ...this.element.querySelectorAll('*')];
-    allElements.forEach(el => {
-      // Skip elements inside child components
-      if (el !== this.element) {
-        const closestComponent = el.closest('[data-component]');
-        if (closestComponent && closestComponent !== this.element) return;
-      }
-
-      for (const attr of el.attributes) {
-        if (!attr.name.startsWith('data-on-')) continue;
-        const eventType = attr.name.slice(8); // "data-on-click" → "click"
-        const methodName = attr.value;
-        const handler = this[methodName];
-        if (typeof handler !== 'function') {
-          console.warn(`[Component] Method "${methodName}" not found on component "${this.template}"`);
-          continue;
-        }
-        const key = `${eventType}:${methodName}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          if (eventType === 'clickoutside') {
-            const targetEl = el;
-            events.push({
-              selector: 'document',
-              eventType: 'click',
-              handler: (e) => {
-                if (!targetEl.contains(e.target)) {
-                  handler.call(this, e);
-                }
-              }
-            });
-          } else {
-            events.push({
-              selector: `[data-on-${eventType}="${methodName}"]`,
-              eventType,
-              handler
-            });
-          }
-        }
-      }
-    });
-
-    return events;
-  }
-
   _mountChildComponents() {
     // Mount any child components that were added during render
     // Use global mountElement from component/index.js
@@ -563,7 +469,7 @@ class IgoComponent {
   }
 
   // Nearest ancestor component instance, resolved live (the DOM is the source of
-  // truth — survives DiffDOM detach/reattach of child components).
+  // truth — survives morphdom reconciliation of child components).
   _resolveParent() {
     const host = this.element?.parentElement?.closest('[data-component]');
     return host?.__componentInstance || null;
@@ -661,10 +567,9 @@ class IgoComponent {
     if (this._renderFrame) {
       cancelAnimationFrame(this._renderFrame);
     }
-    this._eventBinder.unbind();
+    this._eventDelegator.destroy();
     this._formHandler?.unbind();
     this._formHandler = null;
-    this._derivedCache.clear();
 
     store.unsubscribeAll(this);
     if (this._storeWatchers) {
@@ -681,13 +586,11 @@ class IgoComponent {
     }
     this.element            = null;
     this._dustTemplateFn    = null;
-    this._eventBinder       = null;
-    this._derivedCache      = null;
+    this._eventDelegator    = null;
     this._templateContext   = null;
 
     this._state             = {};
     this._derivedValues     = {};
-    this._trackedDeps       = [];
   }
 
   // Lifecycle hooks (can be overridden in subclasses)

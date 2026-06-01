@@ -28,8 +28,8 @@
   },
   "dependencies": {
     "devalue": "^5.8.1",
-    "diff-dom": "^5.2.1",
-    "lodash": "^4.18.1"
+    "lodash": "^4.18.1",
+    "morphdom": "^2.7.8"
   },
   "peerDependencies": {
     "@igojs/dust": "^6.0.0",

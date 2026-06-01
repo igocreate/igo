@@ -1,7 +1,7 @@
 
 # Reactivity
 
-Components are reactive: mutating `state` or `props` triggers an automatic re-render. The system uses JavaScript Proxies — similar to Vue 3 — with deep tracking and getter memoization.
+Components are reactive: mutating `state` or `props` triggers an automatic re-render. The system uses JavaScript Proxies — similar to Vue 3 — with deep tracking.
 
 ## State
 
@@ -84,7 +84,7 @@ Props are always scoped to the component instance, set by the parent that render
 
 ## Computed values (getters)
 
-Define computed values as JavaScript getters in the definition object. Dependencies are tracked automatically and the result is memoized.
+Define computed values as JavaScript getters in the definition object. They are evaluated on each render.
 
 ```js
 ({
@@ -101,7 +101,7 @@ Define computed values as JavaScript getters in the definition object. Dependenc
 })
 ```
 
-Getters can compose. Above, `hasResults` reads `filteredItems`, which itself depends on `state.filter` and `props.items`. The cache invalidation propagates the right way.
+Getters can compose. Above, `hasResults` reads `filteredItems`, which itself depends on `state.filter` and `props.items`. Within a single render each getter is computed at most once, even when read by several others.
 
 ### Reserved names
 
@@ -111,8 +111,43 @@ These names are used internally and cannot be overridden as getters:
 - `events` (recognised on the class-based pattern)
 - Any getter whose name starts with `_`
 
+## Watchers
+
+To run a side effect when a specific value changes, declare a `watch` map. Each handler receives `(newValue, oldValue)` and runs with `this` bound to the component:
+
+```js
+({
+  state: { query: '' },
+
+  watch: {
+    // a local state path
+    'state.query'(value, previous) {
+      this.search(value);
+    },
+    // a prop the parent may change
+    'props.client'(client) {
+      this.state.query = '';
+    },
+    // a shared store key (see Shared state)
+    'store.modal'(name) {
+      this.state.open = name === 'settings';
+    },
+  },
+})
+```
+
+Keys are namespaced by prefix — `state.`, `props.`, or `store.` — and match an **exact dotted path** (`state.form.email` fires only for that field, not its siblings). A **bare key** with no prefix defaults to `store.`, since cross-component state is the common case for watchers:
+
+```js
+watch: {
+  client(c) { /* same as 'store.client' */ },
+}
+```
+
+Watchers fire on writes through the reactive proxy, including array mutators (`push`, `splice`, …). They run **in addition** to the automatic re-render, not instead of it — use them for side effects (fetching, resetting a dependent field), not to derive values you render (use a getter for that).
+
 ## Shared state across components
 
 For data shared between components on the same page — parent ↔ siblings, siblings ↔ siblings, or anything outside the immediate parent chain — use `this.store`. See [Shared state](./shared-state).
 
-See [Internals](./internals) for how the dependency tracker and cache work.
+See [Internals](./internals) for how rendering and reconciliation work.

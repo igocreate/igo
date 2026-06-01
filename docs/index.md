@@ -27,7 +27,7 @@ features:
     link: /dust/getting-started
     linkText: Dust docs
   - title: '@igojs/component'
-    details: Reactive frontend with deep reactivity via Proxy, SSR with hydration, and DiffDOM-based DOM reconciliation.
+    details: Reactive frontend with deep reactivity via Proxy, SSR with hydration, and morphdom-based DOM reconciliation.
     link: /component/components
     linkText: Component docs
 ---

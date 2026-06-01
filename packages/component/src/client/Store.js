@@ -45,14 +45,14 @@ class Store {
         const tracker = this._trackerStk[this._trackerStk.length - 1];
         if (tracker) {
           this.subscribe(tracker, key);
-          if (tracker._isTracking) {
-            tracker._trackedDeps.push(['store', ...path, prop]);
-          }
         }
         const value = t[prop];
         if (!value || typeof value !== 'object' || value instanceof Date || value instanceof RegExp) {
           return value;
         }
+        // Reuse the cached child proxy; only build the extended path on first wrap.
+        const cached = this._proxyCache.get(value);
+        if (cached) return cached;
         return this._wrap(value, key, [...path, prop]);
       },
 

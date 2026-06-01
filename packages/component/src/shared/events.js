@@ -12,7 +12,7 @@ const { htmlencode } = require('./serialize.js');
 // Split them out and render them as `data-emit-*` attributes on the wrapper div.
 // The child reads `data-emit-*` at mount to resolve which parent method to call.
 // A distinct `data-emit-` namespace keeps them clear of the child's own DOM
-// `data-on-*` handlers (which EventBinder binds as native listeners).
+// `data-on-*` handlers (which EventDelegator dispatches via delegation).
 
 const ON_PREFIX   = 'data-on-';
 const EMIT_PREFIX = 'data-emit-';

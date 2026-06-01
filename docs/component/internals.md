@@ -14,7 +14,7 @@ Server                                       Browser
 4. computeDerived() runs getters             4. Hydrate props from JSON island
 5. Template renders to HTML                  5. Create reactive Proxies
 6. Props serialized via devalue              6. Bind events (on:*)
-7. Wrapped in <div data-component> + island  7. Re-render with DiffDOM on mutation
+7. Wrapped in <div data-component> + island  7. Re-render with morphdom on mutation
        ↓ HTML over the wire ↓
 ```
 
@@ -40,14 +40,15 @@ this.state.items = [];
 // → Only ONE render happens (next animation frame)
 ```
 
-## Computed values (DerivedCache)
+## Computed values
 
-Getters are memoized with automatic dependency tracking:
+Getters defined in the component are recomputed once per render cycle:
 
-1. Before computing a getter, the component system enables tracking mode
-2. Every access to `this.props.*`, `this.state.*`, or another getter is recorded as a dependency
-3. The result is cached along with its dependency snapshot
-4. On re-render, dependencies are checked with `Object.is` — if unchanged, the cached value is reused
+1. Before rendering, `_computeGettersAsDerived()` evaluates every getter and stores the result in `_derivedValues`
+2. A getter that reads another getter triggers it on demand; a `_computedThisCycle` set ensures each getter runs at most once per cycle
+3. The template reads the precomputed values
+
+There is **no cross-render memoization** — getters re-run on every render. This keeps the model simple and is negligible for typical derivations (formatting, small computations). If a getter is genuinely expensive over large data, hoist or guard the work yourself.
 
 ## Render cycle
 
@@ -56,43 +57,42 @@ Getters are memoized with automatic dependency tracking:
     ↓
 requestAnimationFrame (batching)
     ↓
-compute all getters (DerivedCache)
+compute all getters
     ↓
 merge context: { ...props, ...state, ...derived }
     ↓
 dust template renders to HTML string
     ↓
-DiffDOM compares new HTML with current DOM
+morphdom reconciles the new HTML into the live DOM
     ↓
-filter out diffs touching child components
-    ↓
-apply minimal diff to live DOM
+child components & file inputs preserved in-place (onBeforeElUpdated → false)
     ↓
 sync data-props for child components
     ↓
-bind events (reuse existing via WeakMap)
+sync delegated event listeners
     ↓
 mount newly added child components
     ↓
 afterRender()
 ```
 
-## Event binding (EventBinder)
+## Event delegation (EventDelegator)
 
-EventBinder uses a WeakMap to cache listeners per element:
+Inline `on:*` handlers are dispatched by delegation rather than bound per element:
 
-- If DiffDOM preserves an element, its listener is **reused** (no rebind)
-- If an element is removed, the WeakMap allows garbage collection
-- Events don't cross component boundaries — binding to elements inside a child `data-component` logs a warning
+- One listener per event type lives on the component **root**, attached once and kept across renders (morphdom never replaces the root node)
+- On an event, the delegator walks up from `event.target` and invokes every **owned** element declaring `data-on-<type>` (or matching a manual `events` selector)
+- "Owned" means the element's nearest `[data-component]` ancestor is this root — events originating in a child component are handled by the child's own delegator
+- The set of event types is collected cheaply from the rendered HTML each render, so handlers that appear conditionally still get a listener
 
 ## Form binding (FormHandler)
 
 When `props.form` exists, FormHandler:
 
-1. Binds to all `<input>`, `<select>`, and `<textarea>` inside the component
-2. Listens for `input` (text fields) or `change` (checkboxes, radios, selects) events
+1. Attaches one `input` and one `change` listener to the component root (once — also delegated)
+2. Routes each event to the field's matching kind: `input` for text fields, `change` for checkboxes, radios and selects
 3. Updates `component.state.form[fieldName]` on each change
-4. Skips inputs inside child `data-component` elements
+4. Skips file inputs and fields inside child `data-component` elements
 5. Form state is shared across all components via a module-level singleton (`FormHandler.getSharedForm()`)
 
 ## Serialization (SerializeUtils)
@@ -184,7 +184,6 @@ In the browser, when a component initializes:
 
 During parent re-render:
 
-- DiffDOM diffs may try to remove/replace child component elements
-- The component system filters these diffs out, preserving child DOM and state
-- Attribute changes (like `data-props` updates) are allowed through
+- morphdom would normally descend into child component elements; the `onBeforeElUpdated` hook returns `false` for any `[data-component]`, leaving its DOM and state untouched
+- Before skipping, the child's `data-props` attribute is refreshed from the new markup
 - After the parent render, child `data-props` are re-evaluated and children re-render if their props changed

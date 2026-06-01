@@ -5,8 +5,6 @@ describe('StateProxy', () => {
 
   function createMockComponent() {
     return {
-      _isTracking: false,
-      _trackedDeps: [],
       _isInitialized: true,
       _renderCount: 0,
       _triggerRender() { this._renderCount++; }
@@ -45,15 +43,18 @@ describe('StateProxy', () => {
     assert.strictEqual(component._renderCount, 1);
   });
 
-  it('should track dependencies when tracking is enabled', () => {
-    const component = createMockComponent();
-    const state = new StateProxy(component, 'state').create({ count: 0 });
+  it('should fire watchers on array mutators', () => {
+    const fired = [];
+    const component = {
+      _isInitialized: true,
+      _triggerRender() {},
+      _fireLocalWatchers(ns, path, value) { fired.push([ns, path, value]); }
+    };
+    const state = new StateProxy(component, 'state').create({ items: [1] });
 
-    component._isTracking = true;
-    const _ = state.count;
-    component._isTracking = false;
+    state.items.push(2);
 
-    assert.deepStrictEqual(component._trackedDeps[0], ['state', 'count']);
+    assert.deepStrictEqual(fired, [['state', ['items'], [1, 2]]]);
   });
 
 });

@@ -11,10 +11,10 @@ Server-rendered apps stay fast on first paint and play well with SEO, but intera
 
 * **Single-file `.dust` components** — `<script>` block + template, no manual registration
 * **Deep reactivity via JavaScript Proxy** — Vue 3-like; mutating state at any depth triggers a re-render
-* **Automatic dependency tracking for getters** — computed values are memoized and recompute only when inputs change
+* **Computed getters** — derived values defined as getters, recomputed each render
 * **Server-side rendering with hydration** — the page is fully HTML before any JS runs
 * **Auto-loading from the server** — `start()` with no arguments picks up `[data-component]` elements on demand
-* **DiffDOM reconciliation** — minimal DOM updates, child components and form inputs preserved across re-renders
+* **morphdom reconciliation** — minimal DOM updates, child components and form inputs preserved across re-renders
 * **Inline event syntax** — `on:click="onIncrement"` in templates, no boilerplate handler registration
 * **Two-way form binding** — `name="email"` inputs sync into `this.state.form` automatically
 * **Render batching** — multiple state mutations in the same tick coalesce into one render
@@ -121,7 +121,7 @@ The helper does, in one shot:
 4. Renders the template server-side — the page is **fully rendered HTML**
 5. Serializes props into an inert `<script type="application/json">` island for client hydration
 
-In the browser, `start()` finds the `[data-component]` element, fetches the definition from `/__component/component?name=components/Counter`, builds a class, hydrates it, and binds events. Clicking `+1` mutates `this.props.count`, which triggers an automatic re-render via DiffDOM.
+In the browser, `start()` finds the `[data-component]` element, fetches the definition from `/__component/component?name=components/Counter`, builds a class, hydrates it, and binds events. Clicking `+1` mutates `this.props.count`, which triggers an automatic re-render via morphdom.
 
 ## What's next
 
