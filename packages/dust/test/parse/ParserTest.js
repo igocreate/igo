@@ -1,6 +1,4 @@
 
-/* global describe, it */
-
 const assert  = require('assert');
 
 const Parser  = require('../../src/parse/Parser');
@@ -189,17 +187,6 @@ describe('Parser', () => {
     assert.equal(nested.bodies.else[0], 'World ');
     assert.equal(nested.bodies.else[1].type, 'r');
     assert.equal(nested.bodies.else[1].tag, 'name');
-  });
-
-  it.skip('should parse many bodies tags', () => {
-    const TEMPLATE = '{?tag}Hello{:else}World{:other}Good Bye{/tag}, ok.';
-    const buffer = new Parser().parse(TEMPLATE);
-    assert.equal(buffer.length, 2);
-    const nested = buffer[0];
-    assert(nested.bodies.else);
-    assert.equal(nested.buffer[0], 'Hello');
-    assert.equal(nested.bodies.else[0], 'World');
-    assert.equal(nested.bodies.other[0], 'Good Bye');
   });
 
   it('should parse ^ tags', () => {

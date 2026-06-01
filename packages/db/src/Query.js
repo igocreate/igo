@@ -130,6 +130,10 @@ module.exports = class Query {
 
   // LIMIT
   limit(limit) {
+    // explicit user limit wins over a default scope limit
+    if (this._applyingScopes && this.query.limit !== undefined) {
+      return this;
+    }
     this.query.limit  = limit;
     return this;
   }
@@ -266,12 +270,14 @@ module.exports = class Query {
     const { query, schema } = this;
     // Save manually added includes before applying scopes
     const manualIncludes = { ...query.includes };
+    this._applyingScopes = true;
     _.forOwn(query.scopes, (scope) => {
       if (!schema.scopes[scope]) {
         return;
       }
       schema.scopes[scope](this);
     });
+    this._applyingScopes = false;
     // Apply unscopes after scopes
     for (const clause of query.unscopes) {
       switch (clause) {

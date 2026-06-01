@@ -123,11 +123,6 @@ describe('includes', () => {
     };
     class Library2 extends Model(schema) {}
 
-    // it.only('should ignore associations for inserts', async () => {
-    //   const err = await Library2.create();
-    //   assert(!err);
-    // });
-
     it('should ignore associations for updates', async () => {
       const library = await Library2.create();
       assert(library);
