@@ -56,8 +56,6 @@ Getters are memoized with automatic dependency tracking:
     ↓
 requestAnimationFrame (batching)
     ↓
-beforeRender()
-    ↓
 compute all getters (DerivedCache)
     ↓
 merge context: { ...props, ...state, ...derived }
@@ -95,7 +93,7 @@ When `props.form` exists, FormHandler:
 2. Listens for `input` (text fields) or `change` (checkboxes, radios, selects) events
 3. Updates `component.state.form[fieldName]` on each change
 4. Skips inputs inside child `data-component` elements
-5. Form state is shared across all components via `window.__igo_form`
+5. Form state is shared across all components via a module-level singleton (`FormHandler.getSharedForm()`)
 
 ## Serialization (SerializeUtils)
 
@@ -111,7 +109,7 @@ The server-side serializer:
 ### SSR (server, `{@component}` helper)
 
 ```
-{@component name="foo" x=1 y=2 /} in a Dust template
+{@component "foo" x=1 y=2 /} in a Dust template
     ↓
 1. IgoDust.getCompiledComponent('foo.dust')
    - Splits the file: <script> source + compiled template
@@ -165,7 +163,7 @@ mountElement(el)
 4. init() (async):
    - Load Dust template via /__component/templates (or use the one bundled with the definition)
    - If props.form: create FormHandler
-     → FormHandler.initForm() replaces _state.form with window.__igo_form (shared singleton)
+     → FormHandler.initForm() replaces _state.form with the shared singleton (module-level _sharedForm)
    - First render()
 ```
 

@@ -363,7 +363,9 @@ class Compiler {
   _getParams(params) {
     let ret = '{';
     for (let key in params) {
-      ret += `${key}:${this._getParam(params[key])},`;
+      // Quote keys so non-identifier names (e.g. `data-on-change` event bindings,
+      // or the `$` positional) stay valid in the generated object literal.
+      ret += `${JSON.stringify(key)}:${this._getParam(params[key])},`;
     }
     ret += '}';
     return ret;

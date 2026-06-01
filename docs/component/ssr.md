@@ -10,7 +10,7 @@ In a single-file component setup, you render a component with the `@component` D
 ```dust
 {! views/products/index.dust !}
 <h1>Products</h1>
-{@component name="components/ProductList" products=products title="On sale" /}
+{@component "components/ProductList" products title="On sale" /}
 ```
 
 The helper:
@@ -38,7 +38,7 @@ In a loop, pass `key=` to give each instance a stable identity across re-renders
 
 ```dust
 {#products}
-  {@component name="components/ProductCard" product=. key=.id /}
+  {@component "components/ProductCard" product=. key=.id /}
 {/products}
 ```
 

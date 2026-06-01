@@ -45,7 +45,7 @@
             </button>
 
             <!-- Profile dropdown -->
-            {@component name="components/UserMenu" /}
+            {@component "components/UserMenu" /}
           </div>
         </div>
       </div>

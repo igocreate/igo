@@ -1,4 +1,3 @@
-/* global describe, it */
 const assert  = require('assert');
 
 // const Parser    = require('../../src/parse/Parser');
@@ -68,6 +67,28 @@ describe('Compiler', () => {
     const fn      = new Compiler().compile(buffer);
     const r       = await fn({name: '<World>'}, Utils);
     assert.equal(r, 'Hello &lt;WORLD&gt;');
+  });
+
+  it('should quote non-identifier param keys ($ positional, data-on-* bindings)', async () => {
+    // Without JSON.stringify on the keys, the generated `{data-on-change:...}`
+    // is invalid JS and compile() throws a SyntaxError.
+    let captured;
+    Utils.h.helpers.capture = (p) => { captured = p; return ''; };
+
+    const buffer = [ {
+      type: '@',
+      tag: 'capture',
+      params: { '$': '"components/Select"', name: '"client_id"', 'data-on-change': '"onClientChange"' },
+    } ];
+
+    const fn = new Compiler().compile(buffer);  // must not throw
+    await fn({}, Utils);
+
+    assert.equal(captured.$, 'components/Select');
+    assert.equal(captured.name, 'client_id');
+    assert.equal(captured['data-on-change'], 'onClientChange');
+
+    delete Utils.h.helpers.capture;
   });
 
 });

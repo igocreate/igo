@@ -73,7 +73,7 @@ Props are always scoped to the component instance, set by the parent that render
 - **SFC mount** — caller params on the `{@component}` helper become props on the child instance:
 
   ```dust
-  {@component name="components/ProductList" products=products title="On sale" /}
+  {@component "components/ProductList" products title="On sale" /}
   ```
 
 - **Class-based mount** — the parent template embeds them on the wrapper `<div data-component>` via `{@serialize}`:

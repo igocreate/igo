@@ -1,8 +1,8 @@
-# @igojs/component - Architecture interne (client)
+# @igojs/component - Internal architecture (client)
 
-Framework reactif base sur Igo-Dust, avec deep reactivite et auto-tracking des dependances.
+Reactive framework built on Igo-Dust, with deep reactivity and automatic dependency tracking.
 
-## Vue d'ensemble
+## Overview
 
 ```
 Props (immutable) → State (reactive) → Derived (computed) → Template → DOM
@@ -10,36 +10,36 @@ Props (immutable) → State (reactive) → Derived (computed) → Template → D
                     Proxy tracking                         DiffDOM reconciliation
 ```
 
-## Fichiers
+## Files
 
-| Fichier | Responsabilite |
+| File | Responsibility |
 |---------|----------------|
-| `IgoComponent.js` | Classe de base IgoComponent, lifecycle, render |
-| `ComponentLoader.js` | Chargement auto des SFC depuis le serveur |
+| `IgoComponent.js` | IgoComponent base class, lifecycle, render |
+| `ComponentLoader.js` | Auto-loading of SFCs from the server |
 | `StateProxy.js` | Deep reactivity via Proxy |
-| `EventBinder.js` | Gestion optimisee des evenements |
-| `DerivedCache.js` | Memoization des getters |
-| `FormHandler.js` | Two-way binding des formulaires |
+| `EventBinder.js` | Optimized event handling |
+| `DerivedCache.js` | Getter memoization |
+| `FormHandler.js` | Two-way form binding |
 
 ---
 
 ## StateProxy.js
 
-Wraps le state dans un Proxy recursif pour detecter les mutations a n'importe quelle profondeur.
+Wraps state in a recursive Proxy to detect mutations at any depth.
 
-### Fonctionnement
+### How it works
 
-1. Chaque objet/array est wrappe dans un Proxy
-2. Le trap `set` intercepte les mutations et appelle `_triggerRender()`
-3. Les methodes d'array (push, pop, splice, etc.) sont wrappees
-4. Un WeakMap evite le double-wrapping
+1. Each object/array is wrapped in a Proxy
+2. The `set` trap intercepts mutations and calls `_triggerRender()`
+3. Array methods (push, pop, splice, etc.) are wrapped
+4. A WeakMap avoids double-wrapping
 
-### Mutations supportees
+### Supported mutations
 
 ```javascript
-this.state.count = 5;                    // Niveau 1
-this.state.user.name = 'John';           // Niveau 2
-this.state.user.address.city = 'Paris';  // Niveau 3+
+this.state.count = 5;                    // Level 1
+this.state.user.name = 'John';           // Level 2
+this.state.user.address.city = 'Paris';  // Level 3+
 this.state.items.push({ id: 1 });        // Array methods
 this.state.items[0].name = 'Updated';    // Array item mutation
 ```
@@ -48,83 +48,101 @@ this.state.items[0].name = 'Updated';    // Array item mutation
 
 ## DerivedCache.js
 
-Memoization des getters avec tracking automatique des dependances.
+Getter memoization with automatic dependency tracking.
 
-### Fonctionnement
+### How it works
 
-1. Au premier appel d'un getter, `_isTracking = true`
-2. Chaque acces a `this.props.x` ou `this.state.y` est enregistre
-3. Le resultat est mis en cache avec ses dependances
-4. Aux renders suivants, recalcul uniquement si les dependances ont change
+1. On a getter's first call, `_isTracking = true`
+2. Each access to `this.props.x` or `this.state.y` is recorded
+3. The result is cached along with its dependencies
+4. On subsequent renders, it recomputes only if the dependencies changed
 
 ---
 
 ## EventBinder.js
 
-Gestion optimisee des evenements avec WeakMap.
+Optimized event handling with a WeakMap.
 
-### Fonctionnement
+### How it works
 
-1. `WeakMap<Element, Map<eventType, handler>>` stocke les listeners
-2. Au render, verifie si le listener existe deja
-3. Si l'element est preserve par DiffDOM, le listener est reutilise
-4. Si l'element est remplace, nouveau listener cree
-5. Les elements supprimes sont garbage collectes automatiquement
-6. Supporte `selector: 'document'` et `selector: 'window'`
+1. `WeakMap<Element, Map<eventType, handler>>` stores the listeners
+2. On render, checks whether the listener already exists
+3. If the element is preserved by DiffDOM, the listener is reused
+4. If the element is replaced, a new listener is created
+5. Removed elements are garbage-collected automatically
+6. Supports `selector: 'document'` and `selector: 'window'`
+
+---
+
+## Communication between components
+
+Default convention: **props down / events up**, like React / Vue / Svelte.
+
+- **Parent → child**: pass `props` (immutable on the child side).
+- **Child → parent**: `this.emit('change', payload)`, wired via `{@component "X" on:change="onPick" /}` which calls `onPick(payload)` on the parent.
+- Orchestration lives in the common parent; the child stays generic and reusable.
+
+### Props vs state
+
+`props` are a reactive proxy: writing them (`this.props.value = ...`) triggers a render — useful to reflect a controlled value. Working data (a fetched list...) lives in `this.state`. Example: a select keeps its ajax results in `state.options` and reloads when its `ajax` prop (the url) changes.
 
 ---
 
 ## FormHandler.js
 
-Synchronisation automatique des champs de formulaire avec `this.state.form`.
+Automatic synchronization of form fields with `this.state.form`.
 
 ### Activation
 
-Le FormHandler s'active si `this.props.form` existe dans le constructeur.
+The FormHandler activates if `this.props.form` exists in the constructor.
 
-### Types supportes
+### Gotcha: cross-component reactivity
 
-| Input | Valeur stockee |
+The form is a single shared object, but each component wraps it in **its own proxy**. A mutation through one component's proxy re-renders ONLY that component — not the others, even if they read the same field. For a component B to react to a field changed by A, pass it a prop that changes (e.g. the ajax url resolved on the parent side): the props sync forces its re-render.
+
+### Supported types
+
+| Input | Stored value |
 |-------|----------------|
 | `type="text"`, `textarea` | String |
-| `type="number"` | String (convertir avec `Number()`) |
-| `type="checkbox"` | Boolean ou Array (`name="x[]"`) |
-| `name="x[0][]"` | Nested array de strings |
+| `type="number"` | String (convert with `Number()`) |
+| `type="checkbox"` | Boolean or Array (`name="x[]"`) |
+| `name="x[0][]"` | Nested array of strings |
 | `select` | String |
-| `select[multiple]` | Array de strings |
+| `select[multiple]` | Array of strings |
 
 ---
 
 ## ComponentLoader.js
 
-Chargement automatique des composants single-file.
+Automatic loading of single-file components.
 
-### Fonctionnement
+### How it works
 
 1. `load(name)` → fetch `GET /__component/component?name=<name>`
-2. Evalue le `<script>` block pour obtenir la definition
-3. `buildClass()` cree une sous-classe de IgoComponent
-4. Copie methodes et getters de la definition sur le prototype
-5. Cache les promises pour eviter les requetes dupliquees
+2. Evaluates the `<script>` block to obtain the definition
+3. `buildClass()` creates a subclass of IgoComponent
+4. Copies methods and getters from the definition onto the prototype
+5. Caches the promises to avoid duplicate requests
 
 ---
 
 ## IgoComponent (IgoComponent.js)
 
-Classe de base orchestrant tous les modules.
+Base class orchestrating all the modules.
 
 ### Lifecycle
 
 ```
 constructor()
     ↓
-init()
+_init()
     ↓
 loadTemplate()
     ↓
+init()                  ← user hook, once
+    ↓
 render() ←──────────────┐
-    ↓                   │
-beforeRender()          │
     ↓                   │
 _computeGettersAsDerived()
     ↓                   │
@@ -145,11 +163,11 @@ afterRender()           │
 
 ### Render optimization
 
-Les renders sont debounces via `requestAnimationFrame`.
+Renders are debounced via `requestAnimationFrame`.
 
 ### Child components
 
-1. Preserves par DiffDOM (seuls les attributs peuvent etre modifies)
-2. Montes automatiquement apres le render parent
-3. Synchronises via `_syncChildProps()` quand leurs `data-props` changent
-4. Seuls les composants top-level sont montes au demarrage (pas les enfants)
+1. Preserved by DiffDOM (only attributes can be modified)
+2. Mounted automatically after the parent render
+3. Synchronized via `_syncChildProps()` when their `data-props` change
+4. Only top-level components are mounted at startup (not the children)

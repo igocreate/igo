@@ -110,7 +110,7 @@ Use the `{@component}` helper to render a component anywhere in a Dust template:
 ```dust
 {! views/home.dust !}
 <h1>Demo</h1>
-{@component name="components/Counter" count=5 /}
+{@component "components/Counter" count=5 /}
 ```
 
 The helper does, in one shot:

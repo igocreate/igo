@@ -43,7 +43,7 @@ When a component receives a `form` prop, all named inputs in its template are au
 Pass the form via the `@component` helper:
 
 ```dust
-{@component name="components/Search" form=form /}
+{@component "components/Search" form /}
 ```
 
 `form` is typically built in the controller — for example from the query string on a search page:
@@ -99,12 +99,12 @@ get selectedProduct() {
 
 ### Shared form state
 
-Form state is shared across all components on a page via `window.__igo_form`. Two components rendering inputs of the same form read and write the same state — useful for splitting a long form across multiple components.
+Form state is shared across all components on a page via a module-level singleton in `FormHandler` (accessible through `FormHandler.getSharedForm()`). Two components rendering inputs of the same form read and write the same state — useful for splitting a long form across multiple components.
 
 The flow on mount:
 
 1. Constructor copies `props.form` into `_state.form`
-2. `init()` lets `FormHandler` replace it with the page-wide singleton (`window.__igo_form`)
+2. `init()` lets `FormHandler` replace it with the page-wide singleton
 3. All components with `props.form` end up pointing at the same form object
 
 If you need independent forms in two components on the same page, keep the data in `state` directly rather than going through `props.form`.

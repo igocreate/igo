@@ -24,29 +24,22 @@ const buildClass = (name, def, templateSource) => {
     }
   }
 
-  // Store template function on prototype for init() override
+  // Store template function on prototype, read by _init()
   DefinedComponent.prototype.__definitionTemplateFn = templateFn;
 
   // Store default state and props on prototype
   DefinedComponent.prototype.__defaultState = def.state || {};
   DefinedComponent.prototype.__defaultProps = def.props || {};
 
-  // Copy methods from definition to prototype
-  for (const [key, val] of Object.entries(def)) {
-    if (key === 'props' || key === 'state') continue;
-    if (typeof val === 'function') {
-      DefinedComponent.prototype[key] = val;
-    }
-  }
-
-  // Copy getters from definition to prototype
+  // Copy methods and getters from definition to prototype, via descriptors so
+  // getters aren't invoked here (Object.entries would trigger them).
   const descs = Object.getOwnPropertyDescriptors(def);
   for (const [key, desc] of Object.entries(descs)) {
+    if (key === 'props' || key === 'state') continue;
     if (desc.get) {
-      Object.defineProperty(DefinedComponent.prototype, key, {
-        get: desc.get,
-        configurable: true
-      });
+      Object.defineProperty(DefinedComponent.prototype, key, { get: desc.get, configurable: true });
+    } else if (typeof desc.value === 'function') {
+      DefinedComponent.prototype[key] = desc.value;
     }
   }
 

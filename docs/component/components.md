@@ -72,7 +72,7 @@ The template receives a flat merge of `{ ...props, ...state, ...derivedGetters }
 Use the `{@component}` Dust helper:
 
 ```dust
-{@component name="components/ProductList" products=products title="Soldes" /}
+{@component "components/ProductList" products title="Soldes" /}
 ```
 
 This renders the component server-side and emits a hydration-ready wrapper:
@@ -90,11 +90,11 @@ Caller params (`products=…`, `title=…`) override the corresponding `props` d
 ```
 constructor(element)
     ↓
-init()                          ← load template, set up form binding
+load template, set up form binding
+    ↓
+init()                          ← once, before the first render
     ↓
 render() ←──────────────────┐
-    ↓                        │
-beforeRender()                │
     ↓                        │
 compute getters (memoized)    │
     ↓                        │
@@ -119,13 +119,13 @@ Add any of these as methods in the definition object:
 
 ```js
 ({
-  async beforeRender() { /* before each render */ },
-  async afterRender()  { /* after each render — DOM is updated */ },
-  async onError(err)   { /* if render throws */ }
+  async init()        { /* once, before the first render — props/state/store ready */ },
+  async afterRender() { /* after each render — DOM is updated */ },
+  async onError(err)  { /* if render throws */ }
 })
 ```
 
-`afterRender` is the right place for focus management, scroll restoration, or initialising third-party libs that need a stable DOM.
+`init` is the place for one-time setup — seeding the store from props, fetching initial data — with no need for a `_seeded` guard. `afterRender` is the right place for focus management, scroll restoration, or initialising third-party libs that need a stable DOM.
 
 ## Child components
 
@@ -137,8 +137,8 @@ Inline:
 {! Parent template !}
 <div>
   <h1>Dashboard</h1>
-  {@component name="components/ProductList" products=products /}
-  {@component name="components/CartSummary" cart=cart /}
+  {@component "components/ProductList" products /}
+  {@component "components/CartSummary" cart /}
 </div>
 ```
 
@@ -150,7 +150,7 @@ When you render a list of components, give each one a `key=` param. The helper w
 
 ```dust
 {#products}
-  {@component name="components/ProductCard" product=. key=.id /}
+  {@component "components/ProductCard" product=. key=.id /}
 {/products}
 ```
 
@@ -200,8 +200,8 @@ This pre-`6.0` pattern is still supported. Most apps should reach for SFC first 
 
 | Method | Description |
 |--------|-------------|
-| `init()` | Called once after the constructor — template load + form handler setup |
+| `init()` | Hook called once, after the constructor and before the first render — one-time setup |
 | `render()` | Render the component (called automatically on state mutation) |
-| `beforeRender()` / `afterRender()` | Render hooks |
+| `afterRender()` | Render hook (after every render) |
 | `onError(error)` | Hook for render errors |
 | `destroy()` | Cleanup: cancel pending renders, unbind events, clear caches |

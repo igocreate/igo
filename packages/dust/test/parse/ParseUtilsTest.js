@@ -1,7 +1,5 @@
 
-/* global describe, it */
-
-const assert  = require('assert');
+const assert      = require('assert');
 
 const ParseUtils  = require('../../src/parse/ParseUtils');
 
@@ -47,6 +45,15 @@ describe('ParseUtils', () => {
     const params = ParseUtils.parseParams(tag);
 
     assert.equal(params.count, 'otherVar');
+  });
+
+  it('should parse hyphenated param names (e.g. data-on-* event bindings)', () => {
+    const tag = '@component "components/Select" name="client_id" data-on-change="onClientChange" ';
+    const params = ParseUtils.parseParams(tag);
+
+    assert.equal(params.$, '"components/Select"');
+    assert.equal(params.name, '"client_id"');
+    assert.equal(params['data-on-change'], '"onClientChange"');
   });
 
 });

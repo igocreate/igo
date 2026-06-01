@@ -50,8 +50,8 @@ module.exports.parseParams = (s) => {
   const original  = s;
   let match;
   
-  // string param
-  const stringParam = new RegExp('(\\w+)=("[^"]*")', 'msg');
+  // string param (allow '-' in the name, e.g. `data-on-change="onClientChange"`)
+  const stringParam = new RegExp('([\\w-]+)=("[^"]*")', 'msg');
   while ((match = stringParam.exec(s)) !== null) {
     params[match[1]] = match[2];
     s = s.substring(0, match.index) + s.substring(stringParam.lastIndex);

@@ -1,10 +1,14 @@
 /* global document, window, cancelAnimationFrame, requestAnimationFrame, DataTransfer */
-const DerivedCache = require('./DerivedCache.js');
-const StateProxy = require('./StateProxy.js');
-const { DiffDOM } = require('diff-dom');
-const EventBinder = require('./EventBinder.js');
-const Templates = require('./dust/Templates.js');
-const FormHandler = require('./FormHandler.js');
+const { DiffDOM }   = require('diff-dom');
+const { parse }     = require('devalue');
+
+const DerivedCache  = require('./DerivedCache.js');
+const StateProxy    = require('./StateProxy.js');
+const EventBinder   = require('./EventBinder.js');
+const FormHandler   = require('./FormHandler.js');
+
+const Templates     = require('./dust/Templates.js');
+const Utils         = require('./dust/Utils.js');
 
 class IgoComponent {
   // Component registry for auto-discovery
@@ -47,6 +51,12 @@ class IgoComponent {
     this._renderFrame           = null;
     this._diffDom               = new DiffDOM();
 
+    // Child → parent events. `_listeners` holds programmatic on()/off() handlers;
+    // `_emitBindings` maps event → parent method name, read from the wrapper's
+    // `data-emit-*` attributes ({@component on:event="method" /}) at _init().
+    this._listeners             = new Map();
+    this._emitBindings          = null;
+
     // Default events array (only if not defined as getter in subclass)
     if (!Object.getOwnPropertyDescriptor(Object.getPrototypeOf(this), 'events')?.get) {
       this.events = [];
@@ -65,15 +75,20 @@ class IgoComponent {
       Object.assign(this._state, JSON.parse(JSON.stringify(_defaultState)));
     }
 
-    // Hydrate props from element
+    // SSR ships props in an inert <script type="application/json"> island (read once,
+    // then dropped); client re-renders use the data-props attribute. Both are devalue
+    // payloads read with devalue.parse — no eval, CSP-safe.
     let localProps = {};
-    if (this.element.dataset.props) {
-      try {
-        const hydrate = new Function('return ' + this.element.dataset.props);
-        localProps = hydrate();
-      } catch (e) {
-        console.error('Failed to parse data-props for component', this.element, e);
+    const island = this.element.querySelector(':scope > script[data-igo-props]');
+    try {
+      if (island) {
+        localProps = parse(island.textContent);
+        island.remove();
+      } else if (this.element.dataset.props) {
+        localProps = parse(this.element.dataset.props);
       }
+    } catch (e) {
+      console.error('Failed to parse props for component', this.element, e);
     }
 
     // SFC: merge default props from definition
@@ -89,8 +104,9 @@ class IgoComponent {
     this.props = new StateProxy(this, 'props').create(this._props);
     this.state = new StateProxy(this, 'state').create(this._state);
 
-    // Async init (fire-and-forget): load template, set up form handler, first render
-    this.init();
+    this._destroyed = false;
+
+    this._init();
   }
 
   // Expose raw state for internal use (bypasses Proxy, no auto-render)
@@ -159,33 +175,40 @@ class IgoComponent {
     this._getterKeys.forEach(key => this._computeGetter(key));
   }
 
-  // Initialize component (called automatically by constructor)
-  // Can be overridden in subclasses for custom initialization
-  async init() {
+  // Internal bootstrap (called automatically by constructor). Loads the template,
+  // wires the form handler, runs the user `init()` hook, then does the first render.
+  async _init() {
     // SFC components have template pre-compiled; legacy components fetch from server
     const _definitionTemplateFn = Object.getPrototypeOf(this).__definitionTemplateFn;
     this._dustTemplateFn = _definitionTemplateFn || await Templates.loadTemplate(this.template);
     this._isInitialized = true;
+
+    // Read parent → child event bindings from the wrapper's data-emit-* attributes,
+    // before the first render collapses/reconciles the element.
+    this._emitBindings = this._readEmitBindings();
 
     // Initialize form handler if props.form exists
     if (this.props.form) {
       this._formHandler = new FormHandler(this, this.props.form);
     }
 
+    // User one-time init, before the first render — store/props/state are ready.
+    await this.init();
+
     await this.render();
   }
 
   async render() {
     try {
-      // beforeRender hook
-      await this.beforeRender?.();
+      if (this._destroyed) return;
 
       // Calculate derived values (getters) with smart dependency tracking
       this._computeGettersAsDerived();
 
       // Merge props + state + derived for template context (flat)
       const context = { ...this._props, ...this._state, ...this._derivedValues };
-      const html = await this._dustTemplateFn(context, window.__igo.IgoDustUtils, null);
+      const html = await this._dustTemplateFn(context, Utils, null);
+      if (this._destroyed) return;
 
       const tempElement = document.createElement('div');
       tempElement.innerHTML = html;
@@ -361,6 +384,84 @@ class IgoComponent {
     });
   }
 
+  // ---------------------------------------------------------------------------
+  // Child → parent events
+  //
+  // A child emits with `this.emit('change', payload)`. The payload is delivered
+  // to (a) any programmatic listeners added via `this.on('change', fn)`, and
+  // (b) the parent method declared in markup as `{@component on:change="m" /}`,
+  // called with `this` bound to the parent. This is the parent↔child channel —
+  // props flow down, events flow up — so a child never reaches into a shared
+  // store to talk to its parent.
+  // ---------------------------------------------------------------------------
+
+  // Read event → parent-method bindings from the wrapper's data-emit-* attributes.
+  _readEmitBindings() {
+    const bindings = {};
+    if (!this.element?.attributes) {
+      return bindings;
+    }
+    for (const attr of this.element.attributes) {
+      if (attr.name.startsWith('data-emit-')) {
+        bindings[attr.name.slice('data-emit-'.length)] = attr.value;
+      }
+    }
+    return bindings;
+  }
+
+  // Nearest ancestor component instance, resolved live (the DOM is the source of
+  // truth — survives DiffDOM detach/reattach of child components).
+  _resolveParent() {
+    const host = this.element?.parentElement?.closest('[data-component]');
+    return host?.__componentInstance || null;
+  }
+
+  // Register a programmatic listener. Returns an unsubscribe function.
+  on(event, handler) {
+    let set = this._listeners.get(event);
+    if (!set) {
+      set = new Set();
+      this._listeners.set(event, set);
+    }
+    set.add(handler);
+    return () => this.off(event, handler);
+  }
+
+  // Remove a programmatic listener (or all listeners for an event if no handler).
+  off(event, handler) {
+    if (!handler) {
+      this._listeners.delete(event);
+      return;
+    }
+    this._listeners.get(event)?.delete(handler);
+  }
+
+  // Emit an event: notifies programmatic listeners, then calls the parent method
+  // bound in markup (if any). Returns the parent handler's result.
+  emit(event, ...args) {
+    const set = this._listeners.get(event);
+    if (set) {
+      for (const fn of [...set]) {
+        fn(...args);
+      }
+    }
+
+    const methodName = this._emitBindings?.[event];
+    if (!methodName) {
+      return;
+    }
+    const parent = this._resolveParent();
+    if (!parent) {
+      return;
+    }
+    const handler = parent[methodName];
+    if (typeof handler !== 'function') {
+      console.warn(`[Component] on:${event}="${methodName}" — method not found on parent <${parent.template}>`);
+      return;
+    }
+    return handler.apply(parent, args);
+  }
+
   _triggerRender() {
     if (!this._isInitialized) {
       return;
@@ -380,8 +481,7 @@ class IgoComponent {
     }
 
     try {
-      const hydrate = new Function('return ' + this.element.dataset.props);
-      const newLocalProps = hydrate();
+      const newLocalProps = parse(this.element.dataset.props);
 
       // Write through the reactive proxy — triggers re-render automatically if changed
       for (const key in newLocalProps) {
@@ -402,41 +502,37 @@ class IgoComponent {
     });
   }
 
-  // Cleanup component (unbind listeners, clear timers, remove references)
   async destroy() {
-    // Cancel any pending render
+    this._destroyed = true;
+
     if (this._renderFrame) {
       cancelAnimationFrame(this._renderFrame);
     }
-
-    // Unbind all event listeners
     this._eventBinder.unbind();
-
-    // Unbind form handler
     this._formHandler?.unbind();
     this._formHandler = null;
-
-    // Clear derived cache
     this._derivedCache.clear();
 
-    // Clear references to help garbage collection
+    this._listeners.clear();
+    this._emitBindings = null;
+
     if (this.element) {
       this.element.__componentInstance = null;
     }
-    this.element = null;
-    this._dustTemplateFn = null;
-    this._eventBinder = null;
-    this._derivedCache = null;
+    this.element            = null;
+    this._dustTemplateFn    = null;
+    this._eventBinder       = null;
+    this._derivedCache      = null;
 
-    this._state = {};
-    this._derivedValues = {};
-    this._trackedDeps = [];
+    this._state             = {};
+    this._derivedValues     = {};
+    this._trackedDeps       = [];
   }
 
   // Lifecycle hooks (can be overridden in subclasses)
-  async beforeRender() { }
-  async afterRender() { }
-  async onError(_error) { }
+  async init() { }              // once, before the first render
+  async afterRender() { }       // after each render
+  async onError(_error) { }     // on render error
 
 }
 

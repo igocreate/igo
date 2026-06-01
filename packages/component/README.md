@@ -34,7 +34,7 @@ A component is one `.dust` file:
 Render it server-side from any Dust template:
 
 ```dust
-{@component name="components/Counter" initial=5 /}
+{@component "components/Counter" initial=5 /}
 ```
 
 In your client entry:

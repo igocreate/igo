@@ -1,5 +1,18 @@
 # Changelog
 
+## 6.0.2 - 2026-06-01
+
+### @igojs/dust
+
+- **Added**: helper param names may contain `-`, and a positional string param is exposed as `$`; generated object-literal keys are now quoted — enables `{@component "name"}` and `on:event="method"` bindings.
+
+### @igojs/component
+
+- **Added**: child → parent events — `this.emit(event, ...args)` on a child, wired in markup with `{@component "X" on:event="method" /}` (plus programmatic `on()` / `off()`).
+- **Changed**: positional component name — `{@component "components/Select" /}` instead of `name="..."`, freeing `name` as a regular prop.
+- **Changed**: CSP-safe hydration — SSR props ship in an inert `<script type="application/json">` island read with `devalue.parse`; removes inline-script execution and `new Function`/eval (no `unsafe-inline` / `unsafe-eval` needed).
+- **Changed**: lifecycle — `init()` now runs once before the first render (replaces `beforeRender`); shared form state via `FormHandler.getSharedForm()`.
+
 ## 6.0.1 - 2026-05-22
 
 ### @igojs/dust

@@ -20,7 +20,7 @@ const ComponentLoader = require('./ComponentLoader.js');
 const initI18n = require('./dust/i18n.js');
 const Utils = require('./dust/Utils.js');
 
-window.__igo = { IgoDustUtils: Utils };
+window.__igo = {};
 
 let registry = {};
 

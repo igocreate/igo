@@ -3,10 +3,11 @@ const IgoDust       = require('@igojs/dust');
 const Utils         = require('@igojs/dust/src/render/Utils');
 const SerializeUtils = require('./SerializeUtils.js');
 const { htmlencode } = require('../shared/serialize.js');
+const { extractEventBindings } = require('../shared/events.js');
 
 // devalue is ESM-only, load it dynamically
-let uneval;
-const devalueReady = import('devalue').then(m => { uneval = m.uneval; });
+let stringify;
+const devalueReady = import('devalue').then(m => { stringify = m.stringify; });
 
 /**
  * Evaluate the bare object from a <script> block
@@ -55,7 +56,7 @@ const computeDerived = (def, mergedProps, state) => {
  * @component Dust helper
  *
  * Usage in templates:
- *   {@component name="products/List" products=products title="Soldes" /}
+ *   {@component "products/List" products=products title="Soldes" /}
  *
  * This helper:
  * 1. Loads and splits the .dust SFC file
@@ -69,10 +70,14 @@ const computeDerived = (def, mergedProps, state) => {
 const componentHelper = async (params, _locals) => {
   await devalueReady;
 
-  const { name, ...callerProps } = params;
+  // Component name is the positional string: {@component "components/Select" /}
+  const { $: name, ...allParams } = params;
   if (!name) {
-    throw new Error('[@component] "name" parameter is required');
+    throw new Error('[@component] component name is required, e.g. {@component "components/Select" /}');
   }
+
+  // Split out parent → child event bindings (on:event="method") from real props.
+  const { props: callerProps, attrs: emitAttrs } = extractEventBindings(allParams);
 
   // Resolve caller props: values that are references to locals are already resolved by Dust
   // Load the SFC (compiled template + script source)
@@ -116,10 +121,18 @@ const componentHelper = async (params, _locals) => {
   // Serialize props for client hydration (exclude key from serialized props)
   const { key, ...propsToSerialize } = mergedProps;
   const serializedProps = SerializeUtils.serialize(propsToSerialize);
-  const dataProps = htmlencode(uneval(serializedProps));
 
-  // Default key to component name; explicit key= recommended for dynamic lists
-  return `<div data-component-key="${key || name}" data-component="${name}" data-props="${dataProps}">${html}</div>`;
+  // First child of the component div: an inert JSON island the client reads with
+  // devalue.parse() at mount (no eval, no executable inline <script> → CSP-safe,
+  // and no HTML-attribute inflation). `type="application/json"` is never executed,
+  // so `script-src` doesn't apply. Escaping `<` → < keeps the JSON valid while
+  // neutralising `</script>` (it decodes back to `<`).
+  const safeProps = stringify(serializedProps).replace(/</g, '\\u003c');
+  const propsIsland = `<script type="application/json" data-igo-props>${safeProps}</script>`;
+
+  const safeName = htmlencode(name);
+  const safeKey  = htmlencode(key || name);
+  return `<div data-component-key="${safeKey}" data-component="${safeName}"${emitAttrs}>${propsIsland}${html}</div>`;
 };
 
 module.exports = { componentHelper, evalDefinition, computeDerived, devalueReady };
