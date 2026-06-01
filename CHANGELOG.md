@@ -2,6 +2,14 @@
 
 ## 6.0.2 - 2026-06-01
 
+### @igojs/server
+
+- **Changed**: scaffolding templates use the positional `{@component "components/X" /}` syntax.
+
+### @igojs/db
+
+- **Fixed**: an explicit `limit()` now overrides a default scope limit instead of being clobbered when scopes are applied.
+
 ### @igojs/dust
 
 - **Added**: helper param names may contain `-`, and a positional string param is exposed as `$`; generated object-literal keys are now quoted — enables `{@component "name"}` and `on:event="method"` bindings.
