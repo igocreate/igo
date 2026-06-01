@@ -4,11 +4,14 @@ const { parse }     = require('devalue');
 
 const DerivedCache  = require('./DerivedCache.js');
 const StateProxy    = require('./StateProxy.js');
+const Store         = require('./Store.js');
 const EventBinder   = require('./EventBinder.js');
 const FormHandler   = require('./FormHandler.js');
 
 const Templates     = require('./dust/Templates.js');
 const Utils         = require('./dust/Utils.js');
+
+const store = new Store();
 
 class IgoComponent {
   // Component registry for auto-discovery
@@ -104,9 +107,152 @@ class IgoComponent {
     this.props = new StateProxy(this, 'props').create(this._props);
     this.state = new StateProxy(this, 'state').create(this._state);
 
-    this._destroyed = false;
+    // Page store + reactive subscriptions for this instance.
+    this.store              = store.proxy;
+    this._storeKeys         = new Set();
+    this._destroyed         = false;
+
+    this._setupWatchers();
+    this._templateContext = this._buildTemplateContext();
 
     this._init();
+  }
+
+  // Read a dotted path from an object (e.g. 'form.client_id' on this._state)
+  _readPath(obj, path) {
+    let cur = obj;
+    for (const part of path.split('.')) {
+      if (cur == null) {
+        return undefined;
+      }
+      cur = cur[part];
+    }
+    return cur;
+  }
+
+  // Parse `watch:` definition and split into local (state/props) vs store watchers.
+  // Flat keys default to `store.` since shared state is the common case.
+  _setupWatchers() {
+    let watchDef = Object.getPrototypeOf(this).__watch;
+    if (typeof watchDef === 'function') {
+      watchDef = watchDef.call(this);
+    }
+    if (!watchDef || typeof watchDef !== 'object') {
+      return;
+    }
+
+    this._localWatchers = { state: new Map(), props: new Map() };  // path -> [{ handler, prevValue }]
+    this._storeWatchers = [];
+
+    for (const [key, handler] of Object.entries(watchDef)) {
+      let ns, path;
+      if (key.startsWith('state.')) {
+        ns   = 'state';
+        path = key.slice(6);
+      } else if (key.startsWith('props.')) {
+        ns   = 'props';
+        path = key.slice(6);
+      } else if (key.startsWith('store.')) {
+        ns   = 'store';
+        path = key.slice(6);
+      } else {
+        ns   = 'store';
+        path = key;
+      }
+
+      if (ns === 'store') {
+        this._storeWatchers.push(store.addWatcher(path, handler, this));
+        continue;
+      }
+
+      const map = this._localWatchers[ns];
+      if (!map.has(path)) {
+        map.set(path, []);
+      }
+      const initialFrom = ns === 'state' ? this._state : this._props;
+      map.get(path).push({ handler, prevValue: this._readPath(initialFrom, path) });
+    }
+  }
+
+  // Called by StateProxy after a successful write to state.X or props.X.
+  // `prev` comes from each watcher's own tracked prevValue, not the caller.
+  _fireLocalWatchers(namespace, pathArray, newValue) {
+    if (!this._localWatchers) {
+      return;
+    }
+    const map = this._localWatchers[namespace];
+    if (!map) {
+      return;
+    }
+    const key = pathArray.join('.');
+    const watchers = map.get(key);
+    if (!watchers) {
+      return;
+    }
+    for (const w of watchers) {
+      const prev  = w.prevValue;
+      w.prevValue = newValue;
+      w.handler.call(this, newValue, prev);
+    }
+  }
+
+  // Proxy template context: resolves derived > state > props > store on reads,
+  // writes pass through to the target so Dust can stash `_it`, `$idx`, etc.
+  // Built once per instance — captured refs (derived/state/props) are stable.
+  _buildTemplateContext() {
+    const component = this;
+    const derived   = this._derivedValues;
+    const state     = this._state;
+    const props     = this._props;
+    const hasOwn    = Object.prototype.hasOwnProperty;
+
+    const has = (prop) => {
+      if (typeof prop === 'symbol') return false;
+      return hasOwn.call(derived, prop)
+          || hasOwn.call(state, prop)
+          || hasOwn.call(props, prop)
+          || prop in store.proxy;
+    };
+
+    return new Proxy({}, {
+      get(target, prop) {
+        if (typeof prop === 'symbol')    return target[prop];
+        if (hasOwn.call(target, prop))   return target[prop];
+        if (hasOwn.call(derived, prop))  return derived[prop];
+        if (hasOwn.call(state, prop))    return state[prop];
+        if (hasOwn.call(props, prop))    return props[prop];
+        store.subscribe(component, prop);
+        return store.getRaw(prop);
+      },
+      has(target, prop) {
+        return hasOwn.call(target, prop) || has(prop);
+      },
+      ownKeys(target) {
+        const out = new Set(Reflect.ownKeys(target));
+        for (const src of [derived, state, props]) {
+          for (const k of Object.keys(src)) out.add(k);
+        }
+        for (const k of store.keys()) out.add(k);
+        return [...out];
+      },
+      getOwnPropertyDescriptor(target, prop) {
+        if (typeof prop === 'symbol') {
+          return Object.getOwnPropertyDescriptor(target, prop);
+        }
+        if (hasOwn.call(target, prop)) {
+          return Object.getOwnPropertyDescriptor(target, prop);
+        }
+        for (const src of [derived, state, props]) {
+          if (hasOwn.call(src, prop)) {
+            return { configurable: true, enumerable: true, writable: true, value: src[prop] };
+          }
+        }
+        if (prop in store.proxy) {
+          return { configurable: true, enumerable: true, writable: true, value: store.getRaw(prop) };
+        }
+        return undefined;
+      },
+    });
   }
 
   // Expose raw state for internal use (bypasses Proxy, no auto-render)
@@ -202,12 +348,19 @@ class IgoComponent {
     try {
       if (this._destroyed) return;
 
-      // Calculate derived values (getters) with smart dependency tracking
-      this._computeGettersAsDerived();
+      // Drop previous render's store subscriptions; rebuilt by reads below.
+      store.unsubscribeAll(this);
 
-      // Merge props + state + derived for template context (flat)
-      const context = { ...this._props, ...this._state, ...this._derivedValues };
-      const html = await this._dustTemplateFn(context, Utils, null);
+      // Tracker active during getter eval — `this.store.X` reads subscribe this
+      // component and register as memoization deps.
+      store.pushTracker(this);
+      try {
+        this._computeGettersAsDerived();
+      } finally {
+        store.popTracker();
+      }
+
+      const html = await this._dustTemplateFn(this._templateContext, Utils, null);
       if (this._destroyed) return;
 
       const tempElement = document.createElement('div');
@@ -513,6 +666,13 @@ class IgoComponent {
     this._formHandler = null;
     this._derivedCache.clear();
 
+    store.unsubscribeAll(this);
+    if (this._storeWatchers) {
+      for (const entry of this._storeWatchers) store.removeWatcher(entry);
+      this._storeWatchers = null;
+    }
+    this._localWatchers = null;
+
     this._listeners.clear();
     this._emitBindings = null;
 
@@ -523,6 +683,7 @@ class IgoComponent {
     this._dustTemplateFn    = null;
     this._eventBinder       = null;
     this._derivedCache      = null;
+    this._templateContext   = null;
 
     this._state             = {};
     this._derivedValues     = {};

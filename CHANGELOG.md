@@ -12,6 +12,8 @@
 - **Changed**: positional component name — `{@component "components/Select" /}` instead of `name="..."`, freeing `name` as a regular prop.
 - **Changed**: CSP-safe hydration — SSR props ship in an inert `<script type="application/json">` island read with `devalue.parse`; removes inline-script execution and `new Function`/eval (no `unsafe-inline` / `unsafe-eval` needed).
 - **Changed**: lifecycle — `init()` now runs once before the first render (replaces `beforeRender`); shared form state via `FormHandler.getSharedForm()`.
+- **Added**: page-level shared store — `this.store`, deeply reactive (nested objects and array mutators), auto-subscribing components that read it during render.
+- **Added**: `watch` map — react to changes on `state.` / `props.` / `store.` paths, called with `(newValue, oldValue)`.
 
 ## 6.0.1 - 2026-05-22
 

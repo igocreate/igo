@@ -25,11 +25,12 @@ const computeDerived = (def, mergedProps, state) => {
   const descs = Object.getOwnPropertyDescriptors(def);
   const derived = {};
 
-  // Build a context object with props and state accessible via this
-  // Define all getters on ctx so chained getters work (e.g. totalPrice → filteredProducts)
+  // Build a context object with props, state, and an empty store accessible via this.
+  // Server-side has no shared state — getters must read defensively (`this.store.X?.foo`).
   const ctx = {
     props: mergedProps,
     state: { ...state },
+    store: {},
   };
 
   // First, define all getters on ctx so they can reference each other

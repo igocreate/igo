@@ -82,6 +82,8 @@ Default convention: **props down / events up**, like React / Vue / Svelte.
 - **Child → parent**: `this.emit('change', payload)`, wired via `{@component "X" on:change="onPick" /}` which calls `onPick(payload)` on the parent.
 - Orchestration lives in the common parent; the child stays generic and reusable.
 
+The `Store` (`this.store`) and `watch` (`'state.x'`, `'props.x'`, `'store.x'`) remain available but are **reserved for cross-tree state** (components with no common parent). For two components that share a common parent, prefer events + props: no seeding at mount, SSR without flash, explicit data flow.
+
 ### Props vs state
 
 `props` are a reactive proxy: writing them (`this.props.value = ...`) triggers a render — useful to reflect a controlled value. Working data (a fetched list...) lives in `this.state`. Example: a select keeps its ajax results in `state.options` and reloads when its `ajax` prop (the url) changes.

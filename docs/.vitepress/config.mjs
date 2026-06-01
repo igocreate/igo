@@ -113,6 +113,7 @@ export default defineConfig({
             { text: 'Getting started', link: '/component/getting-started' },
             { text: 'Components',      link: '/component/components' },
             { text: 'Reactivity',      link: '/component/reactivity' },
+            { text: 'Shared state',    link: '/component/shared-state' },
             { text: 'Events & forms',  link: '/component/events-forms' },
             { text: 'SSR',             link: '/component/ssr' },
             { text: 'Translations',    link: '/component/translations' },

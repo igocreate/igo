@@ -31,11 +31,18 @@ const buildClass = (name, def, templateSource) => {
   DefinedComponent.prototype.__defaultState = def.state || {};
   DefinedComponent.prototype.__defaultProps = def.props || {};
 
+  // Watch handlers — object map { path: fn } or function returning the same.
+  if (def.watch && (typeof def.watch === 'function' || (typeof def.watch === 'object' && !Array.isArray(def.watch)))) {
+    DefinedComponent.prototype.__watch = def.watch;
+  } else if (def.watch) {
+    console.warn(`[Component] "${name}": "watch" must be an object or function, got ${typeof def.watch}`);
+  }
+
   // Copy methods and getters from definition to prototype, via descriptors so
   // getters aren't invoked here (Object.entries would trigger them).
   const descs = Object.getOwnPropertyDescriptors(def);
   for (const [key, desc] of Object.entries(descs)) {
-    if (key === 'props' || key === 'state') continue;
+    if (key === 'props' || key === 'state' || key === 'watch') continue;
     if (desc.get) {
       Object.defineProperty(DefinedComponent.prototype, key, { get: desc.get, configurable: true });
     } else if (typeof desc.value === 'function') {

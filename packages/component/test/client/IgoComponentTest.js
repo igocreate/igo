@@ -91,13 +91,24 @@ describe('IgoComponent events (emit / on / off)', () => {
     assert.doesNotThrow(() => child.emit('whatever', 1));
   });
 
-  it('does not throw when the binding points to a missing parent method', () => {
+  it('warns (does not throw) when the binding points to a missing parent method', () => {
     const parent = { template: 'Form' };
     const child = mockChild({
       attributes: [{ name: 'data-emit-change', value: 'nope' }],
       parent,
     });
-    assert.doesNotThrow(() => child.emit('change'));
+
+    const originalWarn = console.warn;
+    const warnings = [];
+    console.warn = (msg) => warnings.push(msg);
+    try {
+      assert.doesNotThrow(() => child.emit('change'));
+    } finally {
+      console.warn = originalWarn;
+    }
+
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0], /method not found on parent/);
   });
 
 });

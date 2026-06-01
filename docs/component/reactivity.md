@@ -111,4 +111,8 @@ These names are used internally and cannot be overridden as getters:
 - `events` (recognised on the class-based pattern)
 - Any getter whose name starts with `_`
 
+## Shared state across components
+
+For data shared between components on the same page — parent ↔ siblings, siblings ↔ siblings, or anything outside the immediate parent chain — use `this.store`. See [Shared state](./shared-state).
+
 See [Internals](./internals) for how the dependency tracker and cache work.

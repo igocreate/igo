@@ -41,6 +41,7 @@ class StateProxy {
         // Trigger render if changed
         if (this.component._isInitialized && !Object.is(oldValue, value)) {
           this.component._triggerRender();
+          this.component._fireLocalWatchers?.(this.namespace, [...path, property], value);
         }
 
         return true;
