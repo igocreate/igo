@@ -1,5 +1,5 @@
 const Templates = require('./Templates.js');
-const { uneval, stringify } = require('devalue');
+const { stringify } = require('devalue');
 const shared = require('@igojs/dust/src/render/shared');
 const { createSerializeHelper, htmlencode } = require('../../shared/serialize.js');
 const { extractEventBindings } = require('../../shared/events.js');
@@ -31,7 +31,7 @@ const componentHelper = (params) => {
 };
 
 h.helpers = {
-  serialize: createSerializeHelper(uneval),
+  serialize: createSerializeHelper(stringify),
   component: componentHelper,
 };
 

@@ -17,18 +17,20 @@ const htmlencode = (s) => {
 };
 
 /**
- * Create serialize helper function with the provided uneval function
- * @param {Function} uneval - The uneval function from devalue
+ * Create the @serialize helper with the provided devalue serializer.
+ * Uses `devalue.stringify` (JSON) so the output is read back with
+ * `devalue.parse` — no eval/new Function on the client (CSP-safe).
+ * @param {Function} serialize - devalue.stringify
  * @returns {Function} The serialize helper
  */
-const createSerializeHelper = (uneval) => {
+const createSerializeHelper = (serialize) => {
   return (params, locals) => {
     const data = {};
     const keys = (params.props || '').split(',').map(p => p.trim()).filter(Boolean);
     keys.forEach(key => {
       data[key] = locals[key];
     });
-    return htmlencode(uneval(data));
+    return htmlencode(serialize(data));
   };
 };
 

@@ -20,17 +20,18 @@ The helper:
 3. Computes all derived values (getters) with the merged props
 4. Renders the Dust template with the full context
 5. Serializes the merged props using [devalue](https://github.com/Rich-Harris/devalue) (XSS-safe)
-6. Wraps the output in `<div data-component data-props>` for client hydration
+6. Wraps the output in `<div data-component>`, with the props in an inert `<script type="application/json">` island for client hydration
 
 The result the browser receives looks like:
 
 ```html
-<div data-component="components/ProductList" data-props="…serialized…">
+<div data-component="components/ProductList">
+  <script type="application/json" data-igo-props>…serialized props…</script>
   <!-- full HTML, getters already evaluated -->
 </div>
 ```
 
-When `start()` mounts in the browser, it reads `data-props`, runs the definition's `init()`, and the component is interactive — no re-render needed for the initial paint.
+The island is a non-executable `<script>` — it never runs, so no `script-src 'unsafe-inline'` is needed. When `start()` mounts in the browser, it reads the island with `devalue.parse` (no eval), removes it, runs the definition's `init()`, and the component is interactive — no re-render needed for the initial paint.
 
 ### Stable keys for dynamic lists
 
@@ -69,7 +70,7 @@ If you mount a component the manual way — by writing the wrapper `<div data-co
 </div>
 ```
 
-This serializes only the listed keys from template locals and emits an HTML-safe attribute. Most apps don't need this — the `{@component}` helper builds `data-props` for you.
+This serializes only the listed keys from template locals (with `devalue.stringify`) and emits an HTML-safe `data-props` attribute, read back with `devalue.parse` at mount. Most apps don't need this — the `{@component}` helper builds the props island for you.
 
 ## Endpoints
 

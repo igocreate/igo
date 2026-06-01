@@ -7,7 +7,7 @@ const { componentHelper } = require('./ComponentHelper.js');
 // devalue is ESM-only, load it dynamically at startup
 import('devalue').then(m => {
   // Register @serialize helper once devalue is loaded
-  IgoDust.helpers.serialize = createSerializeHelper(m.uneval);
+  IgoDust.helpers.serialize = createSerializeHelper(m.stringify);
 });
 
 // Register @component helper

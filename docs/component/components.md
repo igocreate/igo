@@ -78,7 +78,8 @@ Use the `{@component}` Dust helper:
 This renders the component server-side and emits a hydration-ready wrapper:
 
 ```html
-<div data-component="components/ProductList" data-props="…serialized…">
+<div data-component="components/ProductList">
+  <script type="application/json" data-igo-props>…serialized props…</script>
   <!-- fully rendered HTML -->
 </div>
 ```

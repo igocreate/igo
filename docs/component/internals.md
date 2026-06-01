@@ -11,10 +11,10 @@ Server                                       Browser
 1. Template invokes {@component .../}        1. start() finds [data-component]
 2. componentHelper loads .dust SFC           2. Fetch /__component/component
 3. evalDefinition() runs <script>            3. evalDefinition() rebuilds class
-4. computeDerived() runs getters             4. Hydrate props from data-props
+4. computeDerived() runs getters             4. Hydrate props from JSON island
 5. Template renders to HTML                  5. Create reactive Proxies
 6. Props serialized via devalue              6. Bind events (on:*)
-7. Wrapped in <div data-component data-props> 7. Re-render with DiffDOM on mutation
+7. Wrapped in <div data-component> + island  7. Re-render with DiffDOM on mutation
        ↓ HTML over the wire ↓
 ```
 
@@ -131,9 +131,9 @@ The server-side serializer:
     ↓
 6. templateFn({ ...mergedProps, ...state, ...derived })
     ↓
-7. devalue.uneval(mergedProps) → serializable string
+7. devalue.stringify(mergedProps) → serializable string
     ↓
-8. <div data-component-key="..." data-component="..." data-props="...">html</div>
+8. <div data-component-key="..." data-component="..."><script type="application/json" data-igo-props>...</script>html</div>
 ```
 
 Key points:

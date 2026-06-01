@@ -119,7 +119,7 @@ The helper does, in one shot:
 2. Merges caller params with `props` defaults (`count=5` overrides the default `0`)
 3. Computes derived values (getters, if any) for SSR
 4. Renders the template server-side — the page is **fully rendered HTML**
-5. Serializes props into `data-props` for client hydration
+5. Serializes props into an inert `<script type="application/json">` island for client hydration
 
 In the browser, `start()` finds the `[data-component]` element, fetches the definition from `/__component/component?name=components/Counter`, builds a class, hydrates it, and binds events. Clicking `+1` mutates `this.props.count`, which triggers an automatic re-render via DiffDOM.
 
