@@ -245,6 +245,19 @@ describe('db.PaginatedOptimizedQuery', function() {
     ])
   }) {}
 
+  class ClientNode extends Model({
+    table: 'client_nodes',
+    primary: ['id'],
+    columns: {
+      id: 'integer',
+      name: 'string',
+      group_id: 'integer'
+    },
+    associations: () => [
+      ['belongs_to', 'parent', ClientNode, 'group_id', 'id']
+    ]
+  }) {}
+
   // -------------------------------------------------------
   // 1. Unit operators
   // -------------------------------------------------------
@@ -578,7 +591,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       query.where({ type: 'agp' }).order('applicants.last_name ASC').limit(50);
       const { sql, params } = query.toSQL();
 
-      assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `applicants` ON `applicants`.`id` = `folders`.`applicant_id` WHERE `folders`.`type` = ? ORDER BY applicants.last_name ASC LIMIT ?, ?');
+      assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `applicants` AS `applicant` ON `applicant`.`id` = `folders`.`applicant_id` WHERE `folders`.`type` = ? ORDER BY applicant.last_name ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['agp', 0, 50]);
     });
 
@@ -588,8 +601,18 @@ describe('db.PaginatedOptimizedQuery', function() {
       query.where({ type: 'pme' }).order('pme_folder.company.name ASC').limit(50);
       const { sql, params } = query.toSQL();
 
-      assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `pme_folders` ON `pme_folders`.`id` = `folders`.`pme_folder_id` LEFT JOIN `companies` ON `companies`.`id` = `pme_folders`.`company_id` WHERE `folders`.`type` = ? ORDER BY companies.name ASC LIMIT ?, ?');
+      assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `pme_folders` AS `pme_folder` ON `pme_folder`.`id` = `folders`.`pme_folder_id` LEFT JOIN `companies` AS `company` ON `company`.`id` = `pme_folder`.`company_id` WHERE `folders`.`type` = ? ORDER BY company.name ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['pme', 0, 50]);
+    });
+
+    it('should alias a self-referential join when sorting on the parent', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(ClientNode));
+      query.query.verb = 'select_ids';
+      query.join('parent').order('`parent`.`name` DESC').limit(50);
+      const { sql, params } = query.toSQL();
+
+      assert.strictEqual(sql, 'SELECT `client_nodes`.`id` FROM `client_nodes` LEFT JOIN `client_nodes` AS `parent` ON `parent`.`id` = `client_nodes`.`group_id` ORDER BY parent.name DESC LIMIT ?, ?');
+      assert.deepStrictEqual(params, [0, 50]);
     });
 
     it('should not add any JOIN when sorting on main table column', () => {
@@ -608,7 +631,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       query.where({ type: 'agp' }).order('pme_folder.company.name ASC').join('pme_folder.company').limit(50);
       const { sql, params } = query.toSQL();
 
-      assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `pme_folders` ON `pme_folders`.`id` = `folders`.`pme_folder_id` LEFT JOIN `companies` ON `companies`.`id` = `pme_folders`.`company_id` WHERE `folders`.`type` = ? ORDER BY companies.name ASC LIMIT ?, ?');
+      assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `pme_folders` AS `pme_folder` ON `pme_folder`.`id` = `folders`.`pme_folder_id` LEFT JOIN `companies` AS `company` ON `company`.`id` = `pme_folder`.`company_id` WHERE `folders`.`type` = ? ORDER BY company.name ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['agp', 0, 50]);
     });
 
@@ -620,7 +643,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       .limit(50);
       const { sql, params } = query.toSQL();
 
-      assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `applicants` ON `applicants`.`id` = `folders`.`applicant_id` WHERE `folders`.`type` = ? ORDER BY COALESCE(applicants.last_name, applicants.first_name) ASC LIMIT ?, ?');
+      assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `applicants` AS `applicant` ON `applicant`.`id` = `folders`.`applicant_id` WHERE `folders`.`type` = ? ORDER BY COALESCE(applicant.last_name, applicant.first_name) ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['agp', 0, 50]);
     });
 
@@ -631,7 +654,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       const transformed1 = sqlGenerator._transformSinglePath('applicant.last_name');
       const transformed2 = sqlGenerator._transformSinglePath(transformed1);
 
-      assert.strictEqual(transformed1, 'applicants.last_name');
+      assert.strictEqual(transformed1, 'applicant.last_name');
       assert.strictEqual(transformed1, transformed2);
     });
 
@@ -687,7 +710,7 @@ describe('db.PaginatedOptimizedQuery', function() {
 
       assert.strictEqual(
         transformed,
-        'CASE folders.type WHEN \'P\' THEN applicants.last_name ELSE applicants.first_name END ASC'
+        'CASE folders.type WHEN \'P\' THEN applicant.last_name ELSE applicant.first_name END ASC'
       );
     });
 
@@ -701,7 +724,7 @@ describe('db.PaginatedOptimizedQuery', function() {
 
       assert.strictEqual(
         transformed,
-        'applicants.last_name ASC, applicants.first_name DESC'
+        'applicant.last_name ASC, applicant.first_name DESC'
       );
     });
 
@@ -729,7 +752,7 @@ describe('db.PaginatedOptimizedQuery', function() {
 
       assert.strictEqual(
         transformed,
-        'IF(folders.type = \'P\', applicants.last_name, applicants.first_name) ASC'
+        'IF(folders.type = \'P\', applicant.last_name, applicant.first_name) ASC'
       );
     });
 
@@ -743,7 +766,7 @@ describe('db.PaginatedOptimizedQuery', function() {
 
       assert.strictEqual(
         transformed,
-        'NULLIF(applicants.last_name, \'\') ASC'
+        'NULLIF(applicant.last_name, \'\') ASC'
       );
     });
 
@@ -753,7 +776,7 @@ describe('db.PaginatedOptimizedQuery', function() {
 
       const transformed = sqlGenerator._transformOrderClause('studies_year + bac_year DESC');
 
-      assert.strictEqual(transformed, 'block_studies.studies_year + block_studies.bac_year DESC');
+      assert.strictEqual(transformed, 'studies.studies_year + studies.bac_year DESC');
     });
 
     it('should preserve CASE keyword and transform block columns (IDS phase)', () => {
@@ -767,8 +790,8 @@ describe('db.PaginatedOptimizedQuery', function() {
       assert.ok(/^CASE /i.test(transformed), `CASE prefix lost: ${transformed}`);
       assert.ok(/\bEND\s+DESC$/i.test(transformed), `END DESC suffix lost: ${transformed}`);
       assert.ok(
-        /block_studies\.studies_year/.test(transformed) || /`block_studies`\.`studies_year`/.test(transformed),
-        `studies_year not prefixed with block table: ${transformed}`
+        /studies\.studies_year/.test(transformed) || /`studies`\.`studies_year`/.test(transformed),
+        `studies_year not prefixed with block alias: ${transformed}`
       );
     });
 
@@ -784,7 +807,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       query.where({ is_initial: true }).order('studies_year DESC').limit(50);
       const { sql, params } = query.toSQL();
 
-      assert.strictEqual(sql, 'SELECT `pme_folders_with_blocks`.`id` FROM `pme_folders_with_blocks` LEFT JOIN `block_studies` ON `block_studies`.`id` = `pme_folders_with_blocks`.`block_studies_id` WHERE `pme_folders_with_blocks`.`is_initial` = ? ORDER BY block_studies.studies_year DESC LIMIT ?, ?');
+      assert.strictEqual(sql, 'SELECT `pme_folders_with_blocks`.`id` FROM `pme_folders_with_blocks` LEFT JOIN `block_studies` AS `studies` ON `studies`.`id` = `pme_folders_with_blocks`.`block_studies_id` WHERE `pme_folders_with_blocks`.`is_initial` = ? ORDER BY studies.studies_year DESC LIMIT ?, ?');
       assert.deepStrictEqual(params, [true, 0, 50]);
     });
 
@@ -794,7 +817,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       query.where({ is_initial: true }).order('studies_year DESC').order('bac_year ASC').limit(50);
       const { sql, params } = query.toSQL();
 
-      assert.strictEqual(sql, 'SELECT `pme_folders_with_blocks`.`id` FROM `pme_folders_with_blocks` LEFT JOIN `block_studies` ON `block_studies`.`id` = `pme_folders_with_blocks`.`block_studies_id` WHERE `pme_folders_with_blocks`.`is_initial` = ? ORDER BY block_studies.studies_year DESC, block_studies.bac_year ASC LIMIT ?, ?');
+      assert.strictEqual(sql, 'SELECT `pme_folders_with_blocks`.`id` FROM `pme_folders_with_blocks` LEFT JOIN `block_studies` AS `studies` ON `studies`.`id` = `pme_folders_with_blocks`.`block_studies_id` WHERE `pme_folders_with_blocks`.`is_initial` = ? ORDER BY studies.studies_year DESC, studies.bac_year ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, [true, 0, 50]);
     });
 
@@ -804,7 +827,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       query.where({ is_initial: true }).order('studies_year DESC').order('destination ASC').limit(50);
       const { sql, params } = query.toSQL();
 
-      assert.strictEqual(sql, 'SELECT `pme_folders_with_blocks`.`id` FROM `pme_folders_with_blocks` LEFT JOIN `block_studies` ON `block_studies`.`id` = `pme_folders_with_blocks`.`block_studies_id` LEFT JOIN `block_travel_wishes` ON `block_travel_wishes`.`id` = `pme_folders_with_blocks`.`block_travel_wishes_id` WHERE `pme_folders_with_blocks`.`is_initial` = ? ORDER BY block_studies.studies_year DESC, block_travel_wishes.destination ASC LIMIT ?, ?');
+      assert.strictEqual(sql, 'SELECT `pme_folders_with_blocks`.`id` FROM `pme_folders_with_blocks` LEFT JOIN `block_studies` AS `studies` ON `studies`.`id` = `pme_folders_with_blocks`.`block_studies_id` LEFT JOIN `block_travel_wishes` AS `travel_wishes` ON `travel_wishes`.`id` = `pme_folders_with_blocks`.`block_travel_wishes_id` WHERE `pme_folders_with_blocks`.`is_initial` = ? ORDER BY studies.studies_year DESC, travel_wishes.destination ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, [true, 0, 50]);
     });
 
@@ -825,7 +848,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       query.where({ type: 'agp' }).order('first_name ASC').limit(50);
       const { sql, params } = query.toSQL();
 
-      assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `applicants` ON `applicants`.`id` = `folders`.`applicant_id` WHERE `folders`.`type` = ? ORDER BY applicants.first_name ASC LIMIT ?, ?');
+      assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `applicants` AS `applicant` ON `applicant`.`id` = `folders`.`applicant_id` WHERE `folders`.`type` = ? ORDER BY applicant.first_name ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['agp', 0, 50]);
     });
 
@@ -835,7 +858,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       query.where({ type: ['agp', 'avt'] }).order('pme_folder.block_study.bac_year DESC').limit(50);
       const { sql, params } = query.toSQL();
 
-      assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `pme_folders` ON `pme_folders`.`id` = `folders`.`pme_folder_id` LEFT JOIN `block_studies` ON `block_studies`.`id` = `pme_folders`.`block_studies_id` WHERE `folders`.`type` IN (?) ORDER BY block_studies.bac_year DESC LIMIT ?, ?');
+      assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `pme_folders` AS `pme_folder` ON `pme_folder`.`id` = `folders`.`pme_folder_id` LEFT JOIN `block_studies` AS `block_study` ON `block_study`.`id` = `pme_folder`.`block_studies_id` WHERE `folders`.`type` IN (?) ORDER BY block_study.bac_year DESC LIMIT ?, ?');
       assert.deepStrictEqual(params, [['agp', 'avt'], 0, 50]);
     });
 
@@ -846,7 +869,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       const sqlGenerator = new PaginatedOptimizedSql(query);
 
       const idsTransform = sqlGenerator._transformOrderClause('pme_folder.block_study.bac_year');
-      assert.strictEqual(idsTransform, 'block_studies.bac_year');
+      assert.strictEqual(idsTransform, 'block_study.bac_year');
 
       const fullTransform = sqlGenerator._transformOrderClauseForFullQuery('pme_folder.block_study.bac_year');
       assert.strictEqual(fullTransform, 'block_study.bac_year');
@@ -862,7 +885,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       query.where({ is_initial: true }).order('COALESCE(`studies_year`, "N/A") DESC').limit(50);
       const { sql, params } = query.toSQL();
 
-      assert.strictEqual(sql, 'SELECT `pme_folders_with_blocks`.`id` FROM `pme_folders_with_blocks` LEFT JOIN `block_studies` ON `block_studies`.`id` = `pme_folders_with_blocks`.`block_studies_id` WHERE `pme_folders_with_blocks`.`is_initial` = ? ORDER BY COALESCE(block_studies.studies_year, "N/A") DESC LIMIT ?, ?');
+      assert.strictEqual(sql, 'SELECT `pme_folders_with_blocks`.`id` FROM `pme_folders_with_blocks` LEFT JOIN `block_studies` AS `studies` ON `studies`.`id` = `pme_folders_with_blocks`.`block_studies_id` WHERE `pme_folders_with_blocks`.`is_initial` = ? ORDER BY COALESCE(studies.studies_year, "N/A") DESC LIMIT ?, ?');
       assert.deepStrictEqual(params, [true, 0, 50]);
     });
   });
@@ -877,7 +900,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       query.where({ code: 'ABC' }).order('library.title ASC').limit(50);
       const { sql, params } = query.toSQL();
 
-      assert.strictEqual(sql, 'SELECT `books`.`id` FROM `books` LEFT JOIN `libraries` ON `libraries`.`id` = `books`.`library_id` AND `libraries`.`collection` = ? WHERE `books`.`code` = ? ORDER BY libraries.title ASC LIMIT ?, ?');
+      assert.strictEqual(sql, 'SELECT `books`.`id` FROM `books` LEFT JOIN `libraries` AS `library` ON `library`.`id` = `books`.`library_id` AND `library`.`collection` = ? WHERE `books`.`code` = ? ORDER BY library.title ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['A', 'ABC', 0, 50]);
     });
 
@@ -887,7 +910,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       query.where({ code: 'ABC', 'library.title': { $like: 'Test%' } }).order('library.title ASC').limit(50);
       const { sql, params } = query.toSQL();
 
-      assert.strictEqual(sql, 'SELECT `books`.`id` FROM `books` LEFT JOIN `libraries` ON `libraries`.`id` = `books`.`library_id` AND `libraries`.`collection` = ? WHERE `books`.`code` = ? AND EXISTS (SELECT 1 FROM `libraries` WHERE `libraries`.`id` = `books`.`library_id` AND `libraries`.`collection` = ? AND `libraries`.`title` LIKE ? ) ORDER BY libraries.title ASC LIMIT ?, ?');
+      assert.strictEqual(sql, 'SELECT `books`.`id` FROM `books` LEFT JOIN `libraries` AS `library` ON `library`.`id` = `books`.`library_id` AND `library`.`collection` = ? WHERE `books`.`code` = ? AND EXISTS (SELECT 1 FROM `libraries` WHERE `libraries`.`id` = `books`.`library_id` AND `libraries`.`collection` = ? AND `libraries`.`title` LIKE ? ) ORDER BY library.title ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['A', 'ABC', 'A', 'Test%', 0, 50]);
     });
 
@@ -927,7 +950,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       query.where({ code: 'ABC' }).order('library.title ASC').limit(50);
       const { sql, params } = query.toSQL();
 
-      assert.strictEqual(sql, 'SELECT `books_null`.`id` FROM `books_null` LEFT JOIN `libraries` ON `libraries`.`id` = `books_null`.`library_id` AND `libraries`.`collection` IS NULL WHERE `books_null`.`code` = ? ORDER BY libraries.title ASC LIMIT ?, ?');
+      assert.strictEqual(sql, 'SELECT `books_null`.`id` FROM `books_null` LEFT JOIN `libraries` AS `library` ON `library`.`id` = `books_null`.`library_id` AND `library`.`collection` IS NULL WHERE `books_null`.`code` = ? ORDER BY library.title ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['ABC', 0, 50]);
     });
 

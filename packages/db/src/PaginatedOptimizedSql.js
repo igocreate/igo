@@ -706,21 +706,24 @@ module.exports = class PaginatedOptimizedSql extends Sql {
       let prevTable = mainTable;
 
       _.forEach(path, ({ association, tableName: currentTableName }) => {
+        // Toujours aliaser par le nom d'association (comme la phase FULL) : robuste aux self-joins
+        const alias = association[1];
+
         // Éviter les doublons si plusieurs ORDER BY utilisent le même chemin
-        if (processedTables.has(currentTableName)) {
-          prevTable = currentTableName;
+        if (processedTables.has(alias)) {
+          prevTable = alias;
           return;
         }
 
         const [, , , src_column, ref_column, extraWhere] = association;
 
         // Générer le LEFT JOIN (pour préserver toutes les lignes, même celles avec NULL)
-        let joinSql = `LEFT JOIN ${esc}${currentTableName}${esc} `;
-        joinSql += `ON ${esc}${currentTableName}${esc}.${esc}${ref_column}${esc} = ${esc}${prevTable}${esc}.${esc}${src_column}${esc}`;
+        let joinSql = `LEFT JOIN ${esc}${currentTableName}${esc} AS ${esc}${alias}${esc} `;
+        joinSql += `ON ${esc}${alias}${esc}.${esc}${ref_column}${esc} = ${esc}${prevTable}${esc}.${esc}${src_column}${esc}`;
 
         // Ajouter les conditions extraWhere si présentes
         if (extraWhere) {
-          const compiled = compileExtraWhere(extraWhere, currentTableName, dialect, this.i);
+          const compiled = compileExtraWhere(extraWhere, alias, dialect, this.i);
           this.i = compiled.i;
           params.push(...compiled.params);
           compiled.parts.forEach(p => joinSql += ` AND ${p}`);
@@ -728,8 +731,8 @@ module.exports = class PaginatedOptimizedSql extends Sql {
 
         sql += joinSql + ' ';
 
-        processedTables.add(currentTableName);
-        prevTable = currentTableName;
+        processedTables.add(alias);
+        prevTable = alias;
       });
     });
 
@@ -1284,9 +1287,8 @@ module.exports = class PaginatedOptimizedSql extends Sql {
         const assocPath = this._findAssociationByColumn(columnName, query.schema);
 
         if (assocPath && assocPath.length > 0) {
-          // Colonne trouvée dans une table de block - ajouter le préfixe
-          const tableName = assocPath[0].tableName;
-          return `${tableName}.${columnName}`;
+          // Colonne trouvée dans une table de block - préfixer par l'alias = nom d'association
+          return `${assocPath[0].association[1]}.${columnName}`;
         }
       }
 
@@ -1312,9 +1314,9 @@ module.exports = class PaginatedOptimizedSql extends Sql {
     }
 
     if (associationChain && associationChain.length > 0) {
-      // Utiliser le nom de la dernière table du chemin
-      const lastTable = associationChain[associationChain.length - 1].tableName;
-      return `${lastTable}.${columnName}`;
+      // L'ORDER BY référence l'alias de la jointure = nom d'association (cf. _addJoinsForSort)
+      const lastNode = associationChain[associationChain.length - 1];
+      return `${lastNode.association[1]}.${columnName}`;
     }
 
     // Si on ne trouve pas de transformation, retourner tel quel
