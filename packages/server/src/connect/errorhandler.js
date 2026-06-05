@@ -176,7 +176,8 @@ const handle = (err, req, res) => {
     return;
   }
 
-  if (err instanceof SyntaxError) {
+  // body-parser JSON only; other SyntaxErrors fall through to logging.
+  if (err instanceof SyntaxError && err.type === 'entity.parse.failed') {
     if (!res.headersSent) {
       res.status(500).render('errors/500');
     }

@@ -3,7 +3,22 @@ require('./init');
 const assert = require('assert');
 const fs     = require('fs');
 const agent  = require('@igojs/server').dev.agent;
-const { _test: throttle } = require('@igojs/server/src/connect/errorhandler');
+const errorhandler = require('@igojs/server/src/connect/errorhandler');
+const logger = require('@igojs/server/src/logger');
+const { _test: throttle } = errorhandler;
+
+const fakeReq = () => ({
+  method: 'POST', originalUrl: '/x', url: '/x', protocol: 'http',
+  headers: { host: 'localhost' }, get: () => '', body: {}, session: {},
+});
+
+const fakeRes = () => {
+  const res = { headersSent: false, statusCode: 200 };
+  res.status = (code) => { res.statusCode = code; return res; };
+  res.render = () => res;
+  res.send   = () => res;
+  return res;
+};
 
 describe('ErrorHandler', function() {
 
@@ -30,6 +45,33 @@ describe('ErrorHandler', function() {
     it('should handle 404 for DELETE requests', async () => {
       const res = await agent.delete('/this-route-does-not-exist');
       assert.strictEqual(res.statusCode, 404);
+    });
+  });
+
+  describe('SyntaxError classification', function() {
+    const runWithSpiedLogger = (err) => {
+      const orig = logger.error;
+      let logged = false;
+      logger.error = () => { logged = true; };
+      const res = fakeRes();
+      try {
+        errorhandler.error(err, fakeReq(), res, () => {});
+      } finally {
+        logger.error = orig;
+      }
+      return { res, logged };
+    };
+
+    it('treats malformed JSON body as a client error (not logged)', () => {
+      const err = new SyntaxError('Unexpected token');
+      err.type = 'entity.parse.failed';
+      const { logged } = runWithSpiedLogger(err);
+      assert.strictEqual(logged, false);
+    });
+
+    it('treats a bare SyntaxError (compile bug) as a server error (logged)', () => {
+      const { logged } = runWithSpiedLogger(new SyntaxError('Invalid left-hand side in assignment'));
+      assert.strictEqual(logged, true);
     });
   });
 
