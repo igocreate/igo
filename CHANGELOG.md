@@ -1,5 +1,15 @@
 # Changelog
 
+## 6.0.3 - 2026-06-05
+
+### @igojs/dust
+
+- **Fixed**: param keys containing `-` no longer break `{>}` includes (compile-time `SyntaxError`).
+
+### @igojs/server
+
+- **Fixed**: only body-parser JSON errors are now treated as client errors — other `SyntaxError`s (template/component compile) are logged and alerted instead of returning a silent 500.
+
 ## 6.0.2 - 2026-06-01
 
 ### @igojs/server
