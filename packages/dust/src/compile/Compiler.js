@@ -206,8 +206,9 @@ class Compiler {
     }
     this.parts.push(`const ctx${i}={};`);
     keys.forEach(key => {
-      this.parts.push(`ctx${i}.${key}=l.${key};`);
-      this.parts.push(`l.${key}=${this._getParam(params[key])};`);
+      const k = JSON.stringify(key);
+      this.parts.push(`ctx${i}[${k}]=l[${k}];`);
+      this.parts.push(`l[${k}]=${this._getParam(params[key])};`);
     });
     if (isArray) {
       this.parts.push(`ctx${i}._it=l._it;`);
@@ -222,7 +223,8 @@ class Compiler {
       return;
     }
     keys.forEach(key => {
-      this.parts.push(`l.${key}=ctx${i}.${key};`);
+      const k = JSON.stringify(key);
+      this.parts.push(`l[${k}]=ctx${i}[${k}];`);
     });
     if (isArray) {
       this.parts.push(`l._it=ctx${i}._it;`);
@@ -239,8 +241,10 @@ class Compiler {
       if (key === '$') {
         return;
       }
-      this.parts.push(`c.p_${key}${i}=l.${key};`);
-      this.parts.push(`l.${key}=${this._getParam(params[key])};`);
+      const k = JSON.stringify(key);
+      const p = JSON.stringify(`p_${key}${i}`);
+      this.parts.push(`c[${p}]=l[${k}];`);
+      this.parts.push(`l[${k}]=${this._getParam(params[key])};`);
     });
   }
 
@@ -251,8 +255,10 @@ class Compiler {
       if (key === '$') {
         return;
       }
-      this.parts.push(`l.${key}=c.p_${key}${i};`);
-      this.parts.push(`delete c.p_${key}${i};`);
+      const k = JSON.stringify(key);
+      const p = JSON.stringify(`p_${key}${i}`);
+      this.parts.push(`l[${k}]=c[${p}];`);
+      this.parts.push(`delete c[${p}];`);
     });
   }
 

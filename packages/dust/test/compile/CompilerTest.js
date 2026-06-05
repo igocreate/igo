@@ -91,4 +91,20 @@ describe('Compiler', () => {
     delete Utils.h.helpers.capture;
   });
 
+  it('should quote non-identifier param keys in {>} includes (data-* bindings)', () => {
+    // Reproduces the /vehicles form 500: a partial included with a hyphenated
+    // param key — {> "components/forms/_select" data-input="input[name=type]" /} —
+    // makes _pushContext emit `l.data-input=...` (dot notation), which is invalid
+    // JS, so compile() throws a SyntaxError.
+    const buffer = [ {
+      type: '>',
+      tag: '',
+      selfClosedTag: true,
+      file: '"components/forms/_select"',
+      params: { '$': '"components/forms/_select"', 'data-input': '"input[name=type]"' },
+    } ];
+
+    assert.doesNotThrow(() => new Compiler().compile(buffer));
+  });
+
 });
