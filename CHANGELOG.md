@@ -1,5 +1,30 @@
 # Changelog
 
+## 6.0.4 - 2026-06-10
+
+### @igojs/dust
+
+- **Fixed**: adjacent comments (`{! a !}{! b !}`) no longer leak the second comment into the output.
+- **Fixed**: backslashes are preserved when `htmltrim` is disabled (were corrupted or caused a compile error).
+- **Fixed**: `uppercase` / `lowercase` filters pass non-string values through instead of throwing.
+- **Changed**: concurrent compilations of the same template now share one promise; per-call regexes hoisted to module scope.
+
+### @igojs/server
+
+- **Fixed**: `igo i18n update` no longer crashes (`fs.exists is not a function`).
+- **Fixed**: crash notification emails redact sensitive keys (cookies, authorization, passwords, tokens) and HTML-escape their contents.
+- **Fixed**: cache stores falsy values (`0`, `''`, `false`) correctly, and the date-revival regex no longer mangles strings that merely contain an ISO date.
+
+### @igojs/db
+
+- **Fixed**: database drivers are loaded per name — apps using both MySQL and PostgreSQL no longer get the wrong driver.
+- **Fixed**: the migration advisory lock is always released, even when a migration throws.
+
+### @igojs/component
+
+- **Fixed**: template-context writes that shadow a prop/state/store key are no longer silently frozen on first assignment (missing Proxy `set` trap).
+- **Fixed**: overlapping renders are serialized — a render requested mid-flight coalesces into a single trailing re-run instead of racing on the shared template context.
+
 ## 6.0.3 - 2026-06-05
 
 ### @igojs/dust
