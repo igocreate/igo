@@ -112,3 +112,91 @@ describe('IgoComponent events (emit / on / off)', () => {
   });
 
 });
+
+// `render` only touches `_rendering`, `_renderPending`, `_destroyed` and
+// `_renderOnce`, so the serialization contract is exercised on a mock too.
+describe('IgoComponent render serialization', () => {
+
+  const { render } = IgoComponent.prototype;
+
+  function mockRenderer() {
+    return {
+      render,
+      _destroyed: false,
+      active:     0,
+      maxActive:  0,
+      runs:       0,
+      async _renderOnce() {
+        this.active++;
+        this.maxActive = Math.max(this.maxActive, this.active);
+        this.runs++;
+        await new Promise(resolve => setImmediate(resolve));
+        this.active--;
+      },
+    };
+  }
+
+  it('never runs two _renderOnce concurrently', async () => {
+    const comp = mockRenderer();
+    await Promise.all([comp.render(), comp.render(), comp.render()]);
+    assert.strictEqual(comp.maxActive, 1);
+  });
+
+  it('coalesces renders requested mid-flight into a single trailing re-run', async () => {
+    const comp = mockRenderer();
+    const first = comp.render();
+    comp.render();
+    comp.render();
+    comp.render();
+    await first;
+    assert.strictEqual(comp.runs, 2);
+  });
+
+  it('skips the trailing re-run when destroyed mid-render', async () => {
+    const comp = mockRenderer();
+    const first = comp.render();
+    comp.render();
+    comp._destroyed = true;
+    await first;
+    assert.strictEqual(comp.runs, 1);
+  });
+
+});
+
+// `_buildTemplateContext` only reads `_derivedValues`/`_state`/`_props` and the
+// page store, so the proxy contract is exercised on a mock instance.
+describe('IgoComponent template context writes', () => {
+
+  const { _buildTemplateContext } = IgoComponent.prototype;
+
+  function mockContext({ props = {}, state = {}, derived = {} } = {}) {
+    return _buildTemplateContext.call({
+      _derivedValues: derived,
+      _state:         state,
+      _props:         props,
+    });
+  }
+
+  it('keeps a key writable when it shadows a prop (include params reuse)', () => {
+    // {> "_select" options=... /} writes `options` while a prop `options` exists:
+    // without an explicit set trap the first write froze the key (writable:false).
+    const ctx = mockContext({ props: { options: ['p1', 'p2'] } });
+
+    ctx.options = ['families'];
+    assert.deepStrictEqual(ctx.options, ['families']);
+
+    ctx.options = [];
+    assert.deepStrictEqual(ctx.options, []);
+
+    ctx.options = ['types'];
+    assert.deepStrictEqual(ctx.options, ['types']);
+  });
+
+  it('keeps loop locals writable across iterations', () => {
+    const ctx = mockContext({ props: {} });
+    ctx._it = 'a';
+    ctx._it = 'b';
+    assert.strictEqual(ctx._it, 'b');
+  });
+
+});

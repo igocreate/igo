@@ -221,6 +221,12 @@ class IgoComponent {
         store.subscribe(component, prop);
         return store.getRaw(prop);
       },
+      // Explicit set: without it, the default [[Set]] consults getOwnPropertyDescriptor
+      // and creates keys shadowing derived/state/props as writable:false — freezing them.
+      set(target, prop, value) {
+        target[prop] = value;
+        return true;
+      },
       has(target, prop) {
         return hasOwn.call(target, prop) || has(prop);
       },
@@ -323,7 +329,24 @@ class IgoComponent {
     await this.render();
   }
 
+  // One render at a time: overlapping renders race on the shared _templateContext.
   async render() {
+    if (this._rendering) {
+      this._renderPending = true;
+      return;
+    }
+    this._rendering = true;
+    try {
+      do {
+        this._renderPending = false;
+        await this._renderOnce();
+      } while (this._renderPending && !this._destroyed);
+    } finally {
+      this._rendering = false;
+    }
+  }
+
+  async _renderOnce() {
     try {
       if (this._destroyed) return;
 
