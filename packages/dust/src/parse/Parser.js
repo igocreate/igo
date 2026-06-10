@@ -7,8 +7,9 @@ const config      = require('../Config');
 
 class Parser {
 
-  static OPEN_REGEXP   = new RegExp('(.*?)\\{', 'msg');
-  static CLOSE_REGEXP  = new RegExp('(.*?)\\}', 'msg');
+  static OPEN_REGEXP    = new RegExp('(.*?)\\{', 'msg');
+  static CLOSE_REGEXP   = new RegExp('(.*?)\\}', 'msg');
+  static FILTERS_REGEXP = /([ ]*\|[ ]*\w+)+/;
 
   constructor() {
     this.global     = [];           // global buffer, to be returned by parse function
@@ -87,7 +88,8 @@ class Parser {
 
   parse(str) {
     if (!config.htmltrim) {
-      str = str.replace(/\r/g , '\\r').replace(/\n/g , '\\n');
+      // escape backslashes first: raw text is inlined in the generated single-quoted strings
+      str = str.replace(/\\/g, '\\\\').replace(/\r/g , '\\r').replace(/\n/g , '\\n');
     }
 
     // remove comments
@@ -196,8 +198,7 @@ class Parser {
 
   parseFilters(str, block) {
     // parse filters
-    const filtersRegexp = new RegExp('([ ]*\\|[ ]*\\w+)+', 'g');
-    const filtersMatch  = filtersRegexp.exec(str);
+    const filtersMatch = Parser.FILTERS_REGEXP.exec(str);
     if (filtersMatch) {
       block.tag = str.substring(0, filtersMatch.index);
       const f   = filtersMatch[0].replace(/ /g, '').substring(1).split('|');

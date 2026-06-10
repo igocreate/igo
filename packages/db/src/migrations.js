@@ -11,29 +11,34 @@ module.exports.init = async (db) => {
   const { config } = context;
   if (!config.auto_migrate) return;
 
+  const { connection } = await db.getConnection();
+  const { dialect }    = db.driver;
+  const lock           = db.config.database + '.__db_migrations';
+  let   gotLock        = false;
+
   try {
-    const { connection } = await db.getConnection();
-    const { dialect } = db.driver;
-    const lock        = db.config.database + '.__db_migrations';
-    const getLock     = dialect.getLock(lock);
-    const res         = await db.driver.query(connection, getLock, []);
-    if (!dialect.gotLock(res)) {
-      // could not get lock, skip migration
-      return db.driver.release(connection);
+    const res = await db.driver.query(connection, dialect.getLock(lock), []);
+    gotLock   = dialect.gotLock(res);
+    if (gotLock) {
+      await module.exports.migrate(db);
     }
-
-    // got lock, migrate!
-    await module.exports.migrate(db);
-
-    // release lock
-    setTimeout(async () => {
-      const releaseLock = dialect.releaseLock(lock);
-      await db.driver.query(connection, releaseLock);
-      db.driver.release(connection);
-    }, 10000);
-
   } catch (err) {
     console.error(err);
+  } finally {
+    if (!gotLock) {
+      // could not get lock (another instance is migrating), skip migration
+      db.driver.release(connection);
+    } else {
+      // hold the lock for 10s so other instances booting concurrently skip their migration
+      setTimeout(async () => {
+        try {
+          await db.driver.query(connection, dialect.releaseLock(lock));
+        } catch (err) {
+          console.error(err);
+        }
+        db.driver.release(connection);
+      }, 10000);
+    }
   }
 };
 

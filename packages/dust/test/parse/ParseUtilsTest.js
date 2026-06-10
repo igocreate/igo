@@ -4,6 +4,22 @@ const assert      = require('assert');
 const ParseUtils  = require('../../src/parse/ParseUtils');
 
 describe('ParseUtils', () => {
+
+  describe('removeComments', () => {
+    it('should remove a comment', () => {
+      assert.equal(ParseUtils.removeComments('a{! x !}b'), 'ab');
+    });
+
+    it('should remove adjacent comments', () => {
+      assert.equal(ParseUtils.removeComments('{! a !}{! b !}x'), 'x');
+      assert.equal(ParseUtils.removeComments('a{! x !}b{! y !}c{! z !}d'), 'abcd');
+    });
+
+    it('should keep an unclosed comment', () => {
+      assert.equal(ParseUtils.removeComments('a{! x b'), 'a{! x b');
+    });
+  });
+
   it('should parse params', () => {
     const tag = '> "hello world" a="azer ty" b=user.name c="hello {world}" ';
     const params = ParseUtils.parseParams(tag);

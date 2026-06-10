@@ -109,6 +109,35 @@ describe('ErrorHandler', function() {
     });
   });
 
+  describe('Crash email content', function() {
+
+    it('should escape HTML', () => {
+      assert.strictEqual(
+        throttle.escapeHtml('<script>alert("x")</script>'),
+        '&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;'
+      );
+    });
+
+    it('should redact sensitive keys recursively', () => {
+      const redacted = throttle.redact({
+        user: { password: 'hunter2', name: 'bob' },
+        headers: { cookie: 'app=xxx', authorization: 'Bearer xxx', host: 'localhost' },
+        api_token: 'xxx',
+      });
+      assert.deepStrictEqual(redacted, {
+        user: { password: '[redacted]', name: 'bob' },
+        headers: { cookie: '[redacted]', authorization: '[redacted]', host: 'localhost' },
+        api_token: '[redacted]',
+      });
+    });
+
+    it('should keep non-objects and arrays intact', () => {
+      assert.strictEqual(throttle.redact(null), null);
+      assert.strictEqual(throttle.redact('text'), 'text');
+      assert.deepStrictEqual(throttle.redact([{ token: 'x' }, 1]), [{ token: '[redacted]' }, 1]);
+    });
+  });
+
   describe('Email throttling', function() {
 
     beforeEach(function() {

@@ -58,14 +58,14 @@ module.exports.fetch = async (namespace, id, func, timeout) => {
 
   const obj = await module.exports.get(namespace, id);
 
-  // if found in cache, return it
-  if (obj) {
+  // if found in cache, return it (falsy values like 0, '' or false are valid hits)
+  if (obj !== null && obj !== undefined) {
     return obj;
   }
 
   // invoke
   const result = await func(id);
-  if (result && !result.err) {
+  if (result !== null && result !== undefined && !result.err) {
     // put in cache and return result obj
     await module.exports.put(namespace, id, result, timeout);
   }
@@ -152,7 +152,7 @@ const deserialize = (data) => {
   return obj;
 };
 
-const  DATE_REGEXP = /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z)/;
+const  DATE_REGEXP = /^\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z)$/;
 const deserializeDates = (obj) => {
   if (_.isString(obj) && obj.match(DATE_REGEXP)) {
     return new Date(obj);

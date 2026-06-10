@@ -105,6 +105,31 @@ describe('Render Basics', () => {
     config.configure({htmltrim: true});
   });
 
-  
+  it('should remove adjacent comments', async () => {
+    const template  = '{! a !}{! b !}Hello{! c !}{! d !} World';
+    const r         = await new Renderer().render(template, {});
+    assert.equal(r, 'Hello World');
+  });
+
+  it('should preserve backslashes if htmltrim is disabled', async () => {
+    config.configure({htmltrim: false});
+    try {
+      assert.strictEqual(await new Renderer().render('C:\\temp\\new', {}), 'C:\\temp\\new');
+      assert.strictEqual(await new Renderer().render('a\\\' b', {}), 'a\\\' b');
+    } finally {
+      config.configure({htmltrim: true});
+    }
+  });
+
+  it('should preserve backslashes if htmltrim is enabled', async () => {
+    assert.strictEqual(await new Renderer().render('C:\\temp', {}), 'C:\\temp');
+  });
+
+  it('should pass non-string values through uppercase/lowercase filters', async () => {
+    assert.strictEqual(await new Renderer().render('{n|uppercase}', { n: 42 }), '42');
+    assert.strictEqual(await new Renderer().render('{n|lowercase}', { n: 42 }), '42');
+    assert.strictEqual(await new Renderer().render('{s|uppercase}', { s: 'abc' }), 'ABC');
+    assert.strictEqual(await new Renderer().render('{s|lowercase}', { s: 'ABC' }), 'abc');
+  });
 
 });

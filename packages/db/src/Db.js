@@ -3,12 +3,10 @@ const _    = require('lodash');
 const context = require('./context');
 
 // Dynamic driver loading
-let loadedDriver = null;
+const loadedDrivers = {};
 const getDriver = (driverName) => {
-  if (!loadedDriver) {
-    loadedDriver = require(`./drivers/${driverName}`);
-  }
-  return loadedDriver;
+  loadedDrivers[driverName] = loadedDrivers[driverName] || require(`./drivers/${driverName}`);
+  return loadedDrivers[driverName];
 };
 
 //
@@ -104,10 +102,9 @@ class Db {
     logger.info('Db.query: Trying to reinitialize db connection pool');
     await this.init();
     if (!this.pool) {
-      logger.error('could not create db connection pool');
-    } else {
-      return await runquery();
+      throw new Error('Db.query: could not create db connection pool');
     }
+    return await runquery();
   }
 
 

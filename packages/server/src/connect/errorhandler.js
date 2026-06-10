@@ -108,6 +108,22 @@ const checkThrottle = (errorKey) => {
   return { throttled: false, shouldAlert: false };
 };
 
+const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' };
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => HTML_ESCAPES[c]);
+
+// credentials must not leak in crash emails
+const SENSITIVE_KEYS = /cookie|authorization|password|token|secret/i;
+const redact = (obj) => {
+  if (!obj || typeof obj !== 'object') {
+    return obj;
+  }
+  const copy = Array.isArray(obj) ? [] : {};
+  for (const key in obj) {
+    copy[key] = SENSITIVE_KEYS.test(key) ? '[redacted]' : redact(obj[key]);
+  }
+  return copy;
+};
+
 const getURL = (req) => {
   const protocol  = req.protocol || 'http';
   const host      = req.headers['x-forwarded-host'] || (req.get ? req.get('host') : req.headers.host) || 'localhost';
@@ -116,17 +132,17 @@ const getURL = (req) => {
 };
 
 const formatMessage = (req, err) => {
-  const url = getURL(req);
+  const url = escapeHtml(getURL(req));
   return `
     <h1>${url}</h1>
-    <pre>${err.stack}</pre>
+    <pre>${escapeHtml(err.stack)}</pre>
     <table cellspacing="10">
-      <tr><td>URL:</td><td>${req.method} ${url}</td></tr>
-      <tr><td>User-Agent:</td><td>${req.headers['user-agent']}</td></tr>
-      <tr><td>Referer:</td><td>${req.get ? req.get('Referer') : ''}</td></tr>
-      <tr><td>req.body:</td><td>${JSON.stringify(req.body)}</td></tr>
-      <tr><td>req.session:</td><td>${JSON.stringify(req.session)}</td></tr>
-      <tr><td>req.headers:</td><td>${JSON.stringify(req.headers)}</td></tr>
+      <tr><td>URL:</td><td>${escapeHtml(req.method)} ${url}</td></tr>
+      <tr><td>User-Agent:</td><td>${escapeHtml(req.headers['user-agent'])}</td></tr>
+      <tr><td>Referer:</td><td>${escapeHtml(req.get ? req.get('Referer') : '')}</td></tr>
+      <tr><td>req.body:</td><td>${escapeHtml(JSON.stringify(redact(req.body)))}</td></tr>
+      <tr><td>req.session:</td><td>${escapeHtml(JSON.stringify(redact(req.session)))}</td></tr>
+      <tr><td>req.headers:</td><td>${escapeHtml(JSON.stringify(redact(req.headers)))}</td></tr>
     </table>
   `;
 };
@@ -206,8 +222,8 @@ const handle = (err, req, res) => {
   }
 
   const stacktrace = `
-    <h1>${req.method}: ${req.originalUrl}</h1>
-    <pre>${err.stack}</pre>
+    <h1>${escapeHtml(req.method)}: ${escapeHtml(req.originalUrl)}</h1>
+    <pre>${escapeHtml(err.stack)}</pre>
   `;
   res.status(500).send(stacktrace);
 };
@@ -235,7 +251,7 @@ process.on('uncaughtException', (err) => {
   } else {
     logger.error('Uncaught exception outside of request context:', err);
     logger.error(err.stack);
-    sendCrashEmail(`Uncaught exception: ${err}`, `<pre>${err.stack}</pre>`, String(err));
+    sendCrashEmail(`Uncaught exception: ${err}`, `<pre>${escapeHtml(err.stack)}</pre>`, String(err));
   }
 
   // Exit after a short delay to allow email to be sent
@@ -290,6 +306,8 @@ module.exports.errorSQL = (err) => {
 
 // Exposed for testing
 module.exports._test = {
+  escapeHtml,
+  redact,
   checkThrottle,
   loadThrottleData,
   saveThrottleData,

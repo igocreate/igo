@@ -50,6 +50,13 @@ describe('igo.cache', () => {
       assert(_.isDate(value.t0));
     });
 
+    it('should not corrupt strings containing an ISO date', async () => {
+      const s = 'created on 2024-01-01T10:00:00.000Z by admin';
+      await cache.put('ns', 0, s);
+      const value = await cache.get('ns', 0);
+      assert.strictEqual(value, s);
+    });
+
     it('should store buffers', async () => {
       const buffer = Buffer.from('hello world', 'utf8');
       await cache.put('ns', 0, buffer);
@@ -57,6 +64,26 @@ describe('igo.cache', () => {
       assert(value !== null);
       assert(_.isBuffer(value));
       assert.strictEqual(buffer.toString(), value.toString());
+    });
+  });
+
+  describe('cache.fetch', () => {
+    it('should invoke func on miss and cache the result', async () => {
+      let calls = 0;
+      const func = async () => { calls++; return 'value'; };
+      assert.strictEqual(await cache.fetch('fetchns', 'k1', func), 'value');
+      assert.strictEqual(await cache.fetch('fetchns', 'k1', func), 'value');
+      assert.strictEqual(calls, 1);
+    });
+
+    it('should treat cached falsy values as hits', async () => {
+      for (const falsy of [0, false, '']) {
+        let calls = 0;
+        const func = async () => { calls++; return falsy; };
+        assert.strictEqual(await cache.fetch('fetchns', 'falsy' + typeof falsy, func), falsy);
+        assert.strictEqual(await cache.fetch('fetchns', 'falsy' + typeof falsy, func), falsy);
+        assert.strictEqual(calls, 1);
+      }
     });
   });
 

@@ -7,6 +7,9 @@ const BuiltinHelpers = require('./BuiltinHelpers');
 const ASYNC_FUNCTION       = Object.getPrototypeOf(async function(){}).constructor;
 const ASYNC_FUNCTION_PROTO = Object.getPrototypeOf(async function(){});
 
+// references inside string params: `p="hello {name}"`
+const REF_IN_STRING_REGEXP = /\{([^}]*)\}/g;
+
 // A registered helper is "known sync" if it exists and is not an async function.
 // Unknown helpers stay defensive (treated as potentially async).
 const isHelperSync = (name) => {
@@ -277,8 +280,8 @@ class Compiler {
       }
 
       // replace references in string
-      const ref = new RegExp('\\{([^\\}]*)\\}', 'msg');
-      while ((match = ref.exec(param)) !== null) {
+      REF_IN_STRING_REGEXP.lastIndex = 0;
+      while ((match = REF_IN_STRING_REGEXP.exec(param)) !== null) {
         // left part
         s = param.substring(index, match.index).replace(/'/g, '\\\'');
         ret.push(`'${s}'`);

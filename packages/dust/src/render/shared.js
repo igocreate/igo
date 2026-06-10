@@ -74,8 +74,8 @@ const f = {
   uc:         encodeURIComponent,
   js:         stringifyJson,
   jp:         JSON.parse,
-  uppercase:  s => s.toUpperCase(),
-  lowercase:  s => s.toLowerCase(),
+  uppercase:  s => (typeof s === 'string' ? s.toUpperCase() : s),
+  lowercase:  s => (typeof s === 'string' ? s.toLowerCase() : s),
 };
 
 // return value to be displayed

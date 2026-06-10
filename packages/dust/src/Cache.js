@@ -15,16 +15,22 @@ class Cache {
     // normalize file path
     filePath    = FileUtils.getFilePath(filePath);
     const key   = `${type}:${filePath}`;
-    
+
     if (config.cache && this._CACHE[key]) {
       return this._CACHE[key];
     }
 
-    const result = await generator(filePath);
+    const promise = generator(filePath);
     if (config.cache) {
-      this._CACHE[key] = result;
+      // cache the promise right away so concurrent calls share one compilation;
+      // replace it with the resolved value, drop it on failure so retries can succeed
+      this._CACHE[key] = promise;
+      promise.then(
+        (result) => { this._CACHE[key] = result; },
+        () => { delete this._CACHE[key]; }
+      );
     }
-    return result;
+    return promise;
   }
 
   async _getParsed(filePath) {
@@ -47,7 +53,9 @@ class Cache {
     if (!config.cache) {
       return undefined;
     }
-    return this._CACHE['compiled:' + FileUtils.getFilePath(filePath)];
+    const cached = this._CACHE['compiled:' + FileUtils.getFilePath(filePath)];
+    // the entry is a promise while compilation is in flight: not usable synchronously
+    return typeof cached === 'function' ? cached : undefined;
   }
 
   async getSource(filePath) {

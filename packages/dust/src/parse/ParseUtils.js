@@ -1,39 +1,41 @@
 
 
-// remove spaces and double quotes
-module.exports.cleanStr = (s) => {
-  const regexp = /["]*(.[^"]*)/;
-  const match  = regexp.exec(s);
-  return match && match[1];
-};
+const OPEN_COMMENT_REGEXP   = /\{!/g;
+const CLOSE_COMMENT_REGEXP  = /!\}/g;
+const DOUBLE_QUOTES_REGEXP  = /"/g;
+
+const STRING_PARAM_REGEXP   = /([\w-]+)=("[^"]*")/g;
+const REF_PARAM_REGEXP      = /(\w+)=([^" \n\r]+)/g;
+const SHORTHAND_REGEXP      = /(?:^|\s)(\w+)(?=\s|$)/g;
+const UNNAMED_STRING_REGEXP = /[^=] ?("[^"]*")/;
 
 // strip comments
 module.exports.removeComments = (str) => {
   let openCommentMatch, closeCommentMatch;
 
-  const openCommentRegexp   = new RegExp('{!', 'msg');
-  const closeCommentRegexp  = new RegExp('!}', 'msg');
+  OPEN_COMMENT_REGEXP.lastIndex = 0;
 
   // find opening '{!'
-  while ((openCommentMatch = openCommentRegexp.exec(str)) !== null) {
+  while ((openCommentMatch = OPEN_COMMENT_REGEXP.exec(str)) !== null) {
     const index = openCommentMatch.index + 2;
     // find closing '!}'
-    closeCommentRegexp.lastIndex = index;
-    if ((closeCommentMatch = closeCommentRegexp.exec(str)) !== null) {
+    CLOSE_COMMENT_REGEXP.lastIndex = index;
+    if ((closeCommentMatch = CLOSE_COMMENT_REGEXP.exec(str)) !== null) {
       str = str.slice(0, openCommentMatch.index) + str.slice(closeCommentMatch.index + 2);
+      // the text shifted left: resume scanning from the removal point
+      OPEN_COMMENT_REGEXP.lastIndex = openCommentMatch.index;
     }
   }
 
   return str;
 };
 
-// remove spaces and double quotes
+// remove double quotes
 module.exports.stripDoubleQuotes = (s) => {
-  const regexp = new RegExp('"', 'sg');
-  return s.replace(regexp, '');
+  return s.replace(DOUBLE_QUOTES_REGEXP, '');
 };
 
-// 
+//
 module.exports.parseTag = (s) => {
   const i = s.indexOf(' ');
   if (i >= 0) {
@@ -49,38 +51,36 @@ module.exports.parseParams = (s) => {
   const params    = {};
   const original  = s;
   let match;
-  
+
   // string param (allow '-' in the name, e.g. `data-on-change="onClientChange"`)
-  const stringParam = new RegExp('([\\w-]+)=("[^"]*")', 'msg');
-  while ((match = stringParam.exec(s)) !== null) {
+  STRING_PARAM_REGEXP.lastIndex = 0;
+  while ((match = STRING_PARAM_REGEXP.exec(s)) !== null) {
     params[match[1]] = match[2];
-    s = s.substring(0, match.index) + s.substring(stringParam.lastIndex);
-    stringParam.lastIndex = match.index;
+    s = s.substring(0, match.index) + s.substring(STRING_PARAM_REGEXP.lastIndex);
+    STRING_PARAM_REGEXP.lastIndex = match.index;
   }
 
   // ref param
-  // eslint-disable-next-line no-control-regex
-  const refParam = new RegExp('(\\w+)=([^" \n\r]+)', 'msg');
-  while ((match = refParam.exec(s)) !== null) {
+  REF_PARAM_REGEXP.lastIndex = 0;
+  while ((match = REF_PARAM_REGEXP.exec(s)) !== null) {
     if (FORBIDDEN_FIRST_CHARS.indexOf(match[2][0]) >= 0) {
       throw new Error(`Unexpected character "${match[2][0]}" in tag {${original}...`);
     }
     params[match[1]] = match[2];
-    s = s.substring(0, match.index) + s.substring(refParam.lastIndex);
-    refParam.lastIndex = match.index;
+    s = s.substring(0, match.index) + s.substring(REF_PARAM_REGEXP.lastIndex);
+    REF_PARAM_REGEXP.lastIndex = match.index;
   }
 
   // shorthand param: `count` is equivalent to `count=count`
-  const shorthandParam = new RegExp('(?:^|\\s)(\\w+)(?=\\s|$)', 'msg');
-  while ((match = shorthandParam.exec(s)) !== null) {
+  SHORTHAND_REGEXP.lastIndex = 0;
+  while ((match = SHORTHAND_REGEXP.exec(s)) !== null) {
     if (!params[match[1]]) {
       params[match[1]] = match[1];
     }
   }
 
   // unnamed string param
-  const unnamedStringParam = new RegExp('[^=] ?("[^"]*")', 'msg');
-  if ((match = unnamedStringParam.exec(s)) !== null) {
+  if ((match = UNNAMED_STRING_REGEXP.exec(s)) !== null) {
     params.$ = match[1];
   }
 

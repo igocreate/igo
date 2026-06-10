@@ -43,7 +43,7 @@ const writeTranslationFiles = async (translations) => {
   // write translation files
   for (const lang of config.i18n.whitelist) {
     const dir = `./locales/${lang}`;
-    const exists = await fs.exists(dir);
+    const exists = await fs.access(dir).then(() => true, () => false);
     if (!exists) {
       console.warn('Missing directory: ' + dir);
       return;

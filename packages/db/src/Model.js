@@ -3,7 +3,6 @@ const CachedQuery = require('./CachedQuery');
 
 const Query     = require('./Query');
 const Schema    = require('./Schema');
-const context   = require('./context');
 
 
 const newQuery = (constructor, verb) => {
@@ -43,11 +42,6 @@ module.exports = function(schema) {
       .values(values)
       .where(this.primaryObject())
       .execute();
-
-      if (this.constructor.schema.cache) {
-        const { cache } = context;
-        await cache.del('_cached.' + this.constructor.schema.table);
-      }
 
       this.assignValues(values);
       return this;
