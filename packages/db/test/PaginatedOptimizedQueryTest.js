@@ -893,6 +893,24 @@ describe('db.PaginatedOptimizedQuery', function() {
   // -------------------------------------------------------
   // 7. extraWhere on associations
   // -------------------------------------------------------
+  describe('_findPathToTable memoization', function() {
+
+    it('should memoize path lookups per schema, across instances', () => {
+      const dialect = { esc: '`', param: () => '?', in: 'IN', notin: 'NOT IN' };
+      const gen1 = new PaginatedOptimizedSql({}, dialect);
+      const gen2 = new PaginatedOptimizedSql({}, dialect);
+
+      const p1 = gen1._findPathToTable('companies', Folder.schema);
+      const p2 = gen2._findPathToTable('companies', Folder.schema);
+
+      assert.ok(p1, 'Expected a path to companies via pme_folder');
+      assert.strictEqual(p1.length, 2);
+      assert.strictEqual(p1, p2, 'Expected the same cached path reference');
+      assert.strictEqual(gen1._findPathToTable('nope', Folder.schema), null);
+      assert.strictEqual(gen1._findPathToTable('nope', Folder.schema), null);
+    });
+  });
+
   describe('$or filter join errors', function() {
 
     it('should throw when a $or filter references an unknown association', () => {

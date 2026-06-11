@@ -306,7 +306,7 @@ module.exports = class PaginatedOptimizedQuery extends Query {
    */
   async count() {
     const countQuery = new PaginatedOptimizedQuery(this.modelClass);
-    countQuery.query = _.cloneDeep(this.query);
+    countQuery.query = this._cloneQuery();
     countQuery.query.verb = 'count';
     countQuery.query.limit = 1;
     delete countQuery.query.page;
@@ -330,7 +330,7 @@ module.exports = class PaginatedOptimizedQuery extends Query {
    */
   async selectIds() {
     const idsQuery = new PaginatedOptimizedQuery(this.modelClass);
-    idsQuery.query = _.cloneDeep(this.query);
+    idsQuery.query = this._cloneQuery();
     idsQuery.query.verb = 'select_ids';
 
     // Ne sélectionner que l'ID (ou clés primaires)
@@ -363,12 +363,8 @@ module.exports = class PaginatedOptimizedQuery extends Query {
     }
 
     const fullQuery = new Query(this.modelClass); // Utiliser Query standard pour le SELECT final
-    fullQuery.query = _.cloneDeep(this.query);
+    fullQuery.query = this._cloneQuery();
     fullQuery.query.verb = 'select';
-
-    // Restaurer les joins originaux : _.cloneDeep crée de nouveaux objets pour src_schema,
-    // ce qui casse les lookups par identité (===) dans le Map de Query.execute()
-    fullQuery.query.joins = this.query.joins;
 
     // Conserver uniquement les "vrais" joins (pas les filterJoins)
     // Les filterJoins ne sont utilisés que pour COUNT et IDS
@@ -489,48 +485,24 @@ module.exports = class PaginatedOptimizedQuery extends Query {
       return rows;
     }
 
-    // Avec pagination : les 3 phases complètes
-
-    // Phase 1 : COUNT
-    const count = await this.count();
-
-    // Calculer la pagination
-    const nb_pages = Math.ceil(count / query.nb);
-    query.page = Math.min(query.page, nb_pages);
-    query.page = Math.max(query.page, 1);
+    // Avec pagination : phases COUNT et SELECT IDS en parallèle (la page demandée est
+    // supposée valide ; sinon, re-SELECT IDS avec la page clampée), puis SELECT FULL
     query.offset = (query.page - 1) * query.nb;
-    query.limit = query.nb;
+    query.limit  = query.nb;
 
-    // Phase 2 : SELECT IDS
-    const ids = await this.selectIds();
+    let [count, ids] = await Promise.all([this.count(), this.selectIds()]);
+
+    const page = Math.min(query.page, Math.max(Math.ceil(count / query.nb), 1));
+    if (page !== query.page) {
+      query.page   = page;
+      query.offset = (page - 1) * query.nb;
+      ids = await this.selectIds();
+    }
 
     // Phase 3 : SELECT FULL
     const rows = await this.selectFull(ids);
 
-    // Construire l'objet pagination
-    const page = query.page;
-    const links = [];
-    const start = Math.max(1, page - 5);
-    for (let i = 0; i < 10; i++) {
-      const p = start + i;
-      if (p <= nb_pages) {
-        links.push({ page: p, current: page === p });
-      }
-    }
-
-    const pagination = {
-      page: query.page,
-      nb: query.nb,
-      previous: page > 1 ? page - 1 : null,
-      next: page < nb_pages ? page + 1 : null,
-      start: query.offset + 1,
-      end: query.offset + Math.min(query.nb, count - query.offset),
-      nb_pages,
-      count,
-      links,
-    };
-
-    return { pagination, rows };
+    return { pagination: this._buildPagination(count), rows };
   }
 
   /**

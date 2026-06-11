@@ -156,6 +156,11 @@ module.exports = function(schema) {
       return newQuery(this).order(order);
     }
 
+    // order with a raw SQL expression — never call with user input
+    static orderRaw(order) {
+      return newQuery(this).orderRaw(order);
+    }
+
     // distinct
     static distinct(columns) {
       return newQuery(this).distinct(columns);

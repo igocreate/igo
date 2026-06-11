@@ -214,4 +214,71 @@ describe('db.Query', function() {
       assert.strictEqual(query._checkOptimizedCompatibility(), false);
     });
   });
+
+  describe('pagination', function() {
+
+    const withMockedQueries = async (fn) => {
+      const originalGetDb    = Query.prototype.getDb;
+      const originalRunQuery = Query.prototype.runQuery;
+      Query.prototype.getDb = () => ({ driver: { dialect: { esc: '`', param: () => '?', in: 'IN', notin: 'NOT IN', limit: () => 'LIMIT ?, ?' } } });
+      try {
+        await fn();
+      } finally {
+        Query.prototype.getDb    = originalGetDb;
+        Query.prototype.runQuery = originalRunQuery;
+      }
+    };
+
+    it('should run COUNT and SELECT in parallel for an in-range page', async function() {
+      await withMockedQueries(async () => {
+        const offsets = [];
+        Query.prototype.runQuery = async function() {
+          if (this.query.verb === 'count') {
+            return [{ count: 12 }];
+          }
+          offsets.push(this.query.offset);
+          return [];
+        };
+
+        const result = await new Query(Folder).where({ status: 'A' }).page(2, 10).execute();
+        assert.deepStrictEqual(offsets, [10], 'SELECT should run once with the requested offset');
+        assert.strictEqual(result.pagination.page, 2);
+        assert.strictEqual(result.pagination.count, 12);
+        assert.strictEqual(result.pagination.nb_pages, 2);
+      });
+    });
+
+    it('should clamp out-of-range pages and re-run the SELECT', async function() {
+      await withMockedQueries(async () => {
+        const offsets = [];
+        Query.prototype.runQuery = async function() {
+          if (this.query.verb === 'count') {
+            return [{ count: 12 }];
+          }
+          offsets.push(this.query.offset);
+          return [];
+        };
+
+        const result = await new Query(Folder).where({ status: 'A' }).page(5, 10).execute();
+        assert.deepStrictEqual(offsets, [40, 10], 'SELECT should re-run with the clamped offset');
+        assert.strictEqual(result.pagination.page, 2);
+        assert.strictEqual(result.pagination.nb_pages, 2);
+        assert.strictEqual(result.pagination.start, 11);
+        assert.strictEqual(result.pagination.end, 12);
+      });
+    });
+
+    it('should clamp to page 1 when there are no results', async function() {
+      await withMockedQueries(async () => {
+        Query.prototype.runQuery = async function() {
+          return this.query.verb === 'count' ? [{ count: 0 }] : [];
+        };
+
+        const result = await new Query(Folder).where({ status: 'A' }).page(3, 10).execute();
+        assert.strictEqual(result.pagination.page, 1);
+        assert.strictEqual(result.pagination.count, 0);
+        assert.deepStrictEqual(result.rows, []);
+      });
+    });
+  });
 });

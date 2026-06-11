@@ -4,6 +4,10 @@ const context     = require('./context');
 const Query       = require('./Query');
 const CacheStats  = require('./CacheStats');
 
+const VERSIONS_NS = '_cached_versions';
+// entries from outdated versions are only reclaimed by expiration
+const DEFAULT_TTL = 24 * 3600;
+
 //
 module.exports = class CachedQuery extends Query {
 
@@ -13,14 +17,14 @@ module.exports = class CachedQuery extends Query {
     const sqlQuery  = this.toSQL();
     const db        = this.getDb();
 
-    const namespace = '_cached.' + query.table;
-
     if (query.verb !== 'select') {
-      cache.flush(namespace + '/*'); // non-blocking flush for performance
-      const result = await db.query(sqlQuery.sql, sqlQuery.params, query.options);
-      return result;
+      // bump the table version: invalidates all cached selects with a single INCR
+      await cache.incr(VERSIONS_NS, query.table);
+      return await db.query(sqlQuery.sql, sqlQuery.params, query.options);
     }
 
+    const version   = await cache.get(VERSIONS_NS, query.table) || 0;
+    const namespace = `_cached.${query.table}.v${version}`;
     const key = JSON.stringify(sqlQuery);
     let type  = 'hits';
 
@@ -31,7 +35,7 @@ module.exports = class CachedQuery extends Query {
         type = 'misses';
         return await db.query(sqlQuery.sql, sqlQuery.params, query.options);
       },
-      schema.cache.ttl
+      schema.cache.ttl || DEFAULT_TTL
     );
 
     CacheStats.incr(query.table, type);

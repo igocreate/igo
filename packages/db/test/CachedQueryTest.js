@@ -24,24 +24,37 @@ describe('db.CachedQuery', function () {
 
     const key = id => '{"sql":"SELECT `books`.* FROM `books` WHERE `books`.`id` = ? ORDER BY `books`.`id` ASC LIMIT ?, ?","params":[' + id + ',0,1]}';
 
-    it('should put rows in cache', async () => {
+    it('should put rows in cache (versioned namespace)', async () => {
       const book1 = await Book.create();
       const book  = await Book.find(book1.id);
 
       assert.strictEqual(book.id, book1.id);
 
-      const rows = await cache.get('_cached.books', key(book1.id));
+      const version = await cache.get('_cached_versions', 'books') || 0;
+      const rows = await cache.get(`_cached.books.v${version}`, key(book1.id));
       assert.ok(rows, 'Expected cached rows to exist');
       assert.strictEqual(rows.length, 1);
       assert.strictEqual(rows[0].id, book.id);
     });
 
-    it('should clear cache after update', async function () {
-      const book1 = await Book.create();
+    it('should bump the table version after a write', async function () {
+      const book1   = await Book.create();
+      const version = await cache.get('_cached_versions', 'books');
       await book1.update({ title: 'abc' });
 
-      const rows = await cache.get('_cached.books', key(book1.id));
-      assert.strictEqual(rows, null, 'Expected cache to be cleared after update');
+      const newVersion = await cache.get('_cached_versions', 'books');
+      assert.ok(newVersion > version, 'Expected version to be bumped after update');
+    });
+
+    it('should not serve stale data after update', async function () {
+      const book1  = await Book.create();
+      const before = await Book.find(book1.id); // populate cache
+      assert.notStrictEqual(before.title, 'xyz');
+
+      await book1.update({ title: 'xyz' });
+
+      const after = await Book.find(book1.id);
+      assert.strictEqual(after.title, 'xyz');
     });
 
   });

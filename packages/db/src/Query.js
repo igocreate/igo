@@ -192,10 +192,31 @@ module.exports = class Query {
     return this;
   }
 
+  // cheap clone: copy the mutable containers, keep schemas/models/conditions by reference
+  // (cloning the schema graph deeply is expensive and breaks identity lookups)
+  _cloneQuery() {
+    const { query } = this;
+    const clone = {
+      ...query,
+      where:    query.where.slice(),
+      whereNot: query.whereNot.slice(),
+      joins:    query.joins.slice(),
+      order:    query.order.slice(),
+      scopes:   query.scopes.slice(),
+      unscopes: query.unscopes.slice(),
+      includes: { ...query.includes },
+      options:  { ...query.options },
+    };
+    if (query.filterJoins) {
+      clone.filterJoins = query.filterJoins.slice();
+    }
+    return clone;
+  }
+
   // COUNT
   async count() {
     const countQuery        = new Query(this.modelClass);
-    countQuery.query        = _.cloneDeep(this.query);
+    countQuery.query        = this._cloneQuery();
 
     countQuery.query.verb   = 'count';
     countQuery.query.limit  = 1;
@@ -441,22 +462,13 @@ module.exports = class Query {
     return sql;
   }
 
-  //
-  async paginate() {
+  // build the pagination object from a count (page/offset must already be final)
+  _buildPagination(count) {
     const { query } = this;
-    if (!query.page) {
-      return;
-    }
-
-    const count = await this.count();
     const nb_pages  = Math.ceil(count / query.nb);
-    query.page      = Math.min(query.page, nb_pages);
-    query.page      = Math.max(query.page, 1);
-    query.offset    = (query.page - 1) * query.nb;
-    query.limit     = query.nb;
+    const page      = query.page;
 
     const links = [];
-    const page  = this.query.page;
     const start = Math.max(1, page - 5);
     for (let i = 0; i < 10; i++) {
       const p = start + i;
@@ -465,8 +477,8 @@ module.exports = class Query {
       }
     }
     return {
-      page:     this.query.page,
-      nb:       this.query.nb,
+      page,
+      nb:       query.nb,
       previous: page > 1 ? page - 1 : null,
       next:     page < nb_pages ? page + 1 : null,
       start:    query.offset + 1,
@@ -588,15 +600,33 @@ module.exports = class Query {
     // Auto-activation du mode optimisé : pagination + joins → pattern 3 phases
     if (query.verb === 'select' && query.page && query.joins.length > 0) {
       if (!this._checkOptimizedCompatibility()) {
-        context.logger.warn(`[Query] Optimized pagination skipped for '${query.table}': join aliases are not supported, use 'dot' notation instead.`);
+        context.logger.warn(`[Query] Optimized pagination skipped for '${query.table}': unsupported clauses (join columns, raw where on join aliases, or $or mixing main and joined tables).`);
       } else {
         const PaginatedOptimizedQuery = require('./PaginatedOptimizedQuery');
         return await PaginatedOptimizedQuery.fromQuery(this).executeOptimized();
       }
     }
 
-    const pagination  = await this.paginate();
-    let rows          = await this.runQuery();
+    let pagination = null;
+    let rows;
+
+    if (query.page) {
+      // COUNT and SELECT run in parallel, assuming the requested page is in range;
+      // when it is not (rare), re-run the SELECT with the clamped page
+      query.offset = (query.page - 1) * query.nb;
+      query.limit  = query.nb;
+      let count;
+      [count, rows] = await Promise.all([this.count(), this.runQuery()]);
+      const page = Math.min(query.page, Math.max(Math.ceil(count / query.nb), 1));
+      if (page !== query.page) {
+        query.page   = page;
+        query.offset = (page - 1) * query.nb;
+        rows = await this.runQuery();
+      }
+      pagination = this._buildPagination(count);
+    } else {
+      rows = await this.runQuery();
+    }
 
     if (rows === null) {
       return null;
@@ -665,9 +695,11 @@ module.exports = class Query {
       });
     }
 
-    // Load associations
-    for (let include of _.keys(query.includes)) {
-      await this.loadAssociation(include, rows);
+    // Load associations level by level: same-depth includes are independent and run in
+    // parallel; dotted includes read attributes set by their parent include
+    const includesByDepth = _.groupBy(_.keys(query.includes), key => key.split('.').length);
+    for (const depth of _.keys(includesByDepth).sort((a, b) => a - b)) {
+      await Promise.all(includesByDepth[depth].map(include => this.loadAssociation(include, rows)));
     }
 
     if (pagination) {

@@ -2,6 +2,9 @@ const _   = require('lodash');
 const Sql = require('./Sql');
 const { compileCondition, compileExtraWhere, checkColumnName } = require('./OperatorCompiler');
 
+// le graphe d'associations est statique après le boot : cache des chemins par schema
+const pathCache = new WeakMap();
+
 /**
  * PaginatedOptimizedSql - Générateur SQL optimisé avec pattern EXISTS
  *
@@ -613,6 +616,25 @@ module.exports = class PaginatedOptimizedSql extends Sql {
    * → [{association: [...], tableName: 'pmfp_folders'}, {association: [...], tableName: 'formation_natures'}]
    */
   _findPathToTable(target, currentSchema, currentPath = [], visitedTables = new Set()) {
+    // la récursion porte l'état chemin/cycles : seuls les appels racine sont mémoïsés
+    if (currentPath.length > 0 || visitedTables.size > 0) {
+      return this._searchPathToTable(target, currentSchema, currentPath, visitedTables);
+    }
+    if (!this._getSchemaAssociations(currentSchema)) {
+      return null;
+    }
+    let bySchema = pathCache.get(currentSchema);
+    if (!bySchema) {
+      bySchema = new Map();
+      pathCache.set(currentSchema, bySchema);
+    }
+    if (!bySchema.has(target)) {
+      bySchema.set(target, this._searchPathToTable(target, currentSchema, currentPath, visitedTables));
+    }
+    return bySchema.get(target);
+  }
+
+  _searchPathToTable(target, currentSchema, currentPath, visitedTables) {
     const associations = this._getSchemaAssociations(currentSchema);
     if (!associations) {
       return null;
@@ -657,7 +679,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
       }
 
       // Sinon, chercher récursivement dans les associations de ce modèle
-      const nestedPath = this._findPathToTable(
+      const nestedPath = this._searchPathToTable(
         target,
         AssociatedModel.schema,
         [...currentPath, {
