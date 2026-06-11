@@ -1,6 +1,6 @@
 
 const _       = require('lodash');
-const { compileCondition, compileNotCondition, compileExtraWhere } = require('./OperatorCompiler');
+const { compileCondition, compileNotCondition, compileExtraWhere, checkColumnName } = require('./OperatorCompiler');
 
 module.exports = class Sql {
   
@@ -93,6 +93,20 @@ module.exports = class Sql {
   countSQL() {
     const { query, dialect } = this;
     const { esc } = dialect;
+
+    // grouped/distinct queries: count the rows of the subquery
+    if (!_.isEmpty(query.group) || query.distinct) {
+      const { limit, offset } = query;
+      delete query.limit;
+      delete query.offset;
+      const inner  = this.selectSQL();
+      query.limit  = limit;
+      query.offset = offset;
+      return {
+        sql: `SELECT COUNT(0) as ${esc}count${esc} FROM (${inner.sql}) AS ${esc}__count${esc}`,
+        params: inner.params,
+      };
+    }
 
     // select
     let sql = `SELECT COUNT(0) as ${esc}count${esc} `;
@@ -234,7 +248,8 @@ module.exports = class Sql {
       if (orParts.length === 1) {
         sqlwhere.push(orParts[0] + ' ');
       } else if (orParts.length > 1) {
-        sqlwhere.push(`(${orParts.join(' OR ')}) `);
+        // whereNot({$or}) = "aucune branche ne matche" : NOT(a OR b) = NOT a AND NOT b
+        sqlwhere.push(`(${orParts.join(not ? ' AND ' : ' OR ')}) `);
       }
       // Traiter les clés siblings (hors $or)
       const siblings = _.omit(where, '$or');
@@ -246,6 +261,7 @@ module.exports = class Sql {
 
     // Clés simples : colonnes avec valeurs (scalaires ou opérateurs)
     _.forOwn(where, (value, key) => {
+      checkColumnName(key);
       // Résoudre l'alias de colonne
       let columnAlias;
       if (key.indexOf('.') > -1 && key.indexOf(esc) === -1) {

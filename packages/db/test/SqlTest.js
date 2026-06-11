@@ -62,6 +62,19 @@ describe('db.Sql', () => {
       assert.strictEqual('SELECT COUNT(0) as `count` FROM `books` WHERE `books`.`status` = ?', countSQL.sql);
       assert.deepStrictEqual(['active'], countSQL.params);
     });
+
+    it('should count grouped queries via a subquery', () => {
+      const query = freshQuery({ group: ['type'], where: [{ status: 'active' }] });
+      const countSQL = new Sql(query, dialect).countSQL();
+      assert.strictEqual('SELECT COUNT(0) as `count` FROM (SELECT `books`.* FROM `books` WHERE `books`.`status` = ? GROUP BY type) AS `__count`', countSQL.sql);
+      assert.deepStrictEqual(['active'], countSQL.params);
+    });
+
+    it('should count distinct queries via a subquery', () => {
+      const query = freshQuery({ distinct: ['type'] });
+      const countSQL = new Sql(query, dialect).countSQL();
+      assert.strictEqual('SELECT COUNT(0) as `count` FROM (SELECT DISTINCT `type` FROM `books`) AS `__count`', countSQL.sql);
+    });
   });
 
   //
@@ -535,6 +548,23 @@ describe('db.Sql', () => {
         () => new Sql(query, dialect).whereSQL(params),
         { message: /Unknown operator.*foo, baz/ }
       );
+    });
+
+    it('should throw on column names that break out of escaping', () => {
+      const params = [];
+      const query  = freshQuery({ where: [{ 'id` = 1 OR `1`=`1': 1 }] });
+      assert.throws(
+        () => new Sql(query, dialect).whereSQL(params),
+        { message: /Invalid column name/ }
+      );
+    });
+
+    it('should negate $or with AND in whereNot (De Morgan)', () => {
+      const params = [];
+      const query  = freshQuery({ whereNot: [{ $or: [{ a: 1 }, { b: 2 }] }] });
+      const sql    = new Sql(query, dialect).whereNotSQL(params);
+      assert.strictEqual(sql.trim(), 'WHERE (`books`.`a` != ? AND `books`.`b` != ?)');
+      assert.deepStrictEqual(params, [1, 2]);
     });
   });
 });

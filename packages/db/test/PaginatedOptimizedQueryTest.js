@@ -639,7 +639,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
       query.query.verb = 'select_ids';
       query.where({ type: 'agp' }).join('applicant')
-      .order('COALESCE(`applicant`.`last_name`, `applicant`.`first_name`) ASC')
+      .orderRaw('COALESCE(`applicant`.`last_name`, `applicant`.`first_name`) ASC')
       .limit(50);
       const { sql, params } = query.toSQL();
 
@@ -882,7 +882,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     it('should handle COALESCE with block column', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
       query.query.verb = 'select_ids';
-      query.where({ is_initial: true }).order('COALESCE(`studies_year`, "N/A") DESC').limit(50);
+      query.where({ is_initial: true }).orderRaw('COALESCE(`studies_year`, "N/A") DESC').limit(50);
       const { sql, params } = query.toSQL();
 
       assert.strictEqual(sql, 'SELECT `pme_folders_with_blocks`.`id` FROM `pme_folders_with_blocks` LEFT JOIN `block_studies` AS `studies` ON `studies`.`id` = `pme_folders_with_blocks`.`block_studies_id` WHERE `pme_folders_with_blocks`.`is_initial` = ? ORDER BY COALESCE(studies.studies_year, "N/A") DESC LIMIT ?, ?');
@@ -893,6 +893,23 @@ describe('db.PaginatedOptimizedQuery', function() {
   // -------------------------------------------------------
   // 7. extraWhere on associations
   // -------------------------------------------------------
+  describe('$or filter join errors', function() {
+
+    it('should throw when a $or filter references an unknown association', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'select_ids';
+      query.where({ $or: [{ 'unknown.x': 1 }, { 'unknown.y': 2 }] }).limit(50);
+      assert.throws(() => query.toSQL(), /Missing association 'unknown'/);
+    });
+
+    it('should throw on nested association paths in $or filters', () => {
+      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      query.query.verb = 'select_ids';
+      query.where({ $or: [{ 'pme_folder.company.name': 'a' }, { 'pme_folder.company.siret': 'b' }] }).limit(50);
+      assert.throws(() => query.toSQL(), /Nested association path 'pme_folder.company'/);
+    });
+  });
+
   describe('extraWhere on associations', function() {
     it('should apply extraWhere in LEFT JOIN condition (verb select_ids)', () => {
       const query = mockGetDb(new PaginatedOptimizedQuery(BookWithExtraWhere));

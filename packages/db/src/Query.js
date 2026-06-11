@@ -7,6 +7,19 @@ const context   = require('./context');
 
 const DataTypes = require('./DataTypes');
 
+// order/group/distinct/from accept identifiers only: anything else must go through orderRaw()
+const IDENT         = '[`"]?[A-Za-z_]\\w*[`"]?';
+const RE_ORDER      = new RegExp(`^\\s*${IDENT}(\\.${IDENT})*(\\s+(ASC|DESC))?\\s*$`, 'i');
+const RE_IDENT_PATH = new RegExp(`^\\s*${IDENT}(\\.${IDENT})*\\s*$`);
+const RE_IDENT      = /^[A-Za-z_]\w*$/;
+
+const checkIdentifier = (value, re, method, hint = '') => {
+  if (typeof value !== 'string' || !re.test(value)) {
+    throw new Error(`Invalid ${method}() clause: '${value}'.${hint}`);
+  }
+  return value;
+};
+
 //
 const merge = (includes, includeParam) => {
   // console.dir({MERGE: { includes, includeParam}}, { depth: 99 });
@@ -78,7 +91,7 @@ module.exports = class Query {
 
   // FROM
   from(table) {
-    this.query.table = table;
+    this.query.table = checkIdentifier(table, RE_IDENT, 'from');
     return this;
   }
 
@@ -331,19 +344,28 @@ module.exports = class Query {
 
   // ORDER BY
   order(order) {
+    checkIdentifier(order, RE_ORDER, 'order', ' Use orderRaw() for SQL expressions.');
+    this.query.order.push(order);
+    return this;
+  }
+
+  // ORDER BY with a raw SQL expression — never call with user input
+  orderRaw(order) {
     this.query.order.push(order);
     return this;
   }
 
   // DISTINCT
   distinct(columns) {
-    this.query.distinct = _.isArray(columns) ? columns : [ columns ];
+    this.query.distinct = _.castArray(columns);
+    _.forEach(this.query.distinct, column => checkIdentifier(column, RE_IDENT, 'distinct'));
     return this;
   }
 
   // GROUP
   group(columns) {
     this.query.group = _.castArray(columns);
+    _.forEach(this.query.group, column => checkIdentifier(column, RE_IDENT_PATH, 'group'));
     return this;
   }
 
@@ -360,20 +382,51 @@ module.exports = class Query {
   // Vérifie si la query est compatible avec le mode optimisé
   _checkOptimizedCompatibility() {
     const { query } = this;
+    const { esc }   = this.getDb().driver.dialect;
 
     // Joins avec colonnes personnalisées (aliases dans ORDER BY)
     if (query.joins.some(j => j.columns)) {
       return false;
     }
 
-    // Raw SQL where qui référence des aliases de joins
+    // group/distinct : le COUNT optimisé ignorerait le GROUP BY
+    if (!_.isEmpty(query.group) || query.distinct) {
+      return false;
+    }
+
+    // Raw SQL where qui référence des aliases de joins (quotés ou non)
     const joinAliases = query.joins.map(j => j.association[1]);
     const rawWheres = query.where.filter(w => _.isArray(w) || _.isString(w));
     for (const w of rawWheres) {
       const sql = _.isArray(w) ? w[0] : w;
-      if (joinAliases.some(alias => sql.includes(`\`${alias}\``))) {
+      if (joinAliases.some(alias => sql.includes(`${esc}${alias}${esc}`) || new RegExp(`\\b${alias}\\.`).test(sql))) {
         return false;
       }
+    }
+
+    // $or mélangeant table principale et tables jointes : la séparation en EXISTS
+    // transformerait le OR en AND, on retombe sur le mode classique
+    const isDotted  = (key) => key.includes('.') && !key.startsWith('$');
+    const hasMixedOr = (expr) => {
+      if (!_.isPlainObject(expr)) {
+        return false;
+      }
+      return _.some(expr, (value, key) => {
+        if ((key === '$or' || key === '$and') && _.isArray(value)) {
+          if (key === '$or') {
+            const dotted = value.filter(b => _.isPlainObject(b) && _.keys(b).some(isDotted));
+            const mixedBranch = dotted.some(b => _.keys(b).some(k => !isDotted(k)));
+            if (mixedBranch || (dotted.length > 0 && dotted.length < value.length)) {
+              return true;
+            }
+          }
+          return value.some(hasMixedOr);
+        }
+        return false;
+      });
+    };
+    if (query.where.some(w => _.isPlainObject(w) && hasMixedOr(w))) {
+      return false;
     }
 
     return true;

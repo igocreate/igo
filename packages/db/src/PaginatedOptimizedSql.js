@@ -1,6 +1,6 @@
 const _   = require('lodash');
 const Sql = require('./Sql');
-const { compileCondition, compileExtraWhere } = require('./OperatorCompiler');
+const { compileCondition, compileExtraWhere, checkColumnName } = require('./OperatorCompiler');
 
 /**
  * PaginatedOptimizedSql - Générateur SQL optimisé avec pattern EXISTS
@@ -952,9 +952,10 @@ module.exports = class PaginatedOptimizedSql extends Sql {
     const existsClauses = [];
 
     groupsByPath.forEach(({ path, items }) => {
+      // un filtre ignoré silencieusement retournerait des lignes non filtrées
       const association = this._findAssociationByPath(path, query.schema);
       if (!association) {
-        return;
+        throw new Error(`Missing association '${path.join('.')}' on '${query.schema.table}' schema (in $or filter).`);
       }
       const [, , AssociatedModel, src_column, ref_column, extraWhere] = association;
       const joinTable = AssociatedModel.schema.table;
@@ -1026,14 +1027,12 @@ module.exports = class PaginatedOptimizedSql extends Sql {
       return null;
     }
 
-    // Si le chemin est plus long, continuer récursivement
     if (path.length === 1) {
       return association;
     }
 
-    // Pour les chemins imbriqués, on retourne juste la dernière association
-    // (pour simplifier, on suppose qu'on ne gère que les chemins simples pour l'instant)
-    return association;
+    // un EXISTS construit avec la mauvaise association filtrerait silencieusement à côté
+    throw new Error(`Nested association path '${path.join('.')}' is not supported in $or filters.`);
   }
 
   /**
@@ -1063,6 +1062,7 @@ module.exports = class PaginatedOptimizedSql extends Sql {
     const sqlConditions = [];
 
     _.forOwn(conditions, (value, key) => {
+      checkColumnName(key);
       let columnRef;
       if (key.indexOf('.') > -1) {
         const parts = key.split('.');

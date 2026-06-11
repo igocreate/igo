@@ -144,4 +144,13 @@ const compileExtraWhere = (extraWhere, tableRef, dialect, i) => {
   return { parts, params, i };
 };
 
-module.exports = { compileCondition, compileNotCondition, compileExtraWhere };
+// Column names are injected between escape chars in SQL: reject anything that could break out
+const RE_COLUMN_NAME = /^[A-Za-z0-9_.]+$/;
+const checkColumnName = (name) => {
+  if (!RE_COLUMN_NAME.test(name)) {
+    throw new Error(`Invalid column name in where clause: '${name}'`);
+  }
+  return name;
+};
+
+module.exports = { compileCondition, compileNotCondition, compileExtraWhere, checkColumnName };

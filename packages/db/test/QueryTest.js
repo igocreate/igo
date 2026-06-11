@@ -163,4 +163,55 @@ describe('db.Query', function() {
       }
     });
   });
+
+  describe('order/group/distinct/from validation', function() {
+
+    it('should accept identifier order clauses', function() {
+      const query = new Query(Folder).order('status DESC').order('`folders`.`id` ASC').order('applicant.last_name');
+      assert.strictEqual(query.query.order.length, 3);
+    });
+
+    it('should reject SQL expressions in order()', function() {
+      assert.throws(() => new Query(Folder).order('id; DROP TABLE folders'), /Invalid order/);
+      assert.throws(() => new Query(Folder).order('COALESCE(a, b) ASC'), /Invalid order/);
+      assert.throws(() => new Query(Folder).order('(SELECT 1)'), /Invalid order/);
+    });
+
+    it('should accept SQL expressions via orderRaw()', function() {
+      const query = new Query(Folder).orderRaw('COALESCE(a, b) ASC');
+      assert.strictEqual(query.query.order.length, 1);
+    });
+
+    it('should reject invalid group/distinct/from clauses', function() {
+      assert.throws(() => new Query(Folder).group('a; --'), /Invalid group/);
+      assert.throws(() => new Query(Folder).distinct('a`b'), /Invalid distinct/);
+      assert.throws(() => new Query(Folder).from('folders; DROP TABLE folders'), /Invalid from/);
+    });
+  });
+
+  describe('_checkOptimizedCompatibility', function() {
+
+    it('should fall back when $or mixes main and joined tables', function() {
+      const query = mockGetDb(new Query(Folder).join('applicant')
+      .where({ $or: [{ status: 'A' }, { 'applicant.last_name': 'X' }] }));
+      assert.strictEqual(query._checkOptimizedCompatibility(), false);
+    });
+
+    it('should fall back when a $or branch mixes main and joined keys', function() {
+      const query = mockGetDb(new Query(Folder).join('applicant')
+      .where({ $or: [{ status: 'A', 'applicant.last_name': 'X' }, { 'applicant.last_name': 'Y' }] }));
+      assert.strictEqual(query._checkOptimizedCompatibility(), false);
+    });
+
+    it('should stay optimized for a $or on the main table only', function() {
+      const query = mockGetDb(new Query(Folder).join('applicant')
+      .where({ $or: [{ status: 'A' }, { status: 'B' }] }));
+      assert.strictEqual(query._checkOptimizedCompatibility(), true);
+    });
+
+    it('should detect raw where on join aliases even without quoting', function() {
+      const query = mockGetDb(new Query(Folder).join('applicant').where('applicant.last_name = 1'));
+      assert.strictEqual(query._checkOptimizedCompatibility(), false);
+    });
+  });
 });
