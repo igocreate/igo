@@ -1,3 +1,5 @@
+const fs          = require('fs');
+
 const _           = require('lodash');
 const qs          = require('qs');
 const multiparty  = require('multiparty');
@@ -5,6 +7,7 @@ const multiparty  = require('multiparty');
 const config      = require('../config');
 
 const RE_MIME = /^(?:multipart\/.+)$/i;
+const DEFAULT_OPTIONS = { maxFilesSize: 50 * 1024 * 1024 };
 const mime = function(req) {
   let str = req.headers['content-type'] || '';
   return str.split(';')[0];
@@ -31,13 +34,21 @@ module.exports = function(req, res, next) {
     return next();
   }
 
-  const form = new multiparty.Form(config.multiparty || {});
+  const form = new multiparty.Form({ ...DEFAULT_OPTIONS, ...config.multiparty });
 
   form.parse(req, function(err, fields, files) {
     if (err) {
       req.upload_err = err;
       return next();
     }
+
+    // multiparty never deletes its temp files: remove leftovers once the response is done
+    // (apps must copy/move files they want to keep before the response ends)
+    const paths = _.flatten(_.values(files)).map(file => file.path);
+    res.on('close', () => {
+      paths.forEach(p => fs.unlink(p, () => {}));
+    });
+
     req.files = format(files, true);
     req.body  = format(fields);
     next();

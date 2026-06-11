@@ -6,6 +6,9 @@ if (process.env.NODE_ENV !== 'production') {
 const config    = {};
 module.exports  = config;
 
+const DEFAULT_COOKIE_SECRET = 'abcdefghijklmnopqrstuvwxyz';
+const DEFAULT_SESSION_KEY   = 'aaaaaaaaaaa';
+
 //
 module.exports.init = function() {
 
@@ -18,10 +21,10 @@ module.exports.init = function() {
   config.httpport       = process.env.HTTP_PORT || 3000;
   config.projectRoot    = process.cwd();
 
-  config.cookieSecret  = process.env.COOKIE_SECRET || 'abcdefghijklmnopqrstuvwxyz';
+  config.cookieSecret  = process.env.COOKIE_SECRET || DEFAULT_COOKIE_SECRET;
   config.cookieSession = {
     name: 'app',
-    keys: process.env.COOKIE_SESSION_KEYS ? process.env.COOKIE_SESSION_KEYS.split(',') : [ 'aaaaaaaaaaa' ],
+    keys: process.env.COOKIE_SESSION_KEYS ? process.env.COOKIE_SESSION_KEYS.split(',') : [ DEFAULT_SESSION_KEY ],
     maxAge: 31 * 24 * 60 * 60 * 1000, // 31 days
     sameSite: 'Lax'
   };
@@ -137,4 +140,15 @@ module.exports.init = function() {
     }
   });
 
+};
+
+// default secrets make sessions forgeable: refuse to start the server with them in production
+module.exports.checkSecrets = function() {
+  if (config.env !== 'production') {
+    return;
+  }
+  const defaultKeys = !config.cookieSessionMiddleware && config.cookieSession.keys.indexOf(DEFAULT_SESSION_KEY) > -1;
+  if (config.cookieSecret === DEFAULT_COOKIE_SECRET || defaultKeys) {
+    throw new Error('Default cookie secrets cannot be used in production: set COOKIE_SECRET and COOKIE_SESSION_KEYS');
+  }
 };

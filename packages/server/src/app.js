@@ -43,6 +43,7 @@ module.exports.configure = async () => {
 
   // Initialize config (idempotent, safe to call multiple times)
   await config.init();
+  config.checkSecrets();
 
   // Initialize @igojs/db with injected dependencies
   const utils = require('./utils');
