@@ -1,6 +1,7 @@
 const assert = require('assert');
 
-const PaginatedOptimizedQuery = require('@igojs/db').PaginatedOptimizedQuery;
+const Query = require('@igojs/db').Query;
+const PaginatedOptimized = require('../../src/executors/PaginatedOptimized');
 const PaginatedOptimizedSql = require('@igojs/db').PaginatedOptimizedSql;
 const Model = require('@igojs/db').Model;
 
@@ -19,7 +20,48 @@ const mockGetDb = (query) => {
   return query;
 };
 
-describe('db.PaginatedOptimizedQuery', function() {
+// expand a dotted join string ('a.b.c') into the nested-object form Query.join() understands
+const expandJoin = (assoc) => {
+  if (Array.isArray(assoc)) {
+    return assoc.map(expandJoin);
+  }
+  if (typeof assoc === 'string' && assoc.includes('.')) {
+    const parts = assoc.split('.');
+    let nested = parts[parts.length - 1];
+    for (let i = parts.length - 2; i >= 0; i--) {
+      nested = { [parts[i]]: nested };
+    }
+    return nested;
+  }
+  return assoc;
+};
+
+// Test probe: drives a standard Query through PaginatedOptimized, exposing the per-phase
+// SQL (countSQL / idsSQL depending on query.verb). Mirrors the builder surface the SQL assertions
+// rely on, so production code carries no builder of its own.
+class OptimizedProbe {
+  constructor(ModelClass) {
+    this.source = mockGetDb(new Query(ModelClass));
+    this.query  = this.source.query;
+  }
+  get schema()      { return this.source.schema; }
+  getDb()           { return this.source.getDb(); }
+  where(w, p)       { this.source.where(w, p); return this; }
+  whereNot(w)       { this.source.whereNot(w); return this; }
+  join(a)           { this.source.join(expandJoin(a)); return this; }
+  order(o)          { this.source.order(o); return this; }
+  orderRaw(o)       { this.source.orderRaw(o); return this; }
+  limit(n)          { this.source.limit(n); return this; }
+  offset(n)         { this.source.offset(n); return this; }
+  page(p, n)        { this.source.page(p, n); return this; }
+  toSQL() {
+    const runner = new PaginatedOptimized(this.source);
+    return this.query.verb === 'select_ids' ? runner.idsSQL() : runner.countSQL();
+  }
+}
+const newOptimized = (ModelClass) => new OptimizedProbe(ModelClass);
+
+describe('db.PaginatedOptimized', function() {
 
   class Country extends Model({
     table: 'countries',
@@ -263,7 +305,7 @@ describe('db.PaginatedOptimizedQuery', function() {
   // -------------------------------------------------------
   describe('Unit operators on main table', function() {
     it('should generate equality condition', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ status: 'SUBMITTED' });
       const { sql, params } = query.toSQL();
@@ -273,7 +315,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should generate IS NULL', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ applicant_id: null });
       const { sql, params } = query.toSQL();
@@ -283,7 +325,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should generate IN for array values', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ status: ['SUBMITTED', 'VALIDATED'] });
       const { sql, params } = query.toSQL();
@@ -293,7 +335,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should generate FALSE for empty array', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ status: [] });
       const { sql, params } = query.toSQL();
@@ -303,7 +345,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should generate explicit $like', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ status: { $like: 'TRANS%' } });
       const { sql, params } = query.toSQL();
@@ -313,7 +355,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should treat string with % as equality (no implicit LIKE)', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ status: 'TRANS%' });
       const { sql, params } = query.toSQL();
@@ -323,7 +365,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should generate $between', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ created_at: { $between: ['2024-01-01', '2024-12-31'] } });
       const { sql, params } = query.toSQL();
@@ -341,7 +383,7 @@ describe('db.PaginatedOptimizedQuery', function() {
       ];
 
       for (const { op, symbol } of operators) {
-        const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+        const query = newOptimized(Folder);
         query.query.verb = 'count';
         query.where({ created_at: { [op]: '2024-01-01' } });
         const { sql, params } = query.toSQL();
@@ -357,7 +399,7 @@ describe('db.PaginatedOptimizedQuery', function() {
   // -------------------------------------------------------
   describe('Logical operators', function() {
     it('should generate implicit AND', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ status: 'SUBMITTED', type: 'agp' });
       const { sql, params } = query.toSQL();
@@ -367,7 +409,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should generate explicit $and', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ $and: [{ status: 'SUBMITTED' }, { type: 'agp' }] });
       const { sql, params } = query.toSQL();
@@ -377,7 +419,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should generate simple $or', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ $or: [{ applicant_id: null }, { pme_folder_id: null }] });
       const { sql, params } = query.toSQL();
@@ -387,7 +429,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should generate $or with sibling condition (implicit AND)', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({
         status: 'TRANSMIS',
@@ -400,7 +442,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should generate $or with implicit AND inside one branch', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({
         $or: [
@@ -415,7 +457,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should generate nested $or / $and at 3 levels', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({
         type: 'agp',
@@ -439,7 +481,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should not produce WHERE clause for empty where({})', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({});
       const { sql, params } = query.toSQL();
@@ -454,7 +496,7 @@ describe('db.PaginatedOptimizedQuery', function() {
   // -------------------------------------------------------
   describe('EXISTS joins', function() {
     it('should generate 1-level EXISTS', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ status: 'SUBMITTED', 'applicant.last_name': { $like: 'Dupont%' } });
       const { sql, params } = query.toSQL();
@@ -464,7 +506,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should group conditions on the same table into one EXISTS', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ 'applicant.last_name': { $like: 'Dupont%' }, 'applicant.email': 'test@test.com' });
       const { sql, params } = query.toSQL();
@@ -474,7 +516,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should generate 2 separate EXISTS for 2 different joined tables', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ 'applicant.last_name': { $like: 'Dupont%' }, 'pme_folder.status': 'ACTIVE' });
       const { sql, params } = query.toSQL();
@@ -484,7 +526,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should generate deeply nested EXISTS (3 levels)', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ 'pme_folder.company.country.code': 'FR' });
       const { sql, params } = query.toSQL();
@@ -494,7 +536,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should generate OR-ed EXISTS for $or with joined table conditions', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({
         $or: [
@@ -509,7 +551,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should consolidate multiple $or conditions on the same relation into a single EXISTS', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({
         $or: [
@@ -525,7 +567,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should group conditions by relation: one EXISTS per relation, OR-joined', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({
         $or: [
@@ -542,7 +584,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should include extraWhere in EXISTS clause', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(BookWithExtraWhere));
+      const query = newOptimized(BookWithExtraWhere);
       query.query.verb = 'count';
       query.where({ 'library.title': { $like: 'Test%' } });
       const { sql, params } = query.toSQL();
@@ -557,7 +599,7 @@ describe('db.PaginatedOptimizedQuery', function() {
   // -------------------------------------------------------
   describe('COUNT and IDS phase optimizations', function() {
     it('COUNT should have no LEFT JOIN, no ORDER BY, and use EXISTS for filters', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ type: 'agp', 'applicant.last_name': { $like: 'Dupont%' } })
       .order('applicants.last_name ASC')
@@ -569,7 +611,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('IDS should SELECT only id, use EXISTS, ORDER BY + LIMIT, and no LEFT JOIN when sort is on main table', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'select_ids';
       query.where({ type: 'agp', 'applicant.last_name': { $like: 'Dupont%' } })
       .order('folders.created_at DESC')
@@ -586,7 +628,7 @@ describe('db.PaginatedOptimizedQuery', function() {
   // -------------------------------------------------------
   describe('Sort on joined tables', function() {
     it('should add LEFT JOIN when sorting on a joined table column', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'select_ids';
       query.where({ type: 'agp' }).order('applicants.last_name ASC').limit(50);
       const { sql, params } = query.toSQL();
@@ -596,7 +638,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should add cascading LEFT JOINs for nested sort path', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'select_ids';
       query.where({ type: 'pme' }).order('pme_folder.company.name ASC').limit(50);
       const { sql, params } = query.toSQL();
@@ -606,7 +648,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should alias a self-referential join when sorting on the parent', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(ClientNode));
+      const query = newOptimized(ClientNode);
       query.query.verb = 'select_ids';
       query.join('parent').order('`parent`.`name` DESC').limit(50);
       const { sql, params } = query.toSQL();
@@ -616,7 +658,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should not add any JOIN when sorting on main table column', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'select_ids';
       query.where({ type: 'agp' }).order('folders.created_at DESC').limit(50);
       const { sql, params } = query.toSQL();
@@ -626,7 +668,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should transform association name to table name in ORDER BY', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'select_ids';
       query.where({ type: 'agp' }).order('pme_folder.company.name ASC').join('pme_folder.company').limit(50);
       const { sql, params } = query.toSQL();
@@ -636,7 +678,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should preserve SQL functions (COALESCE, CONCAT, IFNULL) in ORDER BY', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'select_ids';
       query.where({ type: 'agp' }).join('applicant')
       .orderRaw('COALESCE(`applicant`.`last_name`, `applicant`.`first_name`) ASC')
@@ -648,7 +690,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should be idempotent when transforming paths (_transformSinglePath)', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       const sqlGenerator = new PaginatedOptimizedSql(query);
 
       const transformed1 = sqlGenerator._transformSinglePath('applicant.last_name');
@@ -665,7 +707,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     // and mangles the CASE into invalid SQL like "name END ASC, clients.first_name", producing
     // a MySQL syntax error at the FULL phase of paginated queries.
     it('should preserve CASE expression with trailing column in ORDER BY (FULL phase)', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       const sqlGenerator = new PaginatedOptimizedSql(query);
       const orderClause = 'CASE `folders`.`type` WHEN \'P\' THEN `folders`.`status` ELSE `folders`.`created_at` END ASC, `folders`.`id`';
 
@@ -685,7 +727,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should preserve CASE-only ORDER BY clause (FULL phase)', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       const sqlGenerator = new PaginatedOptimizedSql(query);
       const orderClause = 'CASE `folders`.`type` WHEN \'P\' THEN `folders`.`status` ELSE `folders`.`created_at` END ASC';
 
@@ -702,7 +744,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should transform association paths inside CASE (IDS phase)', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       const sqlGenerator = new PaginatedOptimizedSql(query);
       const orderClause = 'CASE `folders`.`type` WHEN \'P\' THEN `applicant`.`last_name` ELSE `applicant`.`first_name` END ASC';
 
@@ -715,7 +757,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should handle multi-clause ORDER BY with comma (IDS phase)', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       const sqlGenerator = new PaginatedOptimizedSql(query);
 
       const transformed = sqlGenerator._transformOrderClause(
@@ -729,7 +771,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should handle multi-clause ORDER BY with comma (FULL phase)', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       const sqlGenerator = new PaginatedOptimizedSql(query);
 
       const transformed = sqlGenerator._transformOrderClauseForFullQuery(
@@ -743,7 +785,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should transform paths inside IF() (IDS phase)', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       const sqlGenerator = new PaginatedOptimizedSql(query);
 
       const transformed = sqlGenerator._transformOrderClause(
@@ -757,7 +799,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should transform paths inside NULLIF() (IDS phase)', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       const sqlGenerator = new PaginatedOptimizedSql(query);
 
       const transformed = sqlGenerator._transformOrderClause(
@@ -771,7 +813,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should handle arithmetic expressions with block columns (IDS phase)', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      const query = newOptimized(PMEFolderWithBlocks);
       const sqlGenerator = new PaginatedOptimizedSql(query);
 
       const transformed = sqlGenerator._transformOrderClause('studies_year + bac_year DESC');
@@ -780,7 +822,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should preserve CASE keyword and transform block columns (IDS phase)', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      const query = newOptimized(PMEFolderWithBlocks);
       const sqlGenerator = new PaginatedOptimizedSql(query);
 
       const transformed = sqlGenerator._transformOrderClause(
@@ -802,7 +844,7 @@ describe('db.PaginatedOptimizedQuery', function() {
   // -------------------------------------------------------
   describe('Block tables', function() {
     it('should add LEFT JOIN and prefix ORDER BY for a block column', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      const query = newOptimized(PMEFolderWithBlocks);
       query.query.verb = 'select_ids';
       query.where({ is_initial: true }).order('studies_year DESC').limit(50);
       const { sql, params } = query.toSQL();
@@ -812,7 +854,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should deduplicate LEFT JOINs when multiple columns from the same block', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      const query = newOptimized(PMEFolderWithBlocks);
       query.query.verb = 'select_ids';
       query.where({ is_initial: true }).order('studies_year DESC').order('bac_year ASC').limit(50);
       const { sql, params } = query.toSQL();
@@ -822,7 +864,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should add separate LEFT JOINs for columns from different blocks', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      const query = newOptimized(PMEFolderWithBlocks);
       query.query.verb = 'select_ids';
       query.where({ is_initial: true }).order('studies_year DESC').order('destination ASC').limit(50);
       const { sql, params } = query.toSQL();
@@ -832,7 +874,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should not add JOIN when sorting on a main table column', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      const query = newOptimized(PMEFolderWithBlocks);
       query.query.verb = 'select_ids';
       query.where({ is_initial: true }).order('professional_activity DESC').limit(50);
       const { sql, params } = query.toSQL();
@@ -842,7 +884,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should add LEFT JOIN for unprefixed column found in explicitly joined table', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'select_ids';
       query.join('applicant');
       query.where({ type: 'agp' }).order('first_name ASC').limit(50);
@@ -853,7 +895,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should handle nested path 3 levels (folder -> pme_folder -> block_study)', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(FolderWithNestedBlocks));
+      const query = newOptimized(FolderWithNestedBlocks);
       query.query.verb = 'select_ids';
       query.where({ type: ['agp', 'avt'] }).order('pme_folder.block_study.bac_year DESC').limit(50);
       const { sql, params } = query.toSQL();
@@ -863,7 +905,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should transform nested path correctly for FULL phase (alias vs table name)', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(FolderWithNestedBlocks));
+      const query = newOptimized(FolderWithNestedBlocks);
       query.where({ type: ['agp', 'avt'] }).order('pme_folder.block_study.bac_year').limit(50);
 
       const sqlGenerator = new PaginatedOptimizedSql(query);
@@ -874,13 +916,13 @@ describe('db.PaginatedOptimizedQuery', function() {
       const fullTransform = sqlGenerator._transformOrderClauseForFullQuery('pme_folder.block_study.bac_year');
       assert.strictEqual(fullTransform, 'block_study.bac_year');
 
-      const queryBlocks = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      const queryBlocks = newOptimized(PMEFolderWithBlocks);
       const sqlGenBlocks = new PaginatedOptimizedSql(queryBlocks);
       assert.strictEqual(sqlGenBlocks._transformOrderClauseForFullQuery('studies_year'), 'studies.studies_year');
     });
 
     it('should handle COALESCE with block column', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(PMEFolderWithBlocks));
+      const query = newOptimized(PMEFolderWithBlocks);
       query.query.verb = 'select_ids';
       query.where({ is_initial: true }).orderRaw('COALESCE(`studies_year`, "N/A") DESC').limit(50);
       const { sql, params } = query.toSQL();
@@ -914,14 +956,14 @@ describe('db.PaginatedOptimizedQuery', function() {
   describe('$or filter join errors', function() {
 
     it('should throw when a $or filter references an unknown association', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'select_ids';
       query.where({ $or: [{ 'unknown.x': 1 }, { 'unknown.y': 2 }] }).limit(50);
       assert.throws(() => query.toSQL(), /Missing association 'unknown'/);
     });
 
     it('should throw on nested association paths in $or filters', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(Folder));
+      const query = newOptimized(Folder);
       query.query.verb = 'select_ids';
       query.where({ $or: [{ 'pme_folder.company.name': 'a' }, { 'pme_folder.company.siret': 'b' }] }).limit(50);
       assert.throws(() => query.toSQL(), /Nested association path 'pme_folder.company'/);
@@ -930,7 +972,7 @@ describe('db.PaginatedOptimizedQuery', function() {
 
   describe('extraWhere on associations', function() {
     it('should apply extraWhere in LEFT JOIN condition (verb select_ids)', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(BookWithExtraWhere));
+      const query = newOptimized(BookWithExtraWhere);
       query.query.verb = 'select_ids';
       query.where({ code: 'ABC' }).order('library.title ASC').limit(50);
       const { sql, params } = query.toSQL();
@@ -940,7 +982,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should apply extraWhere in both EXISTS and LEFT JOIN when combined', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(BookWithExtraWhere));
+      const query = newOptimized(BookWithExtraWhere);
       query.query.verb = 'select_ids';
       query.where({ code: 'ABC', 'library.title': { $like: 'Test%' } }).order('library.title ASC').limit(50);
       const { sql, params } = query.toSQL();
@@ -950,7 +992,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('COUNT should not include LEFT JOIN even with extraWhere sort', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(BookWithExtraWhere));
+      const query = newOptimized(BookWithExtraWhere);
       query.query.verb = 'count';
       query.where({ code: 'ABC' }).order('library.title ASC');
       const { sql, params } = query.toSQL();
@@ -960,7 +1002,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should apply multiple extraWhere conditions', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(BookWithMultipleExtraWhere));
+      const query = newOptimized(BookWithMultipleExtraWhere);
       query.query.verb = 'count';
       query.where({ 'library.title': { $like: 'Test%' } });
       const { sql, params } = query.toSQL();
@@ -970,7 +1012,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should render extraWhere with null value as IS NULL in simple EXISTS', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(BookWithNullExtraWhere));
+      const query = newOptimized(BookWithNullExtraWhere);
       query.query.verb = 'count';
       query.where({ 'library.title': { $like: 'Test%' } });
       const { sql, params } = query.toSQL();
@@ -980,7 +1022,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should render extraWhere with null value as IS NULL in LEFT JOIN sort', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(BookWithNullExtraWhere));
+      const query = newOptimized(BookWithNullExtraWhere);
       query.query.verb = 'select_ids';
       query.where({ code: 'ABC' }).order('library.title ASC').limit(50);
       const { sql, params } = query.toSQL();
@@ -990,7 +1032,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should render extraWhere with null value as IS NULL in nested EXISTS', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(BookWithNestedNullExtra));
+      const query = newOptimized(BookWithNestedNullExtra);
       query.query.verb = 'count';
       query.where({ 'library.author.name': 'Hugo' });
       const { sql, params } = query.toSQL();
@@ -1000,7 +1042,7 @@ describe('db.PaginatedOptimizedQuery', function() {
     });
 
     it('should render extraWhere with null value as IS NULL in OR-group EXISTS', () => {
-      const query = mockGetDb(new PaginatedOptimizedQuery(BookWithNullExtraWhere));
+      const query = newOptimized(BookWithNullExtraWhere);
       query.query.verb = 'count';
       query.where({
         $or: [

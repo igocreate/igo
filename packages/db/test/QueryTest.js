@@ -6,7 +6,7 @@ const _         = require('lodash');
 
 const Query     = require('@igojs/db').Query;
 const Model     = require('@igojs/db').Model;
-const PaginatedOptimizedQuery = require('@igojs/db').PaginatedOptimizedQuery;
+const PaginatedOptimized = require('../src/executors/PaginatedOptimized');
 
 const mockGetDb = (query) => {
   query.getDb = () => ({
@@ -65,17 +65,17 @@ describe('db.Query', function() {
       query.page(1, 25);
 
       let optimizedCalled = false;
-      const original = PaginatedOptimizedQuery.prototype.executeOptimized;
-      PaginatedOptimizedQuery.prototype.executeOptimized = async function() {
+      const original = PaginatedOptimized.prototype.run;
+      PaginatedOptimized.prototype.run = async function() {
         optimizedCalled = true;
         return { pagination: {}, rows: [] };
       };
 
       try {
         await query.execute();
-        assert.ok(optimizedCalled, 'executeOptimized should be called when page + joins are present');
+        assert.ok(optimizedCalled, 'run should be called when page + joins are present');
       } finally {
-        PaginatedOptimizedQuery.prototype.executeOptimized = original;
+        PaginatedOptimized.prototype.run = original;
       }
     });
 
@@ -86,8 +86,8 @@ describe('db.Query', function() {
       query.page(1, 25);
 
       let capturedQuery = null;
-      const original = PaginatedOptimizedQuery.prototype.executeOptimized;
-      PaginatedOptimizedQuery.prototype.executeOptimized = async function() {
+      const original = PaginatedOptimized.prototype.run;
+      PaginatedOptimized.prototype.run = async function() {
         capturedQuery = this.query;
         return { pagination: {}, rows: [] };
       };
@@ -102,7 +102,7 @@ describe('db.Query', function() {
         );
         assert.ok(!whereHasDotPath, 'dot-path conditions should NOT remain in where');
       } finally {
-        PaginatedOptimizedQuery.prototype.executeOptimized = original;
+        PaginatedOptimized.prototype.run = original;
       }
     });
 
@@ -118,17 +118,17 @@ describe('db.Query', function() {
       query.page(1, 25);
 
       let optimizedCalled = false;
-      const original = PaginatedOptimizedQuery.prototype.executeOptimized;
-      PaginatedOptimizedQuery.prototype.executeOptimized = async function() {
+      const original = PaginatedOptimized.prototype.run;
+      PaginatedOptimized.prototype.run = async function() {
         optimizedCalled = true;
         return { pagination: {}, rows: [] };
       };
 
       try {
         await query.execute();
-        assert.ok(!optimizedCalled, 'executeOptimized should NOT be called without joins');
+        assert.ok(!optimizedCalled, 'run should NOT be called without joins');
       } finally {
-        PaginatedOptimizedQuery.prototype.executeOptimized = original;
+        PaginatedOptimized.prototype.run = original;
         Query.prototype.getDb = originalGetDb;
         Query.prototype.runQuery = originalRunQuery;
       }
@@ -147,17 +147,17 @@ describe('db.Query', function() {
       Query.prototype.runQuery = async () => [];
 
       let optimizedCalled = false;
-      const original = PaginatedOptimizedQuery.prototype.executeOptimized;
-      PaginatedOptimizedQuery.prototype.executeOptimized = async function() {
+      const original = PaginatedOptimized.prototype.run;
+      PaginatedOptimized.prototype.run = async function() {
         optimizedCalled = true;
         return { pagination: {}, rows: [] };
       };
 
       try {
         await query.execute();
-        assert.ok(!optimizedCalled, 'executeOptimized should NOT be called for delete');
+        assert.ok(!optimizedCalled, 'run should NOT be called for delete');
       } finally {
-        PaginatedOptimizedQuery.prototype.executeOptimized = original;
+        PaginatedOptimized.prototype.run = original;
         Query.prototype.getDb = originalGetDb;
         Query.prototype.runQuery = originalRunQuery;
       }

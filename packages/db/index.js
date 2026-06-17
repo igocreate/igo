@@ -22,6 +22,5 @@ module.exports = {
   get migrations() { return require('./src/migrations'); },
   get DataTypes() { return require('./src/DataTypes'); },
   get CacheStats() { return require('./src/CacheStats'); },
-  get PaginatedOptimizedQuery() { return require('./src/PaginatedOptimizedQuery'); },
   get PaginatedOptimizedSql() { return require('./src/PaginatedOptimizedSql'); },
 };

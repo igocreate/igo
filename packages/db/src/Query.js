@@ -4,6 +4,7 @@ const _         = require('lodash');
 const Sql       = require('./Sql');
 const dbs       = require('./dbs');
 const context   = require('./context');
+const { cloneQuery } = require('./QueryUtils');
 
 const DataTypes = require('./DataTypes');
 
@@ -192,25 +193,8 @@ module.exports = class Query {
     return this;
   }
 
-  // cheap clone: copy the mutable containers, keep schemas/models/conditions by reference
-  // (cloning the schema graph deeply is expensive and breaks identity lookups)
   _cloneQuery() {
-    const { query } = this;
-    const clone = {
-      ...query,
-      where:    query.where.slice(),
-      whereNot: query.whereNot.slice(),
-      joins:    query.joins.slice(),
-      order:    query.order.slice(),
-      scopes:   query.scopes.slice(),
-      unscopes: query.unscopes.slice(),
-      includes: { ...query.includes },
-      options:  { ...query.options },
-    };
-    if (query.filterJoins) {
-      clone.filterJoins = query.filterJoins.slice();
-    }
-    return clone;
+    return cloneQuery(this.query);
   }
 
   // COUNT
@@ -462,33 +446,6 @@ module.exports = class Query {
     return sql;
   }
 
-  // build the pagination object from a count (page/offset must already be final)
-  _buildPagination(count) {
-    const { query } = this;
-    const nb_pages  = Math.ceil(count / query.nb);
-    const page      = query.page;
-
-    const links = [];
-    const start = Math.max(1, page - 5);
-    for (let i = 0; i < 10; i++) {
-      const p = start + i;
-      if (p <= nb_pages) {
-        links.push({ page: p, current: page === p });
-      }
-    }
-    return {
-      page,
-      nb:       query.nb,
-      previous: page > 1 ? page - 1 : null,
-      next:     page < nb_pages ? page + 1 : null,
-      start:    query.offset + 1,
-      end:      query.offset + Math.min(query.nb, count - query.offset),
-      nb_pages,
-      count,
-      links,
-    };
-  }
-
   //
   async loadAssociation(include, rows) {
 
@@ -572,12 +529,11 @@ module.exports = class Query {
       row[attr] = _.chain(value).flatMap(id => objsByKey[id]).compact().value();
     });
   }
-  //
+  // Finalize the build, then hand off to an execution runner:
+  // executors/PaginatedOptimized for compatible paginated joins, executors/Standard otherwise.
   async execute() {
     const { query, schema } = this;
-    const db                = this.getDb();
-    const { dialect }       = db.driver;
-    const { esc }           = dialect;
+    const { esc }           = this.getDb().driver.dialect;
 
     if (schema.scopes) {
       this.applyScopes();
@@ -597,121 +553,17 @@ module.exports = class Query {
       query.limit = 1;
     }
 
-    // Auto-activation du mode optimisé : pagination + joins → pattern 3 phases
+    // Paginated query with joins → 3-phase COUNT/IDS/FULL strategy when compatible
     if (query.verb === 'select' && query.page && query.joins.length > 0) {
-      if (!this._checkOptimizedCompatibility()) {
-        context.logger.warn(`[Query] Optimized pagination skipped for '${query.table}': unsupported clauses (join columns, raw where on join aliases, or $or mixing main and joined tables).`);
-      } else {
-        const PaginatedOptimizedQuery = require('./PaginatedOptimizedQuery');
-        return await PaginatedOptimizedQuery.fromQuery(this).executeOptimized();
+      if (this._checkOptimizedCompatibility()) {
+        const PaginatedOptimized = require('./executors/PaginatedOptimized');
+        return await new PaginatedOptimized(this).run();
       }
+      context.logger.warn(`[Query] Optimized pagination skipped for '${query.table}': unsupported clauses (join columns, raw where on join aliases, or $or mixing main and joined tables).`);
     }
 
-    let pagination = null;
-    let rows;
-
-    if (query.page) {
-      // COUNT and SELECT run in parallel, assuming the requested page is in range;
-      // when it is not (rare), re-run the SELECT with the clamped page
-      query.offset = (query.page - 1) * query.nb;
-      query.limit  = query.nb;
-      let count;
-      [count, rows] = await Promise.all([this.count(), this.runQuery()]);
-      const page = Math.min(query.page, Math.max(Math.ceil(count / query.nb), 1));
-      if (page !== query.page) {
-        query.page   = page;
-        query.offset = (page - 1) * query.nb;
-        rows = await this.runQuery();
-      }
-      pagination = this._buildPagination(count);
-    } else {
-      rows = await this.runQuery();
-    }
-
-    if (rows === null) {
-      return null;
-    }
-
-    if (query.verb === 'insert') {
-      const insertId = dialect.insertId(rows);
-      return { insertId };
-    } else if (query.verb !== 'select') {
-      return rows;
-    }
-
-    if (query.distinct || query.group) {
-      return rows;
-    } else if (query.limit === 1 && (!rows || rows.length === 0)) {
-      return null;
-    } else if (query.verb === 'select') {
-      rows = _.each(rows, row => {
-        schema.parseTypes(row);
-
-        // parse joins values
-        _.forEach(this.query.joins, (join) => {
-          const { src_schema: _src_schema, association } = join;
-          const [_assoc_type, name, Obj, _src_column, _column] = association;
-          Obj.schema.parseTypes(row, `${name}__`);
-        });
-      });
-    }
-
-    if (query.verb === 'select') {
-      rows = _.map(rows, row => {
-        const instance = this.newInstance(row);
-
-        if (this.query.joins.length === 0) {
-          return instance;
-        }
-
-        const createdInstances = new Map();
-        createdInstances.set(this.schema, instance);
-
-        _.forEach(this.query.joins, (join) => {
-          const { src_schema, association } = join;
-          const [_assoc_type, name, Obj, _src_column, _column] = association;
-          const table_alias = name;
-
-          const params = {};
-          Obj.schema.columns.forEach(col => {
-            const alias = `${table_alias}__${col.attr}`;
-            params[col.attr] = row[alias];
-            delete instance[alias];
-          });
-
-          const joinInstance = this.newInstance(params, Obj);
-
-          const parentInstance = createdInstances.get(src_schema);
-
-          if (parentInstance) {
-            parentInstance[name] = joinInstance || null;
-            if (joinInstance) {
-              createdInstances.set(Obj.schema, joinInstance);
-            }
-          }
-        });
-
-        return instance;
-      });
-    }
-
-    // Load associations level by level: same-depth includes are independent and run in
-    // parallel; dotted includes read attributes set by their parent include
-    const includesByDepth = _.groupBy(_.keys(query.includes), key => key.split('.').length);
-    for (const depth of _.keys(includesByDepth).sort((a, b) => a - b)) {
-      await Promise.all(includesByDepth[depth].map(include => this.loadAssociation(include, rows)));
-    }
-
-    if (pagination) {
-      return { pagination, rows };
-    }
-
-    if (query.limit === 1) {
-      return rows[0];
-    }
-
-    return rows;
-
+    const Standard = require('./executors/Standard');
+    return await new Standard(this).run();
   }
 
   // run the query
