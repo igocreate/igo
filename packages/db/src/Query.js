@@ -347,10 +347,15 @@ module.exports = class Query {
     return await this.where(id).first();
   }
 
-  // ORDER BY
-  order(order) {
-    checkIdentifier(order, RE_ORDER, 'order', ' Use orderRaw() for SQL expressions.');
-    this.query.order.push(order);
+  // ORDER BY — accepts 'a, b', multiple args, or arrays; each column is validated
+  order(...orders) {
+    _.chain(orders).flattenDeep().forEach((order) => {
+      _.forEach(String(order).split(','), (col) => {
+        const trimmed = col.trim();
+        checkIdentifier(trimmed, RE_ORDER, 'order', ' Use orderRaw() for SQL expressions.');
+        this.query.order.push(trimmed);
+      });
+    }).value();
     return this;
   }
 
