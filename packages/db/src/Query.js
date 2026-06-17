@@ -21,6 +21,15 @@ const checkIdentifier = (value, re, method, hint = '') => {
   return value;
 };
 
+// flatten args/arrays, split comma lists, validate + trim each column
+const splitColumns = (columns, re, method, hint = '') => {
+  return _.chain(columns)
+  .flattenDeep()
+  .flatMap(column => String(column).split(','))
+  .map(column => checkIdentifier(column.trim(), re, method, hint))
+  .value();
+};
+
 //
 const merge = (includes, includeParam) => {
   // console.dir({MERGE: { includes, includeParam}}, { depth: 99 });
@@ -349,13 +358,8 @@ module.exports = class Query {
 
   // ORDER BY — accepts 'a, b', multiple args, or arrays; each column is validated
   order(...orders) {
-    _.chain(orders).flattenDeep().forEach((order) => {
-      _.forEach(String(order).split(','), (col) => {
-        const trimmed = col.trim();
-        checkIdentifier(trimmed, RE_ORDER, 'order', ' Use orderRaw() for SQL expressions.');
-        this.query.order.push(trimmed);
-      });
-    }).value();
+    const cols = splitColumns(orders, RE_ORDER, 'order', ' Use orderRaw() for SQL expressions.');
+    this.query.order.push(...cols);
     return this;
   }
 
@@ -365,17 +369,15 @@ module.exports = class Query {
     return this;
   }
 
-  // DISTINCT
-  distinct(columns) {
-    this.query.distinct = _.castArray(columns);
-    _.forEach(this.query.distinct, column => checkIdentifier(column, RE_IDENT, 'distinct'));
+  // DISTINCT — accepts 'a, b', multiple args, or arrays; each column is validated
+  distinct(...columns) {
+    this.query.distinct = splitColumns(columns, RE_IDENT_PATH, 'distinct');
     return this;
   }
 
-  // GROUP
-  group(columns) {
-    this.query.group = _.castArray(columns);
-    _.forEach(this.query.group, column => checkIdentifier(column, RE_IDENT_PATH, 'group'));
+  // GROUP — accepts 'a, b', multiple args, or arrays; each column is validated
+  group(...columns) {
+    this.query.group = splitColumns(columns, RE_IDENT_PATH, 'group');
     return this;
   }
 

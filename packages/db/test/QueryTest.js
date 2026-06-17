@@ -187,6 +187,33 @@ describe('db.Query', function() {
       assert.throws(() => new Query(Folder).distinct('a`b'), /Invalid distinct/);
       assert.throws(() => new Query(Folder).from('folders; DROP TABLE folders'), /Invalid from/);
     });
+
+    it('should accept comma lists, multiple args and arrays in order()', function() {
+      assert.strictEqual(new Query(Folder).order('first_name, last_name').query.order.length, 2);
+      assert.strictEqual(new Query(Folder).order('first_name', 'last_name DESC').query.order.length, 2);
+      assert.strictEqual(new Query(Folder).order(['first_name', 'last_name']).query.order.length, 2);
+      assert.deepStrictEqual(new Query(Folder).order('`created_at` DESC', 'id').query.order, ['`created_at` DESC', 'id']);
+    });
+
+    it('should accept comma lists, multiple args and arrays in group()', function() {
+      assert.deepStrictEqual(new Query(Folder).group('status, kind').query.group, ['status', 'kind']);
+      assert.deepStrictEqual(new Query(Folder).group('status', 'folders.kind').query.group, ['status', 'folders.kind']);
+      assert.deepStrictEqual(new Query(Folder).group(['status', 'kind']).query.group, ['status', 'kind']);
+    });
+
+    it('should accept comma lists, multiple args and arrays in distinct()', function() {
+      assert.deepStrictEqual(new Query(Folder).distinct('status, kind').query.distinct, ['status', 'kind']);
+      assert.deepStrictEqual(new Query(Folder).distinct('status', 'kind').query.distinct, ['status', 'kind']);
+      assert.deepStrictEqual(new Query(Folder).distinct(['status', 'kind']).query.distinct, ['status', 'kind']);
+      assert.deepStrictEqual(new Query(Folder).distinct('folders.status').query.distinct, ['folders.status']);
+    });
+
+    it('should reject SQL injection in group()/distinct() comma lists', function() {
+      assert.throws(() => new Query(Folder).group('id, (SELECT 1)'), /Invalid group/);
+      assert.throws(() => new Query(Folder).group('id, name; DROP TABLE folders'), /Invalid group/);
+      assert.throws(() => new Query(Folder).distinct('id, (SELECT password FROM users)'), /Invalid distinct/);
+      assert.throws(() => new Query(Folder).distinct('id) UNION SELECT 1--'), /Invalid distinct/);
+    });
   });
 
   describe('_checkOptimizedCompatibility', function() {

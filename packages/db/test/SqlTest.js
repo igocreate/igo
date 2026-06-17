@@ -47,6 +47,16 @@ describe('db.Sql', () => {
       assert.strictEqual('SELECT DISTINCT `type` FROM `books`', selectSQL.sql);
       assert.strictEqual(0, selectSQL.params.length);
     });
+
+    it('should allow distinct on multiple columns', () => {
+      const selectSQL = new Sql(freshQuery({ distinct: ['type', 'title'] }), dialect).selectSQL();
+      assert.strictEqual('SELECT DISTINCT `type`, `title` FROM `books`', selectSQL.sql);
+    });
+
+    it('should escape qualified distinct columns per segment', () => {
+      const selectSQL = new Sql(freshQuery({ distinct: ['books.type'] }), dialect).selectSQL();
+      assert.strictEqual('SELECT DISTINCT `books`.`type` FROM `books`', selectSQL.sql);
+    });
   });
 
   //

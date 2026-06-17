@@ -19,8 +19,10 @@ module.exports = class Sql {
     const params  = [];
 
     if (query.distinct) {
-      const joined = query.distinct.join(`${esc},${esc}`);
-      sql += `DISTINCT ${esc}${joined}${esc} `;
+      const joined = query.distinct.map(col =>
+        col.split('.').map(part => `${esc}${part}${esc}`).join('.')
+      ).join(', ');
+      sql += `DISTINCT ${joined} `;
     } else if (query.select) {
       let select_sql = query.select;
       _.each(query.joins, join => {

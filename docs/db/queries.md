@@ -109,15 +109,38 @@ const users = await User.select('*, YEAR(created_at) AS `year`').list();
 ## Order, Limit, Offset
 
 ```js
-const users = await User.order('`created_at` DESC').limit(10).list();
-const users = await User.order('`last_name` ASC').limit(10).offset(20).list();
+const users = await User.order('created_at DESC').limit(10).list();
+const users = await User.order('last_name ASC').limit(10).offset(20).list();
 ```
+
+`order()` accepts a comma-separated list, multiple arguments, or an array — and is chainable. These are all equivalent:
+
+```js
+User.order('last_name, first_name');
+User.order('last_name', 'first_name');
+User.order(['last_name', 'first_name']);
+User.order('last_name').order('first_name');
+```
+
+Backticks are optional — `order('created_at')` and ``order('`created_at`')`` are identical. Only use them to quote a column whose name collides with a SQL reserved word.
+
+::: warning Identifiers only
+For safety, `order()` accepts **identifiers only** (`column`, `table.column`, optionally suffixed with `ASC`/`DESC`). Anything else — function calls, sub-selects, raw expressions — is rejected. Each column is validated individually, so user input cannot inject SQL through `order()`.
+
+For genuine SQL expressions, use `orderRaw()` — **never** call it with user input:
+
+```js
+User.orderRaw('COALESCE(nickname, first_name) ASC');
+```
+:::
 
 ## Distinct
 
 ```js
 const names = await User.distinct('first_name').list();
 const names = await User.distinct(['first_name', 'last_name']).list();
+const names = await User.distinct('first_name, last_name').list();
+const names = await User.distinct('users.first_name').list();
 ```
 
 ## Group By
@@ -127,7 +150,14 @@ const stats = await User
   .select('COUNT(*) AS `count`, YEAR(created_at) AS `year`')
   .group('year')
   .list();
+
+// comma list, multiple args, arrays and qualified columns all work
+User.group('status, kind');
+User.group('status', 'orders.kind');
+User.group(['status', 'kind']);
 ```
+
+Like `order()`, both `distinct()` and `group()` accept identifiers only (each column validated) — use `select()` with a raw SQL expression for anything more complex.
 
 ## Count
 
