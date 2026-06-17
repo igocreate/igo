@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.1.1 - 2026-06-17
+
+### @igojs/db
+
+- **Fixed**: `order()`, `group()` and `distinct()` accept comma-separated lists, multiple arguments and arrays again (e.g. `order('last_name, first_name')`), restoring the ergonomics narrowed by the 6.1.0 SQL hardening; each column is still validated individually. `distinct()` also accepts table-qualified columns (`table.column`). Backticks remain optional.
+
 ## 6.1.0 - 2026-06-17
 
 ### @igojs/server
