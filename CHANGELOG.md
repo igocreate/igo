@@ -1,5 +1,19 @@
 # Changelog
 
+## 6.1.0 - 2026-06-17
+
+### @igojs/server
+
+- **Security**: the server refuses to start in production when `COOKIE_SECRET` / `COOKIE_SESSION_KEYS` are left at their default values (forgeable sessions).
+- **Security**: multipart uploads are bounded (50 MB default, overridable via `config.multiparty`) and temp files are removed once the response ends.
+
+### @igojs/db
+
+- **Security**: hardened SQL generation — `where` column names and `order`/`group`/`distinct`/`from` clauses are validated as identifiers (use the new `orderRaw()` for raw SQL expressions); missing or nested associations in `$or` filters now throw instead of silently returning unfiltered rows.
+- **Fixed**: `whereNot({ $or })` expands to `NOT a AND NOT b`; `COUNT` is correct on `group`/`distinct` queries.
+- **Performance**: lightweight query clone instead of deep clone; `COUNT`/`SELECT` and same-depth `includes` run in parallel; the cache invalidates per table via a single versioning `INCR` instead of a blocking flush.
+- **Changed**: query execution is split into a builder (`Query`) and dedicated executors (`executors/Standard`, `executors/PaginatedOptimized`) instead of the `PaginatedOptimizedQuery` subclass; the internal `PaginatedOptimizedQuery` export is removed.
+
 ## 6.0.4 - 2026-06-10
 
 ### @igojs/dust
