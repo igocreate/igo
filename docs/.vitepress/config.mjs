@@ -115,6 +115,7 @@ export default defineConfig({
             { text: 'Reactivity',      link: '/component/reactivity' },
             { text: 'Shared state',    link: '/component/shared-state' },
             { text: 'Events & forms',  link: '/component/events-forms' },
+            { text: 'Transitions',     link: '/component/transitions' },
             { text: 'SSR',             link: '/component/ssr' },
             { text: 'Translations',    link: '/component/translations' },
             { text: 'Internals',       link: '/component/internals' },

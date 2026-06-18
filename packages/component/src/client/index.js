@@ -17,6 +17,7 @@
 
 const IgoComponent = require('./IgoComponent.js');
 const ComponentLoader = require('./ComponentLoader.js');
+const Transitions = require('./Transitions.js');
 const initI18n = require('./dust/i18n.js');
 const Utils = require('./dust/Utils.js');
 
@@ -95,4 +96,4 @@ async function start(config = {}) {
 
 window.__igo.mountElement = mountElement;
 
-module.exports = { IgoComponent, start };
+module.exports = { IgoComponent, start, Transitions };

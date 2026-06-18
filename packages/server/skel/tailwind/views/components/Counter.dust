@@ -11,7 +11,7 @@
 </script>
 
 <div class="flex items-center gap-4">
-  <span class="text-2xl font-bold">{count}</span>
+  <span data-key="count-{count}" class="inline-block text-2xl font-bold" transition:preset="pop">{count}</span>
   <button on:click="increment" class="increment-btn cursor-pointer rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">
     +1
   </button>

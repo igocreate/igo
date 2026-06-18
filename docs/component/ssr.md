@@ -73,7 +73,7 @@ The same matching applies to ordinary elements during re-render. Reconciliation 
 <aside data-key="sidebar" class="drawer">…</aside>
 ```
 
-With `data-key`, the `<aside>` keeps the same DOM node whether or not the backdrop is present. Note this preserves identity and state — it does not by itself animate the element appearing or disappearing (there is no built-in enter/exit transition system).
+With `data-key`, the `<aside>` keeps the same DOM node whether or not the backdrop is present. Note this preserves identity and state — it does not by itself animate the element appearing or disappearing; for that, see [Transitions](./transitions).
 
 ## Serialization
 

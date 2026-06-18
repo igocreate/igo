@@ -8,6 +8,7 @@ const StateProxy    = require('./StateProxy.js');
 const Store         = require('./Store.js');
 const EventDelegator = require('./EventDelegator.js');
 const FormHandler   = require('./FormHandler.js');
+const Transitions   = require('./Transitions.js');
 
 const Templates     = require('./dust/Templates.js');
 const Utils         = require('./dust/Utils.js');
@@ -53,6 +54,7 @@ class IgoComponent {
     this._inlineEventTypes      = new Set();
     this._isInitialized         = false;
     this._renderFrame           = null;
+    this._hasRendered           = false;
     this._morphOptions          = this._buildMorphOptions();
 
     // Child → parent events. `_listeners` holds programmatic on()/off() handlers;
@@ -385,6 +387,7 @@ class IgoComponent {
 
       // Child components and file inputs are preserved in-place via _morphOptions.
       morphdom(this.element, newRoot, this._morphOptions);
+      this._hasRendered = true;
 
       // Sync props for child components (after morphdom refreshed their data-props)
       this._syncChildProps();
@@ -428,7 +431,43 @@ class IgoComponent {
       // default) so keyed list items keep their nodes across renders.
       getNodeKey: (el) => (el.dataset && (el.dataset.componentKey || el.dataset.key)) || el.id,
 
+      // Enter transition: skip the first render (SSR nodes already exist and
+      // aren't "added"; class-based components get no enter on initial paint —
+      // matching Vue's no-appear-by-default). Only nodes morphdom creates fire this.
+      onNodeAdded: (node) => {
+        if (this._hasRendered) {
+          Transitions.enterAdded(node);
+        }
+        return node;
+      },
+
+      // Leave transition: when morphdom would discard a node carrying a leave
+      // transition, keep it (return false), play the transition, then remove it
+      // ourselves. `__igoLeaving` guards against re-processing on later renders.
+      onBeforeNodeDiscarded: (node) => {
+        if (node.nodeType !== 1) {
+          return true;
+        }
+        if (node.__igoLeaving) {
+          return false;
+        }
+        if (Transitions.leave(node, () => node.remove())) {
+          node.__igoLeaving = true;
+          return false;
+        }
+        return true;
+      },
+
       onBeforeElUpdated: (fromEl, toEl) => {
+        // A node mid-leave was re-matched (re-added before its leave finished,
+        // e.g. a fast re-toggle of a data-key'd element). Cancel the pending
+        // removal so it updates in place instead of vanishing when the stale
+        // leave timer fires.
+        if (fromEl.__igoLeaving) {
+          Transitions.cancelLeave(fromEl);
+          fromEl.__igoLeaving = false;
+        }
+
         // A mounted child component owns its own subtree — refresh its props from
         // the new markup, then skip morphing inside it (returning false stops
         // descent, so grandchildren are never touched either).
