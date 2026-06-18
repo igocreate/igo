@@ -1,5 +1,15 @@
 # Changelog
 
+## 6.1.2 - 2026-06-18
+
+### @igojs/component
+
+- **Added**: declarative enter/exit transitions — `transition:*` attributes (inline class lists or named presets via `Transitions.preset`), hooked into morphdom add/discard; CSS-agnostic and Tailwind-purge-safe. A re-add mid-leave reuses the node; no enter on the first (SSR) paint; duration-0 and a timeout fallback prevent leaked nodes.
+- **Added**: explicit `data-key` on plain elements is honored by reconciliation (not just `data-component-key`/`id`), pinning a node whose sibling order varies so it isn't silently recreated.
+- **Fixed**: inline event handlers receive the matched element as a second argument (`handler(e, el)`), in addition to `e.currentTarget`.
+- **Fixed**: SSR getters can call component methods (`computeDerived` exposes them), avoiding a silent first-paint mismatch.
+- **Fixed**: the client silences i18next's Locize promo banner; the skeleton's translations preload uses `crossorigin` so it isn't fetched twice.
+
 ## 6.1.1 - 2026-06-17
 
 ### @igojs/db

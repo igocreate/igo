@@ -1,6 +1,6 @@
 {
   "name": "@igojs/server",
-  "version": "6.1.1",
+  "version": "6.1.2",
   "description": "Igo server framework - Express-based web framework for Node.js",
   "main": "index.js",
   "scripts": {
@@ -26,8 +26,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@igojs/db": "^6.1.1",
-    "@igojs/dust": "^6.1.1",
+    "@igojs/db": "^6.1.2",
+    "@igojs/dust": "^6.1.2",
     "assets-webpack-plugin": "^7.1.1",
     "concurrently": "^10.0.3",
     "compression": "1.8.1",
