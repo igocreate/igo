@@ -30,6 +30,18 @@ Methods are looked up on the definition object:
 
 The `on:` attributes are rewritten to `data-on-<event>` at parse time. Handlers are dispatched by delegation: a single listener per event type sits on the component root and resolves the target handler by walking up from `event.target`, so nothing is rebound across renders.
 
+Handlers are called as `method(event, element)`, where `element` is the element that carries the `on:` attribute (also available as `event.currentTarget`). Note that `event.target` is the deepest node clicked, which may be a descendant of `element`:
+
+```js
+({
+  // both forms reach the element bearing on:click="toggleSection"
+  toggleSection(e, el) {
+    const id = el.dataset.section;        // 2nd argument
+    // const id = e.currentTarget.dataset.section;  // equivalent
+  }
+})
+```
+
 ### Bubbling boundaries
 
 Events don't cross component boundaries. If you `on:click` an element that lives inside a nested `[data-component]`, a warning is logged — bind events from the child component instead. Each component manages its own surface.

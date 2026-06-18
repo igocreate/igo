@@ -163,6 +163,25 @@ describe('IgoComponent render serialization', () => {
 
 });
 
+// `_buildMorphOptions` is pure — getNodeKey only reads el.dataset/id.
+describe('IgoComponent getNodeKey', () => {
+
+  const { getNodeKey } = IgoComponent.prototype._buildMorphOptions.call({});
+
+  it('prefers data-component-key', () => {
+    assert.strictEqual(getNodeKey({ dataset: { componentKey: 'c', key: 'k' }, id: 'i' }), 'c');
+  });
+
+  it('uses explicit data-key when no component key', () => {
+    assert.strictEqual(getNodeKey({ dataset: { key: 'sidebar' }, id: 'i' }), 'sidebar');
+  });
+
+  it('falls back to id', () => {
+    assert.strictEqual(getNodeKey({ dataset: {}, id: 'i' }), 'i');
+  });
+
+});
+
 // `_buildTemplateContext` only reads `_derivedValues`/`_state`/`_props` and the
 // page store, so the proxy contract is exercised on a mock instance.
 describe('IgoComponent template context writes', () => {

@@ -125,14 +125,15 @@ class EventDelegator {
     this._run(fn, e, currentTarget);
   }
 
-  // Run a handler with `event.currentTarget` pointing at the matched element.
-  // Delegation puts the real listener on the root, so currentTarget would
-  // otherwise be the root rather than the element bearing the on:* attribute.
+  // Run a handler as `method(event, element)`, with `event.currentTarget` also
+  // pointing at the matched element. Delegation puts the real listener on the
+  // root, so currentTarget would otherwise be the root rather than the element
+  // bearing the on:* attribute; the element is passed as the 2nd argument too.
   _run(fn, e, currentTarget) {
     const prev = Object.getOwnPropertyDescriptor(e, 'currentTarget');
     Object.defineProperty(e, 'currentTarget', { configurable: true, value: currentTarget });
     try {
-      fn.call(this.component, e);
+      fn.call(this.component, e, currentTarget);
     } finally {
       if (prev) {
         Object.defineProperty(e, 'currentTarget', prev);

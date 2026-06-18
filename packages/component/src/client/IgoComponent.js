@@ -422,9 +422,11 @@ class IgoComponent {
   // in place), and file-input selections are protected from being cleared.
   _buildMorphOptions() {
     return {
-      // Key matching: child components by data-component-key, else fall back to id
-      // (morphdom's default) so keyed list items keep their nodes across renders.
-      getNodeKey: (el) => (el.dataset && el.dataset.componentKey) || el.id,
+      // Key matching: child components by data-component-key, then an explicit
+      // data-key (stabilises a node whose sibling order varies — e.g. an animated
+      // element next to a conditional block), else fall back to id (morphdom's
+      // default) so keyed list items keep their nodes across renders.
+      getNodeKey: (el) => (el.dataset && (el.dataset.componentKey || el.dataset.key)) || el.id,
 
       onBeforeElUpdated: (fromEl, toEl) => {
         // A mounted child component owns its own subtree — refresh its props from

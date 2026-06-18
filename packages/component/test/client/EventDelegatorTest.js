@@ -81,6 +81,17 @@ describe('EventDelegator', () => {
     assert.strictEqual(seen, btn);
   });
 
+  it('passes the matched element as the handler 2nd argument', () => {
+    const { root, btn } = buildTree();
+    let seenEl = null;
+    const component = { template: 'Form', onAdd(e, el) { seenEl = el; } };
+    const d = new EventDelegator(root, component);
+
+    d._dispatch('click', { target: btn });
+
+    assert.strictEqual(seenEl, btn);
+  });
+
   it('does not fire a handler owned by a child component', () => {
     const { root, childBtn } = buildTree();
     const calls = [];

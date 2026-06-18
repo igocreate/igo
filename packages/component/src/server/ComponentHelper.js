@@ -33,7 +33,17 @@ const computeDerived = (def, mergedProps, state) => {
     store: {},
   };
 
-  // First, define all getters on ctx so they can reference each other
+  // Expose methods on ctx so getters can call them during SSR (e.g. a getter
+  // that delegates to `this._isOpen()`). Called as `ctx.method()`, so `this`
+  // resolves to ctx; methods touching the DOM still throw and are caught below.
+  for (const [key, desc] of Object.entries(descs)) {
+    if (desc.get || key === 'props' || key === 'state' || key === 'store') continue;
+    if (typeof desc.value === 'function') {
+      ctx[key] = desc.value;
+    }
+  }
+
+  // Then define all getters on ctx so they can reference each other
   for (const [key, desc] of Object.entries(descs)) {
     if (!desc.get || key === 'props' || key === 'state') continue;
     Object.defineProperty(ctx, key, { get: desc.get, configurable: true });

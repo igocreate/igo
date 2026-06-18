@@ -8,7 +8,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
     <link rel="icon" href="/favicon.ico">
-    <link rel="preload" href="/__component/translations" as="fetch">
+    <link rel="preload" href="/__component/translations" as="fetch" crossorigin>
 
     <title>{+title}Igo running{/title}</title>
 

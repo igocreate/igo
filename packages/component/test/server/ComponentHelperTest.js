@@ -68,6 +68,18 @@ describe('ComponentHelper', () => {
       assert.strictEqual(derived.doSomething, undefined);
     });
 
+    it('should let getters call methods during SSR', () => {
+      const def = evalDefinition(`{
+        state: { open: 'a' },
+        isOpen(id) { return this.state.open === id; },
+        get activeClass() { return this.isOpen('a') ? 'open' : 'closed'; }
+      }`);
+
+      const derived = computeDerived(def, {}, { open: 'a' });
+      assert.strictEqual(derived.activeClass, 'open');
+      assert.strictEqual(derived.isOpen, undefined);  // methods stay out of derived
+    });
+
     it('should handle getter errors gracefully', () => {
       const def = evalDefinition(`{
         get failing() { throw new Error('DOM error'); },

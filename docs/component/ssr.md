@@ -33,6 +33,25 @@ The result the browser receives looks like:
 
 The island is a non-executable `<script>` — it never runs, so no `script-src 'unsafe-inline'` is needed. When `start()` mounts in the browser, it reads the island with `devalue.parse` (no eval), removes it, runs the definition's `init()`, and the component is interactive — no re-render needed for the initial paint.
 
+### What runs server-side
+
+Only `props`, `state`, getters, and methods exist during SSR — enough to evaluate getters into the initial HTML:
+
+```js
+({
+  state: { open: 'home' },
+  isOpen(id) { return this.state.open === id; },
+  get activeClass() { return this.isOpen('home') ? 'active' : ''; }  // works in SSR
+})
+```
+
+Getters may call methods (as shown). Two things differ from the client and must be accounted for, or the first paint will not match what the client renders:
+
+- **`init()` does not run server-side** — it runs once in the browser, before the first client render. State it sets is absent from the SSR HTML. Put values needed for the initial paint in `state` defaults or `props`, not `init()`.
+- **`this.store` is empty server-side** — the page store is a client construct. Read it defensively in getters: `this.store.user?.name`.
+
+A getter that throws server-side (e.g. it touches the DOM) is caught and logged, and its value is left out of the HTML — a silent first-paint mismatch until hydration. Keep getters DOM-free.
+
 ### Stable keys for dynamic lists
 
 In a loop, pass `key=` to give each instance a stable identity across re-renders:
@@ -44,6 +63,17 @@ In a loop, pass `key=` to give each instance a stable identity across re-renders
 ```
 
 `key=` is written as `data-component-key` and used by the runtime to match instances when the parent re-renders. Without it, the component name is used as the key — fine for single mounts, ambiguous for lists.
+
+#### Keying plain elements with `data-key`
+
+The same matching applies to ordinary elements during re-render. Reconciliation (morphdom) pairs siblings by position by default, so a node whose sibling order varies — e.g. an element rendered next to a conditional `{?…}` block — can be paired with the wrong node and silently recreated, losing its DOM state. Add `data-key` to pin its identity:
+
+```dust
+{?open}<div class="backdrop"></div>{/open}
+<aside data-key="sidebar" class="drawer">…</aside>
+```
+
+With `data-key`, the `<aside>` keeps the same DOM node whether or not the backdrop is present. Note this preserves identity and state — it does not by itself animate the element appearing or disappearing (there is no built-in enter/exit transition system).
 
 ## Serialization
 
