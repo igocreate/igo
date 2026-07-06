@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.1.3 - 2026-06-25
+
+### @igojs/db
+
+- **Fixed**: `where` and `order` clauses now resolve nested association paths (3+ segments, e.g. `pme_folder.studies.studies_year`) to the joined leaf alias (`studies.studies_year`) in the standard executor, as the optimized paginated executor already did. Previously such a key produced an invalid multi-part SQL identifier (`Unknown column`) on non-paginated `list()`/`count()`. Single-segment columns and `alias.column` references are unchanged; the resolution is idempotent.
+
 ## 6.1.2 - 2026-06-18
 
 ### @igojs/component
