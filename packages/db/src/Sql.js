@@ -2,6 +2,14 @@
 const _       = require('lodash');
 const { compileCondition, compileNotCondition, compileExtraWhere, checkColumnName } = require('./OperatorCompiler');
 
+// Un chemin d'association non-quoté à 3+ segments ('a.b.col') référence une table
+// jointe : les joins étant aliasés par nom d'association, seul l'alias feuille (parent
+// immédiat de la colonne) est valide en SQL → on réduit 'a.b.col' à 'b.col'. Les refs
+// à ≤2 segments (déjà 'alias.col') et les identifiants quotés sont laissés intacts ;
+// la réduction est idempotente.
+const RE_ASSOC_PATH = /\b[A-Za-z_]\w*(?:\.[A-Za-z_]\w*){2,}\b/g;
+const collapseAssociationPaths = (clause) => clause.replace(RE_ASSOC_PATH, (path) => path.split('.').slice(-2).join('.'));
+
 module.exports = class Sql {
   
   constructor(query, dialect) {
@@ -267,7 +275,13 @@ module.exports = class Sql {
       // Résoudre l'alias de colonne
       let columnAlias;
       if (key.indexOf('.') > -1 && key.indexOf(esc) === -1) {
-        columnAlias = _.map(key.split('.'), (part) => (`${esc}${part}${esc}`)).join('.');
+        // 'a.b.c.col' est un chemin d'association : les joins sont aliasés par nom
+        // d'association, donc l'alias de la table feuille est le parent immédiat de
+        // la colonne → on réduit à `alias`.`col` (idempotent pour 'alias.col').
+        const segments = key.split('.');
+        const column   = segments[segments.length - 1];
+        const alias     = segments[segments.length - 2];
+        columnAlias = `${esc}${alias}${esc}.${esc}${column}${esc}`;
       } else {
         columnAlias = `${esc}${query.table}${esc}.${esc}${key}${esc}`;
       }
@@ -374,7 +388,7 @@ module.exports = class Sql {
       return '';
     }
 
-    var sql = 'ORDER BY ' + query.order.join(', ') + ' ';
+    var sql = 'ORDER BY ' + query.order.map(collapseAssociationPaths).join(', ') + ' ';
 
     return sql;
   };

@@ -34,6 +34,12 @@ describe('db.Sql', () => {
       assert.strictEqual(0, selectSQL.params.length);
     });
 
+    it('should collapse nested association paths in order by, leaving simple clauses intact', () => {
+      const order     = ['pme_folder.studies.studies_year DESC', 'author.name', '`title`'];
+      const selectSQL = new Sql(freshQuery({ order }), dialect).selectSQL();
+      assert.strictEqual('SELECT `books`.* FROM `books` ORDER BY studies.studies_year DESC, author.name, `title`', selectSQL.sql);
+    });
+
     it('should allow limit', () => {
       const selectSQL = new Sql(freshQuery({ limit: 3 }), dialect).selectSQL();
       assert.strictEqual('SELECT `books`.* FROM `books` LIMIT ?, ?', selectSQL.sql);
@@ -187,6 +193,15 @@ describe('db.Sql', () => {
       const sql     = new Sql(query, dialect).whereSQL(params);
       assert.strictEqual('WHERE `library`.`title` = ? ', sql);
       assert.strictEqual('foo', params[0]);
+    });
+
+    // Object branch: nested association path (3+ segments) collapses to leaf alias
+    it('should collapse nested association paths to the leaf alias', () => {
+      const params  = [];
+      const query   = freshQuery({ where: [{ 'pme_folder.studies.studies_year': '2025' }] });
+      const sql     = new Sql(query, dialect).whereSQL(params);
+      assert.strictEqual('WHERE `studies`.`studies_year` = ? ', sql);
+      assert.strictEqual('2025', params[0]);
     });
 
     // Multiple conditions (implicit AND)
