@@ -72,14 +72,7 @@ module.exports = async function (argv) {
 
   await renameUnderscoreFiles(directory);
 
-  // Use @igojs/igo version (the meta-package users install)
-  let igoVersion;
-  try {
-    igoVersion = require('@igojs/igo/package.json').version;
-  } catch {
-    // Fallback for local development
-    igoVersion = require('../../igo/package.json').version;
-  }
+  const igoVersion = require('../package.json').version;
   const replacements = {
     '{igo.version}':  igoVersion,
     '{project.name}': args[1],

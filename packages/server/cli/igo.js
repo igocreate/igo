@@ -16,7 +16,7 @@ const actions = {
   i18n:     require('./i18n.js'),
 };
 
-console.log('igo version: ' + require('@igojs/igo/package.json').version);
+console.log('igo version: ' + require('../package.json').version);
 
 if (args.length === 0 || !actions[args[0]]) {
   console.warn('Usage: igo <action> <options>');
