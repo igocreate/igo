@@ -1,4 +1,5 @@
 
+const path    = require('path');
 const IgoDust = require('@igojs/dust');
 
 const { createSerializeHelper } = require('../shared/serialize.js');
@@ -15,30 +16,38 @@ IgoDust.helpers.component = componentHelper;
 
 
 // Validate component path: prevents path traversal.
+// Charset excludes '.', so '..' is impossible; also reject absolute paths
+// (leading '/') so input can never escape the views root.
 const SAFE_NAME_RE = /^[a-zA-Z0-9_/-]+$/;
+const isValidName = (name) => !!name && SAFE_NAME_RE.test(name) && !path.isAbsolute(name);
 
 const templates = async (req, res) => {
   const file = req.query.file;
-  if (!file || !SAFE_NAME_RE.test(file) || file.includes('..')) {
+  if (!isValidName(file)) {
     return res.status(400).json({ error: 'Invalid file name' });
   }
-  // Use getComponent to split out <script> block from single-file components
-  const { templateSource }  = await IgoDust.getComponent(`${file}.dust`);
-  const source              = templateSource || await IgoDust.getSource(`${file}.dust`);
-  res.json({ file, source });
+  try {
+    // Use getComponent to split out <script> block from single-file components
+    const { templateSource }  = await IgoDust.getComponent(`${file}.dust`);
+    const source              = templateSource || await IgoDust.getSource(`${file}.dust`);
+    res.json({ file, source });
+  } catch {
+    res.status(404).json({ error: 'Template not found' });
+  }
 };
 
 // Serve component data (script + template source) for client hydration
 const component = async (req, res) => {
   const name = req.query.name;
-  if (!name || !SAFE_NAME_RE.test(name) || name.includes('..')) {
+  if (!isValidName(name)) {
     return res.status(400).json({ error: 'Invalid component name' });
   }
   try {
     const { scriptSrc, templateSource } = await IgoDust.getComponent(`${name}.dust`);
     res.json({ name, scriptSrc, templateSource });
-  } catch (e) {
-    res.status(404).json({ error: e.message });
+  } catch {
+    // Generic message: never leak resolved filesystem paths (e.g. ENOENT with absolute path)
+    res.status(404).json({ error: 'Component not found' });
   }
 };
 

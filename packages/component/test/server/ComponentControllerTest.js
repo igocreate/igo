@@ -61,6 +61,16 @@ describe('ComponentController', () => {
       assert.strictEqual(res.statusCode, 400);
     });
 
+    it('rejects absolute paths (views root escape)', async () => {
+      for (const file of ['/etc/passwd', '//etc/passwd']) {
+        const req = makeReq({ query: { file } });
+        const res = makeRes();
+        await ComponentController.templates(req, res);
+        assert.strictEqual(res.statusCode, 400, `${file} should be rejected`);
+        assert.match(res.body.error, /Invalid file name/);
+      }
+    });
+
   });
 
   describe('component endpoint', () => {
@@ -72,6 +82,25 @@ describe('ComponentController', () => {
 
       assert.strictEqual(res.statusCode, 400);
       assert.match(res.body.error, /Invalid component name/);
+    });
+
+    it('rejects absolute paths (views root escape)', async () => {
+      for (const name of ['/etc/passwd', '//etc/passwd']) {
+        const req = makeReq({ query: { name } });
+        const res = makeRes();
+        await ComponentController.component(req, res);
+        assert.strictEqual(res.statusCode, 400, `${name} should be rejected`);
+        assert.match(res.body.error, /Invalid component name/);
+      }
+    });
+
+    it('does not leak the resolved filesystem path on lookup failure', async () => {
+      const req = makeReq({ query: { name: 'components/does/not/exist' } });
+      const res = makeRes();
+      await ComponentController.component(req, res);
+
+      assert.strictEqual(res.statusCode, 404);
+      assert.doesNotMatch(res.body.error, /ENOENT|\.dust|\//);
     });
 
     it('returns 404 (not 400) for valid names with no matching file', async () => {
