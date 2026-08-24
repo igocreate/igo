@@ -91,6 +91,12 @@ module.exports.incr = async (namespace, id) => {
   return await client.incr(k);
 };
 
+// same: no expiration
+module.exports.incrby = async (namespace, id, value) => {
+  const k = key(namespace, id);
+  return await client.incrBy(k, value);
+};
+
 //
 module.exports.del = async (namespace, id) => {
   const k = key(namespace, id);

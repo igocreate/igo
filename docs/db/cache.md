@@ -94,6 +94,12 @@ const stats = await CacheStats.getStats();
 // ]
 ```
 
+Hits and misses are counted in memory, and written to Redis at most once every 30
+seconds, by the queries themselves — no query ever pays for a counter round trip.
+`getStats()` flushes the pending counters before reading, so the numbers it returns
+are always up to date. A process that stops therefore loses at most its last 30
+seconds of counters.
+
 ## When to Use
 
 Caching is useful for:
