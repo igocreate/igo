@@ -52,6 +52,13 @@ module.exports.get = async (namespace, id) => {
   return deserialize(value);
 };
 
+// - returns values for several ids of the same namespace, in the same order
+// - missing keys are returned as 0
+module.exports.mget = async (namespace, ids) => {
+  const values = await client.mGet(ids.map(id => key(namespace, id)));
+  return values.map(value => value ? deserialize(value) : 0);
+};
+
 // - returns object from cache if exists.
 // - calls func(id) otherwise and put result in cache
 module.exports.fetch = async (namespace, id, func, timeout) => {
@@ -77,7 +84,8 @@ module.exports.info = async () => {
   return await client.info();
 };
 
-//
+// no expiration here on purpose: if a version key disappears, it restarts at 0
+// and revalidates the stale entries stamped with version 0
 module.exports.incr = async (namespace, id) => {
   const k = key(namespace, id);
   return await client.incr(k);

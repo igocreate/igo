@@ -27,6 +27,10 @@ await cache.put('users', 'user:123', { name: 'John' }, 3600);
 const user = await cache.get('users', 'user:123');
 // => { name: 'John' } or null
 
+// Retrieve several values of the same namespace, in one round trip
+const users = await cache.mget('users', ['user:123', 'user:456']);
+// => [{ name: 'John' }, 0]   missing keys come back as 0
+
 // Fetch: get from cache, or compute and store
 const data = await cache.fetch('expensive', 'result', async () => {
   return await expensiveComputation();
@@ -50,6 +54,7 @@ await cache.flushall();
 | Method | Description |
 |--------|-------------|
 | `get(namespace, id)` | Get a cached value (returns `null` if not found) |
+| `mget(namespace, ids)` | Get several values in order (missing keys return `0`) |
 | `put(namespace, id, value, timeout?)` | Store a value with optional TTL (seconds) |
 | `fetch(namespace, id, fn, timeout?)` | Get or compute and cache |
 | `del(namespace, id)` | Delete a cached value |
