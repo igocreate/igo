@@ -1,5 +1,34 @@
 # Changelog
 
+## 6.2.0 - 2026-08-24
+
+### @igojs/server
+
+- **Security**: the session cookie is now encrypted and authenticated (AES-256-GCM, one key derived per `COOKIE_SESSION_KEYS` entry via HKDF), replacing `cookie-session`'s signed-but-readable cookie. Its contents are opaque to the client, and `maxAge` is enforced server-side from an expiry stamped in the payload instead of being left to the browser. Existing sessions are invalidated on upgrade; key rotation works by prepending the new key (older keys still decrypt). `config.cookieSessionMiddleware` is removed — `config.cookieSession` options (`name`, `maxAge`, `httpOnly`, `secure`, …) are unchanged.
+- **Changed**: cache values are serialized with `v8.serialize` instead of JSON. `Date`, `Buffer`, `Map`, `Set` and `RegExp` survive the round trip, and falsy values (`0`, `''`, `false`) are valid hits. Stored values are binary, so they are no longer readable with `redis-cli`; entries written by an earlier release — or by another Node major — are treated as misses and rewritten, never served with degraded types. Counters written by `incr`/`incrby` stay plain integers.
+- **Added**: `cache.mget(namespace, ids)` (single round trip, missing keys as `0`) and `cache.incrby(namespace, id, value)`.
+- **Fixed**: the `igo` CLI reads its version from `@igojs/server` instead of `@igojs/igo`, so it no longer crashes when the meta-package isn't installed.
+
+### @igojs/db
+
+- **Fixed**: `count()` on a cached model goes through the cache — it built a plain `Query`, so every count hit the database.
+- **Fixed**: a cached query is invalidated by writes to its joined tables, not just its own. Entries are stamped with the versions of every table they were built from and stop matching as soon as one moves; a query joining a model without its own cache is not cached at all, since its writes would go unnoticed.
+- **Performance**: the optimized paginated executor caches its three phases (COUNT, SELECT IDS, SELECT FULL) instead of always hitting the database.
+- **Performance**: cache hit/miss counters are buffered in memory and flushed by traffic (30 s window) instead of one Redis `INCR` per query; `getStats()` flushes first, so the numbers stay exact.
+- **Changed**: the default cache TTL drops from 24 h to 1 h — invalidated entries are now overwritten on the next miss rather than waiting for expiration.
+
+### @igojs/component
+
+- **Security**: the component and template endpoints reject absolute paths, and a missing file returns a generic 404 instead of an error message that leaked the resolved filesystem path.
+
+### Dependencies
+
+- **Breaking**: the `i18next` peer moves from `^25.0.0` to `^26.0.0` (in `@igojs/server` and `@igojs/component`). i18next is an auto-installed peer, so upgrading igo pulls 26 in by itself and most apps have nothing to do. Two cases do break: an app that declares `i18next` in its own dependencies as `^25.0.0` gets an `ERESOLVE` until it widens the range, and an app using an option v26 dropped has to migrate — of those, only the legacy `interpolation.format` function really matters (`initImmediate` was already mapped to `initAsync`, `simplifyPluralSuffix` was unused, and `showSupportNotice`, which igo no longer passes, was cosmetic).
+- **Breaking**: the `redis` peer moves from `^5.0.0` to `^6.0.0`. Same as above: node-redis 6 comes in on its own, unless the app declares `redis` itself. No igo code changed — node-redis 6 defaults to RESP3, but every command the cache uses keeps its shape (`scan` still returns a string cursor, `withTypeMapping` still yields a `Buffer`), and the suite passes on both majors. Two things to check before upgrading: node-redis 6 introduces a 5 s default command timeout, and RESP3 requires a Redis **server** >= 6.0.
+- `nodemailer` 8 → 9: HTTPS fetches of remote content (attachment `href`/`path`, OAuth2 token endpoints, proxy `CONNECT`) now validate TLS certificates by default — opt out per request with `tls.rejectUnauthorized: false`.
+- `webpack-dev-server` 5 → 6 (requires Node >= 22.15), `webpack` 5.109, `webpack-cli` 7.2, `mysql2` 3.24, `pg` 8.23, `devalue` 5.9 and other minor bumps. The `igo create` skeleton moves to `eslint` 10.9 and `tailwindcss` 4.3.3.
+
+
 ## 6.1.3 - 2026-06-25
 
 ### @igojs/db
