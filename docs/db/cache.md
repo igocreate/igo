@@ -59,6 +59,10 @@ class Country extends Model({ table: 'countries', cache: true, /* ... */ }) {}
 await User.query().join('country').list();
 ```
 
+## Paginated Queries
+
+A paginated query with joins runs through a three-phase `COUNT` / `IDS` / `FULL` strategy instead of a single statement. All three phases are cached and stamped the same way, so the whole page is served from Redis on a hit, and any write to any of the tables involved invalidates it.
+
 ## Cache Keys
 
 Entries are stored under the namespace `_cached.{table_name}`, keyed by the JSON-stringified SQL and params:

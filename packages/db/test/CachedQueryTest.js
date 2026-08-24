@@ -296,6 +296,57 @@ describe('db.CachedQuery', function () {
       assert.ok((await countSql(run)).length > 0, 'Expected the deepest join to invalidate the entry');
     });
 
+    // paginated joins run through the PaginatedOptimized executor, which bypasses
+    // Query entirely: its COUNT/IDS phases go through QueryCache directly
+    describe('paginated', function () {
+
+      it('should cache the three phases', async function () {
+        const library = await CachedLibrary.create({ title: 'paged' });
+        await JoiningBook.create({ code: 'pagejoin', library_id: library.id });
+
+        const run = () => JoiningBook.where({ code: 'pagejoin' }).join('library').page(1, 10).list();
+
+        const first = await countSql(run);
+        assert.strictEqual(first.length, 3, 'Expected the COUNT/IDS/FULL phases');
+        assert.strictEqual((await countSql(run)).length, 0, 'Expected all three phases cached');
+      });
+
+      it('should be invalidated by a write on the joined table', async function () {
+        const library = await CachedLibrary.create({ title: 'pagedjoin' });
+        await JoiningBook.create({ code: 'pageinval', library_id: library.id });
+
+        const run = () => JoiningBook.where({ code: 'pageinval' }).join('library').page(1, 10).list();
+
+        await run();
+        assert.strictEqual((await countSql(run)).length, 0, 'Expected a cache hit');
+
+        await library.update({ title: 'pagedjoin2' });
+
+        assert.ok((await countSql(run)).length > 0, 'Expected the library write to invalidate it');
+      });
+
+      it('should not cache a join on a table without its own cache', async function () {
+        const library = await PlainLibrary.create({ title: 'pageplain' });
+        await JoiningBook.create({ code: 'pageplain', library_id: library.id });
+
+        const run = () => JoiningBook.where({ code: 'pageplain' }).join('plain_library').page(1, 10).list();
+
+        await run();
+        assert.ok((await countSql(run)).length > 0, 'Expected the query to never be served from cache');
+      });
+
+      // the COUNT phase caches a derived number, so 0 is a genuinely falsy cached value
+      it('should cache a paginated count of zero', async function () {
+        const run = () => JoiningBook.where({ code: 'no-page-here' }).join('library').page(1, 10).list();
+
+        const result = await run();
+        assert.strictEqual(result.pagination.count, 0);
+
+        assert.strictEqual((await countSql(run)).length, 0, 'Expected the zero count to be cached');
+      });
+
+    });
+
     // scopes are applied in execute(), before runQuery: joins they add are seen
     it('should account for joins added by a scope', async function () {
       await ScopedBook.create({ code: 'scoped' });

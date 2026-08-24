@@ -1,7 +1,7 @@
 const _         = require('lodash');
-const Query     = require('../Query');
 const context   = require('../context');
 const PaginatedOptimizedSql = require('../PaginatedOptimizedSql');
+const QueryCache = require('../QueryCache');
 const { cloneQuery, buildPagination } = require('../QueryUtils');
 
 /**
@@ -84,23 +84,35 @@ module.exports = class PaginatedOptimized {
   // Phases
   // ---------------------------------------------------------------------------
 
+  // Ces phases court-circuitent Query : elles passent par QueryCache directement
+  async _cached(sqlQuery, run) {
+    if (!QueryCache.cacheable(this.schema, this.query)) {
+      return await run();
+    }
+    return await QueryCache.read(this.schema, this.query, sqlQuery, run);
+  }
+
   // Phase 1 : COUNT optimisé avec EXISTS (sans LEFT JOIN)
   async count() {
-    const { sql, params } = this.countSQL();
-    const rows = await this.db.query(sql, params, this.query.options);
-    return rows && rows[0] && Number(rows[0].count) || 0;
+    const sqlQuery = this.countSQL();
+    return await this._cached(sqlQuery, async () => {
+      const rows = await this.db.query(sqlQuery.sql, sqlQuery.params, this.query.options);
+      return rows && rows[0] && Number(rows[0].count) || 0;
+    });
   }
 
   // Phase 2 : SELECT IDS (filtres + tri + pagination)
   async selectIds() {
-    const { sql, params } = this.idsSQL();
-    const rows = await this.db.query(sql, params, this.query.options);
+    const sqlQuery = this.idsSQL();
+    return await this._cached(sqlQuery, async () => {
+      const rows = await this.db.query(sqlQuery.sql, sqlQuery.params, this.query.options);
 
-    const primaryKeys = this.schema.primary || ['id'];
-    if (primaryKeys.length === 1) {
-      return rows.map(row => row[primaryKeys[0]]);
-    }
-    return rows.map(row => _.pick(row, primaryKeys));
+      const primaryKeys = this.schema.primary || ['id'];
+      if (primaryKeys.length === 1) {
+        return rows.map(row => row[primaryKeys[0]]);
+      }
+      return rows.map(row => _.pick(row, primaryKeys));
+    });
   }
 
   // Phase 3 : SELECT FULL avec LEFT JOIN, restreint aux IDs trouvés
@@ -109,7 +121,8 @@ module.exports = class PaginatedOptimized {
       return [];
     }
 
-    const fullQuery = new Query(this.modelClass); // Query standard pour le SELECT final
+    // même classe que la query source, pour qu'un modèle caché garde sa CachedQuery
+    const fullQuery = new this.source.constructor(this.modelClass);
     fullQuery.query = cloneQuery(this.query);
     fullQuery.query.verb = 'select';
 
