@@ -9,10 +9,9 @@ describe('igo.config', () => {
 
     const withConfig = (overrides, fn) => {
       const saved = {
-        env:                    config.env,
-        cookieSecret:           config.cookieSecret,
-        cookieSession:          config.cookieSession,
-        cookieSessionMiddleware: config.cookieSessionMiddleware,
+        env:            config.env,
+        cookieSecret:   config.cookieSecret,
+        cookieSession:  config.cookieSession,
       };
       Object.assign(config, overrides);
       try {
@@ -44,13 +43,12 @@ describe('igo.config', () => {
       });
     });
 
-    it('should ignore default keys when a custom session middleware is set', () => {
+    it('should throw in production with default session keys', () => {
       withConfig({
-        env:                    'production',
-        cookieSecret:           'real-secret',
-        cookieSessionMiddleware: () => {},
+        env:            'production',
+        cookieSecret:   'real-secret',
       }, () => {
-        config.checkSecrets();
+        assert.throws(() => config.checkSecrets(), /production/);
       });
     });
   });

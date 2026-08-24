@@ -147,7 +147,7 @@ module.exports.checkSecrets = function() {
   if (config.env !== 'production') {
     return;
   }
-  const defaultKeys = !config.cookieSessionMiddleware && config.cookieSession.keys.indexOf(DEFAULT_SESSION_KEY) > -1;
+  const defaultKeys = config.cookieSession.keys.indexOf(DEFAULT_SESSION_KEY) > -1;
   if (config.cookieSecret === DEFAULT_COOKIE_SECRET || defaultKeys) {
     throw new Error('Default cookie secrets cannot be used in production: set COOKIE_SECRET and COOKIE_SESSION_KEYS');
   }

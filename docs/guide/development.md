@@ -86,7 +86,7 @@ const config = require('@igojs/server').config;
 | `REDIS_PORT` | `6379` | Redis port |
 | `LOG_LEVEL` | `info` | Winston log level |
 | `COOKIE_SECRET` | — | Cookie signing secret |
-| `COOKIE_SESSION_KEYS` | — | Session encryption keys |
+| `COOKIE_SESSION_KEYS` | — | Session encryption keys (comma-separated, first one is used to encrypt) |
 | `SMTP_HOST` | — | SMTP server for emails |
 | `SMTP_PORT` | `465` | SMTP port |
 | `SMTP_USER` | — | SMTP user |

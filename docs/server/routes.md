@@ -73,8 +73,8 @@ Igo.js configures the following middleware in order:
 
 1. **Compression** — Gzip (threshold: 1KB)
 2. **Static files** — `/public` directory (1-year cache in production)
-3. **Cookie parser** — Signed cookies
-4. **Cookie session** — Session in cookies (31-day expiry)
+3. **Cookie parser** — Populates `req.cookies`; verifies cookies written with `{ signed: true }` into `req.signedCookies`
+4. **Session** — Encrypted session cookie (31-day expiry)
 5. **Body parsers** — URL-encoded and JSON (10MB limit)
 6. **Multipart** — File upload parsing via [multiparty](https://github.com/pillarjs/multiparty)
 7. **Flash** — Flash messages (see [Flash](./flash))
@@ -112,12 +112,18 @@ module.exports.upload = async (req, res) => {
 
 ## Cookies & Sessions
 
-Cookies are signed with [cookie-parser](https://github.com/expressjs/cookie-parser). Sessions are stored in cookies with [cookie-session](https://github.com/expressjs/cookie-session).
-
-Configure your secret keys in `/app/config.js`:
+`cookie-parser` populates `req.cookies` and verifies cookies written with `{ signed: true }` into `req.signedCookies`. The session lives in a single cookie encrypted with AES-256-GCM: unreadable and untamperable client-side.
 
 ```js
-config.cookieSecret         = 'your-secret-key';
-config.cookieSession.keys   = ['your-session-key'];
-config.cookieSession.maxAge = 24 * 60 * 60 * 1000; // 24 hours
+config.cookieSecret         = 'your-secret-key';    // signs req.signedCookies
+config.cookieSession.keys   = ['your-session-key']; // encrypts the session
+config.cookieSession.maxAge = 24 * 60 * 60 * 1000;  // 24 hours
 ```
+
+`maxAge` is embedded in the encrypted payload and checked server-side: a copied cookie stops working past its expiry, even if the client keeps sending it.
+
+`keys` accepts several entries: the first encrypts (HKDF-SHA256 derives the AES key from it), the others decrypt only. Handy to change the key without signing everyone out — but a leaked key must be dropped, not kept around, since anyone holding it can forge a session.
+
+### Upgrading from igo < 6.2
+
+Sessions used to be base64-encoded and signed, ie. readable client-side. Those cookies are rejected: every session is dropped on deploy and users have to sign in again.

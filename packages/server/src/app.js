@@ -2,7 +2,6 @@
 
 const compression       = require('compression');
 const cookieParser      = require('cookie-parser');
-const cookieSession     = require('cookie-session');
 const express           = require('express');
 const i18nFsBackend     = require('i18next-fs-backend');
 const i18nMiddleware    = require('i18next-http-middleware');
@@ -16,6 +15,7 @@ const errorHandler      = require('./connect/errorhandler');
 const flash             = require('./connect/flash');
 const locals            = require('./connect/locals');
 const multipart         = require('./connect/multipart');
+const session           = require('./connect/session');
 const validator         = require('./connect/validator');
 const logger            = require('./logger');
 const mailer            = require('./mailer');
@@ -102,7 +102,7 @@ module.exports.configure = async () => {
     app.use(errorHandler.initContext(app));
     // does not work in test mode, because of mock requests
     app.use(cookieParser(config.cookieSecret));
-    app.use(config.cookieSessionMiddleware || cookieSession(config.cookieSession));
+    app.use(session(config.cookieSession));
     app.use(express.urlencoded(config.urlencoded));
     app.use(express.json(config.json));
     app.use(multipart);
