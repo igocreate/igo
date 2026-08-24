@@ -10,8 +10,7 @@ module.exports = async () => {
     lng:         lang,
     fallbackLng: 'en',
     resources:   { [lang]: { translation } },
-    interpolation: { escapeValue: false },
-    showSupportNotice: false  // silence i18next's Locize promo banner
+    interpolation: { escapeValue: false }
   });
   window.i18next = i18next;
 };

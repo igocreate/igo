@@ -27,12 +27,12 @@
     "access": "public"
   },
   "dependencies": {
-    "devalue": "^5.8.1",
+    "devalue": "^5.9.1",
     "lodash": "^4.18.1",
     "morphdom": "^2.7.8"
   },
   "peerDependencies": {
     "@igojs/dust": "^6.1.3",
-    "i18next": "^25.0.0"
+    "i18next": "^26.0.0"
   }
 }

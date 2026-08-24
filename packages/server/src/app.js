@@ -65,10 +65,11 @@ module.exports.configure = async () => {
   ]);
 
   // Await i18next initialization
+  // shallow copy: init() writes defaultNS into the object it receives
   await i18next
   .use(i18nMiddleware.LanguageDetector)
   .use(i18nFsBackend)
-  .init({ showSupportNotice: false, ...config.i18n });
+  .init({ ...config.i18n });
 
   app.enable('trust proxy');
   app.disable('x-powered-by');
