@@ -208,7 +208,8 @@ module.exports = class Query {
 
   // COUNT
   async count() {
-    const countQuery        = new Query(this.modelClass);
+    // same class as this query, so a cached model keeps its CachedQuery
+    const countQuery        = new this.constructor(this.modelClass);
     countQuery.query        = this._cloneQuery();
 
     countQuery.query.verb   = 'count';
