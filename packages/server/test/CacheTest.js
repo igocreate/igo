@@ -5,6 +5,7 @@ require('./init');
 
 const assert    = require('assert');
 const _         = require('lodash');
+const redis     = require('redis');
 
 const igo       = require('@igojs/server');
 const cache     = igo.cache;
@@ -50,11 +51,32 @@ describe('igo.cache', () => {
       assert(_.isDate(value.t0));
     });
 
+    it('should store dates in arrays', async () => {
+      await cache.put('ns', 0, [new Date(), { t1: [new Date()] }]);
+      const value = await cache.get('ns', 0);
+      assert(_.isDate(value[0]));
+      assert(_.isDate(value[1].t1[0]));
+    });
+
     it('should not corrupt strings containing an ISO date', async () => {
       const s = 'created on 2024-01-01T10:00:00.000Z by admin';
       await cache.put('ns', 0, s);
       const value = await cache.get('ns', 0);
       assert.strictEqual(value, s);
+    });
+
+    it('should keep strings that are exactly an ISO date as strings', async () => {
+      const s = '2024-01-01T10:00:00.000Z';
+      await cache.put('ns', 0, { s });
+      const value = await cache.get('ns', 0);
+      assert.strictEqual(value.s, s);
+    });
+
+    it('should store falsy values', async () => {
+      for (const falsy of [0, '', false]) {
+        await cache.put('ns', 'falsy', falsy);
+        assert.strictEqual(await cache.get('ns', 'falsy'), falsy);
+      }
     });
 
     it('should store buffers', async () => {
@@ -84,6 +106,30 @@ describe('igo.cache', () => {
         assert.strictEqual(await cache.fetch('fetchns', 'falsy' + typeof falsy, func), falsy);
         assert.strictEqual(calls, 1);
       }
+    });
+  });
+
+  // entries written by a release using the JSON codec
+  describe('legacy entries', () => {
+    it('should be treated as a miss', async () => {
+      const client = redis.createClient(igo.config.redis || {});
+      await client.connect();
+      await client.set('legacyns/0', JSON.stringify({ v: { t0: new Date() } }));
+      await client.destroy();
+
+      assert.strictEqual(await cache.get('legacyns', 0), null);
+      assert.deepStrictEqual(await cache.mget('legacyns', [0]), [0]);
+    });
+  });
+
+  describe('cache.mget', () => {
+    it('should return values in order, and 0 for missing keys', async () => {
+      await cache.put('mgetns', 'a', { t0: new Date() });
+      await cache.put('mgetns', 'b', 'hello');
+      const [a, b, c] = await cache.mget('mgetns', ['a', 'b', 'nope']);
+      assert(_.isDate(a.t0));
+      assert.strictEqual(b, 'hello');
+      assert.strictEqual(c, 0);
     });
   });
 

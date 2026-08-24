@@ -71,6 +71,14 @@ Keys are stored as `namespace/id`. For example, `cache.get('users', 'user:123')`
 
 ## Serialization
 
-- **Objects** are serialized to JSON
-- **Buffers** are stored as base64
-- **Dates** in JSON are automatically parsed back to `Date` objects on retrieval
+Values are serialized with Node's structured clone (`v8.serialize`), so types survive the
+round trip: `Date`, `Buffer`, `Map`, `Set` and `RegExp` come back as themselves, falsy values
+are valid cache hits, functions are dropped and class instances come back as plain objects.
+
+Two consequences:
+
+- stored values are **binary**: unreadable with `redis-cli` or from another language;
+- an entry that cannot be read back — written by an Igo release still using JSON, or by a Node
+  version using another format — is a **cache miss** and gets rewritten, rather than served
+  with degraded types. Counters written by `incr` / `incrby` are plain integers, so a codec
+  change never invalidates them.

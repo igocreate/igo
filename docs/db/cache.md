@@ -73,12 +73,16 @@ _cached.users → {"sql":"SELECT * FROM users WHERE status = ?","params":["activ
 
 Table versions live under `_cached_versions/{table_name}`.
 
+## What Is Cached
+
+Entries hold the **raw driver rows**, before column types are applied and instances are built: type conversion and hydration then run identically on a hit and on a miss. Attributes have the same types either way — a `DATETIME` column is a `Date` on a hit too — and each read allocates fresh objects.
+
 ## Redis Configuration
 
 Two invariants matter:
 
 - **Set `maxmemory-policy allkeys-lru`.** Invalidated entries are never read again, so they are exactly the LRU tail — Redis reclaims them at the right time, with no cleanup code and no key scanning.
-- **Version keys must never expire.** If `_cached_versions/{table}` disappears, the counter restarts at zero and revalidates any stale entry still stamped with version 0. `cache.incr` deliberately sets no TTL; do not add a global expiry that would cover these keys.
+- **Version keys must never disappear on their own.** If `_cached_versions/{table}` goes away, the counter restarts at zero and revalidates any stale entry still stamped with version 0. `cache.incr` deliberately sets no TTL: do not add a global expiry covering these keys, and do not flush them alone. Flushing everything is fine.
 
 ## Cache Statistics
 

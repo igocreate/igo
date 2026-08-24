@@ -1,5 +1,5 @@
 
-const _           = require('lodash');
+const v8          = require('v8');
 const redis       = require('redis');
 
 const logger      = require('./logger');
@@ -7,6 +7,7 @@ const config      = require('./config');
 
 let options       = null;
 let client        = null;
+let buffers       = null;
 
 
 const key = (namespace, id) => `${namespace}/${id}`;
@@ -22,6 +23,9 @@ module.exports.init = async () => {
   client.on('error', (err) => { logger.error(err); });
 
   await client.connect();
+
+  // reads go through a buffer-typed view of the same connection: values are binary
+  buffers = client.withTypeMapping({ [redis.RESP_TYPES.BLOB_STRING]: Buffer });
 
   if (config.env === 'test') {
     await module.exports.flushall();
@@ -44,7 +48,7 @@ module.exports.put = async (namespace, id, value, timeout) => {
 //
 module.exports.get = async (namespace, id) => {
   const k = key(namespace, id);
-  const value = await client.get(k);
+  const value = await buffers.get(k);
   if (!value) {
     return value;
   }
@@ -53,10 +57,13 @@ module.exports.get = async (namespace, id) => {
 };
 
 // - returns values for several ids of the same namespace, in the same order
-// - missing keys are returned as 0
+// - missing (or unreadable) keys are returned as 0
 module.exports.mget = async (namespace, ids) => {
-  const values = await client.mGet(ids.map(id => key(namespace, id)));
-  return values.map(value => value ? deserialize(value) : 0);
+  const values = await buffers.mGet(ids.map(id => key(namespace, id)));
+  return values.map(value => {
+    const v = value ? deserialize(value) : null;
+    return v === null ? 0 : v;
+  });
 };
 
 // - returns object from cache if exists.
@@ -145,35 +152,25 @@ module.exports.flush = async (pattern) => {
 };
 
 
-//
-const serialize = (value) => {
-  if (_.isBuffer(value)) {
-    return JSON.stringify({ buffer: value.toString('base64') });
-  }
-  return JSON.stringify({ v: value });
-};
+// v8 structured clone: Date, Buffer, Map, Set and falsy values keep their type,
+// so there is nothing to revive on the way out
+const serialize = (value) => v8.serialize(value);
+
+// every v8.serialize() payload starts with 0xFF followed by the format version
+const V8_HEADER   = v8.serialize(null).subarray(0, 2);
+const INTEGER     = /^-?\d+$/;
 
 //
-const deserialize = (data) => {
-  const obj = JSON.parse(data);
-  if (obj.buffer) {
-    return Buffer.from(obj.buffer, 'base64');
+const deserialize = (buffer) => {
+  if (buffer[0] === V8_HEADER[0]) {
+    // a payload written by another node major would throw on deserialize: miss instead
+    return buffer[1] === V8_HEADER[1] ? v8.deserialize(buffer) : null;
   }
-  if (obj.v !== undefined) { // can be null
-    deserializeDates(obj);
-    return obj.v;
+  const data = buffer.toString();
+  if (INTEGER.test(data)) {
+    return Number(data); // counter written by incr/incrby
   }
-  return obj;
-};
-
-const  DATE_REGEXP = /^\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d+([+-][0-2]\d:[0-5]\d|Z)$/;
-const deserializeDates = (obj) => {
-  if (_.isString(obj) && obj.match(DATE_REGEXP)) {
-    return new Date(obj);
-  } else if (_.isObject(obj) && _.keys(obj).length > 0) {
-    _.forIn(obj, (value, key) => {
-      obj[key] = deserializeDates(value);
-    });
-  }
-  return obj;
+  // entry written by an older release (JSON): treat as a miss rather than
+  // serve it with dates and buffers degraded to strings
+  return null;
 };

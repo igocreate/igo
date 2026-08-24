@@ -75,6 +75,21 @@ describe('db.CachedQuery', function () {
       assert.ok(newVersion > version, 'Expected version to be bumped after update');
     });
 
+    it('should return dates as Date on both miss and hit', async function () {
+      const book1 = await Book.create();
+
+      const onMiss = await Book.find(book1.id);
+      assert.ok(onMiss.created_at instanceof Date);
+
+      let onHit;
+      const sqls = await countSql(async () => {
+        onHit = await Book.find(book1.id);
+      });
+      assert.strictEqual(sqls.length, 0, 'Expected a cache hit');
+      assert.ok(onHit.created_at instanceof Date);
+      assert.strictEqual(onHit.created_at.getTime(), onMiss.created_at.getTime());
+    });
+
     it('should not serve stale data after update', async function () {
       const book1  = await Book.create();
       const before = await Book.find(book1.id); // populate cache
