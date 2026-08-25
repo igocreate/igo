@@ -63,6 +63,19 @@ await User.query().join('country').list();
 
 A paginated query with joins runs through a three-phase `COUNT` / `IDS` / `FULL` strategy instead of a single statement. All three phases are cached and stamped the same way, so the whole page is served from Redis on a hit, and any write to any of the tables involved invalidates it.
 
+## Raw SQL
+
+The stamp is built from the tables the query declares: its own, plus the joined ones.
+A raw clause naming a table the query does not join is invisible to it:
+
+```js
+// rows depend on training_types, the entry is not stamped with it
+Session.orderRaw('(SELECT `name` FROM `training_types` WHERE `id` = `sessions`.`training_type_id`)')
+```
+
+A write to that table invalidates nothing, and the entry is served until it expires. Reach
+other tables through associations, or leave such a query uncached.
+
 ## Cache Keys
 
 Entries are stored under the namespace `_cached.{table_name}`, keyed by the JSON-stringified SQL and params:

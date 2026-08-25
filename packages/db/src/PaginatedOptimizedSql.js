@@ -309,7 +309,10 @@ module.exports = class PaginatedOptimizedSql extends Sql {
       }
     });
 
-    return joinPaths;
+    // a sort path reaches another table: the join has to be declared, so that query.joins
+    // stays the full list of tables a query reads. Anything else fails in sql.
+    const joined = new Set(query.joins.map(join => join.association[1]));
+    return joinPaths.filter(({ path }) => path.every(({ association }) => joined.has(association[1])));
   }
 
   /**

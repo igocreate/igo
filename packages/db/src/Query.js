@@ -392,6 +392,16 @@ module.exports = class Query {
     return dbs[this.schema.database];
   }
 
+  // a dot-path is only understood as an association path when every level is joined:
+  // PaginatedOptimized extracts those, and the $or check below has to agree with it
+  _isJoinedPath(key) {
+    if (!key.includes('.') || key.startsWith('$')) {
+      return false;
+    }
+    const joined = new Set(this.query.joins.map(join => join.association[1]));
+    return _.every(key.split('.').slice(0, -1), name => joined.has(name));
+  }
+
   // Vérifie si la query est compatible avec le mode optimisé
   _checkOptimizedCompatibility() {
     const { query } = this;
@@ -419,7 +429,7 @@ module.exports = class Query {
 
     // $or mélangeant table principale et tables jointes : la séparation en EXISTS
     // transformerait le OR en AND, on retombe sur le mode classique
-    const isDotted  = (key) => key.includes('.') && !key.startsWith('$');
+    const isDotted  = (key) => this._isJoinedPath(key);
     const hasMixedOr = (expr) => {
       if (!_.isPlainObject(expr)) {
         return false;

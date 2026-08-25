@@ -266,6 +266,25 @@ const book = await Book.join('library').includes('library.city').find(id);
 const count = await Book.join('library').where('library.title = ?', 'Main').count();
 ```
 
+### Association paths
+
+`where()` and `order()` accept `association.column` paths, at any depth. Every level of
+the path must be joined — an association that is only declared in the schema is not
+enough. An undeclared path is sent to the database as written, and fails there:
+
+```js
+// OK
+await Book.join('library').where({ 'library.title': 'Main' }).list();
+await Book.join({ library: 'city' }).order('library.city.name ASC').list();
+
+// Unknown column 'city.name' in 'where clause'
+await Book.join('library').where({ 'library.city.name': 'Lyon' }).list();
+```
+
+Declaring the join does not force a `LEFT JOIN` in the generated SQL: with `.page()`,
+these filters are compiled into `EXISTS` sub-queries instead. The join declares which
+tables the query reads — which is also what the [query cache](./cache) invalidates on.
+
 ## Scopes
 
 ```js

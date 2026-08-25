@@ -1,6 +1,8 @@
 require('./init');
-const assert = require('assert');
-const Model = require('@igojs/db').Model;
+
+const assert      = require('assert');
+const Model       = require('@igojs/db').Model;
+const { logger }  = require('@igojs/server');
 
 describe('includes', () => {
 
@@ -321,6 +323,86 @@ describe('includes', () => {
       assert.strictEqual(result.rows.length, 2);
       assert.strictEqual(result.rows[0].library.id, library.id);
       assert.strictEqual(result.rows[0].library.title, 'Central');
+    });
+  });
+
+  // a dot-path reaches another table, so the join has to be declared: query.joins is then
+  // the full list of tables a query reads, which the cache relies on to invalidate.
+  // an undeclared one is left as written and fails in sql
+  describe('dot-paths require an explicit join', () => {
+
+    // the rejections below are sql errors, and a paginated query logs them from a phase
+    // still in flight: silence the block rather than each call
+    let silent = null;
+    before(() => { silent = logger.silent; logger.silent = true; });
+    after(()  => { logger.silent = silent; });
+
+    it('should accept a filter on a joined association', async () => {
+      const library = await Library.create({ title: 'joined' });
+      await Book.create({ library_id: library.id, code: 'explicit' });
+
+      const books = await Book.join('library').where({ 'library.title': 'joined' }).list();
+      assert.strictEqual(books.length, 1);
+    });
+
+    it('should reject a filter on an association that is not joined', async () => {
+      await assert.rejects(Book.where({ 'library.title': 'joined' }).list());
+    });
+
+    it('should reject a nested path when only its root is joined', async () => {
+      await assert.rejects(Book.join('library').where({ 'library.city.name': 'Lyon' }).page(1, 10).list());
+    });
+
+    it('should accept a nested path when every level is joined', async () => {
+      const city    = await City.create({ name: 'Lyon' });
+      const library = await Library.create({ title: 'nested', city_id: city.id });
+      await Book.create({ library_id: library.id, code: 'nested' });
+
+      const result = await Book.join({ library: 'city' })
+      .where({ 'library.city.name': 'Lyon' }).page(1, 10).list();
+      assert.strictEqual(result.pagination.count, 1);
+    });
+
+    it('should reject a path inside a $or', async () => {
+      await assert.rejects(Book.where({ $or: [ { 'library.title': 'a' }, { 'library.title': 'b' } ] }).list());
+    });
+
+    it('should reject an order on an association that is not joined', async () => {
+      await assert.rejects(Book.order('library.title ASC').list());
+    });
+
+    // this one used to silently add a LEFT JOIN on cities in the IDS phase
+    it('should reject an order on a nested path that is not joined', async () => {
+      await assert.rejects(Book.join('library').order('library.city.name ASC').page(1, 10).list());
+    });
+
+    it('should accept an order on a joined association', async () => {
+      const city    = await City.create({ name: 'Lyon' });
+      const library = await Library.create({ title: 'ordered', city_id: city.id });
+      await Book.create({ library_id: library.id, code: 'ordered' });
+
+      const result = await Book.join({ library: 'city' }).order('library.city.name ASC').page(1, 10).list();
+      assert.ok(result.pagination.count >= 1);
+    });
+
+    // the $or fallback and the EXISTS extraction have to agree on what a joined path is,
+    // or the branches get split and ANDed
+    it('should keep a $or mixing a joined path and a main table column', async () => {
+      const library = await Library.create({ title: 'or-lib' });
+      await Book.create({ library_id: library.id, code: 'or-with' });
+      await Book.create({ code: 'or-without' });
+
+      const result = await Book.join('library')
+      .where({ $or: [ { 'library.title': 'or-lib' }, { 'books.code': 'or-without' } ] })
+      .page(1, 10).list();
+
+      assert.strictEqual(result.pagination.count, 2);
+    });
+
+    it('should accept a path prefixed with the main table', async () => {
+      await Book.create({ code: 'prefixed' });
+      const books = await Book.where({ 'books.code': 'prefixed' }).list();
+      assert.strictEqual(books.length, 1);
     });
   });
 

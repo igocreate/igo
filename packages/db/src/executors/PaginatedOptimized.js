@@ -246,7 +246,7 @@ module.exports = class PaginatedOptimized {
 
         _.forEach(value, (child) => {
           const hasJoinedKey = _.isObject(child) && !_.isArray(child) &&
-            _.some(_.keys(child), k => k.includes('.') && !k.startsWith('$'));
+            _.some(_.keys(child), k => this.source._isJoinedPath(k));
           if (hasJoinedKey) {
             joinedBranches.push(child);
           } else {
@@ -260,7 +260,7 @@ module.exports = class PaginatedOptimized {
         if (mainBranches.length > 0) {
           mainConditions.$or = mainBranches;
         }
-      } else if (key.includes('.') && !key.startsWith('$')) {
+      } else if (this.source._isJoinedPath(key)) {
         const keyParts = key.split('.');
         const column = keyParts[keyParts.length - 1];
         const path = keyParts.slice(0, -1);
