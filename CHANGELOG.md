@@ -1,5 +1,19 @@
 # Changelog
 
+## 6.2.1 - 2026-08-25
+
+### @igojs/db
+
+- **Breaking**: an association path in `where()` or `order()` requires the association to be joined. The optimized paginated executor used to reach another table on its own — turning a dot-path condition into an `EXISTS`, and inferring a `LEFT JOIN` for a sort from an association path, a table prefix, a bare column found in an associated block, or a table named inside a `COALESCE`. Nothing failed, so `Book.where({ 'library.city.name': 'Lyon' }).join('library').page(1, 10)` worked while the same condition raised `Unknown column` on `count()`. It now only extracts a path whose association is joined, and only adds the sort joins it was told about; anything else is sent to the database as written and fails there, as it already did outside the optimized path. Declare the levels you filter or sort on — `join({ library: 'city' })` — and the plan is unchanged: those filters still compile to `EXISTS`.
+- **Fixed**: a cached paginated query is invalidated by writes to the tables it filters or sorts on. Those reached by inference were absent from `query.joins`, so they were absent from the version stamp the entry is compared against: writes to them invalidated nothing, and stale rows, stale counts and a frozen page ordering were served for the whole TTL.
+
+### @igojs/server
+
+- **Fixed**: a value the cache cannot serialize no longer fails the write. `v8.serialize` rejects functions, class references and Proxies where JSON silently dropped them, and `cache.put()` is often called without `await` — in flash, the failure was invisible: the UUID stayed in the session, the next GET read `null`, and the flash came back empty. The parts that cannot be cloned are now dropped, with a warning naming the key. Nothing is cloned twice on a value that serializes.
+- **Fixed**: `req.flash()` sends a cyclic value to `cacheflash` whatever its size. The session is stored as JSON, so `JSON.stringify` threw while writing the response headers, out of reach of any handler.
+- **Removed**: `req.sessionOptions`, an unused `cookie-session` convention. It only half-worked: the cookie attribute followed a per-request `maxAge`, the expiry embedded in the encrypted payload did not, so a longer `maxAge` produced a cookie the browser keeps and the server rejects.
+- **Fixed**: `cache.mget()` with an empty list returns `[]` instead of calling Redis with no key.
+
 ## 6.2.0 - 2026-08-24
 
 ### @igojs/server
