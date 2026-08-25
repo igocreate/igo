@@ -82,8 +82,6 @@ module.exports = function session(options) {
     let isNew   = true;
     let initial = undefined;  // json of the session as loaded
 
-    req.sessionOptions = Object.create(opts);
-
     const load = function() {
       const value = cookies.get(opts.name);
       if (!value || !value.startsWith(VERSION + '.')) {
@@ -124,7 +122,7 @@ module.exports = function session(options) {
         return;
       }
       if (sess === false) {
-        cookies.set(opts.name, '', req.sessionOptions);
+        cookies.set(opts.name, '', opts);
         return;
       }
       const json = JSON.stringify(sess);
@@ -134,7 +132,7 @@ module.exports = function session(options) {
       if (json === initial) {
         return;
       }
-      cookies.set(opts.name, encrypt(sess, cryptoKeys[0], opts.maxAge), req.sessionOptions);
+      cookies.set(opts.name, encrypt(sess, cryptoKeys[0], opts.maxAge), opts);
     });
 
     next();
