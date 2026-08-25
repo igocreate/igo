@@ -48,12 +48,25 @@ For large objects, you can explicitly use Redis-backed storage:
 req.cacheflash('bigdata', veryLargeObject);
 ```
 
+## Awaiting the write
+
+Redis-backed flash data is read back by the *next* request. When you redirect
+straight away, await the write so it cannot lose the race:
+
+```js
+await req.flash('form', form);
+res.redirect('/books');
+```
+
+Both methods return the pending write (`undefined` when the data stayed in the
+session), so awaiting is always safe and only matters before a redirect.
+
 ## API
 
 | Method | Description |
 |--------|-------------|
-| `req.flash(key, value)` | Store data with automatic Redis fallback |
-| `req.cacheflash(key, value)` | Store data explicitly in Redis (60s TTL) |
+| `req.flash(key, value)` | Store data with automatic Redis fallback. Returns the pending Redis write, if any |
+| `req.cacheflash(key, value)` | Store data explicitly in Redis (60s TTL). Returns the pending write |
 | `res.locals.flash` | Read flash data in templates/controllers |
 
 ## How It Works

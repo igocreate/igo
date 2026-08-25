@@ -4,6 +4,7 @@ const { randomUUID }  = require('crypto');
 
 const cache           = require('../cache');
 const logger          = require('../logger');
+const utils           = require('../utils');
 
 const NS              = 'cacheflash';
 const SIZE_THRESHOLD  = 1024;  // 1KB - auto switch to cacheflash
@@ -26,10 +27,12 @@ module.exports = async (req, res, next) => {
 
   // save flash data in session
   req.flash = (key, value) => {
-    const size = value !== undefined ? JSON.stringify(value).length : 0;
+    const json = utils.toJSON(value);
+    const size = json ? json.length : 0;
 
-    // Auto-switch to cacheflash if object is too large
-    if (size > SIZE_THRESHOLD) {
+    // Auto-switch to cacheflash if object is too large, or if JSON cannot express it
+    // (a cycle): the session is stored as JSON
+    if (json === null || size > SIZE_THRESHOLD) {
       if (size > SIZE_WARNING) {
         logger.warn(`Flash object "${key}" is very large (${(size/1024).toFixed(1)}KB), automatically using cacheflash. Consider reducing data size.`);
       }
@@ -43,7 +46,7 @@ module.exports = async (req, res, next) => {
   req.cacheflash = (key, value) => {
     const uuid = randomUUID();
     req.session._igo_cacheflash.push(uuid);
-    cache.put(NS, uuid, { [key]: value }, 60); // 60s
+    return cache.put(NS, uuid, { [key]: value }, 60); // 60s
   };
 
   // Load cacheflash objects in parallel

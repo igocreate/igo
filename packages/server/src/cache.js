@@ -35,7 +35,7 @@ module.exports.init = async () => {
 //
 module.exports.put = async (namespace, id, value, timeout) => {
   const k = key(namespace, id);
-  const v = serialize(value);
+  const v = serialize(k, value);
 
   // console.log('PUT: ' + k);
   const ret = await client.set(k, v);
@@ -59,6 +59,9 @@ module.exports.get = async (namespace, id) => {
 // - returns values for several ids of the same namespace, in the same order
 // - missing (or unreadable) keys are returned as 0
 module.exports.mget = async (namespace, ids) => {
+  if (!ids.length) {
+    return [];
+  }
   const values = await buffers.mGet(ids.map(id => key(namespace, id)));
   return values.map(value => {
     const v = value ? deserialize(value) : null;
@@ -151,10 +154,17 @@ module.exports.flush = async (pattern) => {
   });
 };
 
-
 // v8 structured clone: Date, Buffer, Map, Set and falsy values keep their type,
 // so there is nothing to revive on the way out
-const serialize = (value) => v8.serialize(value);
+const serialize = (k, value) => {
+  try {
+    return v8.serialize(value);
+  } catch (err) {
+    // the rebuild is the slow path on purpose: nothing is cloned twice when it serializes
+    logger.warn(`Cache "${k}": ${err.message} Storing the value without it.`);
+    return v8.serialize(cloneable(value));
+  }
+};
 
 // every v8.serialize() payload starts with 0xFF followed by the format version
 const V8_HEADER   = v8.serialize(null).subarray(0, 2);
@@ -174,3 +184,34 @@ const deserialize = (buffer) => {
   // serve it with dates and buffers degraded to strings
   return null;
 };
+
+// drops what the serializer refuses (functions, class refs, Proxies) instead of failing.
+// structuredClone is the algorithm v8.serialize implements, so it answers for it
+const cloneable = (value, seen = new WeakSet()) => {
+  try {
+    structuredClone(value);
+    return value;
+  } catch (_err) {
+    // rebuild below, keeping what can be cloned
+  }
+
+  if (value === null || typeof value !== 'object') {
+    return undefined; // a function, a symbol: nothing to keep
+  }
+  if (seen.has(value)) {
+    return undefined; // cycle running through a branch that cannot be cloned
+  }
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.map(item => cloneable(item, seen));
+  }
+  return Object.keys(value).reduce((kept, k) => {
+    const clone = cloneable(value[k], seen);
+    if (clone !== undefined) {
+      kept[k] = clone;
+    }
+    return kept;
+  }, {});
+};
+

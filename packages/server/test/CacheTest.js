@@ -87,6 +87,33 @@ describe('igo.cache', () => {
       assert(_.isBuffer(value));
       assert.strictEqual(buffer.toString(), value.toString());
     });
+
+    // v8 refuses what JSON used to drop: store the rest rather than lose the whole value
+    it('should drop what it cannot serialize and store the rest', async () => {
+      class SomeForm {}
+      const value = { title: 'kept', when: new Date(0), fn: () => true, sub: { form: SomeForm, code: 'kept too' } };
+      value.self  = value;
+
+      await cache.put('ns', 'lenient', value);
+      const stored = await cache.get('ns', 'lenient');
+
+      assert.strictEqual(stored.title, 'kept');
+      assert.strictEqual(stored.sub.code, 'kept too');
+      assert.strictEqual(stored.fn, undefined);
+      assert.strictEqual(stored.sub.form, undefined);
+      assert.ok(stored.when instanceof Date, 'Expected the Date to keep its type');
+    });
+
+    it('should store a serializable value as is', async () => {
+      const value = { when: new Date(0), buf: Buffer.from('hi'), set: new Set([1]), self: null };
+      value.self  = value; // a cycle serializes fine, and comes back as a cycle
+
+      await cache.put('ns', 'cyclic', value);
+      const stored = await cache.get('ns', 'cyclic');
+
+      assert.strictEqual(stored.self, stored);
+      assert.ok(stored.set instanceof Set);
+    });
   });
 
   describe('cache.fetch', () => {
