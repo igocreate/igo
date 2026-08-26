@@ -36,9 +36,9 @@ const expandJoin = (assoc) => {
   return assoc;
 };
 
-// Test probe: drives a standard Query through PaginatedOptimized, exposing the per-phase
-// SQL (countSQL / idsSQL depending on query.verb). Mirrors the builder surface the SQL assertions
-// rely on, so production code carries no builder of its own.
+// Test probe: drives a standard Query through PaginatedOptimized, exposing each phase's SQL
+// under the executor's own name. Mirrors the builder surface the SQL assertions rely on, so
+// production code carries no builder of its own.
 class OptimizedProbe {
   constructor(ModelClass) {
     this.source = mockGetDb(new Query(ModelClass));
@@ -54,10 +54,8 @@ class OptimizedProbe {
   limit(n)          { this.source.limit(n); return this; }
   offset(n)         { this.source.offset(n); return this; }
   page(p, n)        { this.source.page(p, n); return this; }
-  toSQL() {
-    const runner = new PaginatedOptimized(this.source);
-    return this.query.verb === 'select_ids' ? runner.idsSQL() : runner.countSQL();
-  }
+  countSQL()        { return new PaginatedOptimized(this.source).countSQL(); }
+  idsSQL()          { return new PaginatedOptimized(this.source).idsSQL(); }
 }
 const newOptimized = (ModelClass) => new OptimizedProbe(ModelClass);
 
@@ -343,7 +341,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ status: 'SUBMITTED' });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE `folders`.`status` = ?');
       assert.deepStrictEqual(params, ['SUBMITTED']);
@@ -353,7 +351,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ applicant_id: null });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE `folders`.`applicant_id` IS NULL');
       assert.deepStrictEqual(params, []);
@@ -363,7 +361,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ status: ['SUBMITTED', 'VALIDATED'] });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE `folders`.`status` IN (?)');
       assert.deepStrictEqual(params, [['SUBMITTED', 'VALIDATED']]);
@@ -373,7 +371,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ status: [] });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE FALSE');
       assert.deepStrictEqual(params, []);
@@ -383,7 +381,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ status: { $like: 'TRANS%' } });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE `folders`.`status` LIKE ?');
       assert.deepStrictEqual(params, ['TRANS%']);
@@ -393,7 +391,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ status: 'TRANS%' });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE `folders`.`status` = ?');
       assert.deepStrictEqual(params, ['TRANS%']);
@@ -403,7 +401,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ created_at: { $between: ['2024-01-01', '2024-12-31'] } });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE `folders`.`created_at` BETWEEN ? AND ?');
       assert.deepStrictEqual(params, ['2024-01-01', '2024-12-31']);
@@ -421,7 +419,7 @@ describe('db.PaginatedOptimized', function() {
         const query = newOptimized(Folder);
         query.query.verb = 'count';
         query.where({ created_at: { [op]: '2024-01-01' } });
-        const { sql, params } = query.toSQL();
+        const { sql, params } = query.countSQL();
 
         assert.strictEqual(sql, `SELECT COUNT(0) as \`count\` FROM \`folders\` WHERE \`folders\`.\`created_at\` ${symbol} ?`);
         assert.deepStrictEqual(params, ['2024-01-01']);
@@ -437,7 +435,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ status: 'SUBMITTED', type: 'agp' });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE `folders`.`status` = ? AND `folders`.`type` = ?');
       assert.deepStrictEqual(params, ['SUBMITTED', 'agp']);
@@ -447,7 +445,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ $and: [{ status: 'SUBMITTED' }, { type: 'agp' }] });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE (`folders`.`status` = ? AND `folders`.`type` = ?)');
       assert.deepStrictEqual(params, ['SUBMITTED', 'agp']);
@@ -457,7 +455,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({ $or: [{ applicant_id: null }, { pme_folder_id: null }] });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE (`folders`.`applicant_id` IS NULL OR `folders`.`pme_folder_id` IS NULL)');
       assert.deepStrictEqual(params, []);
@@ -470,7 +468,7 @@ describe('db.PaginatedOptimized', function() {
         status: 'TRANSMIS',
         $or: [{ applicant_id: null }, { pme_folder_id: null }]
       });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE (`folders`.`applicant_id` IS NULL OR `folders`.`pme_folder_id` IS NULL) AND `folders`.`status` = ?');
       assert.deepStrictEqual(params, ['TRANSMIS']);
@@ -485,7 +483,7 @@ describe('db.PaginatedOptimized', function() {
           { pme_folder_id: null, type: 'agp' }
         ]
       });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE (`folders`.`applicant_id` IS NULL OR (`folders`.`pme_folder_id` IS NULL AND `folders`.`type` = ?))');
       assert.deepStrictEqual(params, ['agp']);
@@ -509,7 +507,7 @@ describe('db.PaginatedOptimized', function() {
           }
         ]
       });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE (`folders`.`applicant_id` IS NULL OR (`folders`.`pme_folder_id` IS NULL AND (`folders`.`status` LIKE ? OR `folders`.`status` = ?))) AND `folders`.`type` = ?');
       assert.deepStrictEqual(params, ['TRANS%', 'DRAFT', 'agp']);
@@ -519,7 +517,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.where({});
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders`');
       assert.deepStrictEqual(params, []);
@@ -534,7 +532,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.join('applicant').where({ status: 'SUBMITTED', 'applicant.last_name': { $like: 'Dupont%' } });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE `folders`.`status` = ? AND EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND `applicants`.`last_name` LIKE ? )');
       assert.deepStrictEqual(params, ['SUBMITTED', 'Dupont%']);
@@ -544,7 +542,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.join('applicant').where({ 'applicant.last_name': { $like: 'Dupont%' }, 'applicant.email': 'test@test.com' });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND `applicants`.`last_name` LIKE ? AND `applicants`.`email` = ? )');
       assert.deepStrictEqual(params, ['Dupont%', 'test@test.com']);
@@ -554,7 +552,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.join(['applicant', 'pme_folder']).where({ 'applicant.last_name': { $like: 'Dupont%' }, 'pme_folder.status': 'ACTIVE' });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND `applicants`.`last_name` LIKE ? ) AND EXISTS (SELECT 1 FROM `pme_folders` WHERE `pme_folders`.`id` = `folders`.`pme_folder_id` AND `pme_folders`.`status` = ? )');
       assert.deepStrictEqual(params, ['Dupont%', 'ACTIVE']);
@@ -564,7 +562,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(Folder);
       query.query.verb = 'count';
       query.join('pme_folder.company.country').where({ 'pme_folder.company.country.code': 'FR' });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE EXISTS (SELECT 1 FROM `pme_folders` WHERE `pme_folders`.`id` = `folders`.`pme_folder_id` AND EXISTS (SELECT 1 FROM `companies` WHERE `companies`.`id` = `pme_folders`.`company_id` AND EXISTS (SELECT 1 FROM `countries` WHERE `countries`.`id` = `companies`.`country_id` AND `countries`.`code` = ? ) ) )');
       assert.deepStrictEqual(params, ['FR']);
@@ -579,7 +577,7 @@ describe('db.PaginatedOptimized', function() {
           { 'pme_folder.status': 'ACTIVE' }
         ]
       });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE (EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND `applicants`.`last_name` LIKE ?) OR EXISTS (SELECT 1 FROM `pme_folders` WHERE `pme_folders`.`id` = `folders`.`pme_folder_id` AND `pme_folders`.`status` = ?))');
       assert.deepStrictEqual(params, ['Dupont%', 'ACTIVE']);
@@ -595,7 +593,7 @@ describe('db.PaginatedOptimized', function() {
           { 'applicant.email':      'a@b.c' },
         ]
       });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND (`applicants`.`last_name` LIKE ? OR `applicants`.`first_name` LIKE ? OR `applicants`.`email` = ?))');
       assert.deepStrictEqual(params, ['Dupont%', 'Jean%', 'a@b.c']);
@@ -612,7 +610,7 @@ describe('db.PaginatedOptimized', function() {
           { 'pme_folder.country':    'FR' },
         ]
       });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE (EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND (`applicants`.`last_name` LIKE ? OR `applicants`.`first_name` LIKE ?)) OR EXISTS (SELECT 1 FROM `pme_folders` WHERE `pme_folders`.`id` = `folders`.`pme_folder_id` AND (`pme_folders`.`status` = ? OR `pme_folders`.`country` = ?)))');
       assert.deepStrictEqual(params, ['Dupont%', 'Jean%', 'ACTIVE', 'FR']);
@@ -622,7 +620,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(BookWithExtraWhere);
       query.query.verb = 'count';
       query.join('library').where({ 'library.title': { $like: 'Test%' } });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `books` WHERE EXISTS (SELECT 1 FROM `libraries` WHERE `libraries`.`id` = `books`.`library_id` AND `libraries`.`collection` = ? AND `libraries`.`title` LIKE ? )');
       assert.deepStrictEqual(params, ['A', 'Test%']);
@@ -639,7 +637,7 @@ describe('db.PaginatedOptimized', function() {
       query.where({ type: 'agp', 'applicant.last_name': { $like: 'Dupont%' } })
       .order('applicants.last_name ASC')
       .join('applicant');
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `folders` WHERE `folders`.`type` = ? AND EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND `applicants`.`last_name` LIKE ? )');
       assert.deepStrictEqual(params, ['agp', 'Dupont%']);
@@ -647,11 +645,10 @@ describe('db.PaginatedOptimized', function() {
 
     it('IDS should SELECT only id, use EXISTS, ORDER BY + LIMIT, and no LEFT JOIN when sort is on main table', () => {
       const query = newOptimized(Folder);
-      query.query.verb = 'select_ids';
       query.join('applicant').where({ type: 'agp', 'applicant.last_name': { $like: 'Dupont%' } })
       .order('folders.created_at DESC')
       .limit(50);
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.idsSQL();
 
       assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` WHERE `folders`.`type` = ? AND EXISTS (SELECT 1 FROM `applicants` WHERE `applicants`.`id` = `folders`.`applicant_id` AND `applicants`.`last_name` LIKE ? ) ORDER BY folders.created_at DESC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['agp', 'Dupont%', 0, 50]);
@@ -664,9 +661,8 @@ describe('db.PaginatedOptimized', function() {
   describe('Sort on joined tables', function() {
     it('should add LEFT JOIN when sorting on a joined table column', () => {
       const query = newOptimized(Folder);
-      query.query.verb = 'select_ids';
       query.join('applicant').where({ type: 'agp' }).order('applicants.last_name ASC').limit(50);
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.idsSQL();
 
       assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `applicants` AS `applicant` ON `applicant`.`id` = `folders`.`applicant_id` WHERE `folders`.`type` = ? ORDER BY applicant.last_name ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['agp', 0, 50]);
@@ -674,9 +670,8 @@ describe('db.PaginatedOptimized', function() {
 
     it('should add cascading LEFT JOINs for nested sort path', () => {
       const query = newOptimized(Folder);
-      query.query.verb = 'select_ids';
       query.join('pme_folder.company').where({ type: 'pme' }).order('pme_folder.company.name ASC').limit(50);
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.idsSQL();
 
       assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `pme_folders` AS `pme_folder` ON `pme_folder`.`id` = `folders`.`pme_folder_id` LEFT JOIN `companies` AS `company` ON `company`.`id` = `pme_folder`.`company_id` WHERE `folders`.`type` = ? ORDER BY company.name ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['pme', 0, 50]);
@@ -684,9 +679,8 @@ describe('db.PaginatedOptimized', function() {
 
     it('should alias a self-referential join when sorting on the parent', () => {
       const query = newOptimized(ClientNode);
-      query.query.verb = 'select_ids';
       query.join('parent').order('`parent`.`name` DESC').limit(50);
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.idsSQL();
 
       assert.strictEqual(sql, 'SELECT `client_nodes`.`id` FROM `client_nodes` LEFT JOIN `client_nodes` AS `parent` ON `parent`.`id` = `client_nodes`.`group_id` ORDER BY parent.name DESC LIMIT ?, ?');
       assert.deepStrictEqual(params, [0, 50]);
@@ -694,9 +688,8 @@ describe('db.PaginatedOptimized', function() {
 
     it('should not add any JOIN when sorting on main table column', () => {
       const query = newOptimized(Folder);
-      query.query.verb = 'select_ids';
       query.where({ type: 'agp' }).order('folders.created_at DESC').limit(50);
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.idsSQL();
 
       assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` WHERE `folders`.`type` = ? ORDER BY folders.created_at DESC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['agp', 0, 50]);
@@ -704,9 +697,8 @@ describe('db.PaginatedOptimized', function() {
 
     it('should transform association name to table name in ORDER BY', () => {
       const query = newOptimized(Folder);
-      query.query.verb = 'select_ids';
       query.where({ type: 'agp' }).order('pme_folder.company.name ASC').join('pme_folder.company').limit(50);
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.idsSQL();
 
       assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `pme_folders` AS `pme_folder` ON `pme_folder`.`id` = `folders`.`pme_folder_id` LEFT JOIN `companies` AS `company` ON `company`.`id` = `pme_folder`.`company_id` WHERE `folders`.`type` = ? ORDER BY company.name ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['agp', 0, 50]);
@@ -714,11 +706,10 @@ describe('db.PaginatedOptimized', function() {
 
     it('should preserve SQL functions (COALESCE, CONCAT, IFNULL) in ORDER BY', () => {
       const query = newOptimized(Folder);
-      query.query.verb = 'select_ids';
       query.where({ type: 'agp' }).join('applicant')
       .orderRaw('COALESCE(`applicant`.`last_name`, `applicant`.`first_name`) ASC')
       .limit(50);
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.idsSQL();
 
       assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `applicants` AS `applicant` ON `applicant`.`id` = `folders`.`applicant_id` WHERE `folders`.`type` = ? ORDER BY COALESCE(applicant.last_name, applicant.first_name) ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['agp', 0, 50]);
@@ -880,9 +871,8 @@ describe('db.PaginatedOptimized', function() {
   describe('Block tables', function() {
     it('should add LEFT JOIN and prefix ORDER BY for a block column', () => {
       const query = newOptimized(PMEFolderWithBlocks);
-      query.query.verb = 'select_ids';
       query.join('studies').where({ is_initial: true }).order('studies_year DESC').limit(50);
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.idsSQL();
 
       assert.strictEqual(sql, 'SELECT `pme_folders_with_blocks`.`id` FROM `pme_folders_with_blocks` LEFT JOIN `block_studies` AS `studies` ON `studies`.`id` = `pme_folders_with_blocks`.`block_studies_id` WHERE `pme_folders_with_blocks`.`is_initial` = ? ORDER BY studies.studies_year DESC LIMIT ?, ?');
       assert.deepStrictEqual(params, [true, 0, 50]);
@@ -890,9 +880,8 @@ describe('db.PaginatedOptimized', function() {
 
     it('should deduplicate LEFT JOINs when multiple columns from the same block', () => {
       const query = newOptimized(PMEFolderWithBlocks);
-      query.query.verb = 'select_ids';
       query.join('studies').where({ is_initial: true }).order('studies_year DESC').order('bac_year ASC').limit(50);
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.idsSQL();
 
       assert.strictEqual(sql, 'SELECT `pme_folders_with_blocks`.`id` FROM `pme_folders_with_blocks` LEFT JOIN `block_studies` AS `studies` ON `studies`.`id` = `pme_folders_with_blocks`.`block_studies_id` WHERE `pme_folders_with_blocks`.`is_initial` = ? ORDER BY studies.studies_year DESC, studies.bac_year ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, [true, 0, 50]);
@@ -900,9 +889,8 @@ describe('db.PaginatedOptimized', function() {
 
     it('should add separate LEFT JOINs for columns from different blocks', () => {
       const query = newOptimized(PMEFolderWithBlocks);
-      query.query.verb = 'select_ids';
       query.join(['studies', 'travel_wishes']).where({ is_initial: true }).order('studies_year DESC').order('destination ASC').limit(50);
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.idsSQL();
 
       assert.strictEqual(sql, 'SELECT `pme_folders_with_blocks`.`id` FROM `pme_folders_with_blocks` LEFT JOIN `block_studies` AS `studies` ON `studies`.`id` = `pme_folders_with_blocks`.`block_studies_id` LEFT JOIN `block_travel_wishes` AS `travel_wishes` ON `travel_wishes`.`id` = `pme_folders_with_blocks`.`block_travel_wishes_id` WHERE `pme_folders_with_blocks`.`is_initial` = ? ORDER BY studies.studies_year DESC, travel_wishes.destination ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, [true, 0, 50]);
@@ -910,9 +898,8 @@ describe('db.PaginatedOptimized', function() {
 
     it('should not add JOIN when sorting on a main table column', () => {
       const query = newOptimized(PMEFolderWithBlocks);
-      query.query.verb = 'select_ids';
       query.where({ is_initial: true }).order('professional_activity DESC').limit(50);
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.idsSQL();
 
       assert.strictEqual(sql, 'SELECT `pme_folders_with_blocks`.`id` FROM `pme_folders_with_blocks` WHERE `pme_folders_with_blocks`.`is_initial` = ? ORDER BY professional_activity DESC LIMIT ?, ?');
       assert.deepStrictEqual(params, [true, 0, 50]);
@@ -920,10 +907,9 @@ describe('db.PaginatedOptimized', function() {
 
     it('should add LEFT JOIN for unprefixed column found in explicitly joined table', () => {
       const query = newOptimized(Folder);
-      query.query.verb = 'select_ids';
       query.join('applicant');
       query.where({ type: 'agp' }).order('first_name ASC').limit(50);
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.idsSQL();
 
       assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `applicants` AS `applicant` ON `applicant`.`id` = `folders`.`applicant_id` WHERE `folders`.`type` = ? ORDER BY applicant.first_name ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['agp', 0, 50]);
@@ -931,9 +917,8 @@ describe('db.PaginatedOptimized', function() {
 
     it('should handle nested path 3 levels (folder -> pme_folder -> block_study)', () => {
       const query = newOptimized(FolderWithNestedBlocks);
-      query.query.verb = 'select_ids';
       query.join('pme_folder.block_study').where({ type: ['agp', 'avt'] }).order('pme_folder.block_study.bac_year DESC').limit(50);
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.idsSQL();
 
       assert.strictEqual(sql, 'SELECT `folders`.`id` FROM `folders` LEFT JOIN `pme_folders` AS `pme_folder` ON `pme_folder`.`id` = `folders`.`pme_folder_id` LEFT JOIN `block_studies` AS `block_study` ON `block_study`.`id` = `pme_folder`.`block_studies_id` WHERE `folders`.`type` IN (?) ORDER BY block_study.bac_year DESC LIMIT ?, ?');
       assert.deepStrictEqual(params, [['agp', 'avt'], 0, 50]);
@@ -958,9 +943,8 @@ describe('db.PaginatedOptimized', function() {
 
     it('should handle COALESCE with block column', () => {
       const query = newOptimized(PMEFolderWithBlocks);
-      query.query.verb = 'select_ids';
       query.join('studies').where({ is_initial: true }).orderRaw('COALESCE(`studies_year`, "N/A") DESC').limit(50);
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.idsSQL();
 
       assert.strictEqual(sql, 'SELECT `pme_folders_with_blocks`.`id` FROM `pme_folders_with_blocks` LEFT JOIN `block_studies` AS `studies` ON `studies`.`id` = `pme_folders_with_blocks`.`block_studies_id` WHERE `pme_folders_with_blocks`.`is_initial` = ? ORDER BY COALESCE(studies.studies_year, "N/A") DESC LIMIT ?, ?');
       assert.deepStrictEqual(params, [true, 0, 50]);
@@ -969,11 +953,10 @@ describe('db.PaginatedOptimized', function() {
     // the deep route crosses `log`, never joined, so it gets dropped and the ORDER BY loses its join
     it('should resolve a SQL-function reference to the join it names, not to a deeper route', () => {
       const query = newOptimized(SortFolder);
-      query.query.verb = 'select_ids';
       query.join(['applicant', 'beneficiary'])
       .orderRaw('COALESCE(beneficiary.identity_expires_at, applicant.identity_expires_at)')
       .limit(25);
-      const { sql } = query.toSQL();
+      const { sql } = query.idsSQL();
 
       assert.ok(sql.includes('LEFT JOIN `beneficiaries` AS `beneficiary`'));
       assert.ok(sql.includes('LEFT JOIN `applicants` AS `applicant`'));
@@ -1006,9 +989,8 @@ describe('db.PaginatedOptimized', function() {
 
     it('should leave a $or on an unjoined association to the database', () => {
       const query = newOptimized(Folder);
-      query.query.verb = 'select_ids';
       query.where({ $or: [{ 'unknown.x': 1 }, { 'unknown.y': 2 }] }).limit(50);
-      const { sql } = query.toSQL();
+      const { sql } = query.idsSQL();
 
       assert.ok(!sql.includes('EXISTS'), 'Expected no EXISTS sub-query');
       assert.ok(sql.includes('`unknown`.`x`'), 'Expected the condition to reach sql as written');
@@ -1016,19 +998,17 @@ describe('db.PaginatedOptimized', function() {
 
     it('should throw on nested association paths in $or filters', () => {
       const query = newOptimized(Folder);
-      query.query.verb = 'select_ids';
       query.join('pme_folder.company')
       .where({ $or: [{ 'pme_folder.company.name': 'a' }, { 'pme_folder.company.siret': 'b' }] }).limit(50);
-      assert.throws(() => query.toSQL(), /Nested association path 'pme_folder.company'/);
+      assert.throws(() => query.idsSQL(), /Nested association path 'pme_folder.company'/);
     });
   });
 
   describe('extraWhere on associations', function() {
-    it('should apply extraWhere in LEFT JOIN condition (verb select_ids)', () => {
+    it('should apply extraWhere in LEFT JOIN condition (IDS phase)', () => {
       const query = newOptimized(BookWithExtraWhere);
-      query.query.verb = 'select_ids';
       query.join('library').where({ code: 'ABC' }).order('library.title ASC').limit(50);
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.idsSQL();
 
       assert.strictEqual(sql, 'SELECT `books`.`id` FROM `books` LEFT JOIN `libraries` AS `library` ON `library`.`id` = `books`.`library_id` AND `library`.`collection` = ? WHERE `books`.`code` = ? ORDER BY library.title ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['A', 'ABC', 0, 50]);
@@ -1036,9 +1016,8 @@ describe('db.PaginatedOptimized', function() {
 
     it('should apply extraWhere in both EXISTS and LEFT JOIN when combined', () => {
       const query = newOptimized(BookWithExtraWhere);
-      query.query.verb = 'select_ids';
       query.join('library').where({ code: 'ABC', 'library.title': { $like: 'Test%' } }).order('library.title ASC').limit(50);
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.idsSQL();
 
       assert.strictEqual(sql, 'SELECT `books`.`id` FROM `books` LEFT JOIN `libraries` AS `library` ON `library`.`id` = `books`.`library_id` AND `library`.`collection` = ? WHERE `books`.`code` = ? AND EXISTS (SELECT 1 FROM `libraries` WHERE `libraries`.`id` = `books`.`library_id` AND `libraries`.`collection` = ? AND `libraries`.`title` LIKE ? ) ORDER BY library.title ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['A', 'ABC', 'A', 'Test%', 0, 50]);
@@ -1048,7 +1027,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(BookWithExtraWhere);
       query.query.verb = 'count';
       query.join('library').where({ code: 'ABC' }).order('library.title ASC');
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `books` WHERE `books`.`code` = ?');
       assert.deepStrictEqual(params, ['ABC']);
@@ -1058,7 +1037,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(BookWithMultipleExtraWhere);
       query.query.verb = 'count';
       query.join('library').where({ 'library.title': { $like: 'Test%' } });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `books_multi` WHERE EXISTS (SELECT 1 FROM `libraries` WHERE `libraries`.`id` = `books_multi`.`library_id` AND `libraries`.`collection` = ? AND `libraries`.`title` = ? AND `libraries`.`title` LIKE ? )');
       assert.deepStrictEqual(params, ['A', 'Main', 'Test%']);
@@ -1068,7 +1047,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(BookWithNullExtraWhere);
       query.query.verb = 'count';
       query.join('library').where({ 'library.title': { $like: 'Test%' } });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `books_null` WHERE EXISTS (SELECT 1 FROM `libraries` WHERE `libraries`.`id` = `books_null`.`library_id` AND `libraries`.`collection` IS NULL AND `libraries`.`title` LIKE ? )');
       assert.deepStrictEqual(params, ['Test%']);
@@ -1076,9 +1055,8 @@ describe('db.PaginatedOptimized', function() {
 
     it('should render extraWhere with null value as IS NULL in LEFT JOIN sort', () => {
       const query = newOptimized(BookWithNullExtraWhere);
-      query.query.verb = 'select_ids';
       query.join('library').where({ code: 'ABC' }).order('library.title ASC').limit(50);
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.idsSQL();
 
       assert.strictEqual(sql, 'SELECT `books_null`.`id` FROM `books_null` LEFT JOIN `libraries` AS `library` ON `library`.`id` = `books_null`.`library_id` AND `library`.`collection` IS NULL WHERE `books_null`.`code` = ? ORDER BY library.title ASC LIMIT ?, ?');
       assert.deepStrictEqual(params, ['ABC', 0, 50]);
@@ -1088,7 +1066,7 @@ describe('db.PaginatedOptimized', function() {
       const query = newOptimized(BookWithNestedNullExtra);
       query.query.verb = 'count';
       query.join('library.author').where({ 'library.author.name': 'Hugo' });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `books_nested_null` WHERE EXISTS (SELECT 1 FROM `libraries_with_author` WHERE `libraries_with_author`.`id` = `books_nested_null`.`library_id` AND EXISTS (SELECT 1 FROM `authors` WHERE `authors`.`id` = `libraries_with_author`.`author_id` AND `authors`.`pseudonym` IS NULL AND `authors`.`name` = ? ) )');
       assert.deepStrictEqual(params, ['Hugo']);
@@ -1103,7 +1081,7 @@ describe('db.PaginatedOptimized', function() {
           { 'library.collection': 'B' }
         ]
       });
-      const { sql, params } = query.toSQL();
+      const { sql, params } = query.countSQL();
 
       assert.strictEqual(sql, 'SELECT COUNT(0) as `count` FROM `books_null` WHERE EXISTS (SELECT 1 FROM `libraries` WHERE `libraries`.`id` = `books_null`.`library_id` AND `libraries`.`collection` IS NULL AND (`libraries`.`title` LIKE ? OR `libraries`.`collection` = ?))');
       assert.deepStrictEqual(params, ['Dupont%', 'B']);

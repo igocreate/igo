@@ -1120,16 +1120,11 @@ module.exports = class PaginatedOptimizedSql extends Sql {
   }
 
   /**
-   * Override de orderSQL pour transformer les noms d'associations en noms de tables SQL
+   * Override de orderSQL : résout les chemins d'associations vers les alias des jointures
+   * posées par _addJoinsForSort. Cette classe ne génère que les phases COUNT et IDS, donc
+   * la transformation s'applique toujours ; la phase FULL passe par Sql via une Query standard.
    *
-   * IMPORTANT : Cette transformation N'EST NÉCESSAIRE QUE pour les phases COUNT et IDS
-   * car elles utilisent des INNER JOIN sans alias. La phase FULL (selectSQL) utilise
-   * des LEFT JOIN avec des alias qui correspondent aux noms d'associations, donc pas
-   * de transformation nécessaire.
-   *
-   * Par exemple :
-   * - Phase IDS : "formationNature.name" → "formation_natures.name" (transformation nécessaire)
-   * - Phase FULL : "formationNature.name" → reste "formationNature.name" (alias du LEFT JOIN)
+   * Ex : "formationNature.name" → "formationNature.name", "studies_year" → "studies.studies_year"
    */
   orderSQL() {
     const { query } = this;
@@ -1138,17 +1133,6 @@ module.exports = class PaginatedOptimizedSql extends Sql {
       return '';
     }
 
-    // Déterminer si on est dans une phase qui nécessite la transformation
-    // COUNT et IDS utilisent des INNER JOIN avec noms de tables réels
-    // SELECT (full) utilise des LEFT JOIN avec alias = noms d'associations
-    const needsTransformation = (query.verb === 'count' || query.verb === 'select_ids');
-
-    if (!needsTransformation) {
-      // Phase FULL : appeler la méthode parente (pas de transformation)
-      return super.orderSQL();
-    }
-
-    // Phases COUNT/IDS : transformer les noms d'associations en noms de tables
     const transformedOrder = query.order.map((orderClause) => {
       return this._transformOrderClause(orderClause);
     });

@@ -71,7 +71,6 @@ module.exports = class PaginatedOptimized {
 
   idsSQL() {
     const query = cloneQuery(this.query);
-    query.verb  = 'select_ids';
 
     const primaryKeys = this.schema.primary || ['id'];
     const { esc } = this.dialect;
