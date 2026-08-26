@@ -137,6 +137,41 @@ describe('db.PaginatedOptimized', function() {
     ]
   }) {}
 
+  // `beneficiary` hangs off both `folders` and `logs`, and `applicant` is declared first
+  class SortBeneficiary extends Model({
+    table: 'beneficiaries',
+    primary: ['id'],
+    columns: { id: 'integer', identity_expires_at: 'datetime' }
+  }) {}
+
+  class SortLog extends Model({
+    table: 'logs',
+    primary: ['id'],
+    columns: { id: 'integer', beneficiary_id: 'integer' },
+    associations: [
+      ['belongs_to', 'beneficiary', SortBeneficiary, 'beneficiary_id', 'id']
+    ]
+  }) {}
+
+  class SortApplicant extends Model({
+    table: 'applicants',
+    primary: ['id'],
+    columns: { id: 'integer', identity_expires_at: 'datetime', log_id: 'integer' },
+    associations: [
+      ['belongs_to', 'log', SortLog, 'log_id', 'id']
+    ]
+  }) {}
+
+  class SortFolder extends Model({
+    table: 'folders',
+    primary: ['id'],
+    columns: { id: 'integer', applicant_id: 'integer', beneficiary_id: 'integer' },
+    associations: [
+      ['belongs_to', 'applicant', SortApplicant, 'applicant_id', 'id'],
+      ['belongs_to', 'beneficiary', SortBeneficiary, 'beneficiary_id', 'id']
+    ]
+  }) {}
+
   class StudiesBlock extends Model({
     table: 'block_studies',
     primary: ['id'],
@@ -929,6 +964,20 @@ describe('db.PaginatedOptimized', function() {
 
       assert.strictEqual(sql, 'SELECT `pme_folders_with_blocks`.`id` FROM `pme_folders_with_blocks` LEFT JOIN `block_studies` AS `studies` ON `studies`.`id` = `pme_folders_with_blocks`.`block_studies_id` WHERE `pme_folders_with_blocks`.`is_initial` = ? ORDER BY COALESCE(studies.studies_year, "N/A") DESC LIMIT ?, ?');
       assert.deepStrictEqual(params, [true, 0, 50]);
+    });
+
+    // the deep route crosses `log`, never joined, so it gets dropped and the ORDER BY loses its join
+    it('should resolve a SQL-function reference to the join it names, not to a deeper route', () => {
+      const query = newOptimized(SortFolder);
+      query.query.verb = 'select_ids';
+      query.join(['applicant', 'beneficiary'])
+      .orderRaw('COALESCE(beneficiary.identity_expires_at, applicant.identity_expires_at)')
+      .limit(25);
+      const { sql } = query.toSQL();
+
+      assert.ok(sql.includes('LEFT JOIN `beneficiaries` AS `beneficiary`'));
+      assert.ok(sql.includes('LEFT JOIN `applicants` AS `applicant`'));
+      assert.ok(!sql.includes('`logs`'));
     });
   });
 

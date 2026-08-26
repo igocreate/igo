@@ -185,12 +185,12 @@ module.exports = class PaginatedOptimizedSql extends Sql {
             return;
           }
 
-          // Try to find association path for this table
-          let path = this._findPathToTable(tableName, query.schema);
+          // direct association first: the depth-first table search can dig up a deeper route
+          let path = this._buildAssociationPath([tableName], query.schema);
 
-          // If not found by table name, try by association name
+          // If not found by association name, try by table name
           if (!path) {
-            path = this._buildAssociationPath([tableName], query.schema);
+            path = this._findPathToTable(tableName, query.schema);
           }
 
           if (path && path.length > 0) {
