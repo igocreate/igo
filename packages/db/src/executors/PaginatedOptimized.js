@@ -1,5 +1,5 @@
 const _         = require('lodash');
-const context   = require('../context');
+const dependencies = require('../dependencies');
 const PaginatedOptimizedSql = require('../PaginatedOptimizedSql');
 const QueryCache = require('../QueryCache');
 const { cloneQuery, buildPagination } = require('../QueryUtils');
@@ -177,7 +177,7 @@ module.exports = class PaginatedOptimized {
 
     const duplicatesRemoved = rows.length - uniqueRows.length;
     if (duplicatesRemoved > 0) {
-      context.logger.info(`[PaginatedOptimized] ${duplicatesRemoved} duplicate(s) removed by LEFT JOIN 1-N deduplication`);
+      dependencies.logger.info(`[PaginatedOptimized] ${duplicatesRemoved} duplicate(s) removed by LEFT JOIN 1-N deduplication`);
     }
 
     return uniqueRows;

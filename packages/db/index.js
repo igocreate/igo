@@ -1,13 +1,13 @@
 
-const context = require('./src/context');
+const dependencies = require('./src/dependencies');
 
 // Initialize @igojs/db with dependencies from @igojs/server
 function init({ config, cache, logger, utils, errorhandler }) {
-  context.config = config;
-  context.cache = cache;
-  context.logger = logger;
-  context.utils = utils;
-  context.errorhandler = errorhandler;
+  dependencies.config = config;
+  dependencies.cache = cache;
+  dependencies.logger = logger;
+  dependencies.utils = utils;
+  dependencies.errorhandler = errorhandler;
 }
 
 module.exports = {

@@ -1,12 +1,12 @@
 
 
-const Db          = require('./Db');
-const context     = require('./context');
-const migrations  = require('./migrations');
+const Db           = require('./Db');
+const dependencies = require('./dependencies');
+const migrations   = require('./migrations');
 
 // init databases connections
 module.exports.init = async () => {
-  const { config } = context;
+  const { config } = dependencies;
   for (const database of config.databases) {
     const db = new Db(database);
     await db.init();

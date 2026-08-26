@@ -1,6 +1,6 @@
 
-const _    = require('lodash');
-const context = require('./context');
+const _            = require('lodash');
+const dependencies = require('./dependencies');
 
 // Dynamic driver loading
 const loadedDrivers = {};
@@ -11,7 +11,7 @@ const getDriver = (driverName) => {
 
 //
 const logQuery = (sql, params, err) => {
-  const { logger, errorhandler } = context;
+  const { logger, errorhandler } = dependencies;
   const _log = err ? logger.error : logger.info;
   _log('Db.query: ' + sql);
   if (params?.length) {
@@ -27,7 +27,7 @@ const logQuery = (sql, params, err) => {
 class Db {
 
   constructor(name) {
-    const { config } = context;
+    const { config } = dependencies;
     this.name       = name;
     this.config     = config[name];
     this.driver     = getDriver(this.config.driver);
@@ -36,7 +36,7 @@ class Db {
   }
 
   async init() {
-    const { config } = context;
+    const { config } = dependencies;
     this.pool       = await this.driver.createPool(this.config);
     this.connection = null;
     this.TEST_ENV   = config.env === 'test';
@@ -62,7 +62,7 @@ class Db {
 
   //
   async query(sql, params=[], options={}) {
-    const { logger } = context;
+    const { logger } = dependencies;
     const { driver, config, TEST_ENV } = this;
     const { dialect } = driver;
 

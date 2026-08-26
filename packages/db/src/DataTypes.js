@@ -1,6 +1,6 @@
 
-const _       = require('lodash');
-const context = require('./context');
+const _            = require('lodash');
+const dependencies = require('./dependencies');
 
 
 module.exports = {
@@ -13,8 +13,8 @@ module.exports = {
     get:  value => (value === null || value === undefined) ? null : !!value,
   },
   json: {
-    set:  value => context.utils.toJSON(value),
-    get:  value => context.utils.fromJSON(value),
+    set:  value => dependencies.utils.toJSON(value),
+    get:  value => dependencies.utils.fromJSON(value),
   },
   array: {
     set:  value => value && Array.isArray(value) ? value.join(',') : value,

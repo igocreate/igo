@@ -1,12 +1,12 @@
 
-const _         = require('lodash');
+const _              = require('lodash');
 
-const Sql       = require('./Sql');
-const dbs       = require('./dbs');
-const context   = require('./context');
+const Sql            = require('./Sql');
+const dbs            = require('./dbs');
+const dependencies   = require('./dependencies');
 const { cloneQuery } = require('./QueryUtils');
 
-const DataTypes = require('./DataTypes');
+const DataTypes      = require('./DataTypes');
 
 // order/group/distinct/from accept identifiers only: anything else must go through orderRaw()
 const IDENT         = '[`"]?[A-Za-z_]\\w*[`"]?';
@@ -120,7 +120,7 @@ module.exports = class Query {
 
   // VALUES
   values(values) {
-    const { logger } = context;
+    const { logger } = dependencies;
     this.query.values = _.transform(values, (result, value, key) => {
       const column = this.schema.colsByAttr[key];
       if (column) {
@@ -577,7 +577,7 @@ module.exports = class Query {
         const PaginatedOptimized = require('./executors/PaginatedOptimized');
         return await new PaginatedOptimized(this).run();
       }
-      context.logger.warn(`[Query] Optimized pagination skipped for '${query.table}': unsupported clauses (join columns, raw where on join aliases, or $or mixing main and joined tables).`);
+      dependencies.logger.warn(`[Query] Optimized pagination skipped for '${query.table}': unsupported clauses (join columns, raw where on join aliases, or $or mixing main and joined tables).`);
     }
 
     const Standard = require('./executors/Standard');

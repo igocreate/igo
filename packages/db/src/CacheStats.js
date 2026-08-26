@@ -1,5 +1,5 @@
-const _         = require('lodash');
-const context   = require('./context');
+const _            = require('lodash');
+const dependencies = require('./dependencies');
 
 const NAMESPACE = '_cache_statistics';
 // counters are buffered in memory and flushed by traffic, never by a timer.
@@ -17,13 +17,13 @@ module.exports.incr = (key, type) => {
 
   if (Date.now() - lastFlush >= FLUSH_INTERVAL) {
     // a stats counter must never turn a healthy request into a 500
-    module.exports.flush().catch(err => context.logger.error(err));
+    module.exports.flush().catch(err => dependencies.logger.error(err));
   }
 };
 
 //
 module.exports.flush = async () => {
-  const { cache } = context;
+  const { cache } = dependencies;
 
   // reset before any await: no concurrent incr can be lost, and the updated
   // lastFlush prevents a second flush from starting
@@ -40,7 +40,7 @@ module.exports.flush = async () => {
 
 //
 module.exports.getStats = async () => {
-  const { cache } = context;
+  const { cache } = dependencies;
   const statistics = {};
 
   await module.exports.flush();

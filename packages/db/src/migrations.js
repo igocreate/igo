@@ -4,11 +4,11 @@ const _       = require('lodash');
 const fs      = require('fs/promises');
 const path    = require('path');
 
-const context = require('./context');
+const dependencies = require('./dependencies');
 
 //
 module.exports.init = async (db) => {
-  const { config } = context;
+  const { config } = dependencies;
   if (!config.auto_migrate) return;
 
   const { connection } = await db.getConnection();
@@ -58,7 +58,7 @@ module.exports.list = async (db) => {
 
 //
 module.exports.migrate = async (db, rootDir = '.') => {
-  const { config, logger } = context;
+  const { config, logger } = dependencies;
 
   if (db.config.noMigrations) {
     return;
