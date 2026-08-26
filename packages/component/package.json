@@ -1,6 +1,6 @@
 {
   "name": "@igojs/component",
-  "version": "6.2.1",
+  "version": "6.2.2",
   "description": "Reactive components with SSR for Igo.js",
   "main": "index.js",
   "exports": {
@@ -32,7 +32,7 @@
     "morphdom": "^2.7.8"
   },
   "peerDependencies": {
-    "@igojs/dust": "^6.2.1",
+    "@igojs/dust": "^6.2.2",
     "i18next": "^26.0.0"
   }
 }

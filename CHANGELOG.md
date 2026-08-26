@@ -1,5 +1,12 @@
 # Changelog
 
+## 6.2.2 - 2026-08-26
+
+### @igojs/db
+
+- **Fixed**: a table named inside an `orderRaw()` function resolves to the join it names. The search that matched it was depth-first, so it descended into the first declared association before testing the direct ones, and could return a deeper route to the same table. Since 6.2.1 drops a sort path whose levels are not all joined, that route crossed an unjoined table and was discarded whole — leaving the `ORDER BY` referencing an alias no join had defined, and the query failing at the database. `Folder.join(['applicant', 'beneficiary']).orderRaw('COALESCE(beneficiary.expires_at, applicant.expires_at)').page(1, 25)` was enough to hit it, whenever `beneficiary` was also reachable through `applicant`.
+- Removed the internal `select_ids` verb of the paginated executor: `query.select` already carried the primary keys, and the one flag reading the verb was always true.
+
 ## 6.2.1 - 2026-08-25
 
 ### @igojs/db

@@ -268,8 +268,8 @@ const count = await Book.join('library').where('library.title = ?', 'Main').coun
 
 ### Association paths
 
-`where()` and `order()` accept `association.column` paths, at any depth. Every level of
-the path must be joined — an association that is only declared in the schema is not
+`where()`, `order()` and `orderRaw()` accept `association.column` paths, at any depth. Every
+level of the path must be joined — an association that is only declared in the schema is not
 enough. An undeclared path is sent to the database as written, and fails there:
 
 ```js
@@ -279,6 +279,16 @@ await Book.join({ library: 'city' }).order('library.city.name ASC').list();
 
 // Unknown column 'city.name' in 'where clause'
 await Book.join('library').where({ 'library.city.name': 'Lyon' }).list();
+```
+
+The same holds for paths buried inside an `orderRaw()` expression — each one is resolved
+against the declared joins, not against the schema:
+
+```js
+await Book
+  .join(['library', 'author'])
+  .orderRaw('COALESCE(library.name, author.name) ASC')
+  .list();
 ```
 
 Declaring the join does not force a `LEFT JOIN` in the generated SQL: with `.page()`,
