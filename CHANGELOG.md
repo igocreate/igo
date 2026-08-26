@@ -1,5 +1,14 @@
 # Changelog
 
+## 6.2.3 - 2026-08-26
+
+### @igojs/db
+
+- **Fixed**: a query whose raw SQL reads another table is no longer cached. A subquery inside `where()`, `orderRaw()` or `select()` reads a table that is in neither `query.table` nor `query.joins`, so no version stamps the entry: a write on that table invalidated nothing, and stale rows were served for the whole TTL. `Session.where('training_type_id IN (SELECT id FROM training_types WHERE active = 1)')` was enough to hit it. Any raw fragment containing a `SELECT` is now left uncached — deliberately blunt, since a false positive costs a cache miss where a false negative serves stale rows. This is the read-side counterpart of the 6.2.1 fix on tables reached by inference in the paginated executor. Applications using raw subqueries on cached models will see those queries stop being cached, and their hit rate drop accordingly.
+- **Added**: `CacheStats.getStats()` reports `skipped`, the queries a cached model could not cache — a join on an uncached model, or a raw subquery. They never reach the cache, so they count as neither hits nor misses and stay out of `total` and `rate`. Both call sites report, including the paginated executor, which reaches `QueryCache` without going through `CachedQuery`.
+- **Added**: `config.cache_warnings` logs one warning per query shape when a cached model runs a query the cache cannot serve, naming the cause and the SQL. Off by default: it is meant for development, and an application with a legitimately uncached join would otherwise start logging on its next deploy.
+- The dependency injection container moved from `src/context.js` to `src/dependencies.js`. Internal to the package, but `context` already meant a request context in `@igojs/server` and a rendering context in `@igojs/component`, while this one is a static registry filled once at boot.
+
 ## 6.2.2 - 2026-08-26
 
 ### @igojs/db
