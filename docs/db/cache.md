@@ -66,15 +66,21 @@ A paginated query with joins runs through a three-phase `COUNT` / `IDS` / `FULL`
 ## Raw SQL
 
 The stamp is built from the tables the query declares: its own, plus the joined ones.
-A raw clause naming a table the query does not join is invisible to it:
+A raw clause naming a table the query does not join is invisible to it, so no version
+would ever invalidate the entry. Any raw fragment containing a `SELECT` is therefore
+**not cached at all**:
 
 ```js
-// rows depend on training_types, the entry is not stamped with it
+// rows depend on training_types, which no version stamps: uncached
 Session.orderRaw('(SELECT `name` FROM `training_types` WHERE `id` = `sessions`.`training_type_id`)')
+
+// no subquery, still cached
+Session.where('starts_at > ?', [date])
 ```
 
-A write to that table invalidates nothing, and the entry is served until it expires. Reach
-other tables through associations, or leave such a query uncached.
+This covers `where`, `whereNot`, `orderRaw` and `select`. The check is deliberately blunt —
+a raw `SELECT` that reads no other table loses its cache too. Reach other tables through
+associations to keep the query cached.
 
 ## Cache Keys
 
@@ -106,16 +112,40 @@ const { CacheStats } = require('@igojs/db');
 
 const stats = await CacheStats.getStats();
 // [
-//   { table: 'users', hits: 1050, misses: 250, total: 1300, rate: 81 },
-//   { table: 'projects', hits: 500, misses: 100, total: 600, rate: 83 },
+//   { table: 'users', hits: 1050, misses: 250, skipped: 0, total: 1300, rate: 81 },
+//   { table: 'projects', hits: 500, misses: 100, skipped: 320, total: 600, rate: 83 },
 // ]
 ```
+
+`skipped` counts queries on a cached model that the cache had to refuse — a join on an
+uncached model, or a raw fragment with a subquery. They never reach the cache, so they
+count as neither hits nor misses and stay out of `total` and `rate`. A high `skipped`
+next to a healthy `rate` means most queries on that model bypass the cache entirely.
 
 Hits and misses are counted in memory, and written to Redis at most once every 30
 seconds, by the queries themselves — no query ever pays for a counter round trip.
 `getStats()` flushes the pending counters before reading, so the numbers it returns
 are always up to date. A process that stops therefore loses at most its last 30
 seconds of counters.
+
+## Warnings
+
+To find out *which* queries are skipped rather than just how many, set:
+
+```js
+config.cache_warnings = true;
+```
+
+Each skipped query is then logged once, with its cause and its SQL:
+
+```
+[QueryCache] 'books' is cached but this query is not (join on uncached model 'libraries'): SELECT ...
+[QueryCache] 'books' is cached but this query is not (raw subquery): SELECT ...
+```
+
+Deduplication is per query shape, not per execution — a query in a hot loop logs once.
+The flag is off by default: it is meant for development, and any application with a
+legitimately uncached join would otherwise start logging on its next deploy.
 
 ## When to Use
 

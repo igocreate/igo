@@ -110,6 +110,11 @@ module.exports.init = function() {
   config.loglevel = process.env.LOG_LEVEL || 'info';
 
   //
+  if (config.env === 'dev') {
+    config.cache_warnings = true;
+  }
+
+  //
   if (config.env === 'test') {
     config.mysql.database       = 'test';
     config.postgresql.database  = 'test';

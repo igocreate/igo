@@ -20,6 +20,7 @@ module.exports = class CachedQuery extends Query {
     }
 
     if (!QueryCache.cacheable(schema, query)) {
+      QueryCache.reportSkip(schema, query, sqlQuery.sql);
       return await run();
     }
 

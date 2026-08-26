@@ -2,8 +2,9 @@ require('./init');
 
 const assert = require('assert');
 const Model  = require('@igojs/db').Model;
-const cache  = require('@igojs/server').cache;
 const Db     = require('@igojs/db').Db;
+
+const { cache, config, logger } = require('@igojs/server');
 
 describe('db.CachedQuery', function () {
 
@@ -372,6 +373,120 @@ describe('db.CachedQuery', function () {
       const sqls = await countSql(run);
 
       assert.ok(sqls.length > 0, 'Expected the scope-added uncached join to prevent caching');
+    });
+
+  });
+
+  // a table read through raw SQL is in neither query.table nor query.joins: no version stamps it
+  describe('raw SQL', function () {
+
+    class RawLibrary extends Model({
+      table:   'libraries',
+      primary: ['id'],
+      columns: ['id', 'title', 'created_at'],
+      cache:   { ttl: 100 }
+    }) {}
+
+    class RawBook extends Model({
+      table:   'books',
+      primary: ['id'],
+      columns: ['id', 'code', 'title', 'library_id', 'created_at'],
+      cache:   { ttl: 100 }
+    }) {}
+
+    it('should not serve a stale result after a write on a subquery table', async function () {
+      const library = await RawLibrary.create({ title: 'raw-visible' });
+      await RawBook.create({ code: 'rawsub', library_id: library.id });
+
+      const sub = 'library_id IN (SELECT id FROM libraries WHERE title = ?)';
+      const run = () => RawBook.where(sub, ['raw-visible']).list();
+
+      assert.strictEqual((await run()).length, 1);
+
+      await library.update({ title: 'raw-hidden' });
+
+      assert.strictEqual((await run()).length, 0, 'Expected the write on the subquery table to be visible');
+    });
+
+    it('should still cache a raw where without a subquery', async function () {
+      await RawBook.create({ code: 'rawplain' });
+
+      const run = () => RawBook.where('code = ?', ['rawplain']).list();
+
+      await run();
+      assert.strictEqual((await countSql(run)).length, 0, 'Expected a cache hit');
+    });
+
+    it('should not cache a raw order with a subquery', async function () {
+      const run = () => RawBook.orderRaw('(SELECT COUNT(*) FROM libraries) ASC').list();
+
+      await run();
+      assert.ok((await countSql(run)).length > 0, 'Expected the raw order to prevent caching');
+    });
+
+    it('should not cache a raw select with a subquery', async function () {
+      const run = () => RawBook.select('`books`.*, (SELECT COUNT(*) FROM libraries) AS nb').list();
+
+      await run();
+      assert.ok((await countSql(run)).length > 0, 'Expected the raw select to prevent caching');
+    });
+
+  });
+
+  describe('warnings', function () {
+
+    class WarnLibrary extends Model({
+      table:   'libraries',
+      primary: ['id'],
+      columns: ['id', 'title']
+    }) {}
+
+    class WarnBook extends Model({
+      table:   'books',
+      primary: ['id'],
+      columns: ['id', 'code', 'title', 'library_id'],
+      cache:   { ttl: 100 },
+      associations: () => ([
+        ['belongs_to', 'library', WarnLibrary, 'library_id', 'id'],
+      ])
+    }) {}
+
+    const warn = logger.warn;
+    let warns;
+
+    beforeEach(() => {
+      warns       = [];
+      logger.warn = message => warns.push(message);
+      config.cache_warnings = true;
+    });
+
+    afterEach(() => {
+      logger.warn = warn;
+      config.cache_warnings = false;
+    });
+
+    it('should warn once per query shape, naming the uncached join', async function () {
+      await WarnBook.where({ code: 'warnjoin' }).join('library').list();
+      await WarnBook.where({ code: 'warnjoin' }).join('library').list();
+
+      assert.strictEqual(warns.length, 1, 'Expected the second run to be deduplicated');
+      assert.ok(warns[0].includes('join on uncached model \'libraries\''), warns[0]);
+    });
+
+    it('should warn on a raw subquery', async function () {
+      const sub = 'library_id IN (SELECT id FROM libraries WHERE title = ?)';
+      await WarnBook.where(sub, ['warnraw']).list();
+
+      assert.strictEqual(warns.length, 1);
+      assert.ok(warns[0].includes('raw subquery'), warns[0]);
+    });
+
+    it('should stay silent when cache_warnings is off', async function () {
+      config.cache_warnings = false;
+
+      await WarnBook.where({ title: 'warnoff' }).join('library').list();
+
+      assert.strictEqual(warns.length, 0);
     });
 
   });

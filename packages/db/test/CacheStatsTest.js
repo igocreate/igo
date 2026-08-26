@@ -45,6 +45,16 @@ describe('db.CacheStats', function() {
       assert.strictEqual(stats[0].total, 2);
       assert.strictEqual(stats[0].table, 'books');
     });
+
+    // a query the cache had to refuse is neither a hit nor a miss
+    it('should count uncacheable queries as skipped', async () => {
+      await Book.where('id IN (SELECT id FROM books)').list();
+
+      const stats = await CacheStats.getStats();
+      assert.strictEqual(stats[0].skipped, 1);
+      assert.strictEqual(stats[0].total, 0);
+      assert.strictEqual(stats[0].rate, 0);
+    });
   });
 
   //

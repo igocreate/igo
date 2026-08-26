@@ -52,12 +52,13 @@ module.exports.getStats = async () => {
   });
 
   _.each(statistics, (statistic, key) => {
-    let { hits, misses } = statistic;
-    hits            = hits || 0;
-    misses          = misses || 0;
-    statistic.table = key;
-    statistic.total = hits + misses;
-    statistic.rate  = Math.round(hits / statistic.total * 100);
+    const hits        = statistic.hits    = statistic.hits    || 0;
+    const misses      = statistic.misses  = statistic.misses  || 0;
+    // refused queries never reach the cache: not misses
+    statistic.skipped = statistic.skipped || 0;
+    statistic.table   = key;
+    statistic.total   = hits + misses;
+    statistic.rate    = statistic.total ? Math.round(hits / statistic.total * 100) : 0;
   });
 
   return _.values(statistics);
