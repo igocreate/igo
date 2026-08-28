@@ -1,5 +1,14 @@
 # Changelog
 
+## 6.2.4 - 2026-08-28
+
+### @igojs/server
+
+- **Added**: the application starts and serves without Redis. `cache.init()` no longer waits for the connection to succeed — it races a one-second timeout (`config.redis.connect_timeout`) and lets the boot continue — and every command then returns a miss instead of throwing: cached queries fall through to the database, `get()` returns `null`, `put()` and `del()` do nothing. node-redis reconnects on its own, so the cache comes back without a restart. `cache.isAvailable()` reports the current state, and setting `config.redis` to `null` disables the cache entirely.
+- **Changed**: `incr()` and `incrby()` return `null` while Redis is unavailable, not `0` — a counter the caller cannot read is unknown, not back to its first hit. Code that gates on a count, a rate limiter or a quota, has to decide what an unknown count means, since the comparison it would normally make is now false.
+- **Changed**: the whole Redis database is flushed when the connection comes back. Writes made during the outage never bumped their table version, and dropped `del()` calls left no trace, so what remains may contradict the database. Everything else sharing that database goes with it — give a job queue its own `database` index. Each process flushes on its own reconnection.
+- **Changed**: flash data the session cookie cannot hold — over 1KB, or holding a cycle — is dropped with a warning while Redis is unavailable, instead of failing the request. Since `req.flash()` switches to Redis on its own past that threshold, a message a little too large does not survive the redirect.
+
 ## 6.2.3 - 2026-08-26
 
 ### @igojs/db
