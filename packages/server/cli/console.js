@@ -20,7 +20,7 @@ const initModuleAlias = () => {
     if (pkg._moduleAliases) {
       require('module-alias/register');
     }
-  } catch (err) {
+  } catch (_err) {
     // module-alias not available, skip
   }
 };
@@ -135,9 +135,7 @@ module.exports = async () => {
 
   await db.dbs.init();
 
-  if (config.redis) {
-    await cache.init();
-  }
+  await cache.init();
 
   // Discover models, services and utils
   const models = discoverModels();

@@ -5,6 +5,7 @@ const Model  = require('@igojs/db').Model;
 const Db     = require('@igojs/db').Db;
 
 const { cache, config, logger } = require('@igojs/server');
+const cacheDown = require('@igojs/server/test/helpers/cacheDown');
 
 describe('db.CachedQuery', function () {
 
@@ -510,6 +511,23 @@ describe('db.CachedQuery', function () {
       cache.mget = cacheMget;
 
       assert.deepStrictEqual(calls, ['get:_cached.books', 'mget:_cached_versions']);
+    });
+
+  });
+
+  describe('cache unavailable', function () {
+
+    cacheDown();
+
+    it('should read and write without the cache', async function () {
+      const book = await Book.create({ code: 'nocache', title: 'before' });
+      await book.update({ title: 'after' });
+
+      const found = await Book.find(book.id);
+      assert.strictEqual(found.title, 'after');
+
+      const books = await Book.where({ code: 'nocache' }).list();
+      assert.strictEqual(books.length, 1);
     });
 
   });

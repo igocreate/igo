@@ -26,11 +26,13 @@ Flash data is available in the next request via `res.locals.flash`, then automat
 
 The flash middleware handles large objects automatically to prevent cookie overflow:
 
-| Data size | Storage | Behavior |
-|-----------|---------|----------|
+| Data | Storage | Behavior |
+|------|---------|----------|
 | < 1KB | Session cookie | Fast, no Redis needed |
 | > 1KB | Redis (automatic) | UUID stored in cookie, data in Redis |
+| not expressible in JSON (a cycle) | Redis (automatic) | the session is stored as JSON, Redis is not |
 | > 10KB | Redis + warning | Warning logged to help identify issues |
+| Redis unavailable | **dropped** | Warning logged, the value is lost for the next request |
 
 ```js
 // Small data — stays in cookie
@@ -39,6 +41,12 @@ req.flash('message', 'Hello');
 // Large data — automatically uses Redis
 req.flash('items', largeArray);
 ```
+
+::: warning Without Redis
+Since `req.flash()` switches to Redis on its own past 1KB, a message a little too large
+vanishes after the redirect — keep flash data small if your app must survive a Redis
+outage. See [Running without Redis](/guide/development#running-without-redis).
+:::
 
 ## Explicit Redis Storage
 

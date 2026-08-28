@@ -9,6 +9,7 @@ const redis     = require('redis');
 
 const igo       = require('@igojs/server');
 const cache     = igo.cache;
+const cacheDown = require('./helpers/cacheDown');
 
 const utils = {
   wait: (ms) => new Promise(resolve => setTimeout(resolve, ms))
@@ -193,4 +194,65 @@ describe('igo.cache', () => {
       assert(keys.indexOf('scantest/122') > -1);
     });
   });
+
+  describe('cache unavailable', () => {
+
+    cacheDown();
+
+    it('should report itself unavailable', () => {
+      assert.strictEqual(cache.isAvailable(), false);
+    });
+
+    it('get should return null', async () => {
+      assert.strictEqual(await cache.get('ns', 'key'), null);
+    });
+
+    it('mget should return one zero per id', async () => {
+      assert.deepStrictEqual(await cache.mget('ns', ['a', 'b']), [0, 0]);
+      assert.deepStrictEqual(await cache.mget('ns', []), []);
+    });
+
+    it('put should return undefined', async () => {
+      assert.strictEqual(await cache.put('ns', 'key', 'value'), undefined);
+    });
+
+    it('fetch should call func directly', async () => {
+      let called = false;
+      const result = await cache.fetch('ns', 'key', async () => {
+        called = true;
+        return 'from-func';
+      });
+      assert.strictEqual(called, true);
+      assert.strictEqual(result, 'from-func');
+    });
+
+    it('incr and incrby should return null', async () => {
+      assert.strictEqual(await cache.incr('ns', 'key'), null);
+      assert.strictEqual(await cache.incrby('ns', 'key', 3), null);
+    });
+
+    it('del should return 0', async () => {
+      assert.strictEqual(await cache.del('ns', 'key'), 0);
+    });
+
+    it('info should return an empty string', async () => {
+      assert.strictEqual(await cache.info(), '');
+    });
+
+    it('flushall and flushdb should not throw', async () => {
+      await cache.flushall();
+      await cache.flushdb();
+    });
+
+    it('scan should not call fn', async () => {
+      let called = false;
+      await cache.scan('*', () => { called = true; });
+      assert.strictEqual(called, false);
+    });
+
+    it('flush should not throw', async () => {
+      await cache.flush('*');
+    });
+  });
+
 });

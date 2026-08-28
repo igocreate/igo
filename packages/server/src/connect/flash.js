@@ -44,6 +44,11 @@ module.exports = async (req, res, next) => {
 
   // save flash data in redis
   req.cacheflash = (key, value) => {
+    // the value landed here because the session cookie cannot hold it: there is nowhere else
+    if (!cache.isAvailable()) {
+      logger.warn(`Flash "${key}" dropped: the cache is unavailable and the value does not fit in the session`);
+      return;
+    }
     const uuid = randomUUID();
     req.session._igo_cacheflash.push(uuid);
     return cache.put(NS, uuid, { [key]: value }, 60); // 60s

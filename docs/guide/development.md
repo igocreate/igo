@@ -92,6 +92,27 @@ const config = require('@igojs/server').config;
 | `SMTP_USER` | — | SMTP user |
 | `SMTP_PASSWORD` | — | SMTP password |
 
+### Running without Redis
+
+Redis is optional. If it is unreachable the app still starts and runs degraded:
+cached queries fall through to the database, the cache API returns misses instead
+of throwing ([Availability](/server/cache#availability)), and flash data too large
+for the session cookie is dropped ([Flash Scope](/server/flash)). The connection
+recovers on its own.
+
+The whole Redis database is flushed on the way back: writes made during the outage
+never bumped their table version, so what is left may contradict the database. Give
+a job queue sharing that Redis its own `database` index.
+
+To opt out entirely, set `config.redis` to `null`:
+
+```js
+// app/config.js
+module.exports.init = (config) => {
+  config.redis = null;
+};
+```
+
 ## CLI
 
 The `igo` CLI is provided by `@igojs/server`. Since it's installed in your project, you can use it directly in npm scripts or via `npx` from the terminal.

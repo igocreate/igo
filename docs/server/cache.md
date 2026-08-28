@@ -64,6 +64,28 @@ await cache.flushall();
 | `flushdb()` | Flush current database |
 | `flushall()` | Flush all databases |
 | `info()` | Redis server info |
+| `isAvailable()` | `false` while Redis is disabled, unreachable or reconnecting |
+
+## Availability
+
+Redis is optional at runtime. While it is unavailable, no command throws: each one
+returns what it would have returned had it found or done nothing.
+
+| Method | Degraded result |
+|--------|-----------------|
+| `get` | `null` |
+| `mget` | `0` for every id — its usual value for a missing key |
+| `put`, `flushdb`, `flushall`, `scan`, `flush` | nothing happens |
+| `del` | `0` (no key removed) |
+| `info` | `''` |
+| `incr`, `incrby` | **`null`**, not `0` |
+
+`incr` is the exception: `0` is a real counter value, so a counter the caller cannot
+read is `null` — *unknown*. Code that gates on one (a rate limiter, a quota) has to
+decide what that means.
+
+The client reconnects on its own and `isAvailable()` flips back without a restart —
+see [Running without Redis](/guide/development#running-without-redis).
 
 ## Key Format
 

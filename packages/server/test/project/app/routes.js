@@ -54,13 +54,12 @@ module.exports.init = function(app) {
   });
 
   app.post('/flash/large', (req, res) => {
-    // Create object > 1KB to trigger auto-switch to cacheflash
     const largeData = { items: Array(200).fill({ id: 1, name: 'test item with some text' }) };
     req.flash('data', largeData);
     res.json({
       ok: true,
       usedCacheflash: req.session._igo_cacheflash.length > 0,
-      sessionSize: JSON.stringify(req.session.flash).length
+      sessionFlash: req.session.flash
     });
   });
 
@@ -69,7 +68,29 @@ module.exports.init = function(app) {
     req.cacheflash('bigdata', largeData);
     res.json({
       ok: true,
-      cacheflashCount: req.session._igo_cacheflash.length
+      cacheflashCount: req.session._igo_cacheflash.length,
+      sessionFlash: req.session.flash
+    });
+  });
+
+  app.post('/flash/cyclic', async (req, res) => {
+    const cyclic = { id: 1 };
+    cyclic.self = cyclic;
+    await req.flash('data', cyclic);
+    res.json({
+      ok: true,
+      cacheflashCount: req.session._igo_cacheflash.length,
+      sessionFlash: req.session.flash
+    });
+  });
+
+  // the cycle cannot be sent back as JSON: report what survived instead
+  app.get('/flash/read/cyclic', (req, res) => {
+    const data = res.locals.flash.data;
+    res.json({
+      loaded: !!data,
+      id: data && data.id,
+      cycle: !!data && data.self === data
     });
   });
 
