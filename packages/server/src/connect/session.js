@@ -83,11 +83,22 @@ module.exports = function session(options) {
     let initial = undefined;  // json of the session as loaded
 
     const load = function() {
-      const value = cookies.get(opts.name);
-      if (!value || !value.startsWith(VERSION + '.')) {
+      const header = req.headers.cookie;
+      if (!header) {
         return null;
       }
-      return decrypt(value, cryptoKeys);
+      const re = new RegExp('(?:^|;)\\s*' + opts.name + '=([^;]*)', 'g');
+      let match;
+      while ((match = re.exec(header))) {
+        const value = match[1];
+        if (value && value.startsWith(VERSION + '.')) {
+          const obj = decrypt(value, cryptoKeys);
+          if (obj) {
+            return obj;
+          }
+        }
+      }
+      return null;
     };
 
     Object.defineProperty(req, 'session', {

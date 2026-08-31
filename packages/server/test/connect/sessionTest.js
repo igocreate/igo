@@ -167,4 +167,14 @@ describe('Session middleware', () => {
     assert.deepStrictEqual(req.session, {});
   });
 
+  it('should find the encrypted cookie when a legacy cookie with the same name comes first', () => {
+    const first = run(middleware);
+    first.req.session.user_id = 42;
+    const encrypted = cookieValue(setCookies(first.res), 'app');
+
+    const header = `app=legacybase64garbage; app=${encrypted}`;
+    const { req } = run(middleware, header);
+    assert.deepStrictEqual(req.session, { user_id: 42 });
+  });
+
 });
