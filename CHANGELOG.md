@@ -1,5 +1,11 @@
 # Changelog
 
+## 6.2.5 - 2026-08-31
+
+### @igojs/server
+
+- **Fixed**: session middleware now handles duplicate cookies with the same name but different domain scopes. When the browser sends both an old unencrypted cookie (e.g. `.ladom.fr`) and a new encrypted one (e.g. `agent.ladom.fr`), the middleware iterates over all values instead of reading only the first match, preventing an authentication loop.
+
 ## 6.2.4 - 2026-08-28
 
 ### @igojs/server
