@@ -43,7 +43,7 @@ Les axes suffixés « bis » dépendent de celui qu'ils suivent. Entre les axes 
 |---|---|
 | [Organisation des sources front](adr/organisation-des-sources-front.md) — structure par feature, frontière de données, routage | **Accepté** le 24 août 2026 |
 | [Stratégie de test front](adr/strategie-de-test-front.md) — Vitest + Testing Library + MSW, règles de couverture | **Accepté** le 24 août 2026 |
-| [Observabilité front](adr/observabilite-front.md) — Sentry recommandé, Error Boundary, Web Vitals | **Proposé** le 24 août 2026 |
+| [Observabilité](adr/strategie-observabilite.md) — Grafana Cloud recommandé, 4 piliers (erreurs, logs, métriques, alerting) | **Proposé** le 4 sept. 2026 |
 
 **Décisions de mise en œuvre back** :
 
@@ -51,7 +51,6 @@ Les axes suffixés « bis » dépendent de celui qu'ils suivent. Entre les axes 
 |---|---|
 | [Organisation des sources back](adr/organisation-des-sources-back.md) — `@api/` pour les refontes, features pour les greenfield, DTOs | **Proposé** le 24 août 2026 |
 | [Stratégie de test back](adr/strategie-de-test-back.md) — intégration avec la vraie base, Mocha existant / Vitest greenfield | **Accepté** le 24 août 2026 |
-| [Observabilité back](adr/observabilite-back.md) — extension Sentry, transition du crash → mail | **Proposé** le 24 août 2026 |
 
 **Plan d'exécution** : [Feuille de route du socle igo](feuille-de-route-socle-igo.md) — séquence les évolutions en 5 phases.
 
