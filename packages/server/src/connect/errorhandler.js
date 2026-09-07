@@ -17,6 +17,8 @@
  *    - Logs error and sends email notification
  *    - Forces process.exit(1) after 1 second
  *    - Process manager (PM2, systemd) will restart the server
+ *    - config.exitOnUncaughtException = false keeps the server alive when the
+ *      request was already answered (never outside a request context)
  *
  * Special cases:
  * - URIError (malformed URL): returns 404
@@ -262,13 +264,22 @@ process.on('unhandledRejection', (err) => {
 // Handle uncaught exceptions - log, send email, then exit
 process.on('uncaughtException', (err) => {
   const context = asyncLocalStorage.getStore();
+  const handled = !!(context && context.req && context.res);
 
-  if (context && context.req && context.res) {
+  if (handled) {
     handle(err, context.req, context.res);
   } else {
     logger.error('Uncaught exception outside of request context:', err);
     logger.error(err.stack);
     sendCrashEmail(`Uncaught exception: ${err}`, `<pre>${escapeHtml(err.stack)}</pre>`, String(err));
+  }
+
+  // Node makes no promise about the state of a process that reached this point,
+  // so restarting is the safe default. A request that was handled and answered
+  // is the case worth keeping alive, once alerting no longer relies on the
+  // crash email to notice the error.
+  if (config.exitOnUncaughtException === false && handled) {
+    return;
   }
 
   // Exit after a short delay to allow email to be sent

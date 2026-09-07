@@ -42,6 +42,8 @@ export interface Config {
   cookieSecret:   string;
   cookieSession:  CookieSessionConfig;
   mailcrashto?:   string | string[];
+  /** false keeps the server alive after an uncaught exception a request already answered. */
+  exitOnUncaughtException: boolean;
   loglevel:       string;
   [key: string]: unknown;
 }

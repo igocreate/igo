@@ -22,6 +22,15 @@ If a promise rejects without a catch and the error happens within a request cont
 
 Fatal errors that escape all handlers are logged, an email is sent, and the process exits after 1 second. Use a process manager like PM2 to restart automatically.
 
+Node gives no guarantee about the state of a process that reached this point, so restarting is the default. Once your alerting no longer depends on the crash email to notice an error, you can keep serving:
+
+```js
+// app/config.js
+config.exitOnUncaughtException = false;
+```
+
+The server then stays up **only** when the exception happened during a request that was already answered. An exception raised outside any request still exits, since nothing can vouch for the process state.
+
 ## Special Cases
 
 | Error type | Response | Email sent? |

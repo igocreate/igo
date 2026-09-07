@@ -35,6 +35,10 @@ module.exports.init = function() {
   // routes under this prefix answer in JSON, never in HTML
   config.api        = { prefix: '/api' };
 
+  // set to false to keep serving after an uncaught exception that a request
+  // already answered — only once alerting no longer relies on the crash email
+  config.exitOnUncaughtException = true;
+
   config.i18n = {
     whitelist:            [ 'en', 'fr' ],
     preload:              [ 'en', 'fr' ],
