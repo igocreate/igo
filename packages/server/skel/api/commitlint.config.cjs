@@ -1,0 +1,3 @@
+// Conventional Commits: feat, fix, chore, refactor, docs, test, ci…
+// https://www.conventionalcommits.org
+module.exports = { extends: ['@commitlint/config-conventional'] };

@@ -13,14 +13,18 @@ const renameUnderscoreFiles = async (dir) => {
   const entries = await fs.readdir(dir, { withFileTypes: true });
 
   for (const entry of entries) {
-    const srcPath = path.join(dir, entry.name);
+    let srcPath = path.join(dir, entry.name);
+
+    // npm refuses to publish a directory containing .gitignore, .husky and the
+    // like, so the skeletons ship them prefixed.
+    if (entry.name.startsWith('_.')) {
+      const destPath = path.join(dir, '.' + entry.name.slice(2));
+      await fse.move(srcPath, destPath, { overwrite: true });
+      srcPath = destPath;
+    }
 
     if (entry.isDirectory()) {
       await renameUnderscoreFiles(srcPath); // récursif
-    } else if (entry.name.startsWith('_.')) {
-      const newName = '.' + entry.name.slice(2);
-      const destPath = path.join(dir, newName);
-      await fse.move(srcPath, destPath, { overwrite: true });
     }
   }
 };

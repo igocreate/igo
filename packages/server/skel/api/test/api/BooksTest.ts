@@ -42,7 +42,7 @@ describe('api/books', function() {
       const res = await agent.get(`/api/books/${book.id}`);
 
       assert.strictEqual(res.statusCode, 200);
-      assert.deepStrictEqual(Object.keys(res.data).sort(),
+      assert.deepStrictEqual(Object.keys(res.data).toSorted(),
         ['author', 'createdAt', 'id', 'pages', 'published', 'title']);
     });
 
@@ -75,7 +75,7 @@ describe('api/books', function() {
       assert.strictEqual(res.statusCode, 400);
       assert.strictEqual(res.data.title, 'Validation failed');
       assert.deepStrictEqual(
-        res.data.errors.map((e: { path: string }) => e.path).sort(),
+        res.data.errors.map((e: { path: string }) => e.path).toSorted(),
         ['author', 'pages', 'title']
       );
     });

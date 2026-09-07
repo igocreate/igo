@@ -7,8 +7,10 @@
     "build": "tsc && cp -R sql locales dist/",
     "start": "tsx watch app.ts",
     "serve": "cd dist && node app.js",
+    "lint": "oxlint",
     "test": "mocha",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky"
   },
   "author": "",
   "license": "ISC",
@@ -20,9 +22,14 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.0",
+    "@commitlint/config-conventional": "^21.2.0",
     "@types/express": "^5.0.6",
     "@types/mocha": "^10.0.10",
     "@types/node": "^24.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.0",
+    "oxlint": "^1.81.0",
     "tsx": "^4.20.0",
     "typescript": "^7.0.0"
   }
