@@ -2,11 +2,13 @@
   "name": "{project.name}",
   "version": "0.0.1",
   "description": "",
-  "main": "app.js",
+  "main": "dist/app.js",
   "scripts": {
-    "eslint": "eslint ./app ./test",
-    "start": "nodemon app.js",
-    "test": "mocha"
+    "build": "tsc && cp -R sql locales dist/",
+    "start": "tsx watch app.ts",
+    "serve": "cd dist && node app.js",
+    "test": "mocha",
+    "typecheck": "tsc --noEmit"
   },
   "author": "",
   "license": "ISC",
@@ -18,6 +20,10 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
-    "eslint": "^10.4.1"
+    "@types/express": "^5.0.6",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^7.0.0"
   }
 }

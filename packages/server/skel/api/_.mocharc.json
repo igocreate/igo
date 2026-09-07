@@ -1,7 +1,10 @@
 {
   "recursive": true,
   "extension": [
-    "js"
+    "ts"
+  ],
+  "require": [
+    "tsx"
   ],
   "reporter": "dot",
   "exit": true,

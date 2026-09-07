@@ -1,13 +1,16 @@
 # {project.name}
 
-API JSON sur [igo](https://github.com/igocreate/igo).
+API JSON TypeScript sur [igo](https://github.com/igocreate/igo).
 
 ## Démarrer
 
 ```bash
 npm install
-npm start          # nodemon sur app.js
-npm test           # mocha, base de test recréée à chaque run
+npm start          # tsx watch, rechargement à chaud
+npm test           # mocha via tsx, base de test recréée à chaque run
+npm run typecheck  # tsc --noEmit
+npm run build      # compile vers dist/
+npm run serve      # lance le build
 ```
 
 ## Structure
@@ -16,12 +19,12 @@ npm test           # mocha, base de test recréée à chaque run
 app/
   api/
     books/                    ← un dossier par domaine
-      books.routes.js         ← les endpoints
-      books.controller.js     ← thin : service/modèle → DTO
-      books.dto.js            ← schémas entrants + sérialisation sortante
+      books.routes.ts         ← les endpoints
+      books.controller.ts     ← thin : service/modèle → DTO
+      books.dto.ts            ← schémas entrants + sérialisation sortante
   models/                     ← modèles ORM
-  config.js
-  routes.js                   ← montage des routes
+  config.ts
+  routes.ts                   ← montage des routes
 sql/                          ← migrations
 ```
 
@@ -30,16 +33,18 @@ sql/                          ← migrations
 **Les routes API se montent avec `app.api()`** — le préfixe (`/api`) vient de
 `config.api.prefix`, jamais répété dans le code :
 
-```js
-app.api('/books', require('./api/books/books.routes'));   // -> /api/books
+```ts
+app.api('/books', books);   // -> /api/books
 ```
 
 **La validation est automatique.** Le schéma s'attache au handler, igo
 l'applique avant que le contrôleur ne tourne :
 
-```js
-exports.create.body  = dto.CreateBook;
-exports.index.query  = dto.ListBooks;
+```ts
+export const create: ApiHandler<{ body: typeof dto.CreateBook }> = async (req, res) => {
+  req.body.pages;   // number — typé depuis le schéma
+};
+create.body = dto.CreateBook;
 ```
 
 `req.body` et `req.query` contiennent la valeur validée — coercitions et
@@ -69,3 +74,13 @@ sendProblem(res, 409, { type: '/problems/out-of-stock', title: 'Book is out of s
 **Le DTO est la barrière.** Le front ne voit jamais un modèle ORM brut :
 ajouter une colonne au modèle n'expose rien tant qu'elle n'est pas nommée dans
 `serialize()`.
+
+## TypeScript
+
+**Les schémas Zod sont la source des types.** `ApiHandler<{ body: typeof
+CreateBook }>` donne à `req.body` la forme validée : aucune interface à
+maintenir en double, et un champ absent du schéma est une erreur de
+compilation.
+
+igo reste du JavaScript — les types viennent de fichiers `.d.ts` livrés avec
+le paquet. Rien n'est compilé côté framework.

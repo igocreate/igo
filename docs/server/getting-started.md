@@ -34,15 +34,14 @@ npm start
 
 ### Skeletons
 
-`create` scaffolds a server-rendered project by default. For a JSON API with no
-views and no bundler:
+`create` scaffolds a server-rendered project by default. For a TypeScript JSON
+API with no views and no bundler:
 
 ```sh
-npx @igojs/server create myapi --skel=api       # JavaScript
-npx @igojs/server create myapi --skel=api-ts    # TypeScript
+npx @igojs/server create myapi --skel=api
 ```
 
-Both ship a working domain — model, DTO, controller, routes, migration and
+It ships a working domain — model, DTO, controller, routes, migration and
 integration tests. See [JSON APIs](./api).
 
 ## Minimal app

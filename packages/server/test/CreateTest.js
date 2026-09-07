@@ -7,7 +7,7 @@ const path   = require('path');
 
 const create = require('@igojs/server/cli/create');
 
-const SKELETONS = ['tailwind', 'api', 'api-ts'];
+const SKELETONS = ['tailwind', 'api'];
 
 describe('cli/create', function() {
   this.timeout(20000);
@@ -46,12 +46,12 @@ describe('cli/create', function() {
   it('should carry the api conventions into the api skeletons', async () => {
     await create({ _: ['create', 'myapi'], skel: 'api' });
 
-    const routes = fs.readFileSync(path.join(tmp, 'myapi', 'app', 'routes.js'), 'utf8');
+    const routes = fs.readFileSync(path.join(tmp, 'myapi', 'app', 'routes.ts'), 'utf8');
     assert(routes.includes('app.api('), 'routes mount through app.api()');
 
     const controller = fs.readFileSync(
-      path.join(tmp, 'myapi', 'app', 'api', 'books', 'books.controller.js'), 'utf8');
-    assert(controller.includes('exports.create.body = dto.CreateBook'),
+      path.join(tmp, 'myapi', 'app', 'api', 'books', 'books.controller.ts'), 'utf8');
+    assert(controller.includes('create.body = dto.CreateBook'),
            'schema is attached to the handler');
   });
 });
