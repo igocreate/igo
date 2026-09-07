@@ -6,6 +6,8 @@ const routes = require(config.projectRoot + '/app/routes');
 
 //
 module.exports.init = function(app) {
+  // order matters: init() adds app.api(), which the project calls in its own
+  // routes, and wire() applies the schemas of the handlers it just declared.
   api.init(app);
 
   routes.init(app);
