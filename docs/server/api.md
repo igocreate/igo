@@ -119,7 +119,8 @@ Two levels, both meant to be branched on:
 
 - **`type`** identifies the problem itself. It is a URI, and it does not have to
   resolve to anything. igo sets `urn:igo:validation-failed` when a schema
-  rejects a request; otherwise it stays `about:blank`, which the RFC defines as
+  rejects a request — the `urn:igo:` namespace marks the errors the framework
+  itself produces. Otherwise it stays `about:blank`, which the RFC defines as
   "no specific type — the status says it all".
 - **`errors[].code`** identifies what is wrong with one field: `invalid_type`,
   `too_small`, `invalid_format`, `invalid_value`… These come from the schema
@@ -172,11 +173,19 @@ status code. A 404 rarely needs one; a 409 or a 422 usually does.
 409, `Too Many Requests` for 429), so pass it only when you have something more
 precise to say.
 
-**A convention, not a rule.** igo suggests `/problems/<slug>` — short, readable,
-and easy to serve documentation from later if you want to. URNs
-(`urn:myapp:out-of-stock`) and full URLs work just as well. The RFC only asks
-for a URI that stays stable, since clients branch on it. Pick one form and keep
-it across the project.
+**A convention, not a rule.** igo suggests `/problems/<slug>` — a relative URI,
+so it resolves against your own origin and you can serve documentation there
+later if you want to. URNs (`urn:myapp:out-of-stock`) and absolute URLs work
+just as well. The RFC only asks for a URI that stays stable, since clients
+branch on it. Pick one form and keep it across the project.
+
+::: tip Why igo's own type is a URN
+`/problems/<slug>` belongs to your application: it resolves against your domain,
+and the slugs are yours to define. igo's own errors cannot live there — the same
+framework error would get a different identifier on every project, and would
+compete with your slugs. Hence `urn:igo:validation-failed`: one namespace for
+the framework, identical everywhere, and `/problems/*` left entirely to you.
+:::
 
 Outside production a 500 includes the error message as `detail`; in production
 it is omitted. Crash emails are unaffected — only the response format changes.

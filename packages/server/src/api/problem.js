@@ -6,7 +6,9 @@ const config = require('../config');
 const CONTENT_TYPE = 'application/problem+json';
 
 // igo produces one problem specific enough to name: everything else is
-// identified by its status alone. Applications define their own types.
+// identified by its status alone. A URN rather than the /problems/<slug> form
+// suggested to applications — a relative URI would resolve differently on every
+// project, and would compete with the slugs the application defines.
 const VALIDATION_FAILED = 'urn:igo:validation-failed';
 
 // A request is served as JSON when it targets the API prefix, or when the
