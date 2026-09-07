@@ -93,15 +93,25 @@ tests — changer de wrapper HTTP ne les casse pas.
 | `e2e/` | navigateur réel, contre le build | rien — l'API tourne vraiment |
 
 `pnpm test:e2e` sert le build et proxifie `/api`, comme nginx en production.
-**L'API doit tourner** — `API_URL` la désigne :
+
+**L'API doit tourner.** Elle vit dans le même dépôt, mais le squelette ne sait
+pas comment la démarrer — renseigner `E2E_API_COMMAND` dans
+`playwright.config.ts` une bonne fois :
+
+```ts
+const API_COMMAND = process.env.E2E_API_COMMAND ?? 'pnpm --filter ./back start';
+```
+
+Playwright la démarre alors avant les tests et l'arrête après. Sinon, la lancer
+soi-même et pointer `API_URL` dessus :
 
 ```bash
 API_URL=http://127.0.0.1:3000 pnpm test:e2e
 ```
 
 Les seeds et l'authentification sont l'affaire du projet : un squelette ne peut
-pas les deviner. Le job E2E de la CI est désactivé tant que `E2E_API_URL` n'est
-pas renseigné.
+pas les deviner. Le job E2E de la CI est désactivé tant que ce câblage n'est pas
+fait.
 
 ## Le système de design
 

@@ -43,10 +43,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # The slowest and least stable job: no point paying for it while a type
-    # error or a failing unit test already tells us the build is broken.
-    needs: [lint, test]
-    # The API this front talks to is not part of this repository: point
-    # E2E_API_URL at a running instance, and drop the `if` to enable the job.
+    # error, a failing unit test or a broken build already tells us so.
+    needs: [lint, test, build]
+    # Needs the project's API: set E2E_API_COMMAND in playwright.config.ts to
+    # start it here, or point E2E_API_URL at a running one. Then drop this `if`.
     if: false
     steps:
       - uses: actions/checkout@v4
@@ -56,6 +56,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # jobs do not share a filesystem: vite preview needs its own dist/
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e

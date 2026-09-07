@@ -115,24 +115,10 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
-      # `serve` runs from dist/, where the compiled app/routes.js lives
-      - name: Start the API
-        run: pnpm --filter ./api serve &
-        env:
-          NODE_ENV: production
-          MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}
-          COOKIE_SECRET: e2e-cookie-secret
-          COOKIE_SESSION_KEYS: e2e-session-key
-
-      - name: Wait for the API
-        run: |
-          for i in $(seq 1 30); do
-            curl -sf http://127.0.0.1:3000/api/books > /dev/null && exit 0
-            sleep 1
-          done
-          echo "API failed to start" && exit 1
-
+      # playwright.config.ts starts the API and the front, and waits for both
       - run: pnpm test:e2e
+        env:
+          MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}
 
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
