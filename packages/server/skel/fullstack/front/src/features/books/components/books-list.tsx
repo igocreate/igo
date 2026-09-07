@@ -9,7 +9,7 @@ export function BooksList({ books }: { books: Book[] }) {
 
   return (
     <ul className="divide-y divide-slate-200">
-      {books.map(book => (
+      {books.map((book) => (
         <li key={book.id} className="flex items-baseline justify-between py-3">
           <div>
             <span className="font-medium">{book.title}</span>

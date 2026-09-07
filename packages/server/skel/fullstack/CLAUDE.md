@@ -49,11 +49,11 @@ Le back sert d'abord — le front consomme un contrat qui existe.
 
 ## Les tests
 
-| Niveau | Où | Quand |
-|---|---|---|
-| Intégration back | `back/test/` | tout contrôleur API |
+| Niveau             | Où                        | Quand                         |
+| ------------------ | ------------------------- | ----------------------------- |
+| Intégration back   | `back/test/`              | tout contrôleur API           |
 | Composant, feature | `front/src/**/*.test.tsx` | tout composant, toute section |
-| E2E | `e2e/` | chemins critiques seulement |
+| E2E                | `e2e/`                    | chemins critiques seulement   |
 
 Les E2E tournent contre le **build**, pas le serveur de développement. Ils sont
 lents : tout ce qui peut être couvert plus bas doit l'être plus bas.

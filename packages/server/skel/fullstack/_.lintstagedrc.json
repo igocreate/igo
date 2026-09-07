@@ -1,3 +1,4 @@
 {
-  "*.{ts,tsx}": "oxlint"
+  "*.{ts,tsx}": ["oxfmt", "oxlint"],
+  "*.{css,json}": "oxfmt"
 }

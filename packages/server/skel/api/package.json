@@ -2,6 +2,8 @@
   "name": "{project.name}",
   "version": "0.0.1",
   "description": "",
+  "license": "ISC",
+  "author": "",
   "main": "dist/app.js",
   "scripts": {
     "build": "tsc && cp -R sql locales dist/",
@@ -10,12 +12,9 @@
     "lint": "oxlint",
     "test": "mocha",
     "typecheck": "tsc --noEmit",
-    "prepare": "husky"
-  },
-  "author": "",
-  "license": "ISC",
-  "engines": {
-    "node": ">=24"
+    "prepare": "husky",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check"
   },
   "dependencies": {
     "@igojs/igo": "{igo.version}",
@@ -29,8 +28,12 @@
     "@types/node": "^24.0.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.0",
+    "oxfmt": "^0.66.0",
     "oxlint": "^1.81.0",
     "tsx": "^4.20.0",
     "typescript": "^7.0.0"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }

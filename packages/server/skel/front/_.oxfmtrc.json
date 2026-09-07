@@ -1,0 +1,5 @@
+{
+  "singleQuote": true,
+  "printWidth": 100,
+  "ignorePatterns": ["dist", "node_modules", "*.md", "pnpm-lock.yaml"]
+}

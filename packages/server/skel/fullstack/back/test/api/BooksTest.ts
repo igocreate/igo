@@ -7,14 +7,16 @@ dev.test();
 
 const agent = dev.agent;
 
-const createBook = (values = {}) => Book.create({
-  title: 'Dune', author: 'Frank Herbert', pages: 412, ...values
-});
+const createBook = (values = {}) =>
+  Book.create({
+    title: 'Dune',
+    author: 'Frank Herbert',
+    pages: 412,
+    ...values,
+  });
 
-describe('api/books', function() {
-
-  describe('GET /api/books', function() {
-
+describe('api/books', function () {
+  describe('GET /api/books', function () {
     it('should list the books', async () => {
       await createBook();
 
@@ -30,20 +32,28 @@ describe('api/books', function() {
       const res = await agent.get('/api/books?page=0');
 
       assert.strictEqual(res.statusCode, 400);
-      assert.deepStrictEqual(res.data.errors.map((e: { path: string }) => e.path), ['page']);
+      assert.deepStrictEqual(
+        res.data.errors.map((e: { path: string }) => e.path),
+        ['page'],
+      );
     });
   });
 
-  describe('GET /api/books/:id', function() {
-
+  describe('GET /api/books/:id', function () {
     it('should expose only the serialized fields', async () => {
       const book = await createBook();
 
       const res = await agent.get(`/api/books/${book.id}`);
 
       assert.strictEqual(res.statusCode, 200);
-      assert.deepStrictEqual(Object.keys(res.data).toSorted(),
-        ['author', 'createdAt', 'id', 'pages', 'published', 'title']);
+      assert.deepStrictEqual(Object.keys(res.data).toSorted(), [
+        'author',
+        'createdAt',
+        'id',
+        'pages',
+        'published',
+        'title',
+      ]);
     });
 
     it('should answer 404 for an unknown id', async () => {
@@ -54,11 +64,10 @@ describe('api/books', function() {
     });
   });
 
-  describe('POST /api/books', function() {
-
+  describe('POST /api/books', function () {
     it('should create a book', async () => {
       const res = await agent.post('/api/books', {
-        body: { title: 'Dune', author: 'Frank Herbert', pages: 412 }
+        body: { title: 'Dune', author: 'Frank Herbert', pages: 412 },
       });
 
       assert.strictEqual(res.statusCode, 201);
@@ -74,15 +83,15 @@ describe('api/books', function() {
 
       assert.strictEqual(res.statusCode, 400);
       assert.strictEqual(res.data.title, 'Validation failed');
-      assert.deepStrictEqual(
-        res.data.errors.map((e: { path: string }) => e.path).toSorted(),
-        ['author', 'pages', 'title']
-      );
+      assert.deepStrictEqual(res.data.errors.map((e: { path: string }) => e.path).toSorted(), [
+        'author',
+        'pages',
+        'title',
+      ]);
     });
   });
 
-  describe('DELETE /api/books/:id', function() {
-
+  describe('DELETE /api/books/:id', function () {
     it('should delete the book', async () => {
       const book = await createBook();
 

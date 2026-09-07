@@ -9,7 +9,6 @@ import { server } from '@/test/msw-server';
 import { BooksPage } from './books-page';
 
 describe('BooksPage', () => {
-
   it('should show the books once loaded', async () => {
     renderWithProviders(<BooksPage />);
 
@@ -18,12 +17,14 @@ describe('BooksPage', () => {
   });
 
   it('should report a server error instead of loading forever', async () => {
-    server.use(http.get('/api/books', () =>
-      HttpResponse.json(
-        { type: 'about:blank', title: 'Internal Server Error', status: 500 },
-        { status: 500 }
-      )
-    ));
+    server.use(
+      http.get('/api/books', () =>
+        HttpResponse.json(
+          { type: 'about:blank', title: 'Internal Server Error', status: 500 },
+          { status: 500 },
+        ),
+      ),
+    );
 
     renderWithProviders(<BooksPage />);
 
@@ -31,14 +32,19 @@ describe('BooksPage', () => {
   });
 
   it('should show validation errors under the fields the server named', async () => {
-    server.use(http.post('/api/books', () =>
-      HttpResponse.json({
-        type:   'urn:igo:validation-failed',
-        title:  'Validation failed',
-        status: 400,
-        errors: [{ path: 'title', code: 'too_small', message: 'Too small' }],
-      }, { status: 400 })
-    ));
+    server.use(
+      http.post('/api/books', () =>
+        HttpResponse.json(
+          {
+            type: 'urn:igo:validation-failed',
+            title: 'Validation failed',
+            status: 400,
+            errors: [{ path: 'title', code: 'too_small', message: 'Too small' }],
+          },
+          { status: 400 },
+        ),
+      ),
+    );
 
     renderWithProviders(<BooksPage />);
     await screen.findByText('Dune');

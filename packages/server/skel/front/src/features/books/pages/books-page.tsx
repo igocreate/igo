@@ -14,8 +14,12 @@ export function BooksPage() {
       <AddBookSection />
 
       {isPending && <p className="text-slate-500">Loading…</p>}
-      {isError   && <p role="alert" className="text-red-600">{error.message}</p>}
-      {data      && (
+      {isError && (
+        <p role="alert" className="text-red-600">
+          {error.message}
+        </p>
+      )}
+      {data && (
         <>
           <BooksList books={data.books} />
           <p className="mt-4 text-sm text-slate-400">{data.page.total} in total</p>

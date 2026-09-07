@@ -4,7 +4,6 @@ import { expect, test } from '@playwright/test';
 // Everything below that is already covered faster by the front and back tests,
 // so this file stays short on purpose.
 test.describe('books', () => {
-
   test('should list the books served by the API', async ({ page }) => {
     await page.goto('/');
 

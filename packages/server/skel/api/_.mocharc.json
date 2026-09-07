@@ -1,11 +1,7 @@
 {
   "recursive": true,
-  "extension": [
-    "ts"
-  ],
-  "require": [
-    "tsx"
-  ],
+  "extension": ["ts"],
+  "require": ["tsx"],
   "reporter": "dot",
   "exit": true,
   "timeout": 10000

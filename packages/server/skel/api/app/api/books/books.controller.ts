@@ -1,4 +1,3 @@
-
 import { sendProblem } from '@igojs/server';
 import type { ApiHandler } from '@igojs/server';
 
@@ -18,7 +17,7 @@ export const index: ApiHandler<{ query: typeof dto.ListBooks }> = async (req, re
   const { rows, pagination } = await query.page(page, limit).list();
   res.json({
     books: rows.map(dto.serialize),
-    page:  dto.serializePage(pagination),
+    page: dto.serializePage(pagination),
   });
 };
 index.query = dto.ListBooks;

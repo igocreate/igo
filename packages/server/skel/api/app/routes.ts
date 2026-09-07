@@ -7,7 +7,6 @@ import books from './api/books/books.routes';
 
 //
 export const init = (app: Express) => {
-
   // mounted under config.api.prefix -> /api/books
   app.api('/books', books);
 

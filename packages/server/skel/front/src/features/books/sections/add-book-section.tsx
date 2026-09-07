@@ -18,13 +18,13 @@ export function AddBookSection() {
     event.preventDefault();
     createBook.mutate(
       { title: form.title, author: form.author, pages: Number(form.pages) },
-      { onSuccess: () => setForm(EMPTY) }
+      { onSuccess: () => setForm(EMPTY) },
     );
   };
 
   return (
     <form onSubmit={submit} className="mb-8 space-y-3">
-      {(['title', 'author', 'pages'] as const).map(field => (
+      {(['title', 'author', 'pages'] as const).map((field) => (
         <div key={field}>
           <label className="block text-sm font-medium capitalize" htmlFor={field}>
             {field}
@@ -32,11 +32,13 @@ export function AddBookSection() {
           <input
             id={field}
             value={form[field]}
-            onChange={e => setForm({ ...form, [field]: e.target.value })}
+            onChange={(e) => setForm({ ...form, [field]: e.target.value })}
             className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
           />
           {error?.fieldError(field) && (
-            <p role="alert" className="mt-1 text-sm text-red-600">{error.fieldError(field)}</p>
+            <p role="alert" className="mt-1 text-sm text-red-600">
+              {error.fieldError(field)}
+            </p>
           )}
         </div>
       ))}

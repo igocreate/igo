@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2023",
-    "lib": [
-      "ES2023",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
@@ -16,14 +12,9 @@
     "isolatedModules": true,
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
-    "types": [
-      "vitest/globals",
-      "@testing-library/jest-dom"
-    ],
+    "types": ["vitest/globals", "@testing-library/jest-dom"],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
     "moduleDetection": "force",
     "noUnusedLocals": true,
@@ -31,9 +22,5 @@
     "noFallthroughCasesInSwitch": true,
     "erasableSyntaxOnly": true
   },
-  "include": [
-    "src",
-    "vite.config.ts",
-    "vitest.config.ts"
-  ]
+  "include": ["src", "vite.config.ts", "vitest.config.ts"]
 }

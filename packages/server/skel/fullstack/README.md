@@ -42,11 +42,11 @@ cohérents**, et le déploiement livre un seul artefact.
 
 ## Les tests
 
-| Niveau | Où | Ce qu'il couvre |
-|---|---|---|
-| Intégration back | `back/test/` | route → contrôleur → DTO → base |
-| Composant, feature | `front/src/**/*.test.tsx` | rendu, API simulée par MSW |
-| E2E | `e2e/` | le câblage complet, navigateur réel |
+| Niveau             | Où                        | Ce qu'il couvre                     |
+| ------------------ | ------------------------- | ----------------------------------- |
+| Intégration back   | `back/test/`              | route → contrôleur → DTO → base     |
+| Composant, feature | `front/src/**/*.test.tsx` | rendu, API simulée par MSW          |
+| E2E                | `e2e/`                    | le câblage complet, navigateur réel |
 
 Les E2E tournent contre le **build** du front, pas le serveur de développement —
 c'est ce qui est déployé. Ils restent peu nombreux : tout ce qui peut être

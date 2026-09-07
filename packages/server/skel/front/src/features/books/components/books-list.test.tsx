@@ -7,7 +7,6 @@ import { BooksList } from './books-list';
 
 // A pure component needs no providers: props in, markup out.
 describe('BooksList', () => {
-
   it('should list every book', () => {
     render(<BooksList books={[aBook(), aBook({ id: 2, title: 'Neuromancer' })]} />);
 

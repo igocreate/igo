@@ -1,11 +1,8 @@
 {
   "name": "{project.name}",
-  "private": true,
   "version": "0.0.1",
+  "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=24"
-  },
   "scripts": {
     "dev": "concurrently -n back,front -c blue,magenta \"pnpm --filter ./back start\" \"pnpm --filter ./front dev\"",
     "build": "pnpm --filter ./back build && pnpm --filter ./front build",
@@ -14,7 +11,9 @@
     "test": "pnpm -r test",
     "test:e2e": "playwright test",
     "migrate": "pnpm --filter ./back exec igo db migrate",
-    "prepare": "husky"
+    "prepare": "husky",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.0",
@@ -23,6 +22,10 @@
     "concurrently": "^10.0.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.0",
+    "oxfmt": "^0.66.0",
     "oxlint": "^1.81.0"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }
