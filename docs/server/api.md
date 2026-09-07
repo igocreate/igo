@@ -101,11 +101,11 @@ Every API error is a problem document, served as `application/problem+json`:
 
 ```json
 {
-  "type": "about:blank",
+  "type": "urn:igo:validation-failed",
   "title": "Validation failed",
   "status": 400,
   "errors": [
-    { "path": "pages", "message": "Invalid input: expected number, received string" }
+    { "path": "pages", "code": "invalid_type", "message": "Invalid input: expected number, received string" }
   ]
 }
 ```
@@ -113,35 +113,104 @@ Every API error is a problem document, served as `application/problem+json`:
 `type`, `title` and `status` are the RFC 9457 fields; `errors` carries the
 per-field detail so a front end can display it without transformation.
 
-To answer with one yourself:
+### Identifying an error
+
+Two levels, both meant to be branched on:
+
+- **`type`** identifies the problem itself. It is a URI, and it does not have to
+  resolve to anything. igo sets `urn:igo:validation-failed` when a schema
+  rejects a request; otherwise it stays `about:blank`, which the RFC defines as
+  "no specific type — the status says it all".
+- **`errors[].code`** identifies what is wrong with one field: `invalid_type`,
+  `too_small`, `invalid_format`, `invalid_value`… These come from the schema
+  library and are stable across versions.
+
+Branch on `type` and `code`, never on `title` or `message`: those are display
+strings whose wording changes with the schema library's version and locale.
+
+```js
+if (problem.type === 'urn:igo:validation-failed') {
+  for (const { path, code } of problem.errors) {
+    setFieldError(path, translate(code));     // code, not message
+  }
+}
+```
+
+`path` is dotted, and includes array indices: `tags.0`, `author.email`.
+
+### Typing your own errors
+
+This is where the format earns its keep. A status code says a request failed; a
+`type` says **why**, and lets a client react to a specific business situation:
 
 ```js
 const { sendProblem } = require('@igojs/server');
 
-exports.show = async (req, res) => {
+exports.borrow = async (req, res) => {
   const book = await Book.find(req.params.id);
   if (!book) {
     return sendProblem(res, 404, { detail: 'Book not found' });
   }
-  res.json(dto.serialize(book));
+  if (book.stock === 0) {
+    return sendProblem(res, 409, {
+      type:   '/problems/out-of-stock',
+      title:  'Book is out of stock',
+      detail: `"${book.title}" is not available right now`,
+    });
+  }
+  ...
 };
 ```
+
+Without the `type`, a client receiving a 409 cannot tell "out of stock" from
+"already borrowed" without parsing a human sentence.
+
+Define a type whenever a client would plausibly react differently — not one per
+status code. A 404 rarely needs one; a 409 or a 422 usually does.
+
+`title` defaults to the standard HTTP wording for the status (`Conflict` for
+409, `Too Many Requests` for 429), so pass it only when you have something more
+precise to say.
+
+**A convention, not a rule.** igo suggests `/problems/<slug>` — short, readable,
+and easy to serve documentation from later if you want to. URNs
+(`urn:myapp:out-of-stock`) and full URLs work just as well. The RFC only asks
+for a URI that stays stable, since clients branch on it. Pick one form and keep
+it across the project.
 
 Outside production a 500 includes the error message as `detail`; in production
 it is omitted. Crash emails are unaffected — only the response format changes.
 
 ## DTOs
 
-The DTO is the barrier between the ORM model and the API. Adding a column to a
-model exposes nothing until it is named in `serialize()`:
+Returning a model straight from a controller sends every column it has:
+
+```js
+res.json(book);         // whatever `books` holds today, and tomorrow
+```
+
+Add `internal_cost` to the table six months later and it reaches the browser —
+no controller changed, no test failed, nothing to notice in review.
+
+A DTO is a plain function that picks what goes out. It is an allow-list: a new
+column is invisible until someone names it here.
 
 ```js
 exports.serialize = (book) => ({
   id:        book.id,
   title:     book.title,
-  createdAt: book.created_at,
+  createdAt: book.created_at,       // snake_case in SQL, camelCase over the wire
 });
 ```
+
+```js
+res.json(dto.serialize(book));
+```
+
+Nothing in igo looks for this function — the controller calls it, so the name is
+a convention, not a hook. It also decouples the two shapes: renaming a column
+changes `serialize()`, not the API contract. And one model can have several
+serializers when two audiences see different fields.
 
 ## Testing
 

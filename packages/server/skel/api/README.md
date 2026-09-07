@@ -49,14 +49,22 @@ valeurs par défaut comprises. Plus de `parseInt(req.query.page)`.
 
 ```json
 {
-  "type": "about:blank",
+  "type": "urn:igo:validation-failed",
   "title": "Validation failed",
   "status": 400,
-  "errors": [{ "path": "pages", "message": "expected number, received string" }]
+  "errors": [{ "path": "pages", "code": "invalid_type", "message": "..." }]
 }
 ```
 
 Tout ce qui vit sous `/api` répond en JSON — y compris les 404 et les 500.
+
+Le client se branche sur `type` et `errors[].code`, jamais sur `title` ni
+`message` — ce sont des libellés d'affichage. Pour une erreur métier, on pose
+son propre type :
+
+```js
+sendProblem(res, 409, { type: '/problems/out-of-stock', title: 'Book is out of stock' });
+```
 
 **Le DTO est la barrière.** Le front ne voit jamais un modèle ORM brut :
 ajouter une colonne au modèle n'expose rien tant qu'elle n'est pas nommée dans

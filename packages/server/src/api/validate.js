@@ -34,10 +34,19 @@ const replace = (req, source, value) => {
   req[source] = value;
 };
 
-const issuesOf = (result) => result.issues.map((issue) => ({
-  path:    (issue.path || []).map(segment => segment?.key ?? segment).join('.'),
-  message: issue.message,
-}));
+// `message` is meant for humans and changes with the schema library's version
+// and locale; `code` is the stable identifier a client should branch on. It is
+// a Zod extra rather than a Standard Schema guarantee, hence the check.
+const issuesOf = (result) => result.issues.map((issue) => {
+  const error = {
+    path: (issue.path || []).map(segment => segment?.key ?? segment).join('.'),
+  };
+  if (issue.code) {
+    error.code = issue.code;
+  }
+  error.message = issue.message;
+  return error;
+});
 
 // Wraps a handler so its schemas are applied before it runs.
 const wrap = (handler, schemas) => {
@@ -46,7 +55,11 @@ const wrap = (handler, schemas) => {
       for (const [source, schema] of Object.entries(schemas)) {
         const result = await schema['~standard'].validate(req[source]);
         if (result.issues) {
-          return problem.send(res, 400, { title: 'Validation failed', errors: issuesOf(result) });
+          return problem.send(res, 400, {
+            type:   problem.VALIDATION_FAILED,
+            title:  'Validation failed',
+            errors: issuesOf(result),
+          });
         }
         replace(req, source, result.value);
       }

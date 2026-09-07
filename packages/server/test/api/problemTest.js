@@ -52,8 +52,18 @@ describe('api/problem', function() {
       assert.deepStrictEqual(doc.errors, [{ path: 'a' }]);
     });
 
-    it('should fall back to a generic title', () => {
-      assert.strictEqual(problem.problem(418).title, 'Error');
+    it('should title any status from the HTTP registry', () => {
+      assert.strictEqual(problem.problem(409).title, 'Conflict');
+      assert.strictEqual(problem.problem(429).title, 'Too Many Requests');
+    });
+
+    it('should fall back to a generic title on an unknown status', () => {
+      assert.strictEqual(problem.problem(799).title, 'Error');
+    });
+
+    it('should carry an application type when given', () => {
+      assert.strictEqual(problem.problem(409, { type: '/problems/out-of-stock' }).type,
+                         '/problems/out-of-stock');
     });
   });
 });

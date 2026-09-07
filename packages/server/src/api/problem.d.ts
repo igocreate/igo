@@ -10,7 +10,11 @@ export interface ProblemDocument {
 }
 
 export interface ProblemError {
+  /** Dotted path of the offending field, e.g. 'tags.0'. */
   path:    string;
+  /** Stable identifier to branch on, e.g. 'invalid_type'. Absent if the schema library does not provide one. */
+  code?:   string;
+  /** Human-readable text; wording changes with the schema library. */
   message: string;
 }
 
@@ -22,6 +26,9 @@ export interface ProblemOptions {
 }
 
 export declare const CONTENT_TYPE: 'application/problem+json';
+
+/** `type` of the problem igo returns when a schema rejects a request. */
+export declare const VALIDATION_FAILED: 'urn:igo:validation-failed';
 
 /** True when the request targets the API prefix, or asks for JSON. */
 export declare function isApiRequest(req: Pick<Request, 'path' | 'headers'>): boolean;

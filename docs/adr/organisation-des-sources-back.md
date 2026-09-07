@@ -277,16 +277,18 @@ Les erreurs API suivent **[RFC 9457 Problem Details](https://www.rfc-editor.org/
 
 ```json
 {
-  "type":   "about:blank",
+  "type":   "urn:igo:validation-failed",
   "title":  "Validation failed",
   "status": 400,
   "errors": [
-    { "path": "beneficiary_id", "message": "Expected number, received string" }
+    { "path": "beneficiary_id", "code": "invalid_type", "message": "Expected number, received string" }
   ]
 }
 ```
 
 `type`, `title` et `status` sont les champs standard ; `errors` est l'extension pour le détail de validation, que le front affiche champ par champ sans transformation.
+
+Le `type` identifie le problème — c'est lui, avec `errors[].code`, que le client teste. `title` et `message` sont des libellés d'affichage. Les erreurs métier de l'application posent leur propre type (`/problems/dossier-non-transmissible`) ; igo n'en fournit qu'un, pour la validation.
 
 ### Validation avec Zod — middleware global
 

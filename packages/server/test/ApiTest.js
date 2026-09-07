@@ -17,8 +17,13 @@ describe('API', function() {
       const res = await agent.post('/api/books', { body: { title: 'Dune', pages: 'many' } });
       assert.strictEqual(res.statusCode, 400);
       assert.strictEqual(res.data.status, 400);
+      assert.strictEqual(res.data.type, 'urn:igo:validation-failed');
       assert.strictEqual(res.data.title, 'Validation failed');
-      assert.deepStrictEqual(res.data.errors.map(e => e.path), ['pages']);
+      assert.deepStrictEqual(res.data.errors, [{
+        path:    'pages',
+        code:    'invalid_type',
+        message: 'Invalid input: expected number, received string',
+      }]);
     });
 
     it('should report every invalid field', async () => {
