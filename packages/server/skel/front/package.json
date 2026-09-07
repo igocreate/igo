@@ -13,8 +13,7 @@
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
     "format": "oxfmt",
-    "format:check": "oxfmt --check",
-    "test:e2e": "playwright test"
+    "format:check": "oxfmt --check"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.0",
@@ -25,7 +24,6 @@
   "devDependencies": {
     "@commitlint/cli": "^21.2.0",
     "@commitlint/config-conventional": "^21.2.0",
-    "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.0",
     "@testing-library/jest-dom": "^6.9.0",
     "@testing-library/react": "^16.3.0",
