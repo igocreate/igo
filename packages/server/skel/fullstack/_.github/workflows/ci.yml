@@ -62,7 +62,6 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-
       - run: pnpm test
 
   e2e:
@@ -104,12 +103,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      # E2E runs against the built front, not the dev server: that is what
-      # ships, and a build-only failure would otherwise reach production.
       - run: pnpm migrate
         env:
           MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}
 
+      # E2E runs against the build, not the dev server: that is what ships
       - run: pnpm build
 
       - name: Install Playwright browsers

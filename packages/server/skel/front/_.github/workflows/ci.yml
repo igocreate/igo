@@ -49,5 +49,4 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # a build that fails here is a deployment that would have failed
       - run: pnpm build

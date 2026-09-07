@@ -62,8 +62,6 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-
-      # the test database is dropped, recreated and migrated by dev.test()
       - run: pnpm test
 
   build:
@@ -77,5 +75,4 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # a build that fails here is a deployment that would have failed
       - run: pnpm build
