@@ -41,6 +41,21 @@ LOG_FORMAT=json npm start
 Errors keep their stack, and SQL errors keep their `code` and `sqlState`, as
 separate fields.
 
+### Standing fields
+
+In `json`, every line also carries where it comes from:
+
+```json
+{"service":"myapi","version":"1.4.0","environment":"production", …}
+```
+
+`service` and `version` default to the `name` and `version` of your project's
+`package.json`; `APP_NAME` and `APP_VERSION` override them, as does setting
+`config.appname` / `config.version` directly. Without them, a pooled log
+platform cannot tell one project — or one environment — from another.
+
+They are left out of the `human` format, where all three are constant.
+
 ## Request logs
 
 Every request is logged once it completes:

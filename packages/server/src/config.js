@@ -9,6 +9,36 @@ module.exports  = config;
 const DEFAULT_COOKIE_SECRET = 'abcdefghijklmnopqrstuvwxyz';
 const DEFAULT_SESSION_KEY   = 'aaaaaaaaaaa';
 
+// A project without a readable package.json still has to boot.
+const readProjectPackage = (projectRoot) => {
+  try {
+    return require(projectRoot + '/package.json');
+  } catch {
+    return {};
+  }
+};
+
+// Reads the project package.json on first access rather than at init(), then
+// caches it: a value set by the application always wins.
+const defineProjectValue = (target, property, override, packageKey) => {
+  Object.defineProperty(target, property, {
+    configurable: true,
+    enumerable:   true,
+    get() {
+      const value = override || readProjectPackage(target.projectRoot)[packageKey];
+      Object.defineProperty(target, property, {
+        value, writable: true, configurable: true, enumerable: true
+      });
+      return value;
+    },
+    set(value) {
+      Object.defineProperty(target, property, {
+        value, writable: true, configurable: true, enumerable: true
+      });
+    },
+  });
+};
+
 //
 module.exports.init = function() {
 
@@ -20,6 +50,12 @@ module.exports.init = function() {
   config.env            = process.env.NODE_ENV || 'dev';
   config.httpport       = process.env.HTTP_PORT || 3000;
   config.projectRoot    = process.cwd();
+
+  // Identifies the app in crash emails and in every log line, which is what
+  // tells one project and one environment apart once logs are pooled.
+  // Resolved on read: projectRoot can still be reassigned after init().
+  defineProjectValue(config, 'appname', process.env.APP_NAME,    'name');
+  defineProjectValue(config, 'version', process.env.APP_VERSION, 'version');
 
   config.cookieSecret  = process.env.COOKIE_SECRET || DEFAULT_COOKIE_SECRET;
   config.cookieSession = {

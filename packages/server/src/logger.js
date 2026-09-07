@@ -61,6 +61,16 @@ module.exports.provideRequestId = (fn) => {
 module.exports.init = () => {
 
   logger.level  = config.loglevel;
+
+  // Once several projects and environments write to the same place, a log line
+  // is only useful if it says where it comes from. Only in the machine-readable
+  // format: in a terminal these three are constant and just add noise.
+  logger.defaultMeta = config.logformat === 'json' ? {
+    service:     config.appname,
+    version:     config.version,
+    environment: config.env,
+  } : undefined;
+
   logger.format = winston.format.combine(
     withRequestId(),
     config.logformat === 'json' ? jsonFormat() : humanFormat()

@@ -39,6 +39,10 @@ export interface Config {
   projectRoot:    string;
   api:            ApiConfig;
   databases:      string[];
+  /** Names the app in crash emails and logs; defaults to the project package name. */
+  appname:        string;
+  /** Defaults to the project package version. */
+  version:        string;
   cookieSecret:   string;
   cookieSession:  CookieSessionConfig;
   mailcrashto?:   string | string[];

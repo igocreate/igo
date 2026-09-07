@@ -5,6 +5,15 @@ const config = require('@igojs/server').config;
 
 describe('igo.config', () => {
 
+  describe('app identity', () => {
+
+    it('should name the app after the project package, for crash emails and logs', () => {
+      const projectPackage = require('./project/package.json');
+      assert.strictEqual(config.appname, projectPackage.name);
+      assert.strictEqual(config.version, projectPackage.version);
+    });
+  });
+
   describe('config.checkSecrets', () => {
 
     const withConfig = (overrides, fn) => {

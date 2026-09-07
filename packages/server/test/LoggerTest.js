@@ -80,6 +80,14 @@ describe('Logger', function() {
       assert(entry.stack.includes('Error: boom'));
     });
 
+    it('should say which service, version and environment a line comes from', () => {
+      const [line] = withFormat('json', () => logger.info('hello'));
+      const entry  = JSON.parse(line);
+      assert.strictEqual(entry.environment, config.env);
+      assert.strictEqual(entry.service, config.appname);
+      assert.strictEqual(entry.version, config.version);
+    });
+
     it('should not colour what a log collector reads', () => {
       const [line] = withFormat('json', () => logger.info('plain'));
       // eslint-disable-next-line no-control-regex
@@ -98,6 +106,11 @@ describe('Logger', function() {
     it('should append metadata rather than lose it', () => {
       const [line] = withFormat('human', () => logger.info('done', { user_id: 42 }));
       assert(line.includes('"user_id":42'));
+    });
+
+    it('should leave out the fields that are constant in a terminal', () => {
+      const [line] = withFormat('human', () => logger.info('done'));
+      assert(!line.includes('environment'), 'service/version/environment are json-only');
     });
   });
 });
