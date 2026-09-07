@@ -55,7 +55,7 @@ const replaceInDirectory = async (dir, replacements) => {
 };
 
 // igo create
-const SKELETONS = ['tailwind', 'api'];
+const SKELETONS = ['tailwind', 'api', 'front'];
 
 module.exports = async function (argv) {
   const args = argv._;

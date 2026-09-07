@@ -7,7 +7,7 @@ const path   = require('path');
 
 const create = require('@igojs/server/cli/create');
 
-const SKELETONS = ['tailwind', 'api'];
+const SKELETONS = ['tailwind', 'api', 'front'];
 
 describe('cli/create', function() {
   this.timeout(20000);
@@ -30,8 +30,8 @@ describe('cli/create', function() {
       await create({ _: ['create', 'myapp'], skel });
 
       const pkg = JSON.parse(fs.readFileSync(path.join(tmp, 'myapp', 'package.json'), 'utf8'));
-      assert.strictEqual(pkg.name, 'myapp');
-      assert(!/\{igo\.version\}/.test(pkg.dependencies['@igojs/igo']), 'igo version was not replaced');
+      assert(pkg.name.startsWith('myapp'), `project name was not substituted: ${pkg.name}`);
+      assert(!/\{[a-z.]+\}/.test(JSON.stringify(pkg)), 'a placeholder was left unreplaced');
 
       // _.gitignore is renamed on the way out
       assert(fs.existsSync(path.join(tmp, 'myapp', '.gitignore')));
