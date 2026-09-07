@@ -4,8 +4,12 @@ API JSON TypeScript sur [igo](https://github.com/igocreate/igo).
 
 ## Démarrer
 
+MySQL et Valkey doivent tourner — `docker compose up -d` les lance, ou utiliser
+ceux déjà installés.
+
 ```bash
 pnpm install
+docker compose up -d
 pnpm start         # tsx watch, rechargement à chaud
 pnpm test          # mocha via tsx, base de test recréée à chaque run
 pnpm lint          # oxlint

@@ -13,8 +13,8 @@ pnpm typecheck    # tsc --noEmit
 pnpm build        # -> dist/
 ```
 
-Les tests ont besoin de MySQL et Redis en local. La base de test est recréée et
-migrée à chaque exécution.
+Les tests ont besoin de MySQL et Valkey — `docker compose up -d` les lance. La
+base de test est recréée et migrée à chaque exécution.
 
 ## Structure
 

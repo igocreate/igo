@@ -7,15 +7,15 @@ dépôt. TypeScript, Node 24, pnpm.
 
 ```bash
 pnpm install
-pnpm migrate       # crée les tables
-pnpm dev           # api sur :3000, front sur :5173
+docker compose up -d   # MySQL + Valkey
+pnpm migrate           # crée les tables
+pnpm dev               # api sur :3000, front sur :5173
 ```
 
 Ouvrir http://localhost:5173. Le front proxifie `/api` vers le back : le
 navigateur ne voit qu'une seule origine, donc **le cookie de session passe sans
 CORS**.
 
-MySQL et Redis doivent tourner en local.
 
 ## Commandes
 

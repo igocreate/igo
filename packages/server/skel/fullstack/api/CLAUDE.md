@@ -8,12 +8,13 @@ API JSON sur [igo](https://github.com/igocreate/igo). TypeScript, Node 24, pnpm.
 pnpm start        # tsx watch
 pnpm test         # mocha — vraie base, isolée par transaction
 pnpm lint         # oxlint
+pnpm format       # oxfmt
 pnpm typecheck    # tsc --noEmit
 pnpm build        # -> dist/
 ```
 
-Les tests ont besoin de MySQL et Redis en local. La base de test est recréée et
-migrée à chaque exécution.
+Les tests ont besoin de MySQL et Valkey — `docker compose up -d` les lance. La
+base de test est recréée et migrée à chaque exécution.
 
 ## Structure
 

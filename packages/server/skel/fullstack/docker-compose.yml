@@ -1,0 +1,38 @@
+# Local dependencies. The app itself runs natively — `pnpm start`.
+#
+#   docker compose up -d
+#
+services:
+  mysql:
+    image: mysql:8
+    restart: unless-stopped
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+      MYSQL_DATABASE: '{project.name}'
+    ports:
+      - '3306:3306'
+    # igo connects in utf8mb4: a server left on its default charset breaks on
+    # the first accented character.
+    command: >-
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --innodb-default-row-format=dynamic
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      interval: 10s
+      retries: 5
+
+  valkey:
+    image: valkey/valkey:8
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 10s
+      retries: 5
+
+volumes:
+  mysql_data:
