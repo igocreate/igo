@@ -1,7 +1,7 @@
 import { sendProblem } from '@igojs/server';
 import type { ApiHandler } from '@igojs/server';
 
-import Book from '../../models/Book';
+import Book from './Book';
 import * as dto from './books.dto';
 
 // The schemas below give req.body and req.query their types: no shape is

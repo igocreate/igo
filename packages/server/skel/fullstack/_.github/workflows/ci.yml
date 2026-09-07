@@ -126,7 +126,7 @@ jobs:
 
       # `serve` runs from dist/, where the compiled app/routes.js lives
       - name: Start the API
-        run: pnpm --filter ./back serve &
+        run: pnpm --filter ./api serve &
         env:
           NODE_ENV: production
           MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}

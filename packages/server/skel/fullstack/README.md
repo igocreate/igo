@@ -8,7 +8,7 @@ dépôt. TypeScript, Node 24, pnpm.
 ```bash
 pnpm install
 pnpm migrate       # crée les tables
-pnpm dev           # back sur :3000, front sur :5173
+pnpm dev           # api sur :3000, front sur :5173
 ```
 
 Ouvrir http://localhost:5173. Le front proxifie `/api` vers le back : le
@@ -21,7 +21,7 @@ MySQL et Redis doivent tourner en local.
 
 ```bash
 pnpm dev           # les deux en parallèle
-pnpm build         # back -> back/dist, front -> front/dist
+pnpm build         # api/dist et front/dist
 pnpm lint          # oxlint sur les deux
 pnpm typecheck     # tsc sur les deux
 pnpm test          # tests back et front
@@ -32,7 +32,7 @@ pnpm migrate       # migrations SQL
 ## Structure
 
 ```
-back/              API igo — voir back/CLAUDE.md
+api/               API igo — voir api/CLAUDE.md
 front/             SPA React — voir front/CLAUDE.md
 e2e/               parcours Playwright
 ```
@@ -44,7 +44,7 @@ cohérents**, et le déploiement livre un seul artefact.
 
 | Niveau             | Où                        | Ce qu'il couvre                     |
 | ------------------ | ------------------------- | ----------------------------------- |
-| Intégration back   | `back/test/`              | route → contrôleur → DTO → base     |
+| Intégration back   | `api/test/`              | route → contrôleur → DTO → base     |
 | Composant, feature | `front/src/**/*.test.tsx` | rendu, API simulée par MSW          |
 | E2E                | `e2e/`                    | le câblage complet, navigateur réel |
 
@@ -54,7 +54,7 @@ couvert plus bas doit l'être.
 
 ## Déploiement
 
-Un seul artefact. Le build produit `back/dist` et `front/dist`.
+Un seul artefact. Le build produit `api/dist` et `front/dist`.
 
 **nginx sert les statiques**, pas igo — `front/dist` va dans le répertoire servi
 par nginx, et `/api` est passé au process Node. Deux réglages à ne pas
@@ -72,4 +72,4 @@ Voir `deploy/nginx.conf.example`.
 [Conventional Commits](https://www.conventionalcommits.org), vérifiés par un
 hook. Le pre-commit passe oxlint sur les fichiers indexés.
 
-Les conventions de code sont dans `back/CLAUDE.md` et `front/CLAUDE.md`.
+Les conventions de code sont dans `api/CLAUDE.md` et `front/CLAUDE.md`.

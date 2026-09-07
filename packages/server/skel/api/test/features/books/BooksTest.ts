@@ -1,7 +1,7 @@
 import { dev } from '@igojs/server';
 import assert from 'assert';
 
-import Book from '../../app/models/Book';
+import Book from '../../../app/features/books/Book';
 
 dev.test();
 

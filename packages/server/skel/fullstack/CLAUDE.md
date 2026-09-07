@@ -2,14 +2,14 @@
 
 API JSON igo + SPA React dans un seul dépôt. TypeScript, Node 24, pnpm.
 
-**Les conventions de code sont dans `back/CLAUDE.md` et `front/CLAUDE.md`.** Ce
+**Les conventions de code sont dans `api/CLAUDE.md` et `front/CLAUDE.md`.** Ce
 fichier ne couvre que ce qui concerne les deux.
 
 ## Commandes
 
 ```bash
-pnpm dev           # back :3000 + front :5173
-pnpm build         # back/dist + front/dist
+pnpm dev           # api :3000 + front :5173
+pnpm build         # api/dist + front/dist
 pnpm lint          # oxlint sur les deux
 pnpm typecheck
 pnpm test          # tests back et front
@@ -17,7 +17,7 @@ pnpm test:e2e      # Playwright contre le build
 pnpm migrate
 ```
 
-Une commande ciblée passe par un filtre : `pnpm --filter ./back test`.
+Une commande ciblée passe par un filtre : `pnpm --filter ./api test`.
 
 ## Le contrat front/back
 
@@ -41,7 +41,7 @@ dérivent, ce sont les tests de feature qui le montrent.
 Les deux côtés se répondent :
 
 ```
-back/app/api/<domaine>/    routes, controller, dto
+api/app/api/<domaine>/    routes, controller, dto
 front/src/features/<domaine>/  api.ts, types.ts, pages, sections, components
 ```
 
@@ -51,7 +51,7 @@ Le back sert d'abord — le front consomme un contrat qui existe.
 
 | Niveau             | Où                        | Quand                         |
 | ------------------ | ------------------------- | ----------------------------- |
-| Intégration back   | `back/test/`              | tout contrôleur API           |
+| Intégration back   | `api/test/`              | tout contrôleur API           |
 | Composant, feature | `front/src/**/*.test.tsx` | tout composant, toute section |
 | E2E                | `e2e/`                    | chemins critiques seulement   |
 

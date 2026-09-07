@@ -17,16 +17,21 @@ npm run serve      # lance le build
 
 ```
 app/
-  api/
-    books/                    ← un dossier par domaine
+  features/
+    books/                    ← un dossier par domaine, auto-contenu
       books.routes.ts         ← les endpoints
       books.controller.ts     ← thin : service/modèle → DTO
       books.dto.ts            ← schémas entrants + sérialisation sortante
-  models/                     ← modèles ORM
+      Book.ts                 ← le modèle ORM du domaine
+  shared/                     ← transversal : models, services, utils
   config.ts
   routes.ts                   ← montage des routes
 sql/                          ← migrations
 ```
+
+Une feature regroupe tout son domaine, modèle compris. Ce qui devient
+transversal — un modèle importé par la majorité des features — migre dans
+`shared/`.
 
 ## Conventions
 

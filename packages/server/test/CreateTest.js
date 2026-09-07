@@ -50,7 +50,7 @@ describe('cli/create', function() {
     assert(routes.includes('app.api('), 'routes mount through app.api()');
 
     const controller = fs.readFileSync(
-      path.join(tmp, 'myapi', 'app', 'api', 'books', 'books.controller.ts'), 'utf8');
+      path.join(tmp, 'myapi', 'app', 'features', 'books', 'books.controller.ts'), 'utf8');
     assert(controller.includes('create.body = dto.CreateBook'),
            'schema is attached to the handler');
   });

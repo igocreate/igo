@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { BookRow } from '../../models/Book';
+import type { BookRow } from './Book';
 
 // Incoming: what the API accepts. Coercion and defaults are applied before the
 // controller runs, so req.body and req.query already hold the right types.
