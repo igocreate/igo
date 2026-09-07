@@ -32,6 +32,9 @@ module.exports.init = function() {
   config.urlencoded = { limit: '10mb', extended: true };
   config.json       = { limit: '10mb' };
 
+  // routes under this prefix answer in JSON, never in HTML
+  config.api        = { prefix: '/api' };
+
   config.i18n = {
     whitelist:            [ 'en', 'fr' ],
     preload:              [ 'en', 'fr' ],

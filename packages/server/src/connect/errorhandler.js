@@ -20,8 +20,11 @@
  *
  * Special cases:
  * - URIError (malformed URL): returns 404
- * - SyntaxError (invalid JSON): returns 500
+ * - SyntaxError (invalid JSON): returns 500, or 400 on an API request
  * - Both are client errors and don't trigger email notifications
+ *
+ * API requests (see src/api/problem.js) always get RFC 9457 JSON, never a
+ * rendered dust page.
  *
  * Email throttling:
  * - To prevent email spam during crash loops, emails are throttled per error type
@@ -40,6 +43,7 @@ const os   = require('os');
 const config  = require('../config');
 const logger  = require('../logger');
 const mailer  = require('../mailer');
+const problem = require('../api/problem');
 
 const asyncLocalStorage = new AsyncLocalStorage();
 
@@ -184,10 +188,13 @@ const sendCrashEmail = (subject, body, errorKey) => {
 
 // Handle errors that occur during HTTP requests
 const handle = (err, req, res) => {
+  // an API client cannot render a dust page: it always gets JSON back
+  const isApi = problem.isApiRequest(req);
+
   // Client errors - don't send emails
   if (err instanceof URIError) {
     if (!res.headersSent) {
-      res.status(404).render('errors/404');
+      isApi ? problem.send(res, 404) : res.status(404).render('errors/404');
     }
     return;
   }
@@ -195,7 +202,12 @@ const handle = (err, req, res) => {
   // body-parser JSON only; other SyntaxErrors fall through to logging.
   if (err instanceof SyntaxError && err.type === 'entity.parse.failed') {
     if (!res.headersSent) {
-      res.status(500).render('errors/500');
+      // malformed JSON is the client's mistake, and only an API client sends it
+      if (isApi) {
+        problem.send(res, 400, { detail: 'Malformed JSON body' });
+      } else {
+        res.status(500).render('errors/500');
+      }
     }
     return;
   }
@@ -217,6 +229,11 @@ const handle = (err, req, res) => {
   sendCrashEmail(`Crash: ${err}`, formatMessage(req, err), String(err));
 
   // Send response
+  if (isApi) {
+    // the stack is a debugging aid outside production, never a client contract
+    return problem.send(res, 500, config.env === 'production' ? {} : { detail: err.message });
+  }
+
   if (config.env === 'production') {
     return res.status(500).render('errors/500');
   }

@@ -111,6 +111,19 @@ const mockResponse = () => {
     resolveResponse(res);
   };
 
+  // res.json() serializes through res.send(), so API tests would each have to
+  // parse res.body themselves. Not named `json`: that would shadow Express's
+  // own res.json() and break every controller that calls it.
+  Object.defineProperty(res, 'data', {
+    get() {
+      try {
+        return JSON.parse(res.body);
+      } catch {
+        return undefined;
+      }
+    }
+  });
+
   return { res, done };
 };
 

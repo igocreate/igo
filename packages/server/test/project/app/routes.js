@@ -98,4 +98,6 @@ module.exports.init = function(app) {
     res.json({ flash: res.locals.flash });
   });
 
+  app.api('/books', require('./api/books/books.routes'));
+
 };
