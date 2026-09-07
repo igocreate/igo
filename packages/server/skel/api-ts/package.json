@@ -1,0 +1,26 @@
+{
+  "name": "{project.name}",
+  "version": "0.0.1",
+  "description": "",
+  "main": "dist/app.js",
+  "scripts": {
+    "build": "tsc && cp -R sql locales dist/",
+    "start": "tsx watch app.ts",
+    "serve": "cd dist && node app.js",
+    "test": "mocha",
+    "typecheck": "tsc --noEmit"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@igojs/igo": "{igo.version}",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.0"
+  }
+}

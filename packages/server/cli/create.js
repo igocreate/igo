@@ -55,15 +55,22 @@ const replaceInDirectory = async (dir, replacements) => {
 };
 
 // igo create
+const SKELETONS = ['tailwind', 'api', 'api-ts'];
+
 module.exports = async function (argv) {
   const args = argv._;
   if (args.length !== 2) {
-    console.warn('Usage: igo create <project-directory>');
+    console.warn('Usage: igo create <project-directory> [--skel=' + SKELETONS.join('|') + ']');
+    process.exit(1);
+  }
+
+  const model = argv.skel || 'tailwind';
+  if (!SKELETONS.includes(model)) {
+    console.warn(`Unknown skeleton '${model}'. Available: ${SKELETONS.join(', ')}.`);
     process.exit(1);
   }
 
   const directory = './' + args[1];
-  const model     = 'tailwind';
 
   await fs.mkdir(directory);
 

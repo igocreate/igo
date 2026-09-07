@@ -1,0 +1,11 @@
+{
+  "watch": [
+    "app",
+    "locales"
+  ],
+  "ignore": [],
+  "ext": "js json",
+  "events": {
+    "start": "npm run eslint"
+  }
+}

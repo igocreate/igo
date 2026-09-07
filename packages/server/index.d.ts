@@ -25,12 +25,24 @@ export interface ApiConfig {
   prefix: string;
 }
 
+export interface CookieSessionConfig {
+  name:      string;
+  keys:      string[];
+  maxAge:    number;
+  sameSite?: 'Lax' | 'Strict' | 'None' | boolean;
+  [key: string]: unknown;
+}
+
 export interface Config {
-  env:          string;
-  httpport:     number | string;
-  projectRoot:  string;
-  api:          ApiConfig;
-  databases:    string[];
+  env:            string;
+  httpport:       number | string;
+  projectRoot:    string;
+  api:            ApiConfig;
+  databases:      string[];
+  cookieSecret:   string;
+  cookieSession:  CookieSessionConfig;
+  mailcrashto?:   string | string[];
+  loglevel:       string;
   [key: string]: unknown;
 }
 
