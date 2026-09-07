@@ -1,0 +1,44 @@
+# Serving {project.name}: nginx serves the built front, Node serves the API.
+#
+# Copy, adjust the paths and the server_name, and drop into sites-available.
+
+upstream app {
+  server 127.0.0.1:3000;
+  keepalive 16;
+}
+
+server {
+  listen 80;
+  server_name example.com;
+
+  root /var/www/{project.name}/front/dist;
+
+  # The API is the Node process. Everything else is a static file.
+  location /api/ {
+    proxy_pass         http://app;
+    proxy_http_version 1.1;
+    proxy_set_header   Host              $host;
+    proxy_set_header   X-Real-IP         $remote_addr;
+    proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header   X-Forwarded-Proto $scheme;
+    # igo reuses an inbound request id, which ties nginx and app logs together
+    proxy_set_header   X-Request-Id      $request_id;
+  }
+
+  # Hashed filenames: safe to cache forever.
+  location /assets/ {
+    expires max;
+    add_header Cache-Control "public, immutable";
+  }
+
+  # index.html must NOT be cached: it is the file that names the hashed assets.
+  # Cached, a returning user keeps pointing at assets that no longer exist.
+  location = /index.html {
+    add_header Cache-Control "no-cache";
+  }
+
+  # Client-side routing: an unknown path is a route, not a missing file.
+  location / {
+    try_files $uri $uri/ /index.html;
+  }
+}

@@ -28,7 +28,7 @@ jobs:
       - run: pnpm typecheck
 
   test:
-    name: Tests
+    name: Unit & integration tests
     runs-on: ubuntu-latest
 
     services:
@@ -69,13 +69,33 @@ jobs:
           done
           echo "MySQL never became ready" && exit 1
 
-      # the test database is dropped, recreated and migrated by dev.test()
       - run: pnpm test
 
-  build:
-    name: Build
+  e2e:
+    name: E2E
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
     steps:
+      - name: Start MySQL
+        run: |
+          docker run -d --name mysql \
+            -e MYSQL_ALLOW_EMPTY_PASSWORD=yes \
+            -e MYSQL_DATABASE=${{ env.MYSQL_DATABASE }} \
+            -p 3306:3306 \
+            mysql:8 \
+            --character-set-server=utf8mb4 \
+            --collation-server=utf8mb4_unicode_ci \
+            --innodb-default-row-format=dynamic \
+            --innodb-strict-mode=0
+
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -83,5 +103,48 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # a build that fails here is a deployment that would have failed
+
+      - name: Wait for MySQL
+        run: |
+          for i in $(seq 1 60); do
+            docker exec mysql mysqladmin ping --silent 2>/dev/null && exit 0
+            sleep 2
+          done
+          echo "MySQL never became ready" && exit 1
+
+      # E2E runs against the built front, not the dev server: that is what
+      # ships, and a build-only failure would otherwise reach production.
+      - run: pnpm migrate
+        env:
+          MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}
+
       - run: pnpm build
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      # `serve` runs from dist/, where the compiled app/routes.js lives
+      - name: Start the API
+        run: pnpm --filter ./back serve &
+        env:
+          NODE_ENV: production
+          MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}
+          COOKIE_SECRET: e2e-cookie-secret
+          COOKIE_SESSION_KEYS: e2e-session-key
+
+      - name: Wait for the API
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:3000/api/books > /dev/null && exit 0
+            sleep 1
+          done
+          echo "API failed to start" && exit 1
+
+      - run: pnpm test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

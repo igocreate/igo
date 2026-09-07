@@ -7,7 +7,7 @@ const path   = require('path');
 
 const create = require('@igojs/server/cli/create');
 
-const SKELETONS = ['tailwind', 'api', 'front'];
+const SKELETONS = ['tailwind', 'api', 'front', 'fullstack'];
 
 describe('cli/create', function() {
   this.timeout(20000);

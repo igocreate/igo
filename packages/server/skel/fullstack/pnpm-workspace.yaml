@@ -1,0 +1,10 @@
+packages:
+  - back
+  - front
+
+# pnpm blocks postinstall scripts unless a package is listed here. These
+# compile or download a native binary, which they need to run at all.
+allowBuilds:
+  esbuild: true
+  '@parcel/watcher': true
+  msw: true

@@ -1,0 +1,11 @@
+{
+  "plugins": ["typescript", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "no-console": "warn"
+  },
+  "ignorePatterns": ["dist", "node_modules"]
+}

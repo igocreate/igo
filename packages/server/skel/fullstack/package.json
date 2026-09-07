@@ -1,0 +1,28 @@
+{
+  "name": "{project.name}",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "concurrently -n back,front -c blue,magenta \"pnpm --filter ./back start\" \"pnpm --filter ./front dev\"",
+    "build": "pnpm --filter ./back build && pnpm --filter ./front build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:e2e": "playwright test",
+    "migrate": "pnpm --filter ./back exec igo db migrate",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.0",
+    "@commitlint/config-conventional": "^21.2.0",
+    "@playwright/test": "^1.63.0",
+    "concurrently": "^10.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.0",
+    "oxlint": "^1.81.0"
+  }
+}
