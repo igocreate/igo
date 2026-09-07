@@ -103,6 +103,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
+      # auto_migrate only runs in production, and dev.test() only migrates for
+      # the test suite: a fresh CI database has no tables until this step
       - run: pnpm migrate
         env:
           MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}

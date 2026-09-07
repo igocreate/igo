@@ -19,11 +19,11 @@ Les améliorations sont cumulatives : ce qui sert aux refontes sert aussi aux gr
 | Action | Quoi | Effort |
 |---|---|---|
 | **`@igojs/component` en maintenance** | Acte explicite — les 6 écrans certigo sont supportés, pas étendus | Décision |
-| **Convention de routes API** | Les routes JSON vivent dans `app/api/` — pas d'alias imposé par igo | Convention |
+| **Convention de routes API** | `app/api/` en refonte, `app/features/` en greenfield — pas d'alias imposé par igo | Convention |
 | **Réponses d'erreur JSON** | Sous le préfixe API, tout répond en JSON au format RFC 9457 — 500, 404 et erreurs de validation | Faible |
 | **Middleware de validation Zod** | Middleware global monté par igo ; le schéma est attaché au handler, rien à écrire dans les routes | Faible |
 | **Déclarations TypeScript** | `.d.ts` sur l'API publique — les schémas Zod deviennent la source des types, sans impact sur les projets JS | Moyen |
-| **Squelette API** | `skel/api` — TypeScript, à côté de `skel/tailwind` | Moyen |
+| **Squelettes** | `skel/api`, `skel/front`, `skel/fullstack` — TypeScript, pnpm, oxlint/oxfmt, hooks git, CI | Moyen |
 | **Logs structurés** | JSON en production, identifiant de requête propagé, une ligne par requête — prépare l'ingestion Loki sans dépendre de l'outil | Faible |
 
 ## Phase 2 — Première refonte front

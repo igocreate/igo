@@ -34,15 +34,27 @@ npm start
 
 ### Skeletons
 
-`create` scaffolds a server-rendered project by default. For a TypeScript JSON
-API with no views and no bundler:
+`create` scaffolds a server-rendered project by default. Three other skeletons
+target the API-first stack:
 
 ```sh
-npx @igojs/server create myapi --skel=api
+npx @igojs/server create myapp --skel=api         # TypeScript JSON API
+npx @igojs/server create myapp --skel=front       # React SPA on that API
+npx @igojs/server create myapp --skel=fullstack   # both, in one repository
 ```
 
-It ships a working domain — model, DTO, controller, routes, migration and
-integration tests. See [JSON APIs](./api).
+| | What it holds |
+|---|---|
+| `tailwind` | Server-rendered views, dust templates, webpack. The default. |
+| `api` | TypeScript API — model, DTO, controller, routes, migration, integration tests. No views, no bundler. |
+| `front` | Vite, React, React Router, TanStack Query, Vitest + MSW. Consumes an existing igo API. |
+| `fullstack` | `api/` and `front/` as pnpm workspaces, plus Playwright and an nginx example. |
+
+All three ship a working `books` domain to copy from, oxlint and oxfmt, git
+hooks enforcing Conventional Commits, and a CI workflow. See [JSON APIs](./api).
+
+Use `front` when the API already exists — a front-end rewrite of a running
+project — and `fullstack` to start both at once.
 
 ## Minimal app
 
