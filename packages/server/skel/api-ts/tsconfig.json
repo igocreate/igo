@@ -1,8 +1,7 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "ES2023",
     "module": "commonjs",
-    "moduleResolution": "node",
     "strict": true,
     "esModuleInterop": true,
     "allowJs": true,
@@ -10,7 +9,8 @@
     "outDir": "dist",
     "rootDir": ".",
     "sourceMap": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["node", "mocha"]
   },
   "include": ["app.ts", "app/**/*.ts", "test/**/*.ts"],
   "exclude": ["node_modules", "dist"]

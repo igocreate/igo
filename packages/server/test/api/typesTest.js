@@ -11,11 +11,20 @@ const PROJECT = path.join(__dirname, '..', 'types', 'tsconfig.json');
 describe('api/types', function() {
   this.timeout(60000);
 
-  it('should typecheck the declarations against a TypeScript consumer', () => {
-    let tsc;
+  // TypeScript 7 restricts its exports map, so its internal paths cannot be
+  // resolved directly: locate the binary through the package manifest instead.
+  const findTsc = () => {
     try {
-      tsc = require.resolve('typescript/bin/tsc');
+      const pkg = require.resolve('typescript/package.json');
+      return path.join(path.dirname(pkg), 'bin', 'tsc');
     } catch {
+      return null;
+    }
+  };
+
+  it('should typecheck the declarations against a TypeScript consumer', function() {
+    const tsc = findTsc();
+    if (!tsc) {
       return this.skip();
     }
 

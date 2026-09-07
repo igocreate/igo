@@ -24,7 +24,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.3.0",
     "mocha": "^11.8.0",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "vitepress": "^1.6.4"
   },
   "lint-staged": {
