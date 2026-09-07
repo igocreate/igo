@@ -10,26 +10,44 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
-    name: Lint, typecheck, tests & build
+  lint:
+    name: Lint & typecheck
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version-file: .nvmrc
           cache: pnpm
-
       - run: pnpm install --frozen-lockfile
-
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm typecheck
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - run: pnpm test
 
-      # a build that fails in CI is a deployment that would have failed
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # a build that fails here is a deployment that would have failed
       - run: pnpm build

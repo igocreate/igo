@@ -33,27 +33,28 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      redis:
-        image: redis
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}
+        ports:
+          - 3306:3306
+        # igo connects in utf8mb4: a server left on the default charset breaks
+        # on the first accented character.
+        command: >-
+          --character-set-server=utf8mb4
+          --collation-server=utf8mb4_unicode_ci
+          --innodb-default-row-format=dynamic
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+      valkey:
+        image: valkey/valkey:8
         ports:
           - 6379:6379
-        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        options: --health-cmd="valkey-cli ping" --health-interval=10s --health-timeout=5s --health-retries=5
 
     steps:
-      # `services:` cannot pass server flags, and igo connects in utf8mb4:
-      # a mismatched server charset breaks on the first accented character.
-      - name: Start MySQL
-        run: |
-          docker run -d --name mysql \
-            -e MYSQL_ALLOW_EMPTY_PASSWORD=yes \
-            -e MYSQL_DATABASE=${{ env.MYSQL_DATABASE }} \
-            -p 3306:3306 \
-            mysql:8 \
-            --character-set-server=utf8mb4 \
-            --collation-server=utf8mb4_unicode_ci \
-            --innodb-default-row-format=dynamic \
-            --innodb-strict-mode=0
-
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -61,14 +62,6 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-
-      - name: Wait for MySQL
-        run: |
-          for i in $(seq 1 60); do
-            docker exec mysql mysqladmin ping --silent 2>/dev/null && exit 0
-            sleep 2
-          done
-          echo "MySQL never became ready" && exit 1
 
       - run: pnpm test
 
@@ -78,25 +71,28 @@ jobs:
     timeout-minutes: 15
 
     services:
-      redis:
-        image: redis
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}
+        ports:
+          - 3306:3306
+        # igo connects in utf8mb4: a server left on the default charset breaks
+        # on the first accented character.
+        command: >-
+          --character-set-server=utf8mb4
+          --collation-server=utf8mb4_unicode_ci
+          --innodb-default-row-format=dynamic
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+      valkey:
+        image: valkey/valkey:8
         ports:
           - 6379:6379
-        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        options: --health-cmd="valkey-cli ping" --health-interval=10s --health-timeout=5s --health-retries=5
 
     steps:
-      - name: Start MySQL
-        run: |
-          docker run -d --name mysql \
-            -e MYSQL_ALLOW_EMPTY_PASSWORD=yes \
-            -e MYSQL_DATABASE=${{ env.MYSQL_DATABASE }} \
-            -p 3306:3306 \
-            mysql:8 \
-            --character-set-server=utf8mb4 \
-            --collation-server=utf8mb4_unicode_ci \
-            --innodb-default-row-format=dynamic \
-            --innodb-strict-mode=0
-
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -104,14 +100,6 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-
-      - name: Wait for MySQL
-        run: |
-          for i in $(seq 1 60); do
-            docker exec mysql mysqladmin ping --silent 2>/dev/null && exit 0
-            sleep 2
-          done
-          echo "MySQL never became ready" && exit 1
 
       # E2E runs against the built front, not the dev server: that is what
       # ships, and a build-only failure would otherwise reach production.

@@ -23,6 +23,7 @@ MySQL et Redis doivent tourner en local.
 pnpm dev           # les deux en parallèle
 pnpm build         # api/dist et front/dist
 pnpm lint          # oxlint sur les deux
+pnpm format        # oxfmt sur les deux
 pnpm typecheck     # tsc sur les deux
 pnpm test          # tests back et front
 pnpm test:e2e      # Playwright contre le build

@@ -11,6 +11,7 @@ fichier ne couvre que ce qui concerne les deux.
 pnpm dev           # api :3000 + front :5173
 pnpm build         # api/dist + front/dist
 pnpm lint          # oxlint sur les deux
+pnpm format        # oxfmt sur les deux
 pnpm typecheck
 pnpm test          # tests back et front
 pnpm test:e2e      # Playwright contre le build

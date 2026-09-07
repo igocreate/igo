@@ -8,6 +8,7 @@ SPA React consommant l'API JSON d'igo. Vite, TypeScript, Node 24, pnpm.
 pnpm dev          # http://localhost:5173, proxy /api vers le back
 pnpm test         # vitest + testing library + msw
 pnpm lint         # oxlint
+pnpm format       # oxfmt
 pnpm typecheck    # tsc --noEmit
 pnpm build        # -> dist/
 ```

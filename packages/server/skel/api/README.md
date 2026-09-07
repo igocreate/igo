@@ -5,12 +5,14 @@ API JSON TypeScript sur [igo](https://github.com/igocreate/igo).
 ## Démarrer
 
 ```bash
-npm install
-npm start          # tsx watch, rechargement à chaud
-npm test           # mocha via tsx, base de test recréée à chaque run
-npm run typecheck  # tsc --noEmit
-npm run build      # compile vers dist/
-npm run serve      # lance le build
+pnpm install
+pnpm start         # tsx watch, rechargement à chaud
+pnpm test          # mocha via tsx, base de test recréée à chaque run
+pnpm lint          # oxlint
+pnpm format        # oxfmt
+pnpm typecheck     # tsc --noEmit
+pnpm build         # compile vers dist/
+pnpm serve         # lance le build
 ```
 
 ## Structure

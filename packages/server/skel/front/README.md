@@ -8,6 +8,8 @@ SPA React servie en assets statiques, consommant l'API JSON d'igo.
 pnpm install
 pnpm dev           # http://localhost:5173, proxy /api vers le back
 pnpm test          # vitest + testing library + msw
+pnpm lint          # oxlint
+pnpm format        # oxfmt
 pnpm typecheck
 pnpm build         # -> dist/
 ```
