@@ -58,6 +58,9 @@ module.exports.api = async (req, res) => {
 };
 ```
 
+For a JSON API — validation, RFC 9457 errors and JSON 404s — mount the routes
+with `app.api()` instead. See [JSON APIs](./api).
+
 ## Redirects
 
 ```js

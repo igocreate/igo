@@ -27,8 +27,21 @@ Fatal errors that escape all handlers are logged, an email is sent, and the proc
 | Error type | Response | Email sent? |
 |------------|----------|-------------|
 | `URIError` (malformed URL) | 404 | No |
-| `SyntaxError` (invalid JSON) | 500 | No |
+| `SyntaxError` (invalid JSON) | 500, or 400 on an API request | No |
 | Other errors | 500 | Yes |
+
+## API Requests
+
+A request under `config.api.prefix` (`/api` by default), or one whose `Accept`
+header asks for JSON, never receives a rendered page. Errors come back as
+[RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) problem documents — 404s and
+validation failures included. See [JSON APIs](./api).
+
+```json
+{ "type": "about:blank", "title": "Not Found", "status": 404 }
+```
+
+Crash emails are unaffected: only the response format changes.
 
 ## Crash Emails
 

@@ -180,7 +180,7 @@ Analyse réalisée en septembre 2026 sur les sources officielles et les retours 
 | **Migration lock** | **OUI** — advisory lock | OUI — avec bugs connus | **NON** — bug ouvert depuis 2023 | **NON** | **NON** | OUI |
 | **Pagination optimisée** | **OUI** — COUNT/IDS/FULL auto | Cursor + offset | Offset + cursor manuel | OUI — cursor + subquery auto | Offset seul | Offset seul |
 | **Scopes** | **OUI** — default + named + unscope | PARTIEL — via extensions | Beta | **OUI** — Filters | NON (community) | PARTIEL — composable |
-| **TypeScript** | **NON** | **OUI** — best-in-class | **OUI** — sans codegen | **OUI** — Loaded<T> | PARTIEL — QB non typé | **OUI** — best-in-class |
+| **TypeScript** | **NON** | **OUI** — best-in-class | **OUI** — sans codegen | **OUI** — `Loaded<T>` | PARTIEL — QB non typé | **OUI** — best-in-class |
 | **Relations** | PARTIEL — belongs_to, has_many | **OUI** — polymorphique v8 | OUI | **OUI** — polymorphique v7 | **OUI** | NON (query builder) |
 | **Migrations up/down** | PARTIEL — up only, pas de down | PARTIEL — down manuel | **NON** — pas de down | OUI | **OUI** — auto-gen + down | OUI |
 | **Seeds** | **OUI** — natif, CLI, bloqué en prod | PARTIEL — hook configurable | NON | **OUI** — SeedManager | NON (community) | NON |

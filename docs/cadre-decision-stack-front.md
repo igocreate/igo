@@ -69,9 +69,9 @@ Ce sur quoi les ADR s'appuient. Chaque ligne porte le chiffre qui a compté.
 
 | Source | Ce qu'elle établit |
 |---|---|
-| [Inventaire du besoin de réactivité](inventaire-besoin-reactivite.md) | **~85 % de la surface réactive exige un modèle d'état**, ~15 % se contentent d'une mise à jour partielle. Classement des 126 modules jQuery par motif. Inclut le test inverse sur funecap |
-| [Rétrospective — coût de framework](retrospective-cout-framework.md) | **~1 écran sur 3** déclenche du travail de framework ou un contournement. Le péage se déclenche sur **l'habillage**, pas sur la logique. Coût passé : quelques jours à quelques semaines, engagés |
-| [Atelier équipe du 19/08](atelier-equipe-20260819.md) | **Pondérations arrêtées par l'équipe.** Frictions quotidiennes chiffrées. Cinq besoins abandonnés faute d'outillage |
+| Inventaire du besoin de réactivité | **~85 % de la surface réactive exige un modèle d'état**, ~15 % se contentent d'une mise à jour partielle. Classement des 126 modules jQuery par motif. Inclut le test inverse sur funecap |
+| Rétrospective — coût de framework | **~1 écran sur 3** déclenche du travail de framework ou un contournement. Le péage se déclenche sur **l'habillage**, pas sur la logique. Coût passé : quelques jours à quelques semaines, engagés |
+| Atelier équipe du 19/08 | **Pondérations arrêtées par l'équipe.** Frictions quotidiennes chiffrées. Cinq besoins abandonnés faute d'outillage |
 | Démo du 20/08 — POC React | Espace stagiaire de certigo porté en **moins d'une journée**, SCORM inclus, aucun process supplémentaire. Next.js et BFF écartés par l'équipe |
 | Sources igo, `@igojs/component` 6.1.1 | Socle réactif **complet** : composition, listes par clé, état partagé, événements parent↔enfant. Manquent le typage, les transitions, la testabilité applicative. **8 releases du 21/05 au 17/06/2026** |
 | Infra `ovh-ladom2` | nginx sert les assets (`try_files $uri @app`) ; igo ne les sert pas. `pm2 delete` → `pm2 start` ouvre une fenêtre d'indisponibilité. Six environnements |

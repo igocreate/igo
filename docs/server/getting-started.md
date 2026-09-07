@@ -32,6 +32,19 @@ npm start
 
 `npm start` runs nodemon + webpack in parallel — the server reloads on `app/` changes, the bundle rebuilds on `js/` and `scss/` changes.
 
+### Skeletons
+
+`create` scaffolds a server-rendered project by default. For a JSON API with no
+views and no bundler:
+
+```sh
+npx @igojs/server create myapi --skel=api       # JavaScript
+npx @igojs/server create myapi --skel=api-ts    # TypeScript
+```
+
+Both ship a working domain — model, DTO, controller, routes, migration and
+integration tests. See [JSON APIs](./api).
+
 ## Minimal app
 
 If you'd rather wire things up by hand:
@@ -62,6 +75,7 @@ module.exports = (config) => {
 ## Next steps
 
 * **[Routes & controllers](./routes)** — Routing and the controller layer
+* **[JSON APIs](./api)** — Validation, RFC 9457 errors, DTOs, TypeScript
 * **[Views](./views)** — View engine, helpers, custom helpers
 * **[Forms](./forms)** — Sanitize/validate/convert pipeline
 * **[Cache](./cache)** — Redis cache API

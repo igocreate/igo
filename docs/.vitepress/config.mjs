@@ -63,6 +63,7 @@ export default defineConfig({
           items: [
             { text: 'Getting started',      link: '/server/getting-started' },
             { text: 'Routes & controllers', link: '/server/routes' },
+            { text: 'JSON APIs',            link: '/server/api' },
             { text: 'Views',                link: '/server/views' },
             { text: 'Forms',                link: '/server/forms' },
             { text: 'Cache (Redis)',        link: '/server/cache' },
