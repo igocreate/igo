@@ -71,6 +71,7 @@ export default defineConfig({
             { text: 'Flash scope',          link: '/server/flash' },
             { text: 'i18n',                 link: '/server/i18n' },
             { text: 'Error handling',       link: '/server/errors' },
+            { text: 'Logging',              link: '/server/logging' },
           ],
         },
       ],

@@ -15,6 +15,7 @@ const errorHandler      = require('./connect/errorhandler');
 const flash             = require('./connect/flash');
 const locals            = require('./connect/locals');
 const multipart         = require('./connect/multipart');
+const requestLogger     = require('./connect/requestlogger');
 const session           = require('./connect/session');
 const validator         = require('./connect/validator');
 const logger            = require('./logger');
@@ -110,6 +111,7 @@ module.exports.configure = async () => {
   }
 
 
+  app.use(requestLogger);
   app.use(flash);
   app.use(validator);
 

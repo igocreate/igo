@@ -45,6 +45,10 @@ export interface Config {
   /** false keeps the server alive after an uncaught exception a request already answered. */
   exitOnUncaughtException: boolean;
   loglevel:       string;
+  /** 'json' for log collectors, 'human' for a terminal. */
+  logformat:      'json' | 'human';
+  /** false silences the one-line-per-request log. */
+  logrequests:    boolean;
   [key: string]: unknown;
 }
 
@@ -100,10 +104,11 @@ export declare const cache: {
 };
 
 export declare const logger: {
-  error(...args: unknown[]): void;
-  warn(...args: unknown[]): void;
-  info(...args: unknown[]): void;
-  debug(...args: unknown[]): void;
+  error(message: unknown, meta?: Record<string, unknown>): void;
+  warn(message: string, meta?: Record<string, unknown>): void;
+  info(message: string, meta?: Record<string, unknown>): void;
+  debug(message: string, meta?: Record<string, unknown>): void;
+  log(level: string, message: string, meta?: Record<string, unknown>): void;
 };
 
 export declare const mailer: {

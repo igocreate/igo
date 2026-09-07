@@ -24,6 +24,7 @@ Les améliorations sont cumulatives : ce qui sert aux refontes sert aussi aux gr
 | **Middleware de validation Zod** | Middleware global monté par igo ; le schéma est attaché au handler, rien à écrire dans les routes | Faible |
 | **Déclarations TypeScript** | `.d.ts` sur l'API publique — les schémas Zod deviennent la source des types, sans impact sur les projets JS | Moyen |
 | **Squelette API** | `skel/api` — TypeScript, à côté de `skel/tailwind` | Moyen |
+| **Logs structurés** | JSON en production, identifiant de requête propagé, une ligne par requête — prépare l'ingestion Loki sans dépendre de l'outil | Faible |
 
 ## Phase 2 — Première refonte front
 
@@ -32,7 +33,7 @@ Les améliorations sont cumulatives : ce qui sert aux refontes sert aussi aux gr
 | **DTOs sur les routes API** | Chaque contrôleur API sérialise via un DTO — le front ne voit jamais un modèle ORM brut | Progressif |
 | **TypeScript progressif** | `allowJs: true` dans le projet applicatif, nouveaux fichiers en `.ts` | Moyen (config) |
 | **Grafana Cloud + Faro** | SDK Faro côté front, OpenTelemetry côté back, alerting Teams sur les erreurs | Faible |
-| **Logger structuré** | Module JSON dans `@igojs/server`, logs centralisés dans Loki | Moyen |
+| **Centralisation Loki** | Brancher le collecteur sur les logs JSON déjà produits | Faible |
 
 ## Phase 3 — Avant le premier greenfield
 

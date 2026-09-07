@@ -37,11 +37,11 @@ Ce qu'on logue : requêtes HTTP, erreurs applicatives, requêtes SQL lentes, dé
 
 | Évolution | Effort |
 |---|---|
-| Logger structuré JSON (remplace `console.log`) — module dans `@igojs/server` | Faible |
+| Logger structuré JSON (remplace `console.log`) — module dans `@igojs/server` | **livré** (igo 6.3) |
 | `reportError()` front — une fonction, un fichier | Faible |
 | Error Boundary racine React | Faible |
 | Gestion explicite des états loading/error/data dans les sections front | Convention |
-| Centralisation des logs HTTP (nginx/LB existants, ou middleware applicatif si corrélation fine) | Faible à moyen |
+| Centralisation des logs HTTP (nginx/LB existants, ou middleware applicatif si corrélation fine) | **livré** — middleware applicatif avec identifiant de requête (igo 6.3) |
 | Suppression progressive du crash → mail | Moyen |
 
 ## Considered Options
@@ -183,7 +183,7 @@ C'est un compromis acceptable parce que :
 | Phase | Ce qui se passe |
 |---|---|
 | **1. Grafana Cloud + Faro** | Compte Grafana Cloud, SDK Faro front, OpenTelemetry back. Alerting Teams sur les erreurs. |
-| **2. Logger structuré** | Module JSON dans `@igojs/server`, logs centralisés dans Loki. |
+| **2. Logger structuré** | ~~Module JSON dans `@igojs/server`~~ livré en 6.3 ; reste à centraliser dans Loki. |
 | **3. Infra + services managés** | Alloy sur le bare metal, intégrations MySQL/Redis OVH. Dashboards par projet. |
 | **4. Cible** | Crash → mail retiré. Error handler `@igojs/server` capture sans `process.exit(1)`. |
 

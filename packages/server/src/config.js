@@ -115,6 +115,10 @@ module.exports.init = function() {
 
   // logger
   config.loglevel = process.env.LOG_LEVEL || 'info';
+  // 'json' for log collectors, 'human' for a terminal
+  config.logformat = process.env.LOG_FORMAT || (config.env === 'production' ? 'json' : 'human');
+  // set to false to silence the one-line-per-request log
+  config.logrequests = config.env !== 'test';
 
   //
   if (config.env === 'dev') {
