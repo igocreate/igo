@@ -12,6 +12,7 @@ pnpm lint          # oxlint
 pnpm format        # oxfmt
 pnpm typecheck
 pnpm build         # -> dist/
+pnpm test:e2e      # Playwright contre le build
 ```
 
 Le back doit tourner en parallèle (`pnpm dev` côté igo, port 3000 par défaut).
@@ -89,6 +90,18 @@ tests — changer de wrapper HTTP ne les casse pas.
 |---|---|---|
 | `components/` | rendu avec props | rien |
 | `sections/`, `pages/` | rendu avec providers | le réseau (MSW) |
+| `e2e/` | navigateur réel, contre le build | rien — l'API tourne vraiment |
+
+`pnpm test:e2e` sert le build et proxifie `/api`, comme nginx en production.
+**L'API doit tourner** — `API_URL` la désigne :
+
+```bash
+API_URL=http://127.0.0.1:3000 pnpm test:e2e
+```
+
+Les seeds et l'authentification sont l'affaire du projet : un squelette ne peut
+pas les deviner. Le job E2E de la CI est désactivé tant que `E2E_API_URL` n'est
+pas renseigné.
 
 ## Le système de design
 

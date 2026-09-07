@@ -69,6 +69,9 @@ jobs:
     name: E2E
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # The slowest and least stable job: no point paying for it while a type
+    # error or a failing unit test already tells us the build is broken.
+    needs: [lint, test]
 
     services:
       mysql:

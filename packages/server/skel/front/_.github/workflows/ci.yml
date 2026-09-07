@@ -38,6 +38,36 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
 
+  e2e:
+    name: E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The slowest and least stable job: no point paying for it while a type
+    # error or a failing unit test already tells us the build is broken.
+    needs: [lint, test]
+    # The API this front talks to is not part of this repository: point
+    # E2E_API_URL at a running instance, and drop the `if` to enable the job.
+    if: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+        env:
+          API_URL: ${{ vars.E2E_API_URL }}
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
   build:
     name: Build
     runs-on: ubuntu-latest
