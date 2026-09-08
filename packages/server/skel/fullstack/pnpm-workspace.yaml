@@ -1,6 +1,7 @@
 packages:
   - api
   - front
+  - e2e
 
 # pnpm blocks postinstall scripts unless a package is listed here. These
 # compile or download a native binary, which they need to run at all.
