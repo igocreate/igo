@@ -12,6 +12,6 @@
     "skipLibCheck": true,
     "types": ["node", "mocha"]
   },
-  "include": ["app.ts", "app/**/*.ts", "test/**/*.ts"],
+  "include": ["app.ts", "app/**/*.ts", "seeds/**/*.ts", "test/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

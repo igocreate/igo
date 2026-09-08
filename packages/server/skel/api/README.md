@@ -11,6 +11,8 @@ ceux déjà installés.
 pnpm install
 docker compose up -d
 pnpm start         # tsx watch, rechargement à chaud
+pnpm migrate       # joue les migrations SQL
+pnpm seed          # remplit la base avec des données de dev
 pnpm test          # mocha via tsx, base de test recréée à chaque run
 pnpm lint          # oxlint
 pnpm format        # oxfmt
@@ -33,6 +35,7 @@ app/
   config.ts
   routes.ts                   ← montage des routes
 sql/                          ← migrations
+seeds/                        ← données de dev, jouées à la demande
 ```
 
 Une feature regroupe tout son domaine, modèle compris. Ce qui devient

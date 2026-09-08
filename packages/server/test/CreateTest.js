@@ -54,4 +54,15 @@ describe('cli/create', function() {
     assert(controller.includes('create.body = dto.CreateBook'),
            'schema is attached to the handler');
   });
+
+  it('should ship migrations and seeds in the api skeletons', async () => {
+    await create({ _: ['create', 'myapi'], skel: 'api' });
+
+    const pkg = JSON.parse(fs.readFileSync(path.join(tmp, 'myapi', 'package.json'), 'utf8'));
+    assert(pkg.scripts.migrate, 'migrate script');
+    // the seeds import the TS models, so the CLI needs the tsx loader
+    assert(pkg.scripts.seed.includes('tsx'), `seed runs under tsx: ${pkg.scripts.seed}`);
+
+    assert(fs.existsSync(path.join(tmp, 'myapi', 'seeds', '001-books.ts')));
+  });
 });

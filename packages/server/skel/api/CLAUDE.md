@@ -6,6 +6,8 @@ API JSON sur [igo](https://github.com/igocreate/igo). TypeScript, Node 24, pnpm.
 
 ```bash
 pnpm start        # tsx watch
+pnpm migrate      # migrations SQL
+pnpm seed         # données de dev
 pnpm test         # mocha — vraie base, isolée par transaction
 pnpm lint         # oxlint
 pnpm format       # oxfmt
@@ -30,6 +32,7 @@ app/
   config.ts                 surcharge de la config igo
   routes.ts                 montage
 sql/                        migrations, une par fichier daté
+seeds/                      données de dev, jouées à la demande
 test/                       miroir de app/
 ```
 

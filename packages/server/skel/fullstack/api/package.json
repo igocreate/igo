@@ -9,6 +9,8 @@
     "build": "tsc && cp -R sql locales dist/",
     "start": "tsx watch app.ts",
     "serve": "cd dist && node app.js",
+    "migrate": "igo db migrate",
+    "seed": "NODE_OPTIONS=\"--import tsx\" igo db seed",
     "lint": "oxlint",
     "test": "mocha",
     "typecheck": "tsc --noEmit",
