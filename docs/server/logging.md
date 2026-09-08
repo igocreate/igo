@@ -28,7 +28,9 @@ match.
 
 ```js
 // app/config.js
-config.logformat = 'json';    // or 'human'
+module.exports.init = (config) => {
+  config.logformat = 'json';    // or 'human'
+};
 ```
 
 `LOG_FORMAT` and `LOG_LEVEL` override it from the environment, which is handy
@@ -38,8 +40,7 @@ to reproduce production output locally:
 LOG_FORMAT=json npm start
 ```
 
-Errors keep their stack, and SQL errors keep their `code` and `sqlState`, as
-separate fields.
+Errors keep their stack.
 
 ### Standing fields
 
@@ -104,7 +105,7 @@ collector at the process output.
 To add a destination, winston transports work as usual:
 
 ```js
-// app/config.js — logger is a plain winston logger
+// anywhere at startup — logger is a plain winston logger
 const { logger } = require('@igojs/server');
 logger.add(new winston.transports.File({ filename: 'logs/app.log' }));
 ```

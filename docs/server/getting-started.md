@@ -72,11 +72,11 @@ Define routes in `app/routes.js`, controllers in `app/controllers/`, templates i
 
 ## Configuration
 
-Configuration is loaded from several files, in order — see [Development › Configuration](../guide/development#configuration) for the full list. The minimum is an `app/config.js` that exports a function taking the config object:
+Configuration is loaded from several files, in order — see [Development › Configuration](../guide/development#configuration) for the full list. The minimum is an `app/config.js` that exports an `init` function taking the config object:
 
 ```js
 // app/config.js
-module.exports = (config) => {
+module.exports.init = (config) => {
   config.httpport = process.env.PORT || 3000;
   config.mysql    = { database: process.env.MYSQL_DATABASE };
   config.redis    = { socket: { host: process.env.REDIS_HOST || '127.0.0.1' } };

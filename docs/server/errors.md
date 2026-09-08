@@ -26,7 +26,9 @@ Node gives no guarantee about the state of a process that reached this point, so
 
 ```js
 // app/config.js
-config.exitOnUncaughtException = false;
+module.exports.init = (config) => {
+  config.exitOnUncaughtException = false;
+};
 ```
 
 The server then stays up **only** when the exception happened during a request that was already answered. An exception raised outside any request still exits, since nothing can vouch for the process state.
@@ -58,9 +60,11 @@ Configure one or more recipients for error notification emails:
 
 ```js
 // app/config.js
-config.mailcrashto = 'admin@example.com';
-// or, for several recipients:
-config.mailcrashto = ['admin@example.com', 'ops@example.com'];
+module.exports.init = (config) => {
+  config.mailcrashto = 'admin@example.com';
+  // or, for several recipients:
+  config.mailcrashto = ['admin@example.com', 'ops@example.com'];
+};
 ```
 
 The email includes: error message, stack trace, request context (method, URL, user-agent, body, session).
