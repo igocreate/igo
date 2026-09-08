@@ -25,8 +25,7 @@
  * - SyntaxError (invalid JSON): returns 500, or 400 on an API request
  * - Both are client errors and don't trigger email notifications
  *
- * API requests (see src/api/problem.js) always get RFC 9457 JSON, never a
- * rendered dust page.
+ * An API request gets an RFC 9457 document, never a rendered dust page.
  *
  * Email throttling:
  * - To prevent email spam during crash loops, emails are throttled per error type

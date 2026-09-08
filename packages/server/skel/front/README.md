@@ -14,7 +14,7 @@ pnpm typecheck
 pnpm build         # -> dist/
 ```
 
-Le back doit tourner en parallèle (`pnpm dev` côté igo, port 3000 par défaut).
+Le back doit tourner en parallèle (`pnpm start` côté igo, port 3000 par défaut).
 `API_URL` pointe le proxy ailleurs :
 
 ```bash
