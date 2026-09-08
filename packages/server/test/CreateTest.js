@@ -53,6 +53,8 @@ describe('cli/create', function() {
       path.join(tmp, 'myapi', 'app', 'features', 'books', 'books.controller.ts'), 'utf8');
     assert(controller.includes('create.body = dto.CreateBook'),
            'schema is attached to the handler');
+    assert(controller.includes('\'/problems/book-not-found\''),
+           'business errors carry their own problem type');
   });
 
   it('should ship migrations and seeds in the api skeletons', async () => {
