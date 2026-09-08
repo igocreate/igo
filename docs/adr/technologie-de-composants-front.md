@@ -145,7 +145,7 @@ Notes de performance de 0 à 5, distinctes du poids.
 
 **Deux faiblesses sciemment acceptées**, et c'est le principal apport de l'étude :
 
-- **Le runtime le plus lourd du panel** — environ 60 Ko gzip contre 25 et 18 — sur un public mobile en outre-mer à terminaux datés. D'où le budget d'octets en intégration continue, en conséquence.
+- **Le runtime le plus lourd du panel** — environ 60 Ko gzip contre 25 et 18 — sur un public mobile en outre-mer à terminaux datés. D'où le poids des pages comme point de vigilance, en conséquence.
 - **L'écosystème où les faux amis sont les plus gros.** Plusieurs paquets à dizaines de millions de téléchargements hebdomadaires sont gelés depuis deux à quatre ans, dont celui du panneau glissant. D'où la liste de dépendances validée comme premier livrable.
 
 **Ce que l'étude n'a pas changé, et il faut le dire** : c'est le candidat que l'équipe aurait retenu spontanément. Ce qu'elle a produit n'est pas la réponse, c'est **ce qu'il faut surveiller à partir du premier jour.**
@@ -155,7 +155,7 @@ Notes de performance de 0 à 5, distinctes du poids.
 Vraies quelle que soit l'option retenue, donc utilisables dès maintenant.
 
 - **La liste de dépendances validée et datée, avec sa règle de révision, est le premier livrable** — avant la première ligne de code. Dix paquets vérifiés montrent que le classement par téléchargements désigne des paquets morts, et un modèle reproduit ce corpus mort avec assurance : c'est donc à la fois une hygiène humaine et **le garde-fou de l'assistance LLM**.
-- **Un budget d'octets par page, mesuré en intégration continue.** Le public mobile en outre-mer le justifie seul.
+- **Le poids des pages est à surveiller.** Le public mobile en outre-mer le justifie seul. Chaque projet décide s'il se fixe un seuil, et comment il le vérifie.
 - **Privilégier les dépendances agnostiques du framework** là où elles existent et sont maintenues : `zod`, le cœur TanStack, `motion`, `@floating-ui/dom`, Uppy. Ce sont les briques les mieux adossées du dossier.
 - **Le RGAA 5 est annoncé pour fin 2026**, donc un changement de référentiel tombera pendant la durée de vie du choix.
 
@@ -169,7 +169,7 @@ Comment on saura, dans douze mois, si la décision était bonne :
 
 - **Le compte de tests de composants**, aujourd'hui nul sur un critère pondéré 5.
 - **La part de couverture qui ne repose plus sur l'end-to-end** — l'enjeu est de faire redescendre la vérification au niveau du composant, pas d'ajouter des tests lourds.
-- **Le budget d'octets par page**, tenu ou non.
+- **Le poids des pages**, et s'il a dérivé.
 - **Le nombre d'interventions imputables à une dépendance morte** — mesure directe de l'efficacité de la liste validée.
 
 ## More Information
