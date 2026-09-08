@@ -66,5 +66,9 @@ ne les lance pas — `pnpm test:e2e` est une commande à part.
 [Conventional Commits](https://www.conventionalcommits.org), vérifiés par un
 hook. Le pre-commit passe oxlint sur les fichiers indexés.
 
+Quand le travail est rattaché à un ticket, son identifiant ouvre le sujet :
+`feat(books): [PROJ-123] ajouter la pagination`. L'historique se lit alors sans
+ouvrir les commits. Le hook ne l'exige pas : sans ticket, on s'en passe.
+
 Un commit qui touche les deux côtés est normal — c'est l'intérêt du dépôt
 unique : front et back restent cohérents par construction.

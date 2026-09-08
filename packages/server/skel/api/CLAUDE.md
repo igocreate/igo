@@ -84,11 +84,12 @@ pour les dépendances externes — API tierces, SMTP.
 
 ## Commits
 
-[Conventional Commits](https://www.conventionalcommits.org), vérifié par un hook :
-`feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`, `ci:`. Le scope entre
-parenthèses quand il aide — `fix(books): …`.
-
+[Conventional Commits](https://www.conventionalcommits.org), vérifié par un hook.
 Le hook de pre-commit passe oxlint sur les fichiers indexés.
+
+Quand le travail est rattaché à un ticket, son identifiant ouvre le sujet :
+`feat(books): [PROJ-123] ajouter la pagination`. L'historique se lit alors sans
+ouvrir les commits. Le hook ne l'exige pas : sans ticket, on s'en passe.
 
 ## Documentation
 

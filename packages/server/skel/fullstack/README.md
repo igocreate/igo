@@ -66,5 +66,8 @@ couvert plus bas doit l'être.
 [Conventional Commits](https://www.conventionalcommits.org), vérifiés par un
 hook. Le pre-commit passe oxlint sur les fichiers indexés.
 
+Le ticket, quand il y en a un, ouvre le sujet :
+`feat(books): [PROJ-123] ajouter la pagination`.
+
 Les conventions de code sont dans `api/CLAUDE.md`, `front/CLAUDE.md` et
 `e2e/CLAUDE.md`.
