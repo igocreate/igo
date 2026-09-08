@@ -1,0 +1,5 @@
+# msw's postinstall only prints a banner; the browser service worker is
+# generated on demand by `msw init`. pnpm blocks postinstall scripts unless a
+# package is listed here.
+allowBuilds:
+  msw: true

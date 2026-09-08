@@ -23,7 +23,7 @@ An environment-specific config file `app/config-production.js` is loaded on top 
 
 ```js
 // app/config-production.js
-module.exports = (config) => {
+module.exports.init = (config) => {
   config.cache.redis.db = 1;
 };
 ```

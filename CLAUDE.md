@@ -20,6 +20,7 @@ Igo is a Node.js full-stack web framework built on Express, providing ORM, templ
 │   ├── server/                 # @igojs/server - Express framework core
 │   └── component/              # @igojs/component - Reactive components with SSR
 ├── docs/                       # VitePress documentation (deployed to GitHub Pages)
+│   └── adr/                    # Architecture decision records (internal, not published)
 ├── package.json                # Root workspace configuration
 └── CHANGELOG.md                # Version history
 ```
@@ -51,8 +52,12 @@ Igo is a Node.js full-stack web framework built on Express, providing ORM, templ
 - i18next internationalization
 - Redis caching, email (nodemailer + MJML)
 - CLI for scaffolding and database commands
+- JSON APIs: schema validation, RFC 9457 errors, structured logging
 - **Entry:** `packages/server/src/index.js`
 - **CLI:** `packages/server/cli/igo.js`
+- **JSON API layer:** `packages/server/src/api/`
+- **TypeScript types:** `packages/server/index.d.ts`
+- **Project skeletons:** `packages/server/skel/` — `api`, `front` and `fullstack` scaffold TypeScript projects with their own tooling (pnpm, oxlint, oxfmt); the others are igo apps
 
 ### @igojs/component (Reactive Components)
 - Single-file `.dust` components (`<script>` + template)
@@ -160,6 +165,8 @@ Le package principal `@igojs/igo` (`packages/igo/`) est un meta-package qui depe
 |------|---------|
 | `packages/*/package.json` | Package configurations |
 | `.mocharc.js` | Mocha test config |
-| `.eslintrc.json` | ESLint rules |
+| `eslint.config.js` | ESLint rules |
 | `packages/dust/webpack.config.js` | Dust browser build config |
 | `packages/server/cli/igo.js` | CLI entry point |
+| `packages/server/index.d.ts` | TypeScript declarations for `@igojs/server` |
+| `packages/server/skel/` | Templates used by `igo create` |

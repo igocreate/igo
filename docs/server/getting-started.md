@@ -32,6 +32,30 @@ npm start
 
 `npm start` runs nodemon + webpack in parallel — the server reloads on `app/` changes, the bundle rebuilds on `js/` and `scss/` changes.
 
+### Skeletons
+
+`create` scaffolds a server-rendered project by default. Three other skeletons
+target the API-first stack:
+
+```sh
+npx @igojs/server create myapp --skel=api         # TypeScript JSON API
+npx @igojs/server create myapp --skel=front       # React SPA on that API
+npx @igojs/server create myapp --skel=fullstack   # both, in one repository
+```
+
+| | What it holds |
+|---|---|
+| `tailwind` | Server-rendered views, dust templates, webpack. The default. |
+| `api` | TypeScript API — model, DTO, controller, routes, migration, integration tests. No views, no bundler. |
+| `front` | Vite, React, React Router, TanStack Query, Vitest + MSW. Consumes an existing igo API. |
+| `fullstack` | `api/` and `front/` as pnpm workspaces, plus Playwright and an nginx example. |
+
+All three ship a working `books` domain to copy from, oxlint and oxfmt, git
+hooks enforcing Conventional Commits, and a CI workflow. See [JSON APIs](./api).
+
+Use `front` when the API already exists — a front-end rewrite of a running
+project — and `fullstack` to start both at once.
+
 ## Minimal app
 
 If you'd rather wire things up by hand:
@@ -48,11 +72,11 @@ Define routes in `app/routes.js`, controllers in `app/controllers/`, templates i
 
 ## Configuration
 
-Configuration is loaded from several files, in order — see [Development › Configuration](../guide/development#configuration) for the full list. The minimum is an `app/config.js` that exports a function taking the config object:
+Configuration is loaded from several files, in order — see [Development › Configuration](../guide/development#configuration) for the full list. The minimum is an `app/config.js` that exports an `init` function taking the config object:
 
 ```js
 // app/config.js
-module.exports = (config) => {
+module.exports.init = (config) => {
   config.httpport = process.env.PORT || 3000;
   config.mysql    = { database: process.env.MYSQL_DATABASE };
   config.redis    = { socket: { host: process.env.REDIS_HOST || '127.0.0.1' } };
@@ -62,6 +86,7 @@ module.exports = (config) => {
 ## Next steps
 
 * **[Routes & controllers](./routes)** — Routing and the controller layer
+* **[JSON APIs](./api)** — Validation, RFC 9457 errors, DTOs, TypeScript
 * **[Views](./views)** — View engine, helpers, custom helpers
 * **[Forms](./forms)** — Sanitize/validate/convert pipeline
 * **[Cache](./cache)** — Redis cache API

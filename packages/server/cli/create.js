@@ -13,14 +13,18 @@ const renameUnderscoreFiles = async (dir) => {
   const entries = await fs.readdir(dir, { withFileTypes: true });
 
   for (const entry of entries) {
-    const srcPath = path.join(dir, entry.name);
+    let srcPath = path.join(dir, entry.name);
+
+    // npm refuses to publish a directory containing .gitignore, .husky and the
+    // like, so the skeletons ship them prefixed.
+    if (entry.name.startsWith('_.')) {
+      const destPath = path.join(dir, '.' + entry.name.slice(2));
+      await fse.move(srcPath, destPath, { overwrite: true });
+      srcPath = destPath;
+    }
 
     if (entry.isDirectory()) {
       await renameUnderscoreFiles(srcPath); // récursif
-    } else if (entry.name.startsWith('_.')) {
-      const newName = '.' + entry.name.slice(2);
-      const destPath = path.join(dir, newName);
-      await fse.move(srcPath, destPath, { overwrite: true });
     }
   }
 };
@@ -55,15 +59,22 @@ const replaceInDirectory = async (dir, replacements) => {
 };
 
 // igo create
+const SKELETONS = ['tailwind', 'api', 'front', 'fullstack'];
+
 module.exports = async function (argv) {
   const args = argv._;
   if (args.length !== 2) {
-    console.warn('Usage: igo create <project-directory>');
+    console.warn('Usage: igo create <project-directory> [--skel=' + SKELETONS.join('|') + ']');
+    process.exit(1);
+  }
+
+  const model = argv.skel || 'tailwind';
+  if (!SKELETONS.includes(model)) {
+    console.warn(`Unknown skeleton '${model}'. Available: ${SKELETONS.join(', ')}.`);
     process.exit(1);
   }
 
   const directory = './' + args[1];
-  const model     = 'tailwind';
 
   await fs.mkdir(directory);
 

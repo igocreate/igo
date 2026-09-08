@@ -17,11 +17,15 @@
  *    - Logs error and sends email notification
  *    - Forces process.exit(1) after 1 second
  *    - Process manager (PM2, systemd) will restart the server
+ *    - config.exitOnUncaughtException = false keeps the server alive when the
+ *      request was already answered (never outside a request context)
  *
  * Special cases:
  * - URIError (malformed URL): returns 404
- * - SyntaxError (invalid JSON): returns 500
+ * - SyntaxError (invalid JSON): returns 500, or 400 on an API request
  * - Both are client errors and don't trigger email notifications
+ *
+ * An API request gets an RFC 9457 document, never a rendered dust page.
  *
  * Email throttling:
  * - To prevent email spam during crash loops, emails are throttled per error type
@@ -40,6 +44,7 @@ const os   = require('os');
 const config  = require('../config');
 const logger  = require('../logger');
 const mailer  = require('../mailer');
+const problem = require('../api/problem');
 
 const asyncLocalStorage = new AsyncLocalStorage();
 
@@ -184,10 +189,13 @@ const sendCrashEmail = (subject, body, errorKey) => {
 
 // Handle errors that occur during HTTP requests
 const handle = (err, req, res) => {
+  // an API client cannot render a dust page: it always gets JSON back
+  const isApi = problem.isApiRequest(req);
+
   // Client errors - don't send emails
   if (err instanceof URIError) {
     if (!res.headersSent) {
-      res.status(404).render('errors/404');
+      isApi ? problem.send(res, 404) : res.status(404).render('errors/404');
     }
     return;
   }
@@ -195,7 +203,12 @@ const handle = (err, req, res) => {
   // body-parser JSON only; other SyntaxErrors fall through to logging.
   if (err instanceof SyntaxError && err.type === 'entity.parse.failed') {
     if (!res.headersSent) {
-      res.status(500).render('errors/500');
+      // malformed JSON is the client's mistake, and only an API client sends it
+      if (isApi) {
+        problem.send(res, 400, { detail: 'Malformed JSON body' });
+      } else {
+        res.status(500).render('errors/500');
+      }
     }
     return;
   }
@@ -217,6 +230,11 @@ const handle = (err, req, res) => {
   sendCrashEmail(`Crash: ${err}`, formatMessage(req, err), String(err));
 
   // Send response
+  if (isApi) {
+    // the stack is a debugging aid outside production, never a client contract
+    return problem.send(res, 500, config.env === 'production' ? {} : { detail: err.message });
+  }
+
   if (config.env === 'production') {
     return res.status(500).render('errors/500');
   }
@@ -245,13 +263,22 @@ process.on('unhandledRejection', (err) => {
 // Handle uncaught exceptions - log, send email, then exit
 process.on('uncaughtException', (err) => {
   const context = asyncLocalStorage.getStore();
+  const handled = !!(context && context.req && context.res);
 
-  if (context && context.req && context.res) {
+  if (handled) {
     handle(err, context.req, context.res);
   } else {
     logger.error('Uncaught exception outside of request context:', err);
     logger.error(err.stack);
     sendCrashEmail(`Uncaught exception: ${err}`, `<pre>${escapeHtml(err.stack)}</pre>`, String(err));
+  }
+
+  // Node makes no promise about the state of a process that reached this point,
+  // so restarting is the safe default. A request that was handled and answered
+  // is the case worth keeping alive, once alerting no longer relies on the
+  // crash email to notice the error.
+  if (config.exitOnUncaughtException === false && handled) {
+    return;
   }
 
   // Exit after a short delay to allow email to be sent

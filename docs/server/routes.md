@@ -58,6 +58,9 @@ module.exports.api = async (req, res) => {
 };
 ```
 
+For a JSON API — validation, RFC 9457 errors and JSON 404s — mount the routes
+with `app.api()` instead. See [JSON APIs](./api).
+
 ## Redirects
 
 ```js
@@ -77,13 +80,14 @@ Igo.js configures the following middleware in order:
 4. **Session** — Encrypted session cookie (31-day expiry)
 5. **Body parsers** — URL-encoded and JSON (10MB limit)
 6. **Multipart** — File upload parsing via [multiparty](https://github.com/pillarjs/multiparty)
-7. **Flash** — Flash messages (see [Flash](./flash))
-8. **Validator** — Request validation (see [Forms](./forms))
-9. **i18n** — Language detection (see [i18n](./i18n))
-10. **Locals** — Sets `res.locals.env`, `res.locals.lang`
-11. **Assets** — Webpack manifest injection
-12. **Routes** — Your application routes
-13. **Error handler** — Catches errors (see [Errors](./errors))
+7. **Request logger** — Request id and one log line per request (see [Logging](./logging))
+8. **Flash** — Flash messages (see [Flash](./flash))
+9. **Validator** — Request validation (see [Forms](./forms))
+10. **i18n** — Language detection (see [i18n](./i18n))
+11. **Locals** — Sets `res.locals.env`, `res.locals.lang`
+12. **Assets** — Webpack manifest injection
+13. **Routes** — Your application routes
+14. **Error handler** — Catches errors (see [Errors](./errors))
 
 ## Static Files
 

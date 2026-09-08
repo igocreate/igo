@@ -9,7 +9,7 @@
     "test:component": "npm test --workspace=@igojs/component",
     "test:server": "npm test --workspace=@igojs/server",
     "test:db": "npm test --workspace=@igojs/db",
-    "eslint": "eslint ./packages/*/src",
+    "eslint": "eslint ./packages/*/index.js ./packages/*/src",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
@@ -17,15 +17,15 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.4.1",
     "eslint": "^10.9.0",
     "globals": "^17.11.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.3.0",
     "mocha": "^11.8.0",
+    "typescript": "^7.0.2",
     "vitepress": "^1.6.4"
-  },
-  "lint-staged": {
-    "*.js": "eslint"
   },
   "overrides": {
     "serialize-javascript": "^7.0.5",

@@ -1,0 +1,31 @@
+{
+  "name": "{project.name}",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n api,front -c blue,magenta \"pnpm --filter ./api start\" \"pnpm --filter ./front dev\"",
+    "build": "pnpm --filter ./api build && pnpm --filter ./front build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:e2e": "pnpm --filter ./e2e test:e2e",
+    "migrate": "pnpm --filter ./api exec igo db migrate",
+    "seed": "pnpm --filter ./api seed",
+    "prepare": "husky",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.0",
+    "@commitlint/config-conventional": "^21.2.0",
+    "concurrently": "^10.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.0",
+    "oxfmt": "^0.66.0",
+    "oxlint": "^1.81.0"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
