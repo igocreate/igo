@@ -2,20 +2,21 @@
 
 API JSON igo + SPA React dans un seul dépôt. TypeScript, Node 24, pnpm.
 
-**Les conventions de code sont dans `api/CLAUDE.md` et `front/CLAUDE.md`.** Ce
-fichier ne couvre que ce qui concerne les deux.
+Trois paquets pnpm : `api`, `front` et `e2e`. Ce fichier ne couvre que ce qui
+les concerne tous ; chacun a son propre `CLAUDE.md`, qui précise sans répéter.
 
 ## Commandes
 
 ```bash
 pnpm dev           # api :3000 + front :5173
 pnpm build         # api/dist + front/dist
-pnpm lint          # oxlint sur les deux
-pnpm format        # oxfmt sur les deux
-pnpm typecheck
-pnpm test          # tests back et front
+pnpm lint          # oxlint sur les trois paquets
+pnpm format        # oxfmt sur tout le dépôt
+pnpm typecheck     # tsc sur les trois paquets
+pnpm test          # api et front — rapide, pas les E2E
 pnpm test:e2e      # Playwright contre le build
 pnpm migrate
+pnpm seed
 ```
 
 Une commande ciblée passe par un filtre : `pnpm --filter ./api test`.
@@ -42,8 +43,8 @@ dérivent, ce sont les tests de feature qui le montrent.
 Les deux côtés se répondent :
 
 ```
-api/app/api/<domaine>/    routes, controller, dto
-front/src/features/<domaine>/  api.ts, types.ts, pages, sections, components
+api/app/features/<domaine>/     routes, controller, dto, modèle
+front/src/features/<domaine>/   api.ts, types.ts, pages, sections, components
 ```
 
 Le back sert d'abord — le front consomme un contrat qui existe.
@@ -57,7 +58,8 @@ Le back sert d'abord — le front consomme un contrat qui existe.
 | E2E                | `e2e/`                    | chemins critiques seulement   |
 
 Les E2E tournent contre le **build**, pas le serveur de développement. Ils sont
-lents : tout ce qui peut être couvert plus bas doit l'être plus bas.
+lents : tout ce qui peut être couvert plus bas doit l'être plus bas. `pnpm test`
+ne les lance pas — `pnpm test:e2e` est une commande à part.
 
 ## Commits
 

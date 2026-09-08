@@ -1,11 +1,13 @@
-# {project.name}
+# {project.name} — api
 
-API JSON sur [igo](https://github.com/igocreate/igo). TypeScript, Node 24, pnpm.
+API JSON sur [igo](https://github.com/igocreate/igo). TypeScript, Node 24.
 
 ## Commandes
 
 ```bash
 pnpm start        # tsx watch
+pnpm migrate      # migrations SQL
+pnpm seed         # données de dev
 pnpm test         # mocha — vraie base, isolée par transaction
 pnpm lint         # oxlint
 pnpm format       # oxfmt
@@ -13,8 +15,9 @@ pnpm typecheck    # tsc --noEmit
 pnpm build        # -> dist/
 ```
 
-Les tests ont besoin de MySQL et Valkey — `docker compose up -d` les lance. La
-base de test est recréée et migrée à chaque exécution.
+Depuis la racine : `pnpm --filter ./api test`. MySQL et Valkey doivent tourner
+(`docker compose up -d`) ; la base de test est recréée et migrée à chaque
+exécution.
 
 ## Structure
 
@@ -30,6 +33,7 @@ app/
   config.ts                 surcharge de la config igo
   routes.ts                 montage
 sql/                        migrations, une par fichier daté
+seeds/                      données de dev, jouées à la demande
 test/                       miroir de app/
 ```
 
@@ -78,14 +82,6 @@ route est protégée.
 
 Les tests passent par `dev.agent` contre la vraie base. Les mocks ne servent que
 pour les dépendances externes — API tierces, SMTP.
-
-## Commits
-
-[Conventional Commits](https://www.conventionalcommits.org), vérifié par un hook :
-`feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`, `ci:`. Le scope entre
-parenthèses quand il aide — `fix(books): …`.
-
-Le hook de pre-commit passe oxlint sur les fichiers indexés.
 
 ## Documentation
 

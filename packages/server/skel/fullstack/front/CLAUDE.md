@@ -1,6 +1,6 @@
 # {project.name} — front
 
-SPA React consommant l'API JSON d'igo. Vite, TypeScript, Node 24, pnpm.
+SPA React consommant l'API JSON d'igo. Vite, TypeScript, Node 24.
 
 ## Commandes
 
@@ -13,8 +13,8 @@ pnpm typecheck    # tsc --noEmit
 pnpm build        # -> dist/
 ```
 
-Le back doit tourner en parallèle. `API_URL` pointe le proxy ailleurs que sur
-`http://127.0.0.1:3000`.
+`pnpm dev` à la racine lance le back et le front ensemble — c'est la façon
+normale de travailler. Le proxy `/api` vise `http://127.0.0.1:3000`.
 
 ## Structure
 
@@ -77,11 +77,6 @@ MSW intercepte au niveau réseau, donc le vrai `apiClient` tourne dans les tests
 | `sections/`, `pages/` | rendu avec providers | le réseau (MSW) |
 
 Un test de feature couvre le cas nominal, l'erreur serveur, et la validation.
-
-## Commits
-
-[Conventional Commits](https://www.conventionalcommits.org), vérifié par un hook.
-Le hook de pre-commit passe oxlint sur les fichiers indexés.
 
 ## Système de design
 
