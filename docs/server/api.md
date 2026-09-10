@@ -23,7 +23,9 @@ config.api.prefix = '/v1';
 
 An API request skips the middlewares that only serve rendered pages — flash
 scope, view locals, asset manifest — so no session cookie is set until a
-controller writes to `req.session`.
+controller writes to `req.session`. Its responses carry
+`Cache-Control: no-store` and a strict `Content-Security-Policy`
+(see [Production › Security Headers](../guide/production#security-headers)).
 
 ## Anatomy of a domain
 

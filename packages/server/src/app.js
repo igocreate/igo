@@ -17,6 +17,7 @@ const flash             = require('./connect/flash');
 const locals            = require('./connect/locals');
 const multipart         = require('./connect/multipart');
 const requestLogger     = require('./connect/requestlogger');
+const securityHeaders   = require('./connect/security');
 const session           = require('./connect/session');
 const validator         = require('./connect/validator');
 const logger            = require('./logger');
@@ -75,6 +76,7 @@ module.exports.configure = async () => {
 
   app.enable('trust proxy');
   app.disable('x-powered-by');
+  app.use(securityHeaders);
 
   // Enable view caching in production
   if (config.env === 'production') {

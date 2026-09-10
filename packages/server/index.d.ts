@@ -29,6 +29,22 @@ export interface ApiConfig {
   prefix: string;
 }
 
+/** A header set to `false` or `null` is not sent. */
+export interface SecurityConfig {
+  noSniff:           boolean;
+  frameOptions:      string | false;
+  referrerPolicy:    string | false;
+  permissionsPolicy: string | false;
+  /** Sent in production only, over HTTPS. */
+  hsts:              string | false;
+  /** Content-Security-Policy of the pages; null by default, a working one is the project's. */
+  csp:               string | null | false;
+  /** Content-Security-Policy of the API responses. */
+  apiCsp:            string | false;
+  /** Cache-Control of the API responses. */
+  apiCacheControl:   string | false;
+}
+
 export interface CookieSessionConfig {
   name:      string;
   keys:      string[];
@@ -42,6 +58,8 @@ export interface Config {
   httpport:       number | string;
   projectRoot:    string;
   api:            ApiConfig;
+  /** Security headers on every response; `false` sends none. */
+  security:       SecurityConfig | false;
   databases:      string[];
   /** Names the app in crash emails and logs; defaults to the project package name. */
   appname:        string;

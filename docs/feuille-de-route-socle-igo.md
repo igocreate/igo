@@ -63,3 +63,4 @@ Les améliorations sont cumulatives : ce qui sert aux refontes sert aussi aux gr
 - **Migration Joi → Zod sur l'existant** — pas planifiée. Les nouvelles routes utilisent Zod, les anciennes gardent Joi. Les deux cohabitent.
 - **Migration Mocha → Vitest sur l'existant** — pas planifiée. Mocha reste sur les projets existants, Vitest sur les greenfield.
 - **Migration des templates dust** — projet par projet, au rythme des refontes. Pas de big bang.
+- **helmet contre le middleware d'en-têtes d'igo** — à rechallenger en v7 : sans dust, les défauts de helmet (CSP, COOP, CORP) ne cassent plus une API ; mais la CSP des pages vit dans la SPA et nginx, et sur du JSON les six en-têtes du middleware suffisent.

@@ -93,6 +93,20 @@ module.exports.init = function() {
   // routes under this prefix answer in JSON, never in HTML
   config.api        = { prefix: '/api' };
 
+  // Security headers on every response. `false` on a key drops that header,
+  // `config.security = false` drops them all. `csp` is for the pages and left to
+  // the project; `apiCsp` and `apiCacheControl` apply to API requests.
+  config.security = {
+    noSniff:           true,
+    frameOptions:      'SAMEORIGIN',
+    referrerPolicy:    'strict-origin-when-cross-origin',
+    permissionsPolicy: 'camera=(), microphone=(), geolocation=()',
+    hsts:              'max-age=63072000; includeSubDomains',
+    csp:               null,
+    apiCsp:            'default-src \'none\'; frame-ancestors \'none\'',
+    apiCacheControl:   'no-store',
+  };
+
   // set to false to keep serving after an uncaught exception that a request
   // already answered — only once alerting no longer relies on the crash email
   config.exitOnUncaughtException = true;

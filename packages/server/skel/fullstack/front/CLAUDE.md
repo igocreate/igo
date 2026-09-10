@@ -101,6 +101,26 @@ Trois points qu'axe ne détecte pas et qui reviennent :
 Les composants copiés de shadcn/ui portent leurs `aria-label` **en anglais** :
 les traduire fait partie de la reprise.
 
+## Sécurité
+
+La politique de sécurité de contenu est posée en `<meta>` par `vite.config.ts`,
+stricte au build et assouplie en développement pour le préambule de Vite et
+HMR. Une police, un CDN ou une API tierce ajoutés au front s'ajoutent à la
+liste — la console le dit dès `pnpm dev` (« Refused to load … »).
+
+Ce qu'une `<meta>` ne porte pas revient à nginx : `frame-ancestors` (ou
+`X-Frame-Options`) et HSTS. Pas de `report-uri` non plus : un projet qui veut
+remonter les violations copie la même politique dans nginx.
+
+## Données personnelles
+
+Faro n'écrit aucun identifiant dans le navigateur (`sessionTracking` désactivé) :
+il envoie erreurs, Web Vitals et appels réseau, avec l'URL de la page et le
+user-agent ; le collecteur voit l'adresse IP. C'est du traitement technique sans
+traceur — à mentionner dans la politique de confidentialité au titre de
+l'intérêt légitime. Activer la session après consentement si le projet veut les
+parcours par visiteur.
+
 ## Système de design
 
 Tailwind est installé, sans bibliothèque de composants. `src/components/ui/`

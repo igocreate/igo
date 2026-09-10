@@ -62,6 +62,33 @@ config.mailcrashto = 'admin@example.com';
 // or: config.mailcrashto = ['admin@example.com', 'ops@example.com'];
 ```
 
+## Security Headers
+
+Every response carries the headers a penetration test asks for:
+`X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`,
+`Referrer-Policy: strict-origin-when-cross-origin`,
+`Permissions-Policy: camera=(), microphone=(), geolocation=()`, and in
+production over HTTPS `Strict-Transport-Security: max-age=63072000; includeSubDomains`.
+API responses add `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'`
+and `Cache-Control: no-store`: JSON never executes, and may carry personal data.
+
+No Content-Security-Policy is set on the pages: a working one is made of your
+own exceptions — fonts, CDNs, third-party APIs — so it is yours to declare.
+Each header is a key of `config.security`; `false` drops it, and
+`config.security = false` drops them all.
+
+```js
+// app/config.js
+module.exports.init = (config) => {
+  config.security.csp  = "default-src 'self'; img-src 'self' data:; font-src https://fonts.gstatic.com";
+  config.security.hsts = 'max-age=63072000; includeSubDomains; preload';
+  config.security.permissionsPolicy = 'camera=(), microphone=()';   // this app geolocates
+};
+```
+
+The `fullstack` skeleton's SPA is not served by igo: its policy is a `<meta>`
+tag written by `vite.config.ts`, and `frame-ancestors` is nginx's.
+
 ## Logging
 
 Igo uses [Winston](https://github.com/winstonjs/winston) for logging. The log level is controlled via `LOG_LEVEL`:

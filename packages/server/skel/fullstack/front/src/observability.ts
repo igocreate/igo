@@ -99,13 +99,18 @@ if (url) {
       // Frontend Observability, et à l'`appName` passé au téléversement des
       // source maps (vite.config.ts) : c'est cette clé qui rattache une pile
       // d'appels à ses source maps.
-      name: import.meta.env.VITE_FARO_APP_NAME || '{project.name}',
+      name: import.meta.env.VITE_FARO_APP_NAME || 'audit',
       version: import.meta.env.VITE_APP_VERSION || '0.0.1',
       // Pas import.meta.env.MODE : il vaut 'production' dans tout build Vite, y
       // compris un `vite preview` sur un poste de développement. Les erreurs
       // locales se mélangeraient alors à celles de la production.
       environment: import.meta.env.VITE_ENVIRONMENT || 'dev',
     },
+    // Pas d'identifiant de session écrit dans le navigateur : c'est un traceur
+    // au sens du RGPD, et rien ici ne recueille de consentement. Erreurs, Web
+    // Vitals et corrélation front/back s'en passent ; un projet qui veut les
+    // parcours par session l'active après son bandeau.
+    sessionTracking: { enabled: false },
     instrumentations: [
       ...getWebInstrumentations({
         // La console est ramassée indistinctement, bibliothèques tierces

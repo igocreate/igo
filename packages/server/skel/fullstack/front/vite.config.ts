@@ -1,11 +1,48 @@
 import { fileURLToPath, URL } from 'node:url';
 
 import { defineConfig, loadEnv } from 'vite';
+import type { Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import faroUploader from '@grafana/faro-rollup-plugin';
 
-export default defineConfig(({ mode }) => {
+// La politique de sécurité de contenu vit ici, avec le code dont elle dépend :
+// une police, un CDN ou une API tierce ajoutés au front s'ajoutent à cette
+// liste, et la console le dit dès `pnpm dev`. Ce qu'une balise <meta> ne peut
+// pas porter — frame-ancestors, HSTS — revient à nginx.
+const contentSecurityPolicy = (dev: boolean, faroUrl?: string) => {
+  const faro = faroUrl ? ` ${new URL(faroUrl).origin}` : '';
+  // en développement, Vite injecte le préambule React et les styles en ligne,
+  // et HMR parle en WebSocket
+  const inline = dev ? " 'unsafe-inline'" : '';
+  return [
+    "default-src 'self'",
+    `script-src 'self'${inline}`,
+    `style-src 'self'${inline}`,
+    "img-src 'self' data:",
+    "font-src 'self'",
+    `connect-src 'self'${faro}${dev ? ' ws:' : ''}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join('; ');
+};
+
+const csp = (dev: boolean, faroUrl?: string): Plugin => ({
+  name: 'content-security-policy',
+  transformIndexHtml: () => [
+    {
+      tag: 'meta',
+      attrs: {
+        'http-equiv': 'Content-Security-Policy',
+        content: contentSecurityPolicy(dev, faroUrl),
+      },
+      injectTo: 'head-prepend',
+    },
+  ],
+});
+
+export default defineConfig(({ mode, command }) => {
   // vite.config.ts ne reçoit pas le .env dans process.env : loadEnv le lit
   // explicitement. Le troisième argument vide lève le filtre sur le préfixe
   // VITE_, sans quoi une clé qui ne sert qu'au build resterait invisible ici.
@@ -23,7 +60,7 @@ export default defineConfig(({ mode }) => {
   const faro =
     env.FARO_API_KEY && env.FARO_APP_ID && env.FARO_STACK_ID && env.FARO_UPLOAD_ENDPOINT
       ? faroUploader({
-          appName: env.VITE_FARO_APP_NAME || '{project.name}',
+          appName: env.VITE_FARO_APP_NAME || 'audit',
           endpoint: env.FARO_UPLOAD_ENDPOINT,
           appId: env.FARO_APP_ID,
           stackId: env.FARO_STACK_ID,
@@ -33,7 +70,12 @@ export default defineConfig(({ mode }) => {
       : null;
 
   return {
-    plugins: [react(), tailwindcss(), ...(faro ? [faro] : [])],
+    plugins: [
+      react(),
+      tailwindcss(),
+      csp(command === 'serve', env.VITE_FARO_URL),
+      ...(faro ? [faro] : []),
+    ],
 
     // Les chemins du tsconfig ne servent qu'au vérificateur de types : le
     // bundler a besoin des siens
