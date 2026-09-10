@@ -13,6 +13,7 @@ pnpm lint         # oxlint
 pnpm format       # oxfmt
 pnpm typecheck    # tsc --noEmit
 pnpm build        # -> dist/
+pnpm serve        # dist/, configuré par l'environnement : pas de .env dans dist
 ```
 
 Depuis la racine : `pnpm --filter ./api test`. MySQL et Valkey doivent tourner
@@ -30,7 +31,7 @@ app/
     <domaine>.service.ts    logique métier, dès qu'elle branche
     <Modèle>.ts             le modèle ORM du domaine
   shared/                   ce qui est transversal — models, services, utils
-  config.ts                 surcharge de la config igo
+  config.ts                 surcharge de la config igo — optionnel, absent au départ
   routes.ts                 montage
 sql/                        migrations, une par fichier daté
 seeds/                      données de dev, jouées à la demande
@@ -42,6 +43,25 @@ migre dans `shared/models/` — c'est la seule règle, et elle demande du jugeme
 
 Une feature peut importer chez une autre (`../dossiers/Dossier`) : l'organisation
 porte la propriété, pas l'isolation.
+
+## Configuration
+
+igo lit `app/config.ts` s'il existe. Le seul réglage qu'un projet a
+généralement à poser :
+
+```ts
+import type { Config } from '@igojs/server';
+
+export const init = (config: Config) => {
+  // Une ligne par requête est le premier poste d'un volume de logs, et les
+  // succès n'apprennent rien que les métriques ne portent déjà.
+  config.logrequests = 400;
+};
+```
+
+À poser quand l'observabilité est branchée — pas avant, sinon on perd les seules
+traces d'activité dont on dispose. Les secrets de session viennent du `.env`,
+jamais de ce fichier.
 
 ## Conventions
 

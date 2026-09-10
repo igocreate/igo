@@ -53,7 +53,7 @@ export interface Config {
   logformat:      'json' | 'human';
   /**
    * true logs every request, false none. A number is a status floor: 400 keeps
-   * the errors and drops the successes.
+   * the errors and drops the successes. Read from LOG_REQUESTS.
    */
   logrequests:    boolean | number;
   /**

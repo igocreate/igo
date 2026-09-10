@@ -1,6 +1,7 @@
 require('./init');
 
 const assert = require('assert');
+const path   = require('path');
 const config = require('@igojs/server').config;
 
 describe('igo.config', () => {
@@ -11,6 +12,36 @@ describe('igo.config', () => {
       const projectPackage = require('./project/package.json');
       assert.strictEqual(config.appname, projectPackage.name);
       assert.strictEqual(config.version, projectPackage.version);
+    });
+
+    // `serve` scripts run from dist/, which has no package.json of its own
+    it('should climb to the nearest package.json when projectRoot is a build directory', () => {
+      const found = config.readProjectPackage(path.join(__dirname, 'project', 'app'));
+      assert.strictEqual(found.name, require('./project/package.json').name);
+    });
+
+    it('should boot a project with no package.json at all', () => {
+      assert.deepStrictEqual(config.readProjectPackage(path.parse(__dirname).root), {});
+    });
+  });
+
+  // init() runs once per process, so the parser is tested on its own
+  describe('LOG_REQUESTS', () => {
+    const parse = config.parseLogRequests;
+
+    it('should read a status floor', () => {
+      assert.strictEqual(parse('400', true), 400);
+    });
+
+    it('should read true and false', () => {
+      assert.strictEqual(parse('true', false), true);
+      assert.strictEqual(parse('false', true), false);
+    });
+
+    it('should keep the default when unset or not understood', () => {
+      assert.strictEqual(parse(undefined, true), true);
+      assert.strictEqual(parse('loud', false), false);
+      assert.strictEqual(parse('0', true), true);
     });
   });
 

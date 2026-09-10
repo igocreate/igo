@@ -1,11 +1,15 @@
 require('./init');
 
-const assert = require('assert');
+const assert  = require('assert');
+const otel    = require('@opentelemetry/api');
+const winston = require('winston');
+const { Writable } = require('stream');
 
+const { config, logger } = require('@igojs/server');
 const middleware = require('../src/connect/requestlogger');
 
 // Drives the middleware and returns what it settled on.
-const run = (headers = {}) => {
+const run = (headers = {}, next = () => {}) => {
   const sent = {};
   const req = { method: 'GET', originalUrl: '/', headers };
   const res = {
@@ -13,13 +17,73 @@ const run = (headers = {}) => {
     setHeader: (name, value) => { sent[name] = value; },
     on: () => {},
   };
-  middleware(req, res, () => {});
+  middleware(req, res, next);
   return { traceId: req.traceId, sent };
+};
+
+// The OpenTelemetry API ships without a context manager: its `with()` runs the
+// callback but `active()` keeps answering the root context. This one is just
+// enough to make a span active for the duration of a callback.
+class StackContextManager {
+  constructor() { this.stack = [otel.ROOT_CONTEXT]; }
+  active() { return this.stack[this.stack.length - 1]; }
+  with(context, fn, thisArg, ...args) {
+    this.stack.push(context);
+    try {
+      return fn.call(thisArg, ...args);
+    } finally {
+      this.stack.pop();
+    }
+  }
+  bind(context, target) { return target; }
+  enable() { return this; }
+  disable() { return this; }
+}
+
+const SPAN = { traceId: '0af7651916cd43dd8448eb211c80319c', spanId: 'b7ad6b7169203331', traceFlags: 1 };
+
+// Runs fn with a span carrying SPAN active, the way a registered SDK would.
+const withActiveSpan = (fn) => {
+  otel.context.setGlobalContextManager(new StackContextManager());
+  try {
+    const span = otel.trace.wrapSpanContext(SPAN);
+    return otel.context.with(otel.trace.setSpan(otel.context.active(), span), fn);
+  } finally {
+    otel.context.disable();
+  }
+};
+
+// Captures the JSON lines the logger writes while fn runs.
+const captureLogs = (fn) => {
+  const lines      = [];
+  const transports = logger.transports.slice();
+  const saved      = { format: logger.format, level: logger.level, logformat: config.logformat };
+
+  logger.clear();
+  logger.add(new winston.transports.Stream({
+    stream: new Writable({
+      write(chunk, encoding, callback) { lines.push(JSON.parse(chunk.toString())); callback(); },
+    }),
+  }));
+  config.logformat = 'json';
+  logger.init();
+  lines.length = 0;
+  logger.level = 'info';
+  try {
+    fn();
+  } finally {
+    logger.clear();
+    transports.forEach(t => logger.add(t));
+    config.logformat = saved.logformat;
+    logger.format    = saved.format;
+    logger.level     = saved.level;
+  }
+  return lines;
 };
 
 const TRACE_ID = /^[0-9a-f]{32}$/;
 
-describe('request identity', function() {
+describe('trace context', function() {
 
   // Without a registered SDK there is no active span, so igo produces a value
   // of its own — with the shape of a trace id, so that the day instrumentation
@@ -83,8 +147,38 @@ describe('request identity', function() {
     assert.notStrictEqual(traceId, '4bf92f3577b34da6a3ce929d0e0e4736');
   });
 
+  // A registered SDK has already reconciled the inbound header into the active
+  // span: that span is the identity, even when the header says otherwise.
+  it('should adopt the trace id of the active span over the inbound header', () => {
+    const { traceId } = withActiveSpan(() => run({
+      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+    }));
+    assert.strictEqual(traceId, SPAN.traceId);
+  });
+
+  // traceresponse is the way back defined by Trace Context Level 2: it carries
+  // the server span id, which is what lets a browser attach its span to it.
+  it('should send traceresponse with the active span when instrumented', () => {
+    const { sent } = withActiveSpan(() => run());
+    assert.strictEqual(sent.traceresponse, `00-${SPAN.traceId}-${SPAN.spanId}-01`);
+  });
+
+  it('should stamp every log emitted during the request with its trace id', () => {
+    let traceId;
+    const lines = captureLogs(() => {
+      ({ traceId } = run({}, () => logger.info('inside the request', { step: 1 })));
+    });
+    assert.strictEqual(lines.length, 1);
+    assert.strictEqual(lines[0].message, 'inside the request');
+    assert.strictEqual(lines[0].trace_id, traceId);
+  });
+
   // X-Request-Id is gone: one identity, under the name the spec gives it. And
   // traceresponse needs a server span, which only a registered SDK provides.
+  it('should expose no id outside of a request', () => {
+    assert.strictEqual(middleware.traceId(), undefined);
+  });
+
   it('should send no X-Request-Id', () => {
     assert.strictEqual(run().sent['X-Request-Id'], undefined);
   });

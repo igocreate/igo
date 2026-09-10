@@ -57,6 +57,20 @@ describe('cli/create', function() {
            'business errors carry their own problem type');
   });
 
+  it('should draw the session secrets into the .env, never into the code', async () => {
+    await create({ _: ['create', 'myapi'], skel: 'fullstack' });
+
+    const env = fs.readFileSync(path.join(tmp, 'myapi', 'api', '.env'), 'utf8');
+    assert.match(env, /^COOKIE_SECRET=[A-Za-z0-9]{40}$/m);
+    assert.match(env, /^COOKIE_SESSION_KEYS=[A-Za-z0-9]{40}$/m);
+
+    const app = fs.readdirSync(path.join(tmp, 'myapi', 'api', 'app'), { recursive: true })
+    .filter(f => f.endsWith('.ts'))
+    .map(f => fs.readFileSync(path.join(tmp, 'myapi', 'api', 'app', f), 'utf8'));
+    assert(!app.some(source => source.includes('cookieSecret')),
+           'a generated secret would be committed with the code');
+  });
+
   it('should ship migrations and seeds in the api skeleton', async () => {
     await create({ _: ['create', 'myapi'], skel: 'fullstack' });
 

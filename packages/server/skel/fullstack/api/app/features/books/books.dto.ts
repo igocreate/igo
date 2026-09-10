@@ -4,14 +4,16 @@ import type { BookRow } from './Book';
 // Entrant : ce que l'API accepte. Coercition et valeurs par défaut sont
 // appliquées avant le contrôleur, donc req.body et req.query portent déjà les
 // bons types.
-export const CreateBook = z.object({
+const BookInput = z.object({
   title: z.string().min(1).max(255),
   author: z.string().min(1).max(255),
   pages: z.number().int().positive(),
-  published: z.boolean().default(false),
+  published: z.boolean(),
 });
 
-export const UpdateBook = CreateBook.partial();
+// Un livre naît non publié.
+export const CreateBook = BookInput.extend({ published: z.boolean().default(false) });
+export const UpdateBook = BookInput;
 
 export const ListBooks = z.object({
   page: z.coerce.number().int().min(1).default(1),

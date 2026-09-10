@@ -66,9 +66,9 @@ ne les lance pas — `pnpm test:e2e` est une commande à part.
 Désactivée tant que la destination est absente : `OTEL_EXPORTER_OTLP_ENDPOINT`
 côté API, `VITE_FARO_URL` côté front. Ne pas inventer d'autre drapeau.
 
-`api/instrumentation.ts` est chargé par `--import`, donc **avant** igo :
-OpenTelemetry doit remplacer `express` et `mysql2` avant leur chargement. Deux
-conséquences à ne pas défaire :
+`api/instrumentation.ts` est la première ligne de `app.ts`, **avant**
+`@igojs/server` : OpenTelemetry pose ses crochets sur `require`, et doit précéder
+le chargement d'`express` et de `mysql2`. Deux conséquences à ne pas défaire :
 
 - sa première ligne est `import '@igojs/server/env'`, sans quoi le `.env` n'est
   pas encore lu et toute variable `OTEL_*` vaut `undefined` — le SDK ne démarre

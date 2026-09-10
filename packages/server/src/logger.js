@@ -34,16 +34,14 @@ const logger = winston.createLogger({
   ]
 });
 
-// Stamps every log emitted during a request with the id of that request, so
-// its lines can be pulled together — and matched with what the client reports.
-//
-// The name is trace_id, the one OpenTelemetry uses: when instrumentation is on
-// it has already stamped it, and when it is off igo fills the same field. One
-// name for one value, whether the application is instrumented or not.
-const withRequestId = winston.format((info) => {
-  const requestId = module.exports.currentRequestId();
-  if (requestId && !info.trace_id) {
-    info.trace_id = requestId;
+// Stamps every log emitted during a request with its trace id, so the lines of
+// one request can be pulled together — and matched with what the client reports.
+// When the OpenTelemetry winston instrumentation is on, it has already set the
+// field; igo only fills it when nothing else did.
+const withTraceId = winston.format((info) => {
+  const traceId = module.exports.currentTraceId();
+  if (traceId && !info.trace_id) {
+    info.trace_id = traceId;
   }
   return info;
 });
@@ -51,14 +49,14 @@ const withRequestId = winston.format((info) => {
 //
 module.exports = logger;
 
-// Set by the request logger; kept here so logger.js does not depend on the
-// error handler, which already depends on config and mailer.
-let currentRequestId = () => undefined;
+// Provided by the request logger, which owns the per-request storage; kept as
+// an injection so logger.js depends on nothing that depends on it.
+let currentTraceId = () => undefined;
 
-module.exports.currentRequestId = (...args) => currentRequestId(...args);
+module.exports.currentTraceId = () => currentTraceId();
 
-module.exports.provideRequestId = (fn) => {
-  currentRequestId = fn;
+module.exports.provideTraceId = (fn) => {
+  currentTraceId = fn;
 };
 
 //
@@ -76,7 +74,7 @@ module.exports.init = () => {
   } : undefined;
 
   logger.format = winston.format.combine(
-    withRequestId(),
+    withTraceId(),
     config.logformat === 'json' ? jsonFormat() : humanFormat()
   );
 

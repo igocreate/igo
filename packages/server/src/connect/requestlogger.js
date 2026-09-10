@@ -152,7 +152,7 @@ const shouldLog = (status) => {
   return true;
 };
 
-logger.provideRequestId(() => storage.getStore()?.traceId);
+logger.provideTraceId(() => storage.getStore()?.traceId);
 
 // One line per request, carrying the id every log of that request is stamped
 // with. Mounted by igo before the routes.

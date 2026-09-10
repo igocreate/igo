@@ -15,7 +15,7 @@ export function BooksList({ books }: { books: Book[] }) {
             <span className="font-medium">{book.title}</span>
             <span className="ml-2 text-slate-500">{book.author}</span>
           </div>
-          <span className="text-sm text-slate-400">{book.pages} pages</span>
+          <span className="text-sm text-slate-500">{book.pages} pages</span>
         </li>
       ))}
     </ul>

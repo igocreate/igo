@@ -22,7 +22,7 @@ export function BooksPage() {
       {data && (
         <>
           <BooksList books={data.books} />
-          <p className="mt-4 text-sm text-slate-400">{data.page.total} in total</p>
+          <p className="mt-4 text-sm text-slate-500">{data.page.total} in total</p>
         </>
       )}
     </>

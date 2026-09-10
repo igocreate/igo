@@ -61,6 +61,18 @@ const replaceInDirectory = async (dir, replacements) => {
   }
 };
 
+// Session secrets belong in the .env nobody commits — not in the versioned
+// example, and not in app/config where a generated value would end up in git.
+const drawSecrets = async (envFile) => {
+  const content = await fs.readFile(envFile, 'utf8');
+  const filled  = content
+  .replace(/^COOKIE_SECRET=$/m,       `COOKIE_SECRET=${utils.randomString(40)}`)
+  .replace(/^COOKIE_SESSION_KEYS=$/m, `COOKIE_SESSION_KEYS=${utils.randomString(40)}`);
+  if (filled !== content) {
+    await fs.writeFile(envFile, filled, 'utf8');
+  }
+};
+
 // A skeleton ships .env.example files; the project needs a .env to boot. A
 // missing one costs a confusing first error, so copy them — never overwriting
 // an existing .env.
@@ -77,6 +89,7 @@ const seedEnvFiles = async (dir) => {
         const target = path.join(current, '.env');
         if (!await fse.pathExists(target)) {
           await fse.copy(full, target);
+          await drawSecrets(target);
           copied.push(path.relative(dir, target));
         }
       }

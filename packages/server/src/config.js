@@ -3,41 +3,63 @@ if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config({ quiet: true });
 }
 
+const path = require('path');
+
 const config    = {};
 module.exports  = config;
 
 const DEFAULT_COOKIE_SECRET = 'abcdefghijklmnopqrstuvwxyz';
 const DEFAULT_SESSION_KEY   = 'aaaaaaaaaaa';
 
-// A project without a readable package.json still has to boot.
+// The nearest package.json at or above projectRoot: a build directory (dist/)
+// has none of its own, and a project without one at all still has to boot.
 const readProjectPackage = (projectRoot) => {
-  try {
-    return require(projectRoot + '/package.json');
-  } catch {
-    return {};
+  let dir = path.resolve(projectRoot);
+  for (;;) {
+    try {
+      return require(path.join(dir, 'package.json'));
+    } catch {
+      const parent = path.dirname(dir);
+      if (parent === dir) {
+        return {};
+      }
+      dir = parent;
+    }
   }
 };
 
-// Reads the project package.json on first access rather than at init(), then
-// caches it: a value set by the application always wins.
-const defineProjectValue = (target, property, override, packageKey) => {
+// Computed on first access rather than at init(), then cached: projectRoot can
+// still be reassigned after init(), and a value set by the application wins.
+const defineLazy = (target, property, compute) => {
+  const settle = (value) => Object.defineProperty(target, property, {
+    value, writable: true, configurable: true, enumerable: true
+  });
   Object.defineProperty(target, property, {
     configurable: true,
     enumerable:   true,
     get() {
-      const value = override || readProjectPackage(target.projectRoot)[packageKey];
-      Object.defineProperty(target, property, {
-        value, writable: true, configurable: true, enumerable: true
-      });
+      const value = compute();
+      settle(value);
       return value;
     },
-    set(value) {
-      Object.defineProperty(target, property, {
-        value, writable: true, configurable: true, enumerable: true
-      });
-    },
+    set: settle,
   });
 };
+
+const defineProjectValue = (target, property, override, packageKey) =>
+  defineLazy(target, property, () => override || readProjectPackage(target.projectRoot)[packageKey]);
+
+// LOG_REQUESTS=true|false|<status floor>; anything else keeps the default.
+const parseLogRequests = (value, fallback) => {
+  if (value === 'true' || value === 'false') {
+    return value === 'true';
+  }
+  const floor = Number(value);
+  return value && Number.isInteger(floor) && floor > 0 ? floor : fallback;
+};
+
+module.exports.parseLogRequests   = parseLogRequests;
+module.exports.readProjectPackage = readProjectPackage;
 
 //
 module.exports.init = function() {
@@ -155,8 +177,9 @@ module.exports.init = function() {
   config.logformat = process.env.LOG_FORMAT || (config.env === 'production' ? 'json' : 'human');
   // true logs every request, false none. A number is a status floor: 400 keeps
   // the errors and drops the successes, which is what keeps a log bill down
-  // once latency and error rate come from metrics.
-  config.logrequests = config.env !== 'test';
+  // once latency and error rate come from metrics. A deployment setting, like
+  // the format, hence LOG_REQUESTS.
+  config.logrequests = parseLogRequests(process.env.LOG_REQUESTS, config.env !== 'test');
 
   // Keys whose value redact() replaces, in crash emails and in the request line
   // of a failed request. Left null, the default covers what authenticates a

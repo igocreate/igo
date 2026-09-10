@@ -8,16 +8,12 @@ import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 
-// Chargé par --import, AVANT igo : OpenTelemetry instrumente en remplaçant les
-// modules au moment du require, donc ce fichier doit passer en premier. Importé
-// depuis app.ts, il n'instrumenterait ni express ni mysql2.
-//
-// Conséquence : le .env n'est pas encore lu, puisque c'est la configuration
-// d'igo qui appelle dotenv. Sans le premier import ci-dessus, toute variable
-// OTEL_* lue plus bas vaudrait undefined et le SDK ne démarrerait pas —
-// silencieusement, sans erreur ni donnée. Ce point d'entrée charge le .env sans
-// rien initialiser, là où importer @igojs/server tirerait express et winston,
-// soit précisément ce que ce fichier devait précéder.
+// Importé en première ligne de app.ts : OpenTelemetry pose ses crochets sur
+// `require`, donc ce fichier doit précéder @igojs/server, qui charge express et
+// mysql2. Rien de l'application ne doit être importé ici. Le premier import
+// charge le .env sans rien d'autre : la configuration d'igo n'a pas encore
+// tourné, et sans lui toute variable OTEL_* vaudrait undefined — le SDK ne
+// démarrerait pas, sans erreur ni donnée.
 
 // Les détecteurs par défaut ajoutent treize attributs de ressource — dont
 // process.pid, process.command_args, process.executable.path, host.id — et un

@@ -91,6 +91,43 @@ describe('api/books', function () {
     });
   });
 
+  describe('PUT /api/books/:id', function () {
+    it('should replace the whole book', async () => {
+      const book = await createBook();
+
+      const res = await agent.put(`/api/books/${book.id}`, {
+        body: { title: 'Dune Messiah', author: 'Frank Herbert', pages: 256, published: true },
+      });
+
+      assert.strictEqual(res.statusCode, 200);
+      assert.strictEqual(res.data.title, 'Dune Messiah');
+      assert.strictEqual(res.data.pages, 256);
+      assert.strictEqual(res.data.published, true);
+    });
+
+    it('should reject a partial body', async () => {
+      const book = await createBook();
+
+      const res = await agent.put(`/api/books/${book.id}`, { body: { title: 'Dune Messiah' } });
+
+      assert.strictEqual(res.statusCode, 400);
+      assert.deepStrictEqual(res.data.errors.map((e: { path: string }) => e.path).toSorted(), [
+        'author',
+        'pages',
+        'published',
+      ]);
+    });
+
+    it('should answer 404 for an unknown id', async () => {
+      const res = await agent.put('/api/books/999999', {
+        body: { title: 'Dune', author: 'Frank Herbert', pages: 412, published: false },
+      });
+
+      assert.strictEqual(res.statusCode, 404);
+      assert.strictEqual(res.data.type, '/problems/book-not-found');
+    });
+  });
+
   describe('DELETE /api/books/:id', function () {
     it('should delete the book', async () => {
       const book = await createBook();
