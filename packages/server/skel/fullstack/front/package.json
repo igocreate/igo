@@ -11,19 +11,19 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "prepare": "husky",
     "format": "oxfmt",
     "format:check": "oxfmt --check"
   },
   "dependencies": {
+    "@grafana/faro-react": "^2.11.0",
+    "@grafana/faro-web-tracing": "^2.11.0",
     "@tanstack/react-query": "^5.102.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router": "^8.3.0"
   },
   "devDependencies": {
-    "@commitlint/cli": "^21.2.0",
-    "@commitlint/config-conventional": "^21.2.0",
+    "@grafana/faro-rollup-plugin": "^0.12.0",
     "@tailwindcss/vite": "^4.3.0",
     "@testing-library/jest-dom": "^6.9.0",
     "@testing-library/react": "^16.3.0",
@@ -32,9 +32,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.1.0",
-    "husky": "^9.1.7",
     "jsdom": "^30.0.0",
-    "lint-staged": "^17.5.0",
     "msw": "^2.12.0",
     "oxfmt": "^0.66.0",
     "oxlint": "^1.81.0",

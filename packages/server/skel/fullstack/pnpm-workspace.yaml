@@ -9,3 +9,5 @@ allowBuilds:
   esbuild: true
   '@parcel/watcher': true
   msw: true
+  # arrives with the OpenTelemetry OTLP exporter
+  protobufjs: true

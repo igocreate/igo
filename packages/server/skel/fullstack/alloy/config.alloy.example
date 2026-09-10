@@ -1,0 +1,355 @@
+// EXEMPLE — à copier en `config.alloy` et à adapter.
+//
+// Ce fichier n'est pas actif : la destination, les identifiants et les
+// exporteurs d'infrastructure dépendent de la plateforme retenue. Il est fourni
+// parce que la configuration d'un collecteur se paie sinon en une journée de
+// tâtonnements, et parce que les arbitrages ci-dessous ont été mesurés plutôt
+// que devinés.
+//
+// Ce qui est à revoir en le reprenant :
+//
+//   - les blocs `otelcol.exporter.otlp` et `prometheus.remote_write` — la
+//     destination et les identifiants ;
+//   - `prometheus.exporter.mysql` et `.redis` — à retirer si le projet n'a pas
+//     ces services, à compléter s'il en a d'autres ;
+//   - le chemin des logs, qui suit la façon dont l'application est lancée.
+//
+// Deux pièges de cardinalité, mesurés :
+//
+//   - `disable_collectors` sur l'exporteur MySQL. Les six collecteurs par
+//     défaut produisent 999 séries, dont 471 pour `global_variables` — la
+//     *configuration* du serveur, donc des constantes réenvoyées à chaque
+//     scrape. Noter que `enabled_collectors` est rejeté et `enable_collectors`
+//     accepté mais sans effet : seul `disable_collectors` agit.
+//   - `OTEL_NODE_RESOURCE_DETECTORS=env` côté application (cf.
+//     api/instrumentation.ts). Sans lui, treize attributs de ressource
+//     deviennent des étiquettes, dont `process.pid` — qui change à chaque
+//     redémarrage et crée donc un jeu de séries neuf à chaque fois.
+//
+// Deux détails qui surprennent à la première lecture d'un tableau de bord :
+//
+//   - Express pose un `ETag` sur les réponses JSON. Un navigateur qui rappelle
+//     la même route reçoit donc un **304**, classé en `3xx` : une requête qui
+//     ne compte que les `2xx` rate l'essentiel du trafic réel.
+//   - `http_client_request_duration` n'a jamais `http_route` — elle mesure les
+//     appels *sortants*, où il n'existe aucune route. C'est
+//     `http_server_request_duration` qui porte la route.
+
+// Alloy reçoit la télémétrie de l'application en OTLP, puis la pousse vers
+// Grafana Cloud. L'application n'a donc aucun identifiant Grafana : le secret
+// vit ici, et un seul endroit est à faire tourner.
+//
+// En production ce fichier est déployé par Ansible à côté de l'application ;
+// en local il tourne dans un conteneur (cf. docker-compose.yml).
+
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// ── Réception ────────────────────────────────────────────────────────────────
+
+otelcol.receiver.otlp "app" {
+  // 0.0.0.0 et non localhost : depuis un conteneur, l'application est un hôte
+  // distant.
+  http { endpoint = "0.0.0.0:4318" }
+  grpc { endpoint = "0.0.0.0:4317" }
+
+  output {
+    metrics = [otelcol.processor.batch.defaut.input]
+    logs    = [otelcol.processor.batch.defaut.input]
+    traces  = [otelcol.processor.batch.defaut.input]
+  }
+}
+
+// Le lot amortit les à-coups : sans lui, chaque requête HTTP de l'application
+// provoquerait un appel réseau vers Grafana.
+otelcol.processor.batch "defaut" {
+  output {
+    metrics = [otelcol.exporter.prometheus.vers_grafana.input]
+    // L'application n'envoie pas ses logs en OTLP : elle écrit un fichier que
+    // loki.source.file suit (voir plus bas). Ce flux reste donc vide.
+    logs    = []
+    traces  = [otelcol.processor.tail_sampling.traces.input]
+  }
+}
+
+// ── Métriques ────────────────────────────────────────────────────────────────
+
+otelcol.exporter.prometheus "vers_grafana" {
+  // Sans cette option, les attributs de ressource — dont `service.name`,
+  // `service.version` et `deployment.environment.name` — ne deviennent pas des
+  // étiquettes Prometheus : les métriques arrivent sans savoir de quel service
+  // elles viennent. Elle est désactivée par défaut.
+  resource_to_telemetry_conversion = true
+
+  forward_to = [prometheus.remote_write.grafana.receiver]
+}
+
+prometheus.remote_write "grafana" {
+  endpoint {
+    url = sys.env("GRAFANA_METRICS_URL")
+    basic_auth {
+      username = sys.env("GRAFANA_METRICS_ID")
+      password = sys.env("GRAFANA_TOKEN")
+    }
+  }
+}
+
+// ── Logs ─────────────────────────────────────────────────────────────────────
+
+loki.write "grafana" {
+  endpoint {
+    url = sys.env("GRAFANA_LOGS_URL")
+    basic_auth {
+      username = sys.env("GRAFANA_LOGS_ID")
+      password = sys.env("GRAFANA_TOKEN")
+    }
+  }
+}
+
+// ── Traces ───────────────────────────────────────────────────────────────────
+
+// Tempo parle OTLP nativement : pas de conversion, contrairement aux métriques
+// et aux logs.
+// ── Échantillonnage des traces ───────────────────────────────────────────────
+//
+// Le filtre ci-dessous allège chaque trace ; celui-ci réduit leur *nombre*. Les
+// deux axes sont indépendants, et c'est le second qui pèse : une trace par
+// requête réussie n'apprend rien que les métriques ne disent déjà, alors qu'une
+// trace lente ou en erreur est précisément ce qu'on vient chercher.
+//
+// « tail » parce que la décision est prise après avoir vu la trace entière,
+// contrairement à un tirage à la racine qui ignore encore comment la requête va
+// se terminer. Le prix est un tampon : les spans sont retenus `decision_wait`
+// avant d'être jugés, donc de la mémoire et un délai avant l'arrivée dans
+// Tempo.
+//
+// L'ordre des politiques n'importe pas — elles sont évaluées toutes ensemble, et
+// une seule suffit à garder la trace.
+otelcol.processor.tail_sampling "traces" {
+  // Au-delà de la latence maximale attendue d'une requête, sinon une trace
+  // lente serait jugée avant d'être terminée.
+  decision_wait = "10s"
+
+  // Les erreurs serveur. Une exception a une pile et une cascade d'appels que
+  // la ligne de log seule ne montre pas — c'est le cas où la trace apporte
+  // vraiment quelque chose.
+  //
+  // L'instrumentation HTTP ne marque en ERROR que les 5xx : côté serveur, un
+  // 4xx est un comportement normal, la faute étant au client.
+  policy {
+    name = "spans_en_erreur"
+    type = "status_code"
+
+    status_code {
+      status_codes = ["ERROR"]
+    }
+  }
+
+  // Les 4xx ne sont pas retenus, et ce n'est pas une économie de volume — leur
+  // part est marginale. C'est qu'une trace n'y apprend rien :
+  //
+  //   • un 401 ou un 404 est le quotidien d'une application — session expirée,
+  //     lien mort. Leur taux se surveille par métrique ;
+  //   • un 403 ou un 422 est décidé *en mémoire*, avant toute I/O : la trace ne
+  //     contient qu'un span racine et la requête SQL qui a chargé les données.
+  //     Ce qu'on voudrait savoir — avec quelles données le refus s'est produit —
+  //     est déjà dans la ligne de log, qui porte le corps, la query, les
+  //     paramètres de route et la réponse renvoyée (cf. config.logrequests).
+  //
+  // Une trace vaut quand le problème est distribué ou temporel. Un refus métier
+  // synchrone n'est ni l'un ni l'autre.
+
+  // Pas de politique sur la latence non plus. Un seuil absolu suppose de
+  // connaître la latence normale de chaque route, ce qui n'est vrai qu'après
+  // l'avoir mesurée et change avec le volume de données : sur cette démo les
+  // routes vont de 4 à 14 ms, un facteur 3,5 entre elles. Trop haut, le seuil
+  // n'attrape rien ; trop bas, il retient tout le trafic de la route la plus
+  // lente.
+  //
+  // Le P95 par route vient des métriques HTTP standard, et l'échantillon
+  // ci-dessous donne des traces d'exemple pour aller voir où le temps passe.
+
+  // Le nominal. Un échantillon suffit à garder un exemple de chaque parcours ;
+  // le débit et la latence viennent des métriques.
+  policy {
+    name = "echantillon_du_nominal"
+    type = "probabilistic"
+
+    probabilistic {
+      sampling_percentage = 10
+    }
+  }
+
+  output {
+    traces = [otelcol.processor.filter.spans.input]
+  }
+}
+
+// ── Pas de métriques dérivées des spans ─────────────────────────────────────
+//
+// Un connecteur `spanmetrics` produirait débit, taux d'erreur et latence depuis
+// les spans. Il a été retiré : `instrumentation-http` fournit déjà
+// `http.server.request.duration` avec les mêmes dimensions — `http.route`,
+// `http.request.method`, `http.response.status_code` — et c'est une convention
+// OpenTelemetry, donc un tableau de bord générique la reconnaît.
+//
+// Ce qu'on y perd, et qu'il faut savoir :
+//
+//   • les seuils d'histogramme du standard commencent à 5 ms, alors que le P50
+//     mesuré est à 3 ms : plus de la moitié des requêtes tombent dans le premier
+//     seuil, où le quantile est interpolé. Le P50 devient une estimation ;
+//   • le regroupement des statuts en classes (2xx/3xx/5xx, 4xx détaillés) n'est
+//     plus précalculé : il se fait en PromQL, par exemple
+//     `label_replace(..., "classe", "$1xx", "http_response_status_code", "(.)..")`.
+//
+// L'arbitrage retenu : une métrique standard qu'on ne maintient pas vaut mieux
+// qu'une métrique sur mesure qui dérive.
+
+// ── Filtrage des spans ───────────────────────────────────────────────────────
+//
+// Tous les spans de middleware et de routage sont jetés — y compris ceux des
+// middlewares applicatifs. Mesuré sur un GET /api/animaux de 9,77 ms :
+// `marquerRequete` 5,17 µs et `chargerCompte` 8,88 µs, soit **0,14 % de la
+// requête**. Deux spans par requête pour mesurer l'invisible.
+//
+// Ce qui reste dit tout : le span racine (durée totale, statut, route), le
+// `request handler` (le temps passé dans le contrôleur) et les `SELECT` (là où
+// le temps part réellement — 7,42 et 5,32 ms dans cet exemple).
+//
+// Si un middleware ralentissait un jour, l'écart entre le span racine et le
+// `request handler` le montrerait, et son éventuelle requête SQL apparaîtrait
+// de toute façon : l'instrumentation de la base est indépendante.
+otelcol.processor.filter "spans" {
+  error_mode = "ignore"
+
+  traces {
+    span = [
+      "IsMatch(name, \"^(middleware|router) - \")",
+    ]
+  }
+
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+// Tempo n'accepte que l'OTLP en gRPC : `otelcol.exporter.otlp` et un endpoint
+// réduit à `hôte:443`, sans chemin. La variante HTTP (`otelcol.exporter.otlphttp`)
+// répond 404 sur tous les chemins, ce qui envoie chercher une URL qui n'existe
+// pas.
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = sys.env("GRAFANA_TRACES_URL")
+    auth     = otelcol.auth.basic.tempo.handler
+  }
+}
+
+otelcol.auth.basic "tempo" {
+  username = sys.env("GRAFANA_TRACES_ID")
+  password = sys.env("GRAFANA_TOKEN")
+}
+
+// ── Services managés ─────────────────────────────────────────────────────────
+//
+// C'est l'argument n° 1 retenu par l'ADR contre Sentry : « les intégrations
+// services managés font la différence. MySQL et Redis OVH sont monitorés via
+// les endpoints standard, avec 80+ métriques et des dashboards pré-construits.
+// Sentry ne voit que le code applicatif — la DB et le cache sont des boîtes
+// noires. »
+//
+// En production, ces mêmes blocs visent les endpoints OVH au lieu des
+// conteneurs locaux : seule l'adresse change.
+
+prometheus.exporter.mysql "base" {
+  // Compte de supervision aux droits minimaux, cf. mysql-init/01-exporter.sql
+  data_source_name = "exporter:exporter@(mysql:3306)/"
+
+  // Les six collecteurs par défaut produisent 999 séries. Ceux-ci n'apportent
+  // rien au projet et pèsent la moitié du total :
+  //
+  //   global_variables            471 séries — la *configuration* du serveur,
+  //                               donc des constantes réenvoyées à chaque
+  //                               scrape : 1,36 million d'échantillons par jour
+  //                               pour des valeurs qui ne bougent pas.
+  //   info_schema.innodb_cmp       45 séries — compression InnoDB, non utilisée
+  //   info_schema.innodb_cmpmem    20 séries — idem
+  //
+  // Mesuré : 999 séries avant, 475 après — 1,5 million d échantillons par jour
+  //
+  // Ce qu'on y perd : `max_connections`, qui servait de plafond au panneau des
+  // connexions. Le seuil est donc écrit en clair dans le tableau de bord — à
+  // revoir si la configuration de MySQL change.
+  disable_collectors = [
+    "global_variables",
+    "info_schema.innodb_cmp",
+    "info_schema.innodb_cmpmem",
+  ]
+}
+
+prometheus.exporter.redis "cache" {
+  // Valkey parle le protocole Redis : l'exporteur Redis fonctionne tel quel.
+  redis_addr = "valkey:6379"
+}
+
+// Les cibles des exporteurs se scrutent comme n'importe quelle cible
+// Prometheus, puis rejoignent le même flux de sortie que les métriques
+// applicatives.
+prometheus.scrape "services" {
+  targets = concat(
+    prometheus.exporter.mysql.base.targets,
+    prometheus.exporter.redis.cache.targets,
+  )
+  forward_to      = [prometheus.remote_write.grafana.receiver]
+  scrape_interval = "30s"
+}
+
+// ── Logs de l'application ────────────────────────────────────────────────────
+//
+// igo écrit ses logs JSON sur la sortie standard. Rien ne les collecte tout
+// seul : Alloy doit les lire quelque part, et il ne peut pas lire le stdout
+// d'un process qu'il ne lance pas — c'est une limite du système, le stdout
+// n'étant accessible qu'au parent.
+//
+// En production l'application tourne sous pm2, qui écrit dans
+// `~/.pm2/logs/<app>-out.log` — c'est ce fichier qu'Alloy suit. En local, le
+// script `pnpm start` redirige la sortie vers `api/logs/app.log`, monté dans le
+// conteneur.
+//
+// Pousser les logs en OTLP depuis l'application serait l'autre voie. Elle est
+// écartée : les logs seraient perdus si l'application meurt avant l'envoi, et
+// c'est précisément au moment d'un crash qu'on en a besoin. Essayé sur cette
+// démo, l'instrumentation winston n'a de surcroît rien émis.
+
+local.file_match "app" {
+  path_targets = [{
+    __path__     = "/var/log/{project.name}/*.log",
+    service_name = "{project.name}-api",
+  }]
+}
+
+loki.source.file "app" {
+  targets    = local.file_match.app.targets
+  forward_to = [loki.process.json.receiver]
+}
+
+loki.process "json" {
+  stage.json {
+    expressions = {
+      level       = "level",
+      service     = "service",
+      environment = "environment",
+      version     = "version",
+    }
+  }
+
+  stage.labels {
+    values = {
+      level       = "",
+      environment = "",
+    }
+  }
+
+  forward_to = [loki.write.grafana.receiver]
+}
