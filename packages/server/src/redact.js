@@ -1,33 +1,17 @@
 
 const config = require('./config');
 
-// Keys whose value must never reach a log, a crash email or an error report.
+// Keys whose value must never reach a log or a crash email. The default only
+// covers what authenticates a caller — the words mean the same in every domain;
+// a project's own sensitive fields (an IBAN, a medical record) are its to add
+// through config.sensitiveKeys, which replaces this pattern.
 //
-// The list stays short on purpose: it covers what authenticates a caller, and
-// nothing else. Those words mean the same thing in every domain — a `token` is
-// a credential whether the project sells shoes or manages patients — so igo can
-// claim to know them.
-//
-// Everything else belongs to the project. A bank knows its account fields, a
-// clinic its medical ones, and igo can only guess — a longer default list would
-// still miss the one field this domain calls sensitive, while masking others a
-// diagnosis needed.
-//
-//   const { redact } = require('@igojs/server');
-//   config.sensitiveKeys = new RegExp(
-//     `${redact.DEFAULT_SENSITIVE_KEYS.source}|iban|numero.?secu`, 'i');
-//
-// The match is anchored, not a bare substring: a name *ending* in `password`
-// or `token` in English, *starting* with `motDePasse` or `jeton` in French —
-// the qualifier sits before the word in one language and after it in the
-// other. `userPassword` and `jetonDeSession` are caught; `tokenExpiry`,
-// `cookieJar` and `tokenizer` are not.
-//
-// Anchoring means the default misses names like `tokenApi` or `jwtSecret_v2`.
-// That is the point of the trade: a default that masks a field a diagnosis
-// needed is a nuisance to every project, while a default that misses one is
-// the project's to fix — it knows its own field names, and extends the pattern
-// through config.sensitiveKeys.
+// The match is anchored: a name *ending* in `password` or `token` in English,
+// *starting* with `motDePasse` or `jeton` in French, since the qualifier sits
+// on opposite sides in the two languages. `userPassword` and `jetonDeSession`
+// are caught; `tokenExpiry`, `cookieJar` and `tokenizer` are not, and neither
+// is `tokenApi` — a default that masks a field a diagnosis needed would be a
+// nuisance to every project, one that misses a field is one project's to fix.
 const ENGLISH = 'password|passwd|token|secret|cookie|authorization';
 const FRENCH  = 'mot.?de.?passe|jeton|cle.?secrete';
 

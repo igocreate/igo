@@ -195,18 +195,9 @@ module.exports.init = function() {
   // the format, hence LOG_REQUESTS.
   config.logrequests = parseLogRequests(process.env.LOG_REQUESTS, config.env !== 'test');
 
-  // Keys whose value redact() replaces, in crash emails and in the request line
-  // of a failed request. Left null, the default covers what authenticates a
-  // caller — password, token, secret, cookie, authorization, in English and in
-  // French — and stops there.
-  //
-  // The fields a domain considers sensitive are the project's to declare: an
-  // IBAN, a medical record, a case number. A pattern set here *replaces* the
-  // default rather than adding to it, so extend it:
-  //
-  //   const { redact } = require('@igojs/server');
-  //   config.sensitiveKeys = new RegExp(
-  //     `${redact.DEFAULT_SENSITIVE_KEYS.source}|iban|dossier.?medical`, 'i');
+  // Keys whose value redact() replaces; null keeps the default of src/redact.js.
+  // A pattern set here replaces it, so extend redact.DEFAULT_SENSITIVE_KEYS:
+  //   config.sensitiveKeys = new RegExp(`${redact.DEFAULT_SENSITIVE_KEYS.source}|iban`, 'i');
   config.sensitiveKeys = null;
 
   //

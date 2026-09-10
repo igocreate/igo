@@ -8,9 +8,7 @@ const redact = require('../redact');
 
 const storage = new AsyncLocalStorage();
 
-// OpenTelemetry is not a dependency: an application that does not instrument
-// itself must still boot. Loaded optionally, so the trace id is read when a
-// SDK is registered and ignored otherwise.
+// Optional: an application that does not instrument itself must still boot.
 let otel = null;
 try {
   otel = require('@opentelemetry/api');
@@ -18,17 +16,8 @@ try {
   // no instrumentation in this application
 }
 
-// The trace id of the active span, when one exists.
-//
-// OpenTelemetry defines no generic request id — for it, trace_id *is* the
-// identity of a request, and it already reaches the logs and the traces. So it
-// is read rather than a second one being minted, which would leave two
-// independent ids for the same request: the one the client is shown, and the
-// one the trace carries.
-//
-// The test is the presence of a span, never the presence of a traceparent
-// header: a request from an uninstrumented client carries no header, yet OTel
-// has already created a trace for it.
+// The active span is the identity of the request when a SDK is registered:
+// minting another id would leave two for the same request.
 const activeSpanContext = () => {
   const context = otel?.trace.getSpan(otel.context.active())?.spanContext();
   // an all-zero id is what the API returns for an invalid context
@@ -48,19 +37,13 @@ const traceresponse = (traceId) => {
   return `00-${traceId}-${id}-${flags}`;
 };
 
-// The version is deliberately not pinned to `00`: Trace Context Level 2 exists,
-// and the spec asks implementations to stay lenient about an unknown version
-// whose remainder is well formed. Rejecting `01-…` would lose correlation the
-// day a caller moves up.
+// The version is not pinned to `00`: the spec asks to accept an unknown
+// version whose remainder is well formed.
 const TRACEPARENT = /^[0-9a-f]{2}-([0-9a-f]{32})-[0-9a-f]{16}-[0-9a-f]{2}$/;
 
-// The trace id carried by an inbound traceparent, for the case nothing else
-// covers: an instrumented service calling an igo service that is not, whose
-// header no SDK will read. Without this, igo would mint a fresh id and break a
-// chain of correlation already established.
-//
-// The value comes from the client, so it is validated: it can be malformed,
-// duplicated (an array, then), or carry an attempt at injecting into the logs.
+// An inbound traceparent no SDK will read — an instrumented caller, an igo
+// service that is not. Validated: it comes from the client, and can be
+// malformed, duplicated (an array, then) or an attempt at injecting into logs.
 const traceIdFromHeader = (value) => {
   if (typeof value !== 'string') {
     return null;
@@ -73,19 +56,12 @@ const traceIdFromHeader = (value) => {
   return /^0+$/.test(match[1]) ? null : match[1];
 };
 
-// What a request line does not say: what the call failed with. A 400 without
-// its body or its parameters is diagnosed by guesswork, and a 500 rarely
-// reproduces on demand — so the body, the query and the path parameters ride
-// along, but only when the response is an error. On a successful request they
-// would multiply the volume without teaching anything.
-//
-// Values go through redact(): its default pattern covers `motDePasse` as well
-// as `password`, and a project whose domain has its own sensitive fields
-// extends config.sensitiveKeys.
+// An error line carries what the call failed with — body, query, params, and
+// the response sent — redacted, and truncated: a diagnosis needs the shape of
+// an import or an attachment, not its content. A successful line carries none
+// of it, which would multiply the volume without teaching anything.
 const MAX_LENGTH = 2000;
 
-// A body can be large — an import, an attachment in base64. Truncated: a
-// diagnosis needs the shape, not the whole content.
 const truncate = (value) => {
   const text = JSON.stringify(value);
   if (!text || text.length <= MAX_LENGTH) {
@@ -108,19 +84,14 @@ const failureContext = (req, res) => {
   if (!isEmpty(req.params)) {
     context.params = redact(req.params);
   }
-  // What the client was actually answered — a problem document, or whatever a
-  // controller chose to send. Captured below, since a response body cannot be
-  // read back off `res`.
   if (res._loggedBody !== undefined) {
     context.response = truncate(redact(res._loggedBody));
   }
   return context;
 };
 
-// res.json is the one place every JSON answer goes through, problem documents
-// included: wrapping it is what lets an error line carry the response the
-// client received. Only the body is kept, and only while the request is in
-// flight.
+// A response body cannot be read back off `res`: res.json, which every JSON
+// answer goes through, keeps it for the error line.
 const captureResponseBody = (res) => {
   if (typeof res.json !== 'function') {
     return;
@@ -141,13 +112,8 @@ const levelFor = (status) => {
   return status >= 400 ? 'warn' : 'info';
 };
 
-// config.logrequests takes a boolean, or a status floor: 400 keeps the errors
-// and drops the successes.
-//
-// The floor exists because one line per request is the largest single item in a
-// log bill, while the successful ones teach little that metrics do not already
-// carry — latency per route and error rate are derived from spans. The errors,
-// on the other hand, are worth every byte.
+// config.logrequests: a boolean, or a status floor — 400 keeps the errors,
+// which are worth every byte, and drops the successes metrics already cover.
 const shouldLog = (status) => {
   const setting = config.logrequests;
   if (setting === false) {
@@ -164,11 +130,8 @@ logger.provideTraceId(() => storage.getStore()?.traceId);
 // One line per request, carrying the id every log of that request is stamped
 // with. Mounted by igo before the routes.
 module.exports = (req, res, next) => {
-  // The order matters. The OpenTelemetry context comes first: when a SDK is
-  // loaded it has already reconciled an inbound header if there was one, and
-  // reversing the two could retain an id diverging from the trace actually
-  // recorded. The generated value has the shape of a trace id, so the day
-  // instrumentation arrives it is replaced by a real one with no code change.
+  // The active span first: a SDK has already reconciled the inbound header, and
+  // reversing the two could keep an id diverging from the trace recorded.
   const traceId = activeTraceId()
     || traceIdFromHeader(req.headers?.traceparent)
     || randomBytes(16).toString('hex');

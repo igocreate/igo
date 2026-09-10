@@ -97,13 +97,31 @@ changer de destination sans toucher au code, et de collecter aussi les logs, la
 base et le cache, qui ne parlent pas OTLP.
 
 **Alloy n'est pas actif ici**, sa configuration dépendant de la plateforme :
-`alloy/config.alloy.example` est un point de départ à copier en
-`config.alloy` et à adapter. Son en-tête liste ce qui est à revoir et les
-pièges de cardinalité déjà mesurés. Sans collecteur en écoute, l'API n'envoie
-rien — c'est la première chose à vérifier quand aucune donnée n'arrive.
+`deploy/config.alloy.example` est un point de départ à copier et à adapter. Son
+en-tête liste ce qui est à revoir et les pièges de cardinalité déjà mesurés.
+Sans collecteur en écoute, l'API n'envoie rien — c'est la première chose à
+vérifier quand aucune donnée n'arrive.
 
 Le front est l'exception : il poste au collecteur Faro hébergé, un navigateur
 n'atteignant pas un Alloy local.
+
+## Production
+
+Le front est un dossier de fichiers statiques servi par nginx, l'API tourne
+derrière lui sur la même origine. Le contrat, quelle que soit la conf :
+
+- `index.html` n'est **jamais** mis en cache : il référence les assets du build
+  courant. Les fichiers de `assets/`, hashés, se cachent sans limite ;
+- tout chemin inconnu du front retombe sur `index.html` (`try_files`) ;
+- `/api` est proxifié vers igo, avec `X-Forwarded-Proto` pour que HSTS soit posé ;
+- `frame-ancestors` (ou `X-Frame-Options`) et HSTS sont posés par nginx : la
+  politique de sécurité de contenu du front est dans son `index.html`, mais une
+  `<meta>` ne peut pas porter ces deux-là ;
+- l'API parle OTLP à un collecteur local (Alloy, port 4318), jamais à une
+  plateforme directement.
+
+`deploy/` porte un exemple de chaque : `nginx.conf.example` et
+`config.alloy.example`. Ce sont des points de départ, pas des fichiers actifs.
 
 ## Langue du code
 

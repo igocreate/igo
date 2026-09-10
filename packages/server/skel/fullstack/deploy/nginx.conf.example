@@ -1,0 +1,39 @@
+# EXEMPLE — à adapter au domaine et aux chemins du déploiement.
+#
+# Le contrat, indépendant de cette conf : index.html n'est jamais mis en cache,
+# les autres chemins du front retombent sur lui, /api est proxifié vers igo sur
+# la même origine, et c'est ici que se posent frame-ancestors et HSTS — une
+# balise <meta> ne peut pas les porter.
+
+server {
+  listen 443 ssl http2;
+  server_name exemple.fr;
+
+  root /var/www/exemple/front/dist;
+
+  # Les fichiers de assets/ portent un hash dans leur nom : cache long.
+  location /assets/ {
+    expires max;
+    add_header Cache-Control "public, immutable";
+  }
+
+  # index.html référence les assets du build courant : un cache le ferait
+  # pointer vers des fichiers disparus au déploiement suivant.
+  location = /index.html {
+    add_header Cache-Control "no-store";
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Content-Security-Policy "frame-ancestors 'self'" always;
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
+  }
+
+  location /api/ {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+
+  location / {
+    try_files $uri /index.html;
+  }
+}
