@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 import { BooksPage } from './pages/books.page';
@@ -36,5 +37,26 @@ test.describe('books', () => {
     await books.submit.click();
 
     await expect(books.errors.first()).toBeVisible();
+  });
+});
+
+// Les ADR exigent qu'un écran ne porte aucune violation WCAG 2.1 AA. axe ne
+// juge que ce qu'une machine peut vérifier — la moitié des critères environ —
+// mais cette moitié se régresse sans qu'on s'en aperçoive, alors que le reste
+// se relit.
+//
+// Un écran ajouté au parcours s'ajoute ici : le coût est une ligne, l'oubli se
+// paie en audit.
+test.describe('accessibilité', () => {
+  test('les écrans ne portent aucune violation', async ({ page }) => {
+    const books = new BooksPage(page);
+    await books.goto();
+    await expect(books.heading).toBeVisible();
+
+    const resultats = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze();
+
+    expect(resultats.violations).toEqual([]);
   });
 });

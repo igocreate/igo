@@ -85,6 +85,22 @@ MSW intercepte au niveau réseau, donc le vrai `apiClient` tourne dans les tests
 
 Un test de feature couvre le cas nominal, l'erreur serveur, et la validation.
 
+## Accessibilité
+
+Les composants se construisent sur les rôles ARIA, pas sur des `div` : c'est ce
+qui rend un écran utilisable au clavier et au lecteur d'écran, et c'est aussi ce
+qui rend les tests lisibles — `getByRole('button', { name: 'Envoyer' })` décrit
+l'intention là où un sélecteur CSS décrit le balisage.
+
+Trois points qu'axe ne détecte pas et qui reviennent :
+
+- un bouton dont le libellé est une icône a besoin d'un `aria-label` ;
+- un message d'erreur a besoin de `role="alert"` pour être annoncé ;
+- un compteur qui change a besoin d'`aria-live` pour l'être aussi.
+
+Les composants copiés de shadcn/ui portent leurs `aria-label` **en anglais** :
+les traduire fait partie de la reprise.
+
 ## Système de design
 
 Tailwind est installé, sans bibliothèque de composants. `src/components/ui/`

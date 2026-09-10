@@ -61,6 +61,9 @@ Les E2E tournent contre le **build** du front, pas le serveur de développement 
 c'est ce qui est déployé. Ils restent peu nombreux : tout ce qui peut être
 couvert plus bas doit l'être.
 
+Ils portent aussi l'audit d'accessibilité : aucun écran ne doit présenter de
+violation WCAG 2.1 AA.
+
 ## Observabilité
 
 **Rien n'est envoyé par défaut** : `OTEL_EXPORTER_OTLP_ENDPOINT` côté API et

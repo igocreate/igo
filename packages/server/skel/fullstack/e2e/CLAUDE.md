@@ -67,6 +67,13 @@ Jamais de sélecteur CSS ou XPath structurel.
 Pas de `waitForTimeout`. Les assertions `expect(locator)` réessaient toutes
 seules : `await expect(x).toBeVisible()` attend déjà.
 
+## Accessibilité
+
+Un écran ne doit porter aucune violation WCAG 2.1 AA, vérifié par
+`@axe-core/playwright`. Un écran ajouté au parcours s'ajoute au test : axe ne
+juge que ce qui est vérifiable par une machine, mais cette moitié des critères
+se régresse en silence.
+
 ## Données
 
 La base est partagée entre les tests, et ils tournent en parallèle. **Un test
