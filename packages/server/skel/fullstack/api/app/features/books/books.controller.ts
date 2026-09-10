@@ -8,9 +8,6 @@ import * as dto from './books.dto';
 // deux situations métier. C'est une URI, et le slug appartient au projet.
 const BOOK_NOT_FOUND = '/problems/book-not-found';
 
-// Les schémas ci-dessous donnent leurs types à req.body et req.query : aucune
-// forme n'est déclarée deux fois, et un champ absent du schéma est une erreur de
-// compilation.
 export const index: ApiHandler<{ query: typeof dto.ListBooks }> = async (req, res) => {
   const { page, limit, published } = req.query;
 
@@ -27,13 +24,14 @@ export const index: ApiHandler<{ query: typeof dto.ListBooks }> = async (req, re
 };
 index.query = dto.ListBooks;
 
-export const show: ApiHandler = async (req, res) => {
+export const show: ApiHandler<{ params: typeof dto.BookId }> = async (req, res) => {
   const book = await Book.find(req.params.id);
   if (!book) {
     return void sendProblem(res, 404, { type: BOOK_NOT_FOUND, detail: 'Book not found' });
   }
   res.json(dto.serialize(book));
 };
+show.params = dto.BookId;
 
 export const create: ApiHandler<{ body: typeof dto.CreateBook }> = async (req, res) => {
   const book = await Book.create(req.body);
@@ -41,7 +39,10 @@ export const create: ApiHandler<{ body: typeof dto.CreateBook }> = async (req, r
 };
 create.body = dto.CreateBook;
 
-export const update: ApiHandler<{ body: typeof dto.UpdateBook }> = async (req, res) => {
+export const update: ApiHandler<{
+  params: typeof dto.BookId;
+  body: typeof dto.UpdateBook;
+}> = async (req, res) => {
   const book = await Book.find(req.params.id);
   if (!book) {
     return void sendProblem(res, 404, { type: BOOK_NOT_FOUND, detail: 'Book not found' });
@@ -49,9 +50,10 @@ export const update: ApiHandler<{ body: typeof dto.UpdateBook }> = async (req, r
   await book.update(req.body);
   res.json(dto.serialize(book));
 };
+update.params = dto.BookId;
 update.body = dto.UpdateBook;
 
-export const destroy: ApiHandler = async (req, res) => {
+export const destroy: ApiHandler<{ params: typeof dto.BookId }> = async (req, res) => {
   const book = await Book.find(req.params.id);
   if (!book) {
     return void sendProblem(res, 404, { type: BOOK_NOT_FOUND, detail: 'Book not found' });
@@ -59,3 +61,4 @@ export const destroy: ApiHandler = async (req, res) => {
   await book.delete();
   res.status(204).end();
 };
+destroy.params = dto.BookId;

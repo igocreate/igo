@@ -1,7 +1,5 @@
-// Reflète le DTO que le back sérialise. Écrit à la main : le back est en
-// JavaScript, il n'y a donc aucun contrat à partir duquel générer — un écart se
-// voit dans les tests de feature, qui tournent contre la forme réelle de la
-// charge.
+// Reflète le DTO que le back sérialise, écrit à la main : le front ne dépend
+// pas du build du back, et un écart se voit dans les tests de feature.
 export interface Book {
   id: number;
   title: string;

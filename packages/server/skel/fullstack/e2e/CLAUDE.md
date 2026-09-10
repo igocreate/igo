@@ -42,7 +42,7 @@ attendu présent dans un test, absent dans un autre.
 export class BooksPage {
   readonly heading: Locator;
   constructor(private readonly page: Page) {
-    this.heading = page.getByRole('heading', { name: 'Books' });
+    this.heading = page.getByRole('heading', { name: 'Livres' });
   }
   async goto() { await this.page.goto('/'); }
 }

@@ -1,6 +1,16 @@
 import { z } from 'zod';
 import { Router, type RequestHandler } from 'express';
+import { Model } from '@igojs/db';
 import type { ApiHandler } from '../../index';
+
+interface BookRow { id: number; title: string; pages: number }
+class Book extends Model<BookRow>({ table: 'books', columns: ['id', 'title', 'pages'] }) {}
+
+export const found = async (): Promise<string | undefined> => {
+  const book = await Book.find(1);
+  const { rows } = await Book.where({ pages: 412 }).page(1, 25).list();
+  return book?.title ?? rows[0]?.title;
+};
 
 const CreateBook = z.object({
   title: z.string().min(1),

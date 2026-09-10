@@ -14,13 +14,13 @@ export class BooksPage {
   readonly errors: Locator;
 
   constructor(private readonly page: Page) {
-    this.heading = page.getByRole('heading', { name: 'Books' });
-    this.loading = page.getByText(/loading/i);
-    this.total = page.getByText(/in total/);
-    this.title = page.getByLabel('title');
-    this.author = page.getByLabel('author');
-    this.pages = page.getByLabel('pages');
-    this.submit = page.getByRole('button', { name: /add book/i });
+    this.heading = page.getByRole('heading', { name: 'Livres' });
+    this.loading = page.getByText(/chargement/i);
+    this.total = page.getByText(/au total/);
+    this.title = page.getByLabel('Titre');
+    this.author = page.getByLabel('Auteur');
+    this.pages = page.getByLabel('Pages');
+    this.submit = page.getByRole('button', { name: /ajouter/i });
     this.errors = page.getByRole('alert');
   }
 

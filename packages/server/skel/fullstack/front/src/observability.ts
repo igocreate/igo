@@ -84,11 +84,8 @@ const filter = (item: TransportItem): TransportItem | null => {
       return failed(payload.attributes) || inSample ? item : null;
     }
 
-    // Un type de signal que ce filtre ne connaît pas encore passe entier. Le
-    // jeter à 90 % le ferait disparaître sans que personne ne l'ait décidé —
-    // c'est exactement ainsi que les spans du navigateur ont été perdus une
-    // première fois, et la corrélation front/back avec eux. On décide
-    // d'échantillonner ; jamais l'inverse.
+    // Un signal inconnu passe entier : on décide d'échantillonner, jamais
+    // l'inverse — c'est ainsi que les spans du navigateur ont été perdus une fois.
     default:
       return item;
   }

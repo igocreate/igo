@@ -6,7 +6,7 @@
   "author": "",
   "main": "dist/app.js",
   "scripts": {
-    "build": "tsc && cp -R sql locales dist/",
+    "build": "tsc -p tsconfig.build.json && cp -R sql dist/",
     "start": "tsx watch app.ts",
     "serve": "cd dist && node app.js",
     "migrate": "igo db migrate",
@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@igojs/db": "{igo.version}",
-    "@igojs/igo": "{igo.version}",
     "@igojs/server": "{igo.version}",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/auto-instrumentations-node": "^0.80.0",

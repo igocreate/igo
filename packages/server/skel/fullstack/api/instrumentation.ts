@@ -73,15 +73,8 @@ const sdk = new NodeSDK({
   ],
 });
 
-// Pas de destination, rien à envoyer : l'absence d'OTEL_EXPORTER_OTLP_ENDPOINT
-// suffit à désactiver l'observabilité. C'est le défaut d'un poste de
-// développement — ni quota consommé, ni erreurs locales mélangées à celles de la
-// production — et la même règle que côté front, où l'absence de VITE_FARO_URL
-// désactive Faro.
-//
-// L'adresse doit viser un collecteur local (Grafana Alloy), pas directement une
-// plateforme : c'est ce qui permet de filtrer, de dériver des métriques et de
-// changer de destination sans toucher à ce fichier.
+// Sans destination, rien n'est envoyé : c'est le défaut d'un poste de
+// développement, et la même règle que VITE_FARO_URL côté front.
 const active = Boolean(process.env.OTEL_EXPORTER_OTLP_ENDPOINT);
 
 if (active) {

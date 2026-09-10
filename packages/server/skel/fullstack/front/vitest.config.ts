@@ -16,8 +16,6 @@ export default mergeConfig(
       environment: 'jsdom',
       globals: true,
       setupFiles: ['./src/test/setup.ts'],
-      // e2e/ appartient à Playwright : sans ceci, vitest ramasserait ses specs
-      // et échouerait sur un import qu'il ne sait pas résoudre.
       include: ['src/**/*.{test,spec}.{ts,tsx}'],
     },
   }),

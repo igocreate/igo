@@ -1,10 +1,8 @@
 import type { Book } from '../types';
 
-// Pur : tout arrive par les props. Pas de useQuery ici — voir la règle
-// d'injection des données dans les conventions du front.
 export function BooksList({ books }: { books: Book[] }) {
   if (books.length === 0) {
-    return <p className="text-slate-500">No book yet.</p>;
+    return <p className="text-slate-500">Aucun livre pour l'instant.</p>;
   }
 
   return (

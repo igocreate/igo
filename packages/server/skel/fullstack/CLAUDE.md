@@ -91,7 +91,8 @@ la corrélation front/back.
 | Messages de commit | Fichiers et dossiers techniques |
 | Objets du domaine (`Demande`, `Animal`) | Bibliothèques, API, mots-clés |
 | Découpage en features (`features/demandes/`) | Types et interfaces techniques |
-| Documentation (`README`, `CLAUDE.md`) | Libellés de test |
+| Documentation (`README`, `CLAUDE.md`) | Blocs `describe` techniques (`GET /api/books`) |
+| Libellés de test (`it('liste les livres')`) | |
 
 Un modèle s'appelle donc `Demande` et vit dans `features/demandes/`, mais le
 middleware qui estampille une requête s'appelle `tagRequest` et non

@@ -17,7 +17,7 @@ const createBook = (values = {}) =>
 
 describe('api/books', function () {
   describe('GET /api/books', function () {
-    it('should list the books', async () => {
+    it('liste les livres', async () => {
       await createBook();
 
       const res = await agent.get('/api/books');
@@ -28,7 +28,7 @@ describe('api/books', function () {
       assert.strictEqual(res.data.page.total, 1);
     });
 
-    it('should reject an invalid query param', async () => {
+    it('refuse un paramètre de requête invalide', async () => {
       const res = await agent.get('/api/books?page=0');
 
       assert.strictEqual(res.statusCode, 400);
@@ -40,7 +40,7 @@ describe('api/books', function () {
   });
 
   describe('GET /api/books/:id', function () {
-    it('should expose only the serialized fields', async () => {
+    it("n'expose que les champs sérialisés", async () => {
       const book = await createBook();
 
       const res = await agent.get(`/api/books/${book.id}`);
@@ -56,16 +56,26 @@ describe('api/books', function () {
       ]);
     });
 
-    it('should answer 404 for an unknown id', async () => {
+    it('répond 404 pour un id inconnu', async () => {
       const res = await agent.get('/api/books/999999');
 
       assert.strictEqual(res.statusCode, 404);
       assert.strictEqual(res.data.status, 404);
     });
+
+    it("refuse un id qui n'est pas un entier positif", async () => {
+      const res = await agent.get('/api/books/abc');
+
+      assert.strictEqual(res.statusCode, 400);
+      assert.deepStrictEqual(
+        res.data.errors.map((e: { path: string }) => e.path),
+        ['id'],
+      );
+    });
   });
 
   describe('POST /api/books', function () {
-    it('should create a book', async () => {
+    it('crée un livre', async () => {
       const res = await agent.post('/api/books', {
         body: { title: 'Dune', author: 'Frank Herbert', pages: 412 },
       });
@@ -75,10 +85,10 @@ describe('api/books', function () {
       assert.strictEqual(res.data.published, false);
 
       const book = await Book.find(res.data.id);
-      assert.strictEqual(book.title, 'Dune');
+      assert.strictEqual(book?.title, 'Dune');
     });
 
-    it('should reject an invalid body', async () => {
+    it('refuse un corps invalide', async () => {
       const res = await agent.post('/api/books', { body: { title: '', pages: 'many' } });
 
       assert.strictEqual(res.statusCode, 400);
@@ -92,7 +102,7 @@ describe('api/books', function () {
   });
 
   describe('PUT /api/books/:id', function () {
-    it('should replace the whole book', async () => {
+    it('remplace le livre entier', async () => {
       const book = await createBook();
 
       const res = await agent.put(`/api/books/${book.id}`, {
@@ -105,7 +115,7 @@ describe('api/books', function () {
       assert.strictEqual(res.data.published, true);
     });
 
-    it('should reject a partial body', async () => {
+    it('refuse un corps partiel', async () => {
       const book = await createBook();
 
       const res = await agent.put(`/api/books/${book.id}`, { body: { title: 'Dune Messiah' } });
@@ -118,7 +128,7 @@ describe('api/books', function () {
       ]);
     });
 
-    it('should answer 404 for an unknown id', async () => {
+    it('répond 404 pour un id inconnu', async () => {
       const res = await agent.put('/api/books/999999', {
         body: { title: 'Dune', author: 'Frank Herbert', pages: 412, published: false },
       });
@@ -129,7 +139,7 @@ describe('api/books', function () {
   });
 
   describe('DELETE /api/books/:id', function () {
-    it('should delete the book', async () => {
+    it('supprime le livre', async () => {
       const book = await createBook();
 
       const res = await agent.delete(`/api/books/${book.id}`);

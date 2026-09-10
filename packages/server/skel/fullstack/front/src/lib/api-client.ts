@@ -50,8 +50,6 @@ const request = async <T>(method: string, path: string, body?: unknown): Promise
       title: response.statusText,
       status: response.status,
     }));
-    // Le code montré à l'utilisateur donne au support de quoi retrouver la
-    // trace et les logs.
     throw new ApiError(problem as Problem, traceIdDeLaReponse(response));
   }
 

@@ -9,11 +9,11 @@ export function BooksPage() {
 
   return (
     <>
-      <h1 className="mb-6 text-2xl font-semibold">Books</h1>
+      <h1 className="mb-6 text-2xl font-semibold">Livres</h1>
 
       <AddBookSection />
 
-      {isPending && <p className="text-slate-500">Loading…</p>}
+      {isPending && <p className="text-slate-500">Chargement…</p>}
       {isError && (
         <p role="alert" className="text-red-600">
           {error.message}
@@ -22,7 +22,7 @@ export function BooksPage() {
       {data && (
         <>
           <BooksList books={data.books} />
-          <p className="mt-4 text-sm text-slate-500">{data.page.total} in total</p>
+          <p className="mt-4 text-sm text-slate-500">{data.page.total} au total</p>
         </>
       )}
     </>
