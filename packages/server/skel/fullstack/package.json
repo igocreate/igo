@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.1.3",
   "scripts": {
     "dev": "concurrently -n api,front -c blue,magenta \"pnpm --filter ./api start\" \"pnpm --filter ./front dev\"",
     "build": "pnpm --filter ./api build && pnpm --filter ./front build",
