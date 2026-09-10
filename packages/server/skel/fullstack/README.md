@@ -61,6 +61,28 @@ Les E2E tournent contre le **build** du front, pas le serveur de développement 
 c'est ce qui est déployé. Ils restent peu nombreux : tout ce qui peut être
 couvert plus bas doit l'être.
 
+## Observabilité
+
+**Rien n'est envoyé par défaut** : `OTEL_EXPORTER_OTLP_ENDPOINT` côté API et
+`VITE_FARO_URL` côté front sont commentés, et leur absence suffit à tout
+désactiver. Un poste de développement ne consomme donc aucun quota, et les
+tests E2E n'envoient rien.
+
+**L'application n'écrit jamais directement dans une plateforme.** Elle parle
+OTLP à un collecteur local — [Grafana Alloy](https://grafana.com/docs/alloy/) —
+qui relaie, filtre et dérive les métriques. C'est ce détour qui permet de
+changer de destination sans toucher au code, et de collecter aussi les logs, la
+base et le cache, qui ne parlent pas OTLP.
+
+**Alloy n'est pas actif ici**, sa configuration dépendant de la plateforme :
+`alloy/config.alloy.example` est un point de départ à copier en
+`config.alloy` et à adapter. Son en-tête liste ce qui est à revoir et les
+pièges de cardinalité déjà mesurés. Sans collecteur en écoute, l'API n'envoie
+rien — c'est la première chose à vérifier quand aucune donnée n'arrive.
+
+Le front est l'exception : il poste au collecteur Faro hébergé, un navigateur
+n'atteignant pas un Alloy local.
+
 ## Conventions
 
 [Conventional Commits](https://www.conventionalcommits.org), vérifiés par un

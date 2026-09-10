@@ -61,6 +61,55 @@ Les E2E tournent contre le **build**, pas le serveur de développement. Ils sont
 lents : tout ce qui peut être couvert plus bas doit l'être plus bas. `pnpm test`
 ne les lance pas — `pnpm test:e2e` est une commande à part.
 
+## Observabilité
+
+Désactivée tant que la destination est absente : `OTEL_EXPORTER_OTLP_ENDPOINT`
+côté API, `VITE_FARO_URL` côté front. Ne pas inventer d'autre drapeau.
+
+`api/instrumentation.ts` est chargé par `--import`, donc **avant** igo :
+OpenTelemetry doit remplacer `express` et `mysql2` avant leur chargement. Deux
+conséquences à ne pas défaire :
+
+- sa première ligne est `import '@igojs/server/env'`, sans quoi le `.env` n'est
+  pas encore lu et toute variable `OTEL_*` vaut `undefined` — le SDK ne démarre
+  alors pas, **sans erreur ni donnée** ;
+- ne rien y importer de l'application : charger `@igojs/server` tirerait
+  `express`, soit précisément ce qu'on devait précéder.
+
+Dans `front/src/observability.ts`, `beforeSend` n'échantillonne que les
+**événements**. Exceptions, mesures Web Vitals et spans du navigateur passent
+toujours : les spans portent la racine de la trace, et les échantillonner casse
+la corrélation front/back.
+
+## Langue du code
+
+**Le français porte le métier, l'anglais porte la technique.**
+
+| En français | En anglais |
+| --- | --- |
+| Commentaires | Noms de variables, fonctions, classes |
+| Messages de commit | Fichiers et dossiers techniques |
+| Objets du domaine (`Demande`, `Animal`) | Bibliothèques, API, mots-clés |
+| Découpage en features (`features/demandes/`) | Types et interfaces techniques |
+| Documentation (`README`, `CLAUDE.md`) | Libellés de test |
+
+Un modèle s'appelle donc `Demande` et vit dans `features/demandes/`, mais le
+middleware qui estampille une requête s'appelle `tagRequest` et non
+`marquerRequete` : il ne porte aucun concept du domaine, seulement de la
+plomberie.
+
+Le critère : **le nom désigne-t-il quelque chose dont le client parle ?** Si
+oui, français. Sinon, anglais.
+
+Ça produit du franglais assumé (`demande.partenaireId`), et c'est le compromis
+retenu : traduire un domaine métier vers l'anglais ajoute une charge mentale à
+chaque lecture et introduit des contresens, pour un bénéfice nul quand toute
+l'équipe et le client parlent français.
+
+**Ce sont des préconisations.** Un client peut imposer autre chose — un projet
+repris, une équipe internationale, une contrainte contractuelle. Dans ce cas la
+règle change, mais elle reste uniforme sur le projet.
+
 ## Commits
 
 [Conventional Commits](https://www.conventionalcommits.org), vérifiés par un

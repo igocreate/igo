@@ -69,9 +69,15 @@ seules : `await expect(x).toBeVisible()` attend déjà.
 
 ## Données
 
-La base est partagée entre les tests, et ils tournent en parallèle. Un test qui
-crée une donnée lui donne un nom qui lui appartient (`Dune ${Date.now()}`)
-plutôt que de compter sur un état de départ.
+La base est partagée entre les tests, et ils tournent en parallèle. **Un test
+utilise un jeu de données qui lui appartient** — qu'il le crée ou qu'il le
+modifie.
+
+À la création, un nom qui n'appartient qu'à lui (`Dune ${Date.now()}`) plutôt
+qu'un état de départ supposé. À la modification, une donnée qu'il a créée
+lui-même : trancher une entrée des seeds fait passer le test la première fois,
+puis échouer — un test vert qui devient rouge sans qu'aucun code n'ait changé,
+et qui reverdit après un reseed. On cherche alors la régression dans le code.
 
 Un projet qui a besoin d'un jeu de données dédié le pose lui-même — il n'y a
 pas de seed E2E ici.

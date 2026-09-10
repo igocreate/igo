@@ -21,10 +21,11 @@ normale de travailler. Le proxy `/api` vise `http://127.0.0.1:3000`.
 ```
 src/
   main.tsx                  point d'entrée, providers
+  observability.ts          initialisation, importée en premier
   routes.tsx                arbre de routes, lazy par feature
   components/
-    ui/                     composants copiés (shadcn) — purs, à créer
-    layout/                 coquille de page
+    ui/                     composants d'interface bas niveau — purs, à créer
+    layout/                 coquille de page, frontières d'erreur
   features/<domaine>/
     pages/                  composants de route — PEUVENT fetch
     sections/               blocs autonomes — PEUVENT fetch
@@ -33,6 +34,7 @@ src/
     types.ts                types de la feature
   lib/
     api-client.ts           wrapper fetch typé, erreurs RFC 9457
+    report-error.ts         signaler une erreur rattrapée
   test/                     handlers MSW, helper de rendu
 ```
 
@@ -57,6 +59,11 @@ ce qui permet au même build de tourner sur tous les environnements.
 par `useEffect`. L'état purement client passe par React context tant qu'il reste
 léger.
 
+**Les deux frontières d'erreur ne sont pas redondantes** : celle de `main.tsx`
+capte le rendu, l'`errorElement` de `routes.tsx` capte ce que react-router
+intercepte lui-même (route lazy, `loader`). Retirer l'une rend ses erreurs
+invisibles.
+
 **Les états loading et error sont explicites** dans les pages et sections. Pas
 de composant qui suppose que les données sont là.
 
@@ -80,7 +87,12 @@ Un test de feature couvre le cas nominal, l'erreur serveur, et la validation.
 
 ## Système de design
 
-Tailwind est installé, sans bibliothèque de composants.
-[shadcn/ui](https://ui.shadcn.com) est la recommandation — ses composants se
-copient dans `src/components/ui/` et deviennent du code du projet. C'est un
-choix, pas une obligation.
+Tailwind est installé, sans bibliothèque de composants. `src/components/ui/`
+accueille les composants d'interface bas niveau — bouton, champ, sélecteur :
+purs, sans accès aux données, réutilisables partout.
+
+[shadcn/ui](https://ui.shadcn.com) est la recommandation pour les obtenir : ses
+composants se copient dans ce dossier et deviennent du code du projet, qu'on
+peut relire et modifier. **C'est une recommandation, pas une obligation** — un
+projet qui écrit les siens à la main, ou qui part d'une autre bibliothèque,
+range ses composants au même endroit.
