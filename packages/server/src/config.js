@@ -153,8 +153,24 @@ module.exports.init = function() {
   config.loglevel = process.env.LOG_LEVEL || 'info';
   // 'json' for log collectors, 'human' for a terminal
   config.logformat = process.env.LOG_FORMAT || (config.env === 'production' ? 'json' : 'human');
-  // set to false to silence the one-line-per-request log
+  // true logs every request, false none. A number is a status floor: 400 keeps
+  // the errors and drops the successes, which is what keeps a log bill down
+  // once latency and error rate come from metrics.
   config.logrequests = config.env !== 'test';
+
+  // Keys whose value redact() replaces, in crash emails and in the request line
+  // of a failed request. Left null, the default covers what authenticates a
+  // caller — password, token, secret, cookie, authorization, in English and in
+  // French — and stops there.
+  //
+  // The fields a domain considers sensitive are the project's to declare: an
+  // IBAN, a medical record, a case number. A pattern set here *replaces* the
+  // default rather than adding to it, so extend it:
+  //
+  //   const { redact } = require('@igojs/server');
+  //   config.sensitiveKeys = new RegExp(
+  //     `${redact.DEFAULT_SENSITIVE_KEYS.source}|iban|dossier.?medical`, 'i');
+  config.sensitiveKeys = null;
 
   //
   if (config.env === 'dev') {

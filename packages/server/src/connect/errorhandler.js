@@ -42,6 +42,7 @@ const path = require('path');
 const os   = require('os');
 
 const config  = require('../config');
+const redact = require('../redact');
 const logger  = require('../logger');
 const mailer  = require('../mailer');
 const problem = require('../api/problem');
@@ -115,19 +116,6 @@ const checkThrottle = (errorKey) => {
 
 const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' };
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => HTML_ESCAPES[c]);
-
-// credentials must not leak in crash emails
-const SENSITIVE_KEYS = /cookie|authorization|password|token|secret/i;
-const redact = (obj) => {
-  if (!obj || typeof obj !== 'object') {
-    return obj;
-  }
-  const copy = Array.isArray(obj) ? [] : {};
-  for (const key in obj) {
-    copy[key] = SENSITIVE_KEYS.test(key) ? '[redacted]' : redact(obj[key]);
-  }
-  return copy;
-};
 
 const getURL = (req) => {
   const protocol  = req.protocol || 'http';
@@ -216,15 +204,16 @@ const handle = (err, req, res) => {
   // Check if response already sent
   if (res.headersSent) {
     // Response already sent, can only log
-    logger.error(`${req.method} ${getURL(req)} : ${err} (response already sent)`);
-    logger.error(err.stack);
+    logger.error(`${req.method} ${getURL(req)} : ${err} (response already sent)`,
+                 { stack: err.stack });
     sendCrashEmail(`Crash (response sent): ${err}`, formatMessage(req, err), String(err));
     return;
   }
 
-  // Log error
-  logger.error(`${req.method} ${getURL(req)} : ${err}`);
-  logger.error(err.stack);
+  // The stack rides along as a field rather than on a line of its own: two
+  // consecutive calls produce two log entries for one error, which a collector
+  // then has to stitch back together.
+  logger.error(`${req.method} ${getURL(req)} : ${err}`, { stack: err.stack });
 
   // Send email notification
   sendCrashEmail(`Crash: ${err}`, formatMessage(req, err), String(err));
@@ -268,8 +257,8 @@ process.on('uncaughtException', (err) => {
   if (handled) {
     handle(err, context.req, context.res);
   } else {
-    logger.error('Uncaught exception outside of request context:', err);
-    logger.error(err.stack);
+    logger.error(`Uncaught exception outside of request context: ${err}`,
+                 { stack: err.stack });
     sendCrashEmail(`Uncaught exception: ${err}`, `<pre>${escapeHtml(err.stack)}</pre>`, String(err));
   }
 

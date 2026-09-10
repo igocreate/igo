@@ -4,6 +4,7 @@ const cache         = require('./src/cache');
 const logger        = require('./src/logger');
 
 const problem = require('./src/api/problem');
+const redact  = require('./src/redact');
 
 const server = {
   app:        require('./src/app'),
@@ -16,6 +17,7 @@ const server = {
   mailer:     require('./src/mailer'),
   Form:       require('./src/forms/Form'),
   problem:    problem.problem,
+  redact,
   sendProblem: problem.send,
 };
 

@@ -51,8 +51,18 @@ export interface Config {
   loglevel:       string;
   /** 'json' for log collectors, 'human' for a terminal. */
   logformat:      'json' | 'human';
-  /** false silences the one-line-per-request log. */
-  logrequests:    boolean;
+  /**
+   * true logs every request, false none. A number is a status floor: 400 keeps
+   * the errors and drops the successes.
+   */
+  logrequests:    boolean | number;
+  /**
+   * Keys whose value redact() replaces. null keeps igo's default pattern,
+   * which covers the usual English and French names. A pattern set here
+   * replaces the default rather than adding to it — extend
+   * redact.DEFAULT_SENSITIVE_KEYS to keep both.
+   */
+  sensitiveKeys:  RegExp | null;
   [key: string]: unknown;
 }
 
@@ -64,6 +74,16 @@ export declare const app: Express & {
 export declare const config: Config;
 
 export declare function problem(status: number, options?: ProblemOptions): ProblemDocument;
+
+/**
+ * Returns a copy of `value` with every sensitive field replaced by
+ * '[redacted]', following config.sensitiveKeys. Use it before logging a
+ * request body, its query or its headers.
+ */
+export declare function redact<T>(value: T): T;
+export declare namespace redact {
+  const DEFAULT_SENSITIVE_KEYS: RegExp;
+}
 export declare function sendProblem(res: import('express').Response, status: number, options?: ProblemOptions): import('express').Response;
 
 export interface TestResponse {
