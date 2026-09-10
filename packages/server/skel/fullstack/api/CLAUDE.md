@@ -103,6 +103,33 @@ route est protégée.
 Les tests passent par `dev.agent` contre la vraie base. Les mocks ne servent que
 pour les dépendances externes — API tierces, SMTP.
 
+## Dans un projet igo existant
+
+Cette couche API se dépose telle quelle dans un projet igo en JavaScript, à
+côté de ses pages dust. Six gestes, vérifiés :
+
+1. `@igojs/server` et `@igojs/db` en dépendances directes, en plus de
+   `@igojs/igo` — sans quoi ni `tsc` ni Node ne les résolvent depuis le projet.
+2. `zod` et `tsx` en dépendances, `typescript` et les `@types/*` en dev ; un
+   `tsconfig.json` avec `allowJs` et `noEmit` qui couvre `app/` et `test/`.
+3. Copier `app/features/<domaine>/` — contrôleur, DTO, routes, test.
+4. Le modèle reste en JavaScript. Le décrire pour TypeScript par un `.d.ts` à
+   côté, sans le modifier :
+   ```ts
+   // app/models/Book.d.ts
+   import type { ModelClass } from '@igojs/db';
+   import type { BookRow } from '../features/books/books.dto';
+   declare const Book: ModelClass<BookRow>;
+   export = Book;
+   ```
+5. Monter depuis `app/routes.js` avec **`.default`** : un `require` d'un module
+   TypeScript à `export default` rend `{ default }`, et igo refuse le handler.
+   ```js
+   app.api('/books', require('./features/books/books.routes').default);
+   ```
+6. Démarrer par `node --import tsx app.js` (`nodemon --import tsx` en
+   développement), tester par `mocha --require tsx --extension ts,js`.
+
 ## Documentation
 
 - [Routes et API JSON](https://igocreate.github.io/igo/server/api)
