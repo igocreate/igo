@@ -6,8 +6,8 @@ import { useCreateBook } from '../api';
 
 const EMPTY = { title: '', author: '', pages: '' };
 
-// A section owns its mutation. The server is the authority on validity: its
-// per-field errors are displayed as they come, without being re-derived here.
+// Une section possède sa mutation. Le serveur est l'autorité sur la validité :
+// ses erreurs par champ s'affichent telles quelles, sans être redérivées ici.
 export function AddBookSection() {
   const [form, setForm] = useState(EMPTY);
   const createBook = useCreateBook();

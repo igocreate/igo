@@ -4,8 +4,8 @@ import { afterAll, afterEach, beforeAll } from 'vitest';
 
 import { server } from './msw-server';
 
-// MSW intercepts at the network level, so the production apiClient runs
-// untouched: swapping the HTTP wrapper does not break these tests.
+// MSW intercepte au niveau du réseau, donc le vrai apiClient tourne sans
+// modification : remplacer l'enveloppe HTTP ne casse pas ces tests.
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
   server.resetHandlers();

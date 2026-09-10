@@ -1,7 +1,7 @@
 import type { Book } from '../types';
 
-// Pure: everything arrives through props. No useQuery here — see the data
-// injection rule in the front conventions.
+// Pur : tout arrive par les props. Pas de useQuery ici — voir la règle
+// d'injection des données dans les conventions du front.
 export function BooksList({ books }: { books: Book[] }) {
   if (books.length === 0) {
     return <p className="text-slate-500">No book yet.</p>;

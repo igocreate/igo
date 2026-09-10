@@ -2,8 +2,8 @@ import { useBooks } from '../api';
 import { BooksList } from '../components/books-list';
 import { AddBookSection } from '../sections/add-book-section';
 
-// A page assembles. Loading and error states are handled explicitly rather
-// than left to a spinner that never resolves.
+// Une page assemble. Les états de chargement et d'erreur sont traités
+// explicitement, plutôt que laissés à un indicateur qui tourne sans fin.
 export function BooksPage() {
   const { data, isPending, isError, error } = useBooks();
 

@@ -5,7 +5,8 @@ import { aBook } from '@/test/handlers';
 
 import { BooksList } from './books-list';
 
-// A pure component needs no providers: props in, markup out.
+// Un composant pur n'a besoin d'aucun provider : des props en entrée, du
+// balisage en sortie.
 describe('BooksList', () => {
   it('should list every book', () => {
     render(<BooksList books={[aBook(), aBook({ id: 2, title: 'Neuromancer' })]} />);

@@ -4,12 +4,13 @@ import type { ApiHandler } from '@igojs/server';
 import Book from './Book';
 import * as dto from './books.dto';
 
-// The `type` is what a client branches on — the status alone cannot tell two
-// business situations apart. It is a URI, and the slug belongs to the project.
+// Le `type` est ce sur quoi un client branche — le statut seul ne distingue pas
+// deux situations métier. C'est une URI, et le slug appartient au projet.
 const BOOK_NOT_FOUND = '/problems/book-not-found';
 
-// The schemas below give req.body and req.query their types: no shape is
-// declared twice, and a field that is not in the schema is a compile error.
+// Les schémas ci-dessous donnent leurs types à req.body et req.query : aucune
+// forme n'est déclarée deux fois, et un champ absent du schéma est une erreur de
+// compilation.
 export const index: ApiHandler<{ query: typeof dto.ListBooks }> = async (req, res) => {
   const { page, limit, published } = req.query;
 

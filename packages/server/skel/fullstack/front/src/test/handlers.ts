@@ -12,8 +12,8 @@ export const aBook = (overrides: Partial<Book> = {}): Book => ({
   ...overrides,
 });
 
-// Default handlers describe the happy path; a test overrides the one case it
-// is about with server.use().
+// Les handlers par défaut décrivent le cas nominal ; un test surcharge avec
+// server.use() le seul cas qui le concerne.
 export const handlers = [
   http.get('/api/books', () =>
     HttpResponse.json({

@@ -1,8 +1,8 @@
 import type { Locator, Page } from '@playwright/test';
 
-// A page object exposes locators and the actions that reach them. It holds no
-// assertion: what counts as correct belongs to the test, so the same locator
-// can be expected present in one test and absent in another.
+// Un page object expose des locators et les actions qui y mènent. Il ne porte
+// aucune assertion : ce qui est correct appartient au test, si bien qu'un même
+// locator peut être attendu présent dans un test et absent dans un autre.
 export class BooksPage {
   readonly heading: Locator;
   readonly loading: Locator;

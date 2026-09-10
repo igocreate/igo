@@ -2,9 +2,9 @@ import { expect, test } from '@playwright/test';
 
 import { BooksPage } from './pages/books.page';
 
-// E2E covers the wiring end to end — browser, front build, proxy, API, database.
-// Everything below that is already covered faster by the front and back tests,
-// so this file stays short on purpose.
+// Un E2E couvre le câblage de bout en bout — navigateur, build du front, proxy,
+// API, base. Tout ce qui se couvre plus bas l'est déjà plus vite par les tests
+// du front et du back, donc ce fichier reste court à dessein.
 test.describe('books', () => {
   test('should list the books served by the API', async ({ page }) => {
     const books = new BooksPage(page);
@@ -19,7 +19,10 @@ test.describe('books', () => {
     const books = new BooksPage(page);
     await books.goto();
 
-    // the database is shared with the other tests, so the title has to be ours
+    // La base est partagée avec les autres tests, et ils tournent en parallèle :
+    // ce test se donne donc une donnée qui lui appartient. Vaut aussi pour une
+    // donnée qu'on modifie — trancher une entrée des seeds fait passer le test
+    // une fois, puis échouer.
     const title = `Dune ${Date.now()}`;
     await books.addBook({ title, author: 'Frank Herbert', pages: '412' });
 

@@ -1,6 +1,7 @@
-// Mirrors the DTO the back serializes. Kept by hand: the back is JavaScript,
-// so there is no contract to generate from — a mismatch shows up in the
-// feature tests, which run against the real payload shape.
+// Reflète le DTO que le back sérialise. Écrit à la main : le back est en
+// JavaScript, il n'y a donc aucun contrat à partir duquel générer — un écart se
+// voit dans les tests de feature, qui tournent contre la forme réelle de la
+// charge.
 export interface Book {
   id: number;
   title: string;
