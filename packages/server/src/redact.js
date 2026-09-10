@@ -39,11 +39,21 @@ const DEFAULT_SENSITIVE_KEYS = new RegExp(
 
 const pattern = () => config.sensitiveKeys || DEFAULT_SENSITIVE_KEYS;
 
+// Only plain objects and arrays are walked. A Date or a Buffer copied key by
+// key comes out as `{}`, which is worse than the value it replaced.
+const isPlain = (value) => {
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+};
+
 // Returns a copy with every sensitive value replaced. Circular references are
 // tracked: a request body can hold one, and a crash report must not recurse
 // until the stack gives out.
 const redact = (value, seen = new WeakSet()) => {
   if (!value || typeof value !== 'object') {
+    return value;
+  }
+  if (!Array.isArray(value) && !isPlain(value)) {
     return value;
   }
   if (seen.has(value)) {

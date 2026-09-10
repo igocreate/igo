@@ -235,8 +235,30 @@ const handle = (err, req, res) => {
   res.status(500).send(stacktrace);
 };
 
+// A CLI command has no request to answer and no server to keep alive: one
+// line saying what failed, then exit. The database errors name the server
+// they failed against, since the usual cause is another MySQL on the port.
+const DB_ERROR = /^(ER_|ECONNREFUSED$|ETIMEDOUT$|ENOTFOUND$|EHOSTUNREACH$)/;
+
+const describeCliError = (err) => {
+  const message = err?.message || String(err);
+  if (!DB_ERROR.test(err?.code || '')) {
+    return message;
+  }
+  const { host, port, database } = config.mysql || {};
+  return `MySQL ${host}:${port}/${database}: ${message}`;
+};
+
+const failCli = (err) => {
+  console.error(`\x1b[31m✖\x1b[0m ${describeCliError(err)}`);
+  process.exit(1);
+};
+
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
+  if (global.IGO_CLI) {
+    return failCli(err);
+  }
   const context = asyncLocalStorage.getStore();
 
   if (context && context.req && context.res) {
@@ -251,6 +273,9 @@ process.on('unhandledRejection', (err) => {
 
 // Handle uncaught exceptions - log, send email, then exit
 process.on('uncaughtException', (err) => {
+  if (global.IGO_CLI) {
+    return failCli(err);
+  }
   const context = asyncLocalStorage.getStore();
   const handled = !!(context && context.req && context.res);
 
@@ -322,6 +347,7 @@ module.exports.errorSQL = (err) => {
 
 // Exposed for testing
 module.exports._test = {
+  describeCliError,
   escapeHtml,
   redact,
   checkThrottle,

@@ -18,6 +18,10 @@ declare global {
        */
       api(path: string, ...handlers: Array<RequestHandler | Router>): Application;
     }
+    interface Request {
+      /** Trace id of the request: the active span's when instrumented, an inbound traceparent's, or one igo generated. */
+      traceId: string;
+    }
   }
 }
 

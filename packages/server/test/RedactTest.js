@@ -10,6 +10,14 @@ describe('redact', function() {
     config.sensitiveKeys = null;
   });
 
+  it('should leave a Date or a Buffer as it is', () => {
+    const when = new Date('2026-01-01');
+    const out  = redact({ when, raw: Buffer.from('ab'), nested: { password: 'x' } });
+    assert.strictEqual(out.when, when);
+    assert(Buffer.isBuffer(out.raw));
+    assert.strictEqual(out.nested.password, '[redacted]');
+  });
+
   it('should redact the usual English field names', () => {
     const out = redact({ password: 'x', token: 'y', authorization: 'z', cookie: 'c' });
     assert.deepStrictEqual(out, {

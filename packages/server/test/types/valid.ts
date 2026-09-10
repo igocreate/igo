@@ -15,7 +15,8 @@ const ListBooks = z.object({
 export const create: ApiHandler<{ body: typeof CreateBook }> = (req, res) => {
   const title: string = req.body.title;
   const pages: number = req.body.pages;
-  res.status(201).json({ title, pages });
+  const traceId: string = req.traceId;
+  res.status(201).json({ title, pages, traceId });
 };
 create.body = CreateBook;
 

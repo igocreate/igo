@@ -37,9 +37,16 @@ const activeSpanContext = () => {
 
 const activeTraceId = () => activeSpanContext()?.traceId ?? null;
 
-// Only known when a SDK is registered: without a span there is no server side
-// for a client to attach to, so no traceresponse is sent.
-const activeSpanId = () => activeSpanContext()?.spanId ?? null;
+// The way back, as W3C Trace Context Level 2 defines it: the trace id, the
+// server span id a browser can attach its own span to, and whether the server
+// recorded the trace. Without a SDK igo minted the trace id itself, so it mints
+// the span id the same way and reports the trace as not recorded.
+const traceresponse = (traceId) => {
+  const span  = activeSpanContext();
+  const id    = span?.spanId ?? randomBytes(8).toString('hex');
+  const flags = (span?.traceFlags ?? 0).toString(16).padStart(2, '0');
+  return `00-${traceId}-${id}-${flags}`;
+};
 
 // The version is deliberately not pinned to `00`: Trace Context Level 2 exists,
 // and the spec asks implementations to stay lenient about an unknown version
@@ -169,14 +176,8 @@ module.exports = (req, res, next) => {
 
   req.traceId = traceId;
 
-  // traceresponse is what W3C Trace Context Level 2 defines for the way back,
-  // and it carries the server span id as well — which is what lets a browser
-  // attach its span to the server's. No X-Request-Id: one identity, under the
-  // name the specification gives it.
-  const spanId = activeSpanId();
-  if (spanId) {
-    res.setHeader('traceresponse', `00-${traceId}-${spanId}-01`);
-  }
+  // No X-Request-Id: one identity, under the name the specification gives it.
+  res.setHeader('traceresponse', traceresponse(traceId));
 
   captureResponseBody(res);
 

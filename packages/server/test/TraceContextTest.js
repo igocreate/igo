@@ -173,8 +173,7 @@ describe('trace context', function() {
     assert.strictEqual(lines[0].trace_id, traceId);
   });
 
-  // X-Request-Id is gone: one identity, under the name the spec gives it. And
-  // traceresponse needs a server span, which only a registered SDK provides.
+  // X-Request-Id is gone: one identity, under the name the spec gives it.
   it('should expose no id outside of a request', () => {
     assert.strictEqual(middleware.traceId(), undefined);
   });
@@ -183,8 +182,12 @@ describe('trace context', function() {
     assert.strictEqual(run().sent['X-Request-Id'], undefined);
   });
 
-  it('should send no traceresponse without instrumentation', () => {
-    assert.strictEqual(run().sent.traceresponse, undefined);
+  // igo minted the trace id, so it mints the span id too, and says the trace
+  // was not recorded: the client still gets the id support will look for.
+  it('should send traceresponse with a generated span id when not instrumented', () => {
+    const { traceId, sent } = run();
+    assert.strictEqual(sent.traceresponse, `00-${traceId}-${sent.traceresponse.slice(36, 52)}-00`);
+    assert.match(sent.traceresponse.slice(36, 52), /^[0-9a-f]{16}$/);
   });
 
 });

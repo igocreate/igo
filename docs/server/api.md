@@ -21,6 +21,10 @@ repeated in the code. Override it in `app/config.js` if you need to:
 config.api.prefix = '/v1';
 ```
 
+An API request skips the middlewares that only serve rendered pages — flash
+scope, view locals, asset manifest — so no session cookie is set until a
+controller writes to `req.session`.
+
 ## Anatomy of a domain
 
 ```

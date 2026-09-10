@@ -11,6 +11,7 @@ const cache             = require('./cache');
 const config            = require('./config');
 const db                = require('@igojs/db');
 const assets            = require('./connect/assets');
+const { unlessApi }     = require('./api');
 const errorHandler      = require('./connect/errorhandler');
 const flash             = require('./connect/flash');
 const locals            = require('./connect/locals');
@@ -112,7 +113,7 @@ module.exports.configure = async () => {
 
 
   app.use(requestLogger);
-  app.use(flash);
+  app.use(unlessApi(flash));
   app.use(validator);
 
   // fix crash if lang is incorrect (in query or in cookies)
@@ -121,9 +122,9 @@ module.exports.configure = async () => {
   app.use(validateLang(whitelist, config.i18n.fallbackLng));
   app.use(i18nMiddleware.handle(i18next));
 
-  app.use(locals);
-  app.use(assets);
-  app.use(igodust.middleware);
+  app.use(unlessApi(locals));
+  app.use(unlessApi(assets));
+  app.use(unlessApi(igodust.middleware));
 
   // Auto-wire @igojs/component if installed in the project.
   // Registers component.middleware + GET /__component/templates and /__component/component.

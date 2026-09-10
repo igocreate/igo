@@ -32,4 +32,11 @@ module.exports.wire = () => {
   }
 };
 
+// Wraps a middleware that only serves rendered pages — flash scope, view
+// locals, asset manifest — so an API request skips it. What it skips is not
+// only wasted work: the flash scope writes to the session on every GET, and
+// that alone made every JSON response set a session cookie nothing reads.
+module.exports.unlessApi = (middleware) => (req, res, next) =>
+  problem.isApiRequest(req) ? next() : middleware(req, res, next);
+
 module.exports.problem = problem;
