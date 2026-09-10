@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Router, type RequestHandler } from 'express';
+import { Router, type NextFunction, type Request, type RequestHandler, type Response } from 'express';
 import { Model } from '@igojs/db';
 import type { ApiHandler } from '../../index';
 
@@ -43,8 +43,20 @@ index.query = ListBooks;
 // its refused-access case, so this is the ordinary shape, not an edge case.
 const guard: RequestHandler = (_req, _res, next) => next();
 
+// A guard in front of a handler whose params are typed by a schema has to be
+// generic on the params: a RequestHandler would pin them to ParamsDictionary.
+const BookId = z.object({ id: z.coerce.number().int().positive() });
+export const destroy: ApiHandler<{ params: typeof BookId }> = (req, res) => {
+  const id: number = req.params.id;
+  res.status(204).json({ id });
+};
+destroy.params = BookId;
+
+const guardParams = <P>(_req: Request<P>, _res: Response, next: NextFunction) => next();
+
 const router = Router();
 router.get('/books', index);
+router.delete('/books/:id', guardParams, destroy);
 router.get('/books/guarded', guard, index);
 router.get('/books/twice', guard, guard, index);
 router.post('/books', guard, create);

@@ -139,10 +139,20 @@ describe('api/books', function () {
   });
 
   describe('DELETE /api/books/:id', function () {
-    it('supprime le livre', async () => {
+    it('exige une session', async () => {
       const book = await createBook();
 
       const res = await agent.delete(`/api/books/${book.id}`);
+
+      assert.strictEqual(res.statusCode, 401);
+      assert.strictEqual(res.data.type, '/problems/unauthenticated');
+      assert.notStrictEqual(await Book.find(book.id), null);
+    });
+
+    it('supprime le livre', async () => {
+      const book = await createBook();
+
+      const res = await agent.delete(`/api/books/${book.id}`, { session: { userId: 1 } });
 
       assert.strictEqual(res.statusCode, 204);
       assert.strictEqual(await Book.find(book.id), null);

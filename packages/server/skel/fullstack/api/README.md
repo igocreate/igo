@@ -30,7 +30,7 @@ app/
     <domaine>.dto.ts        schémas entrants + serialize sortant
     <domaine>.service.ts    logique métier, dès qu'elle branche
     <Modèle>.ts             le modèle ORM du domaine
-  shared/                   ce qui est transversal — models, services, utils
+  shared/                   ce qui est transversal — authentication, models, services
   config.ts                 surcharge de la config igo — optionnel, absent au départ
   routes.ts                 montage
 sql/                        migrations, une par fichier daté
@@ -89,6 +89,14 @@ le client teste, jamais le libellé.
 
 **La logique métier vit dans les services**, pas dans les contrôleurs, dès
 qu'elle dépasse un appel au modèle.
+
+**Une route protégée passe par `requireSession`** (`shared/authentication.ts`),
+qui répond 401 quand personne n'est en session. Ce que le projet fait de
+`req.session.userId` — charger l'utilisateur, vérifier un rôle — lui appartient ;
+le 403, connu mais sans droit sur la ressource, se répond dans le contrôleur par
+`sendProblem(res, 403, { type })`. Une garde est générique sur les paramètres de
+route (`<P>(req: Request<P>, …)`) : typée `RequestHandler`, elle imposerait ses
+paramètres au handler qui la suit.
 
 **Les logs portent des champs, pas des phrases** : `logger.info('book created',
 { book_id })` plutôt qu'une chaîne interpolée. L'identifiant de requête est
