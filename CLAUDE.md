@@ -57,7 +57,7 @@ Igo is a Node.js full-stack web framework built on Express, providing ORM, templ
 - **CLI:** `packages/server/cli/igo.js`
 - **JSON API layer:** `packages/server/src/api/`
 - **TypeScript types:** `packages/server/index.d.ts`
-- **Project skeletons:** `packages/server/skel/` — `api`, `front` and `fullstack` scaffold TypeScript projects with their own tooling (pnpm, oxlint, oxfmt); the others are igo apps
+- **Project skeletons:** `packages/server/skel/` — `fullstack` scaffolds a TypeScript API + React SPA monorepo with its own tooling (pnpm, oxlint, oxfmt); `tailwind` is the server-rendered igo app
 
 ### @igojs/component (Reactive Components)
 - Single-file `.dust` components (`<script>` + template)

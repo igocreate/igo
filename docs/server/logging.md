@@ -63,38 +63,74 @@ Every request is logged once it completes:
 
 ```json
 {"level":"info","message":"request","method":"GET","path":"/api/books",
- "status":200,"duration_ms":5.4,"request_id":"c253246c-…","timestamp":"…"}
+ "status":200,"duration_ms":5.4,"trace_id":"4bf92f3577b34da6a3ce929d0e0e4736","timestamp":"…"}
 ```
 
 The level follows the status: `error` at 5xx, `warn` at 4xx, `info` otherwise.
+An error line also carries what the call failed with — `body`, `query`, `params`
+and the `response` sent — redacted and truncated. A successful line does not.
 
-```js
-config.logrequests = false;   // silence it (already off in tests)
+`config.logrequests` takes `true`, `false`, or a **status floor**: `400` keeps
+the errors and drops the successes. One line per request is the largest item in
+a log bill, and once latency and error rate come from metrics the successes
+teach little. It is a deployment setting, so `LOG_REQUESTS` sets it from the
+environment like `LOG_FORMAT` does:
+
+```sh
+LOG_REQUESTS=400 npm start    # production: errors only
 ```
 
-## Request id
+Off in tests.
 
-Each request gets an id, exposed three ways:
+## Trace id
 
-- **`req.id`** in a handler,
-- **`X-Request-Id`** on the response,
-- **`request_id`** on every log emitted during that request — including your own
+Each request has one identity, the W3C Trace Context trace id, exposed three
+ways:
+
+- **`req.traceId`** in a handler,
+- **`traceresponse`** on the response — `00-<trace-id>-<span-id>-<flags>`, the
+  way back that Trace Context Level 2 defines,
+- **`trace_id`** on every log emitted during that request — including your own
   `logger.info()` calls, with nothing to pass along.
 
 ```js
 exports.create = async (req, res) => {
   logger.info('creating a book', { title: req.body.title });
-  // -> {"message":"creating a book","title":"…","request_id":"c253246c-…"}
+  // -> {"message":"creating a book","title":"…","trace_id":"4bf92f3577b34da6a3ce929d0e0e4736"}
 };
 ```
 
 That is what lets the lines of one request be pulled together, and a client
-report be matched with what the server did.
+report be matched with what the server did: a front end can read
+`traceresponse` and show the id next to the error.
 
-An inbound `X-Request-Id` or `X-Correlation-Id` is **reused** rather than
-replaced, so a request keeps one id across a proxy or between services. A front
-end that sends the id it generated can then point at the exact server-side
-request behind an error it saw.
+An inbound `traceparent` is **reused** rather than replaced, so a request keeps
+one identity across a proxy or between services. The header is validated first:
+a malformed or duplicated one is ignored.
+
+When an OpenTelemetry SDK is registered, the ids are those of the active span,
+and the flags say whether the trace was sampled. Without one, igo mints a trace
+id and a span id of the same shape, with flags `00`: the day instrumentation
+arrives, nothing changes in the code, the logs or the clients.
+
+## Sensitive fields
+
+Anything igo logs from a request — the error context above, the crash emails —
+goes through `redact()`, which replaces the values of the usual credential
+fields: `password`, `token`, `secret`, `cookie`, `authorization`, and their
+French names. The default stops there, on purpose: igo cannot know which of
+your domain's fields are sensitive. Extend it:
+
+```js
+// app/config.js
+const { redact } = require('@igojs/server');
+
+module.exports.init = (config) => {
+  config.sensitiveKeys = new RegExp(`${redact.DEFAULT_SENSITIVE_KEYS.source}|iban|numero.?secu`, 'i');
+};
+```
+
+`redact()` is exported for your own logging: `logger.info('payload', redact(req.body))`.
 
 ## Sending logs elsewhere
 

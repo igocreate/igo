@@ -100,7 +100,7 @@ Convention existante maintenue : **les POMs exposent des locators, les assertion
 
 **MSW (Mock Service Worker)** — intercepte les appels `fetch` au niveau réseau pour les tests de feature. Les mêmes handlers servent aussi en **mode développement sans serveur**. Voir Considered Options pour le comparatif avec le mock du `apiClient`.
 
-**Playwright** — déjà en place pour les E2E, conservé. Seule addition envisagée : `axe-playwright` pour attraper les régressions d'accessibilité sur les parcours critiques.
+**Playwright** — déjà en place pour les E2E, conservé. Seule addition envisagée : `@axe-core/playwright` (le paquet de Deque ; `axe-playwright`, plus ancien, est délaissé) pour attraper les régressions d'accessibilité sur les parcours critiques.
 
 ### Où vivent les tests
 
@@ -144,7 +144,7 @@ Les E2E Playwright restent dans leur arborescence existante, séparés du code s
 Deux niveaux, du moins cher au plus exigeant :
 
 1. **Testing Library par construction.** Les requêtes par rôle (`getByRole('button')`, `getByLabelText('Nom')`) échouent si le composant n'expose pas les rôles ARIA attendus. C'est le filet de base, et il ne coûte rien de plus que d'écrire les tests correctement.
-2. **axe-playwright sur les E2E.** Un appel `checkA11y()` ajouté aux parcours critiques existants attrape les violations WCAG sans écrire de test supplémentaire. Coût d'ajout : une ligne par test.
+2. **`@axe-core/playwright` sur les E2E.** Un `AxeBuilder({ page }).analyze()` sur chaque écran du parcours attrape les violations WCAG 2.1 AA sans écrire de test supplémentaire. Coût d'ajout : quelques lignes par écran.
 
 Aucun des deux ne remplace un audit RGAA, mais ils empêchent les régressions les plus courantes de passer.
 

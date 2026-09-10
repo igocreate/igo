@@ -10,7 +10,7 @@ problem documents, never as a rendered page.
 ```js
 // app/routes.js
 module.exports.init = (app) => {
-  app.api('/books', require('./api/books/books.routes'));   // -> /api/books
+  app.api('/books', require('./features/books/books.routes'));   // -> /api/books
 };
 ```
 
@@ -28,7 +28,7 @@ controller writes to `req.session`.
 ## Anatomy of a domain
 
 ```
-app/api/books/
+app/features/books/
   books.routes.js       the endpoints
   books.controller.js   thin: model or service -> DTO
   books.dto.js          incoming schemas + outgoing serialization

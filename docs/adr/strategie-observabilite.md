@@ -25,7 +25,7 @@ Quatre piliers, par ordre de priorité :
 
 **1. Erreurs** (critique) — capturer les exceptions front (JS, réseau) et back (exceptions, rejets de promesse, erreurs services tiers — API partenaires, SMTP, stockage). Avec : source maps résolues, déduplication, breadcrumbs, corrélation front/back, suivi par release.
 
-**2. Logs structurés** (haute) — format JSON avec attributs standardisés (`level`, `timestamp`, `service`, `version`, `env`, `requestId`, `httpStatus`, `userId`, `duration`). Centralisés, cherchables, rétention 7-15 jours en prod / 3 jours en staging. Pas de données sensibles.
+**2. Logs structurés** (haute) — format JSON avec attributs standardisés (`level`, `timestamp`, `service`, `version`, `env`, `trace_id`, `httpStatus`, `userId`, `duration`). Centralisés, cherchables, rétention 7-15 jours en prod / 3 jours en staging. Pas de données sensibles.
 
 Ce qu'on logue : requêtes HTTP, erreurs applicatives, requêtes SQL lentes, démarrage/arrêt du service, événements métier significatifs, appels services tiers.
 
@@ -215,7 +215,7 @@ Les besoins complets sont détaillés dans le Context. Résumé pour référence
 
 **Erreurs** — source maps, dédup, breadcrumbs, corrélation front/back, suivi par release. Services tiers inclus (API partenaires, SMTP, stockage).
 
-**Logs** — JSON, centralisés, 7-15 jours prod / 3 jours staging. Attributs : `level`, `timestamp`, `service`, `version`, `env`, `requestId`, `httpStatus`, `userId`, `duration`.
+**Logs** — JSON, centralisés, 7-15 jours prod / 3 jours staging. Attributs : `level`, `timestamp`, `service`, `version`, `env`, `trace_id`, `httpStatus`, `userId`, `duration`.
 
 **Métriques** — P50/P95/P99 par route, taux d'erreur HTTP, SQL lentes, Web Vitals (grand public), uptime. Métriques métier custom par projet. Infra bare metal en nice-to-have.
 
