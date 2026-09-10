@@ -254,7 +254,7 @@ loaded at runtime. A JavaScript project is unaffected.
 ## Starting a new API project
 
 ```bash
-igo create myapi --skel=api
+igo create myapi --skel=fullstack
 ```
 
 TypeScript, with a working domain — model, DTO, controller, routes, migration

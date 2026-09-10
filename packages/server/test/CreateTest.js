@@ -7,7 +7,7 @@ const path   = require('path');
 
 const create = require('@igojs/server/cli/create');
 
-const SKELETONS = ['tailwind', 'api', 'front', 'fullstack'];
+const SKELETONS = ['tailwind', 'fullstack'];
 
 describe('cli/create', function() {
   this.timeout(20000);
@@ -43,28 +43,29 @@ describe('cli/create', function() {
     assert(fs.existsSync(path.join(tmp, 'myapp', 'views')), 'tailwind skeleton has views');
   });
 
-  it('should carry the api conventions into the api skeletons', async () => {
-    await create({ _: ['create', 'myapi'], skel: 'api' });
+  it('should carry the api conventions into the api skeleton', async () => {
+    await create({ _: ['create', 'myapi'], skel: 'fullstack' });
 
-    const routes = fs.readFileSync(path.join(tmp, 'myapi', 'app', 'routes.ts'), 'utf8');
+    const routes = fs.readFileSync(path.join(tmp, 'myapi', 'api', 'app', 'routes.ts'), 'utf8');
     assert(routes.includes('app.api('), 'routes mount through app.api()');
 
     const controller = fs.readFileSync(
-      path.join(tmp, 'myapi', 'app', 'features', 'books', 'books.controller.ts'), 'utf8');
+      path.join(tmp, 'myapi', 'api', 'app', 'features', 'books', 'books.controller.ts'), 'utf8');
     assert(controller.includes('create.body = dto.CreateBook'),
            'schema is attached to the handler');
     assert(controller.includes('\'/problems/book-not-found\''),
            'business errors carry their own problem type');
   });
 
-  it('should ship migrations and seeds in the api skeletons', async () => {
-    await create({ _: ['create', 'myapi'], skel: 'api' });
+  it('should ship migrations and seeds in the api skeleton', async () => {
+    await create({ _: ['create', 'myapi'], skel: 'fullstack' });
 
-    const pkg = JSON.parse(fs.readFileSync(path.join(tmp, 'myapi', 'package.json'), 'utf8'));
+    const pkg = JSON.parse(
+      fs.readFileSync(path.join(tmp, 'myapi', 'api', 'package.json'), 'utf8'));
     assert(pkg.scripts.migrate, 'migrate script');
     // the seeds import the TS models, so the CLI needs the tsx loader
     assert(pkg.scripts.seed.includes('tsx'), `seed runs under tsx: ${pkg.scripts.seed}`);
 
-    assert(fs.existsSync(path.join(tmp, 'myapi', 'seeds', '001-books.ts')));
+    assert(fs.existsSync(path.join(tmp, 'myapi', 'api', 'seeds', '001-books.ts')));
   });
 });

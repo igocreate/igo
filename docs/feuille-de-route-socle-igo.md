@@ -23,7 +23,7 @@ Les améliorations sont cumulatives : ce qui sert aux refontes sert aussi aux gr
 | **Réponses d'erreur JSON** | Sous le préfixe API, tout répond en JSON au format RFC 9457 — 500, 404 et erreurs de validation | Faible |
 | **Middleware de validation Zod** | Middleware global monté par igo ; le schéma est attaché au handler, rien à écrire dans les routes | Faible |
 | **Déclarations TypeScript** | `.d.ts` sur l'API publique — les schémas Zod deviennent la source des types, sans impact sur les projets JS | Moyen |
-| **Squelettes** | `skel/api`, `skel/front`, `skel/fullstack` — TypeScript, pnpm, oxlint/oxfmt, hooks git, CI | Moyen |
+| **Squelettes** | `skel/fullstack` — TypeScript, pnpm, oxlint/oxfmt, hooks git, CI | Moyen |
 | **Logs structurés** | JSON en production, identifiant de requête propagé, une ligne par requête — prépare l'ingestion Loki sans dépendre de l'outil | Faible |
 
 ## Phase 2 — Première refonte front

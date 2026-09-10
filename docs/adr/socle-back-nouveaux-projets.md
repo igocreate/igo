@@ -33,7 +33,7 @@ Le socle allégé : igo sans dust, sans `@igojs/component`, sans webpack, sans f
 | Évolution | Effort | ADR de référence |
 |---|---|---|
 | Retirer dust, component, webpack, forms de l'export | Faible | — |
-| Squelette API-first (`skel/api`) | Moyen | [Organisation sources back](organisation-des-sources-back.md) |
+| Squelette API-first (`skel/fullstack`) | Moyen | [Organisation sources back](organisation-des-sources-back.md) |
 | TypeScript (`allowJs: true` + `.d.ts` sur l'API publique) | Moyen | — |
 | Middleware validation Zod | Faible | [Organisation sources back](organisation-des-sources-back.md) |
 | Error handler JSON sur les routes API | Faible | [Organisation sources back](organisation-des-sources-back.md) |

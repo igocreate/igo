@@ -38,9 +38,7 @@ npm start
 target the API-first stack:
 
 ```sh
-npx @igojs/server create myapp --skel=api         # TypeScript JSON API
-npx @igojs/server create myapp --skel=front       # React SPA on that API
-npx @igojs/server create myapp --skel=fullstack   # both, in one repository
+npx @igojs/server create myapp --skel=fullstack   # TypeScript JSON API + React SPA
 ```
 
 | | What it holds |
