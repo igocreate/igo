@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Router, type RequestHandler } from 'express';
 import type { ApiHandler } from '../../index';
 
 const CreateBook = z.object({
@@ -24,3 +25,15 @@ export const index: ApiHandler<{ query: typeof ListBooks }> = (req, res) => {
   res.json({ page, status });
 };
 index.query = ListBooks;
+
+// A guard in front of a paginated handler: Express takes the handlers of one
+// route in a rest parameter, so the middleware used to pin the query type to
+// ParsedQs and no overload matched. The ADR asks every API controller to cover
+// its refused-access case, so this is the ordinary shape, not an edge case.
+const guard: RequestHandler = (_req, _res, next) => next();
+
+const router = Router();
+router.get('/books', index);
+router.get('/books/guarded', guard, index);
+router.get('/books/twice', guard, guard, index);
+router.post('/books', guard, create);
