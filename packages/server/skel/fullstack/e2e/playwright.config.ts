@@ -20,27 +20,29 @@ export default defineConfig({
 
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 
-  // Two servers: the API, and the built front that proxies /api to it — the
-  // way nginx does in production. Playwright starts both and stops them after.
+  // Deux serveurs : l'API, et le front construit qui lui proxifie /api — comme
+  // nginx le fait en production. Playwright démarre les deux et les arrête
+  // ensuite.
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : [
         {
-          // in CI the build is what ships, so that is what gets tested;
-          // locally, tsx watch avoids a rebuild on every run
+          // en CI, c'est le build qui part en production, donc c'est lui qu'on
+          // teste ; en local, tsx watch évite une reconstruction à chaque essai
           command: process.env.CI ? 'pnpm --filter ../api serve' : 'pnpm --filter ../api start',
-          // polled to know the API is up: any route it answers 2xx on will do
+          // interrogée pour savoir si l'API répond : n'importe quelle route sur
+          // laquelle elle rend un 2xx convient
           url: `${API_URL}/api/books`,
           reuseExistingServer: !process.env.CI,
-          timeout: 120_000,
+          timeout: 10_000,
         },
         {
-          // --host binds 127.0.0.1 too: vite listens on localhost (IPv6) by
-          // default, which the url below would never reach.
+          // --host écoute aussi sur 127.0.0.1 : vite écoute par défaut sur
+          // localhost (IPv6), que l'url ci-dessous n'atteindrait jamais.
           command: `pnpm --filter ../front exec vite preview --port ${PORT} --strictPort --host 127.0.0.1`,
           url: BASE_URL,
           reuseExistingServer: !process.env.CI,
-          timeout: 60_000,
+          timeout: 10_000,
         },
       ],
 });

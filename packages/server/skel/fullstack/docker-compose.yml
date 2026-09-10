@@ -1,6 +1,16 @@
-# Local dependencies. The app itself runs natively — `pnpm start`.
+# Les dépendances locales. L'application elle-même tourne nativement —
+# `pnpm start`.
 #
 #   docker compose up -d
+#
+# Les ports publiés valent les ports habituels par défaut, et se déplacent
+# depuis le .env de la racine — utile sur un poste qui fait déjà tourner un
+# MySQL ou un Valkey :
+#
+#   MYSQL_PORT=3308
+#   REDIS_PORT=6382
+#
+# Ce qui est choisi ici doit correspondre à api/.env, que l'application lit.
 #
 services:
   mysql:
@@ -10,9 +20,9 @@ services:
       MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
       MYSQL_DATABASE: '{project.name}'
     ports:
-      - '3306:3306'
-    # igo connects in utf8mb4: a server left on its default charset breaks on
-    # the first accented character.
+      - '${MYSQL_PORT:-3306}:3306'
+    # igo se connecte en utf8mb4 : un serveur laissé sur son jeu de caractères
+    # par défaut casse au premier caractère accentué.
     command: >-
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
@@ -28,7 +38,7 @@ services:
     image: valkey/valkey:8
     restart: unless-stopped
     ports:
-      - '6379:6379'
+      - '${REDIS_PORT:-6379}:6379'
     healthcheck:
       test: ['CMD', 'valkey-cli', 'ping']
       interval: 10s
