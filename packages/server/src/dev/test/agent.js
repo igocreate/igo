@@ -73,6 +73,39 @@ const mockResponse = () => {
     }, 10000);
   });
 
+  // Express emits 'finish' once a response is written, and middlewares hang
+  // their after-the-fact work on it — a request log, a metric, an audit trail.
+  // A mock that never emits it makes all of that untestable.
+  const listeners = {};
+
+  res.on = (event, callback) => {
+    (listeners[event] = listeners[event] || []).push(callback);
+    return res;
+  };
+
+  res.removeListener = (event, callback) => {
+    listeners[event] = (listeners[event] || []).filter(cb => cb !== callback);
+    return res;
+  };
+
+  res.emit = (event, ...args) => {
+    for (const callback of listeners[event] || []) {
+      callback(...args);
+    }
+    return (listeners[event] || []).length > 0;
+  };
+
+  // Emitted once, like the real thing: a listener added after the response is
+  // written must not fire it a second time.
+  let finished = false;
+  const finish = () => {
+    if (finished) {
+      return;
+    }
+    finished = true;
+    res.emit('finish');
+  };
+
   res.getHeader = (name) => {
     return res.headers[name];
   };
@@ -88,6 +121,7 @@ const mockResponse = () => {
     }
     res.statusCode  = statusCode;
     res.redirectUrl = redirectUrl;
+    finish();
     resolveResponse(res);
   };
 
@@ -101,6 +135,7 @@ const mockResponse = () => {
 
   res.send = (data) => {
     res.body = data;
+    finish();
     resolveResponse(res);
   };
 
@@ -108,6 +143,7 @@ const mockResponse = () => {
     if (chunk) {
       res.body += chunk;
     }
+    finish();
     resolveResponse(res);
   };
 
