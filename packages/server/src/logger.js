@@ -9,8 +9,8 @@ const humanFormat = () => winston.format.combine(
   winston.format.timestamp(),
   winston.format.splat(),
   winston.format.printf(info => {
-    const { timestamp, level, message, request_id, ...rest } = info;
-    const id     = request_id ? ` [${request_id.slice(0, 8)}]` : '';
+    const { timestamp, level, message, trace_id, ...rest } = info;
+    const id     = trace_id ? ` [${String(trace_id).slice(0, 8)}]` : '';
     const fields = Object.keys(rest).length ? ` ${JSON.stringify(rest)}` : '';
     return `${timestamp} ${level}:${id} ${message}${fields}`;
   })
@@ -34,12 +34,16 @@ const logger = winston.createLogger({
   ]
 });
 
-// Stamps every log emitted during a request with its id, so the lines of one
-// request can be pulled together — and matched with what the client reports.
+// Stamps every log emitted during a request with the id of that request, so
+// its lines can be pulled together — and matched with what the client reports.
+//
+// The name is trace_id, the one OpenTelemetry uses: when instrumentation is on
+// it has already stamped it, and when it is off igo fills the same field. One
+// name for one value, whether the application is instrumented or not.
 const withRequestId = winston.format((info) => {
   const requestId = module.exports.currentRequestId();
-  if (requestId && !info.request_id) {
-    info.request_id = requestId;
+  if (requestId && !info.trace_id) {
+    info.trace_id = requestId;
   }
   return info;
 });
