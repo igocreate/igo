@@ -30,9 +30,10 @@ export default defineConfig({
           // en CI, c'est le build qui part en production, donc c'est lui qu'on
           // teste ; en local, tsx watch évite une reconstruction à chaque essai
           command: process.env.CI ? 'pnpm --filter ../api serve' : 'pnpm --filter ../api start',
-          // interrogée pour savoir si l'API répond : n'importe quelle route sur
-          // laquelle elle rend un 2xx convient
-          url: `${API_URL}/api/books`,
+          // la readiness, qui n'est un 2xx que lorsque la base et le cache
+          // répondent : attendre une route métier laisserait les tests démarrer
+          // contre une API à moitié prête
+          url: `${API_URL}/health/ready`,
           reuseExistingServer: !process.env.CI,
           timeout: 10_000,
         },

@@ -107,6 +107,19 @@ module.exports.init = function() {
     apiCacheControl:   'no-store',
   };
 
+  // Liveness on `path`, readiness on `path`/ready — the latter probes the
+  // dependencies and answers 503 when one is down, which is what takes the
+  // instance out of a load balancer. `false` drops both routes.
+  config.health = {
+    path:    '/health',
+    db:      true,
+    cache:   true,
+    // free bytes below which the instance can no longer write its logs and its
+    // uploads, and has to leave the rotation
+    disk:    50 * 1024 * 1024,
+    timeout: 500,
+  };
+
   // set to false to keep serving after an uncaught exception that a request
   // already answered — only once alerting no longer relies on the crash email
   config.exitOnUncaughtException = true;

@@ -14,6 +14,7 @@ const assets            = require('./connect/assets');
 const { unlessApi }     = require('./api');
 const errorHandler      = require('./connect/errorhandler');
 const flash             = require('./connect/flash');
+const health            = require('./connect/health');
 const locals            = require('./connect/locals');
 const multipart         = require('./connect/multipart');
 const requestLogger     = require('./connect/requestlogger');
@@ -113,6 +114,10 @@ module.exports.configure = async () => {
     app.use(multipart);
   }
 
+
+  // before the request logger: probed every few seconds, these routes would
+  // otherwise be most of the request log
+  health(app);
 
   app.use(requestLogger);
   app.use(unlessApi(flash));

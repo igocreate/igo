@@ -45,6 +45,22 @@ export interface SecurityConfig {
   apiCacheControl:   string | false;
 }
 
+export interface HealthConfig {
+  /** Liveness is served here, readiness on `<path>/ready`. */
+  path:    string;
+  /** Probe the main database with SELECT 1. */
+  db:      boolean;
+  /** Probe the cache; false when the project has no redis. */
+  cache:   boolean;
+  /**
+   * Free bytes on the project's filesystem below which readiness fails;
+   * false drops the probe.
+   */
+  disk:    number | false;
+  /** Milliseconds a probe may take before it counts as down. */
+  timeout: number;
+}
+
 export interface CookieSessionConfig {
   name:      string;
   keys:      string[];
@@ -60,6 +76,8 @@ export interface Config {
   api:            ApiConfig;
   /** Security headers on every response; `false` sends none. */
   security:       SecurityConfig | false;
+  /** Liveness and readiness routes; `false` drops both. */
+  health:         HealthConfig | false;
   databases:      string[];
   /** Names the app in crash emails and logs; defaults to the project package name. */
   appname:        string;

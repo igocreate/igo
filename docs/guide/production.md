@@ -89,6 +89,52 @@ module.exports.init = (config) => {
 The `fullstack` skeleton's SPA is not served by igo: its policy is a `<meta>`
 tag written by `vite.config.ts`, and `frame-ancestors` is nginx's.
 
+## Health Checks
+
+Two routes answer what an orchestrator asks, and nothing more:
+
+| Route | Answers |
+|-------|---------|
+| `GET /health` | Liveness: the process runs. No dependency is touched. |
+| `GET /health/ready` | Readiness: the database, the cache and the disk answer. |
+
+Readiness sends `503` when one of them does not, which is what takes an
+instance out of a load balancer — the body is for whoever reads it, the status
+code is what nginx, HAProxy and Kubernetes act on.
+
+```json
+{
+  "status": "DOWN",
+  "components": {
+    "db":    { "status": "DOWN" },
+    "cache": { "status": "UP" },
+    "disk":  { "status": "UP" }
+  }
+}
+```
+
+The reason a probe failed stays in the logs: `/health/ready` is reachable by
+whoever can reach the service, and a connection error names hosts and ports.
+
+```js
+// app/config.js
+module.exports.init = (config) => {
+  config.health.disk    = 200 * 1024 * 1024;  // this app receives large uploads
+  config.health.cache   = false;              // no redis here
+  config.health.timeout = 300;
+};
+```
+
+`config.health = false` drops both routes. Neither appears in the request log,
+and the `fullstack` skeleton's Alloy configuration drops them from the metrics
+too: probed every few seconds, they would otherwise be most of the measured
+traffic.
+
+CPU and memory are deliberately not probed. A saturated CPU is often an
+instance doing its job, and taking it out of rotation would spread the load
+onto the others — they belong to alerting, where a trend is read, not to a
+probe that decides in isolation.
+
 ## Logging
 
 Igo uses [Winston](https://github.com/winstonjs/winston) for logging. The log level is controlled via `LOG_LEVEL`:
