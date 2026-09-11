@@ -106,11 +106,18 @@ if (url) {
       // locales se mélangeraient alors à celles de la production.
       environment: import.meta.env.VITE_ENVIRONMENT || 'dev',
     },
-    // Pas d'identifiant de session écrit dans le navigateur : c'est un traceur
-    // au sens du RGPD, et rien ici ne recueille de consentement. Erreurs, Web
-    // Vitals et corrélation front/back s'en passent ; un projet qui veut les
-    // parcours par session l'active après son bandeau.
-    sessionTracking: { enabled: false },
+    // Le collecteur refuse toute charge sans en-tête `X-Faro-Session-Id` : la
+    // session n'est pas optionnelle, seule sa persistance l'est.
+    //
+    // `persistent: false` garde l'identifiant en mémoire — il meurt avec
+    // l'onglet et n'est jamais écrit dans le navigateur, donc ce n'est pas un
+    // traceur au sens de l'article 82 de la loi Informatique et Libertés et
+    // aucun consentement n'est requis. Ce qu'on y perd : un rechargement ouvre
+    // une nouvelle session, ce qui fausse les durées et les parcours
+    // multi-pages. Erreurs, Web Vitals et corrélation front/back n'en
+    // dépendent pas. Un projet qui veut les parcours le persiste après son
+    // bandeau.
+    sessionTracking: { enabled: true, persistent: false },
     instrumentations: [
       ...getWebInstrumentations({
         // La console est ramassée indistinctement, bibliothèques tierces

@@ -74,6 +74,16 @@ un confort ; les erreurs du serveur s'affichent telles quelles, par champ, via
 **Les types de la feature reflètent le DTO du back.** Ils sont écrits à la main :
 si les deux dérivent, ce sont les tests de feature qui le montrent.
 
+**Un message d'erreur nomme la classe du problème, pas l'occurrence.** Grafana
+regroupe les erreurs par message : un identifiant, une durée ou un horodatage
+dans le texte fait autant de groupes que d'appels, et aucune alerte ne peut plus
+rien compter. Les détails passent en contexte.
+
+```ts
+throw new Error(`Animal ${id} introuvable`);                     // un groupe par animal
+reportError(new Error('Animal introuvable'), { animalId: id });  // un seul groupe
+```
+
 ## Tests
 
 MSW intercepte au niveau réseau, donc le vrai `apiClient` tourne dans les tests.
@@ -114,12 +124,15 @@ remonter les violations copie la même politique dans nginx.
 
 ## Données personnelles
 
-Faro n'écrit aucun identifiant dans le navigateur (`sessionTracking` désactivé) :
-il envoie erreurs, Web Vitals et appels réseau, avec l'URL de la page et le
-user-agent ; le collecteur voit l'adresse IP. C'est du traitement technique sans
-traceur — à mentionner dans la politique de confidentialité au titre de
-l'intérêt légitime. Activer la session après consentement si le projet veut les
-parcours par visiteur.
+Faro envoie erreurs, Web Vitals et appels réseau, avec l'URL de la page et le
+user-agent ; le collecteur voit l'adresse IP. C'est du traitement technique — à
+mentionner dans la politique de confidentialité au titre de l'intérêt légitime.
+
+L'identifiant de session vit en mémoire (`persistent: false`) : il meurt avec
+l'onglet et rien n'est écrit dans le navigateur, donc pas de traceur au sens de
+l'article 82 de la loi Informatique et Libertés. Le collecteur refuse les envois
+sans lui — la session n'est pas optionnelle, seule sa persistance l'est. La
+persister après consentement si le projet veut les parcours par visiteur.
 
 ## Système de design
 
