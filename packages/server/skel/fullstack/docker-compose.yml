@@ -37,6 +37,12 @@ services:
   valkey:
     image: valkey/valkey:8
     restart: unless-stopped
+    # Sans plafond, Valkey grossit jusqu'à ce que le noyau tue le process. Avec,
+    # il évince les clés les moins utilisées et le cache reste dans ses limites.
+    command: >-
+      valkey-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
     ports:
       - '${REDIS_PORT:-6379}:6379'
     healthcheck:
