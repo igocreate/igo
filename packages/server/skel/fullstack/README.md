@@ -96,14 +96,59 @@ qui relaie, filtre et dérive les métriques. C'est ce détour qui permet de
 changer de destination sans toucher au code, et de collecter aussi les logs, la
 base et le cache, qui ne parlent pas OTLP.
 
-**Alloy n'est pas actif ici**, sa configuration dépendant de la plateforme :
-`deploy/config.alloy.example` est un point de départ à copier et à adapter. Son
-en-tête liste ce qui est à revoir et les pièges de cardinalité déjà mesurés.
-Sans collecteur en écoute, l'API n'envoie rien — c'est la première chose à
-vérifier quand aucune donnée n'arrive.
+**Alloy n'est pas actif ici**, sa configuration dépendant de la plateforme.
+`deploy/` en porte deux exemples, parce qu'un collecteur remplit deux rôles que
+rien n'oblige à tenir au même endroit :
+
+- `config.alloy.agent.example` — **un par machine**. Il lit ce qui n'existe que
+  là : les fichiers de log, le `/proc` de l'hôte, et la télémétrie que l'API lui
+  envoie en OTLP sur la boucle locale.
+- `config.alloy.gateway.example` — **un pour toute l'infrastructure**. Il scrute
+  ce qui s'interroge à distance : base managée, cache, API d'un hébergeur.
+
+C'est la gateway qui absorbe la variabilité des plateformes. Le tableau de bord
+interroge `mysql_*`, `redis_*` et `node_*` quel que soit l'hébergeur ; un projet
+chez OVH ou Scaleway réécrit ce fichier, pas ses tableaux de bord.
+
+L'en-tête de chacun liste ce qui est à revoir et les pièges de cardinalité déjà
+mesurés. Sans collecteur en écoute, l'API n'envoie rien — c'est la première
+chose à vérifier quand aucune donnée n'arrive.
 
 Le front est l'exception : il poste au collecteur Faro hébergé, un navigateur
-n'atteignant pas un Alloy local.
+n'atteignant pas un Alloy local. Son URL vient de **Grafana Cloud → Frontend
+Observability**, où l'application doit être déclarée au préalable — c'est là que
+se lisent les erreurs JavaScript et les Web Vitals, et là que se règlent leurs
+alertes, séparément des règles ci-dessous.
+
+Les erreurs du navigateur arrivent aussi dans Loki, sous
+`service_name="<app>"` et `kind="exception"` : c'est ce que lit le panneau
+« Erreurs — navigateur » du tableau de bord.
+
+### Les alertes
+
+`deploy/grafana-alertes.example.json` porte quatorze règles à importer dans
+Grafana. Ce qu'elles disent, et par où commencer quand l'une d'elles part :
+
+| Alerte | Premier réflexe |
+|---|---|
+| `IgoServiceDown` | La sonde n'obtient plus de réponse valide. Regarder `/health/ready` : il nomme la dépendance qui manque. Sinon l'application est arrêtée, ou la route jusqu'à elle coupée. |
+| `IgoHighErrorRate` | Plus de 5 % de 5xx. Le journal des erreurs porte la pile d'appels ; la courbe des codes dit depuis quand. |
+| `IgoDatabasePoolSaturated` | Les connexions MySQL saturent. Souvent des connexions non rendues : chercher une requête longue ou une transaction restée ouverte. |
+| `IgoFileDescriptorsExhausted` | Descripteurs presque épuisés — des sockets ou des fichiers qui fuient. À saturation, plus aucune connexion n'est acceptée. |
+| `IgoClientErrorSpike` | La part de 4xx a triplé. Un contrat d'API changé, un client cassé, une ressource supprimée en masse. |
+| `IgoLatencySpike` | Le p95 des réponses réussies a triplé. Comparer avec la médiane : les deux ensemble disent lenteur générale ou queue de distribution. |
+| `IgoEventLoopSaturated` | Node ne suit plus. Chercher une opération synchrone bloquante ou un calcul à déplacer. |
+| `IgoHostCpuSaturated`, `IgoHostMemorySaturated`, `IgoHostSystemSaturated` | La machine sature. L'étiquette `instance` dit laquelle, `role` ce qu'elle porte. |
+| `IgoDiskIOSaturated` | Les entrées-sorties s'accumulent. Souvent la base, qui ralentit alors sans que le processeur ne bouge. |
+| `IgoDiskFillingUp` | Le disque sature dans moins de quatre jours. Il reste le temps d'agir — logs, sauvegardes, fichiers temporaires. |
+
+Deux règles sont livrées désactivées, faute de valoir pour tous les projets :
+
+- `IgoLatencyDegraded` — le seuil d'une seconde ne veut rien dire tant qu'on
+  n'a pas mesuré ce qui est normal ici. À régler après quelques semaines.
+- `IgoTrafficCollapsed` — attrape la panne qu'aucune autre ne voit : le service
+  répond, mais plus personne ne l'atteint. À activer sur un service dont le
+  trafic ne retombe jamais, sous peine de sonner chaque nuit.
 
 ## Production
 
@@ -120,8 +165,10 @@ derrière lui sur la même origine. Le contrat, quelle que soit la conf :
 - l'API parle OTLP à un collecteur local (Alloy, port 4318), jamais à une
   plateforme directement.
 
-`deploy/` porte un exemple de chaque : `nginx.conf.example` et
-`config.alloy.example`. Ce sont des points de départ, pas des fichiers actifs.
+`deploy/` porte un exemple de chaque : `nginx.conf.example`,
+`config.alloy.agent.example` et `config.alloy.gateway.example`, plus le tableau
+de bord et les règles d'alerte à importer dans Grafana. Ce sont des points de
+départ, pas des fichiers actifs.
 
 ## Langue du code
 
