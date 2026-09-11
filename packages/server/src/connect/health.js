@@ -70,6 +70,12 @@ const liveness = (req, res) => {
   send(res, 200, { status: UP });
 };
 
+// A dependency the application cannot serve without brings readiness down;
+// one it merely runs better with is reported and nothing more. Sending 503
+// because the cache is gone would take an instance that still serves out of
+// the load balancer — a degradation turned into an outage.
+const isOptional = (setting) => setting === 'optional';
+
 const readiness = (settings) => async (req, res) => {
   const names = Object.keys(PROBES).filter(name => settings[name]);
   const states = await Promise.all(
@@ -80,7 +86,8 @@ const readiness = (settings) => async (req, res) => {
     components[name] = { status: states[i] };
   });
 
-  const up = states.every(state => state === UP);
+  const up = states.every((state, i) =>
+    state === UP || isOptional(settings[names[i]]));
   // 503 and not 500: the service did not fail, it is not ready to serve. Load
   // balancers only read the status code, so this is what takes the instance out
   // of rotation.

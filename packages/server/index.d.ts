@@ -48,15 +48,21 @@ export interface SecurityConfig {
 export interface HealthConfig {
   /** Liveness is served here, readiness on `<path>/ready`. */
   path:    string;
-  /** Probe the main database with SELECT 1. */
-  db:      boolean;
-  /** Probe the cache; false when the project has no redis. */
-  cache:   boolean;
+  /**
+   * Probe the main database with SELECT 1. 'optional' reports the probe
+   * without ever bringing readiness down; false drops it.
+   */
+  db:      boolean | 'optional';
+  /**
+   * Probe the cache. 'optional' by default: igo serves without it, so a
+   * missing cache must not take the instance out of a load balancer.
+   */
+  cache:   boolean | 'optional';
   /**
    * Free bytes on the project's filesystem below which readiness fails;
    * false drops the probe.
    */
-  disk:    number | false;
+  disk:    number | false | 'optional';
   /** Milliseconds a probe may take before it counts as down. */
   timeout: number;
 }

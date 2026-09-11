@@ -63,16 +63,33 @@ describe('Health', function() {
       }
     });
 
-    it('should report the cache down when it is unavailable', async () => {
+    it('should stay ready when an optional dependency is down', async () => {
       const isAvailable = cache.isAvailable;
       cache.isAvailable = () => false;
 
       try {
         const res = await agent.get('/health/ready');
-        assert.strictEqual(res.statusCode, 503);
+        assert.strictEqual(res.statusCode, 200);
+        assert.strictEqual(res.data.status, 'UP');
         assert.deepStrictEqual(res.data.components.cache, { status: 'DOWN' });
       } finally {
         cache.isAvailable = isAvailable;
+      }
+    });
+
+    it('should answer 503 when that same dependency is declared critical', async () => {
+      const isAvailable = cache.isAvailable;
+      const setting     = config.health.cache;
+      cache.isAvailable  = () => false;
+      config.health.cache = true;
+
+      try {
+        const res = await agent.get('/health/ready');
+        assert.strictEqual(res.statusCode, 503);
+        assert.strictEqual(res.data.status, 'DOWN');
+      } finally {
+        cache.isAvailable  = isAvailable;
+        config.health.cache = setting;
       }
     });
 

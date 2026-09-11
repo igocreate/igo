@@ -110,10 +110,13 @@ module.exports.init = function() {
   // Liveness on `path`, readiness on `path`/ready — the latter probes the
   // dependencies and answers 503 when one is down, which is what takes the
   // instance out of a load balancer. `false` drops both routes.
+  // A probe set to 'optional' is reported but never brings readiness down: the
+  // cache is gone, igo serves without it, and the instance stays in rotation.
+  // Anything else truthy is critical.
   config.health = {
     path:    '/health',
     db:      true,
-    cache:   true,
+    cache:   'optional',
     // free bytes below which the instance can no longer write its logs and its
     // uploads, and has to leave the rotation
     disk:    50 * 1024 * 1024,
