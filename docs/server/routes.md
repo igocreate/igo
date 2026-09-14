@@ -80,7 +80,7 @@ Igo.js configures the following middleware in order:
 4. **Session** — Encrypted session cookie (31-day expiry)
 5. **Body parsers** — URL-encoded and JSON (10MB limit)
 6. **Multipart** — File upload parsing via [multiparty](https://github.com/pillarjs/multiparty)
-7. **Request logger** — Request id and one log line per request (see [Logging](./logging))
+7. **Request logger** — Trace id and one log line per request (see [Logging](./logging))
 8. **Flash** — Flash messages (see [Flash](./flash))
 9. **Validator** — Request validation (see [Forms](./forms))
 10. **i18n** — Language detection (see [i18n](./i18n))
