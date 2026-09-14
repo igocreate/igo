@@ -15,13 +15,13 @@ import { ErrorPage } from './error-page';
 // reste.
 export function RouteError() {
   const error = useRouteError();
-  const attendu = isRouteErrorResponse(error) && error.status === 404;
+  const expected = isRouteErrorResponse(error) && error.status === 404;
 
   useEffect(() => {
-    if (!attendu) {
+    if (!expected) {
       reportError(error, { origine: 'route' });
     }
-  }, [error, attendu]);
+  }, [error, expected]);
 
   return <ErrorPage />;
 }

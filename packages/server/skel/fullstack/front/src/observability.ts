@@ -42,11 +42,11 @@ const failed = (attributes: Record<string, unknown> | undefined) => {
   }
   // Un appel abouti porte toujours un statut ; son absence sur un événement de
   // requête signale un échec avant la réponse.
-  const estUneRequete =
+  const isRequest =
     attributes?.['http.method'] !== undefined ||
     attributes?.['http.request.method'] !== undefined ||
     attributes?.['http.url'] !== undefined;
-  return estUneRequete && status === 0;
+  return isRequest && status === 0;
 };
 
 // Le contexte navigateur pèse ~1,5 Ko par événement, répété à chaque appel.

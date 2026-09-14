@@ -40,10 +40,10 @@ test.describe('accessibilité', () => {
     await books.goto();
     await expect(books.heading).toBeVisible();
 
-    const resultats = await new AxeBuilder({ page })
+    const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
       .analyze();
 
-    expect(resultats.violations).toEqual([]);
+    expect(results.violations).toEqual([]);
   });
 });
