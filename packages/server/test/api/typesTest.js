@@ -23,10 +23,11 @@ describe('api/types', function() {
   };
 
   it('should typecheck the declarations against a TypeScript consumer', function() {
+    // A skip here would say the declarations are fine when nothing checked
+    // them: typescript is a devDependency of the workspace, its absence is a
+    // broken install, not a reason to pass.
     const tsc = findTsc();
-    if (!tsc) {
-      return this.skip();
-    }
+    assert.ok(tsc, 'typescript is not installed: the declarations went unchecked');
 
     try {
       execFileSync(process.execPath, [tsc, '-p', PROJECT], { encoding: 'utf8', stdio: 'pipe' });
