@@ -6,10 +6,8 @@
 //
 // Le collecteur local, un par machine, vit dans `config.alloy.agent.example`.
 //
-// C'est ici que la variabilité des hébergeurs est absorbée : le tableau de bord
-// interroge `mysql_*`, `redis_*` et `node_*` quelle que soit la plateforme, et
-// ce fichier va les chercher là où elles sont. Un projet chez OVH ou Scaleway
-// réécrit ce fichier, pas ses tableaux de bord.
+// C'est ici que la variabilité des hébergeurs est absorbée : un projet chez OVH
+// ou Scaleway réécrit ce fichier, pas ses tableaux de bord.
 //
 // À revoir : la destination et les identifiants, les adresses des services, les
 // exporteurs selon ce que le projet utilise.
@@ -178,38 +176,27 @@ prometheus.scrape "sondes" {
 
 // ── Bases managées ───────────────────────────────────────────────────────────
 //
-// Une base managée n'accepte pas d'exporteur : c'est l'hébergeur qui expose ses
-// métriques, sous ses propres noms.
+// Une base managée n'accepte pas d'exporteur : l'hébergeur expose ses métriques
+// sous ses propres noms, à relever sur une instance réelle avant d'écrire quoi
+// que ce soit.
 //
-//   OVHcloud   endpoint Prometheus en HTTPS, port 9273, authentification
-//              basique. Joignable seulement depuis le réseau privé de la base.
-//              Identifiants par l'API : GET /cloud/project/{projet}/database/mysql/{id}/prometheus
-//   Scaleway   par Cockpit, les endpoints par instance ayant été retirés en
-//              mars 2026. Fédération Prometheus sur /federate avec un jeton.
-//
-// Les noms de métriques ne sont documentés ni chez l'un ni chez l'autre : les
-// relever sur une instance réelle avant d'écrire les requêtes.
-//
-// Le renommage se fait ici, pas dans le tableau de bord : celui-ci interroge
-// `mysql_*` et `redis_*` quel que soit l'hébergeur, et c'est la passerelle qui
-// traduit. Un projet qui change de fournisseur réécrit ce fichier, rien d'autre.
+//   OVHcloud   endpoint Prometheus, port 9273, HTTPS et authentification
+//              basique. Joignable depuis le réseau privé de la base seulement.
+//              Identifiants : GET /cloud/project/{projet}/database/mysql/{id}/prometheus
+//   Scaleway   Cockpit, les endpoints par instance ayant été retirés en mars
+//              2026. Fédération Prometheus sur /federate.
 //
 // prometheus.scrape "base_managee" {
-//   targets = [{
-//     __address__ = "mysql-xxxx.database.cloud.ovh.net:9273",
-//     __scheme__  = "https",
-//   }]
+//   targets = [{ __address__ = "mysql-xxx.database.cloud.ovh.net:9273", __scheme__ = "https" }]
 //   basic_auth {
 //     username = "prometheus"
 //     password = sys.env("OVH_METRIQUES_MOTDEPASSE")
 //   }
-//   forward_to      = [prometheus.relabel.traduction_hebergeur.receiver]
-//   scrape_interval = "30s"
+//   forward_to = [prometheus.relabel.traduction.receiver]
 // }
 //
-// prometheus.relabel "traduction_hebergeur" {
-//   // Exemple : ramener un nom propriétaire vers celui qu'attend le tableau de
-//   // bord. Les noms réels sont à relever sur l'instance.
+// // Ramène un nom propriétaire vers celui qu'attend le tableau de bord.
+// prometheus.relabel "traduction" {
 //   rule {
 //     source_labels = ["__name__"]
 //     regex         = "ovh_mysql_connections_active"
@@ -217,6 +204,5 @@ prometheus.scrape "sondes" {
 //     replacement   = "mysql_global_status_threads_connected"
 //     action        = "replace"
 //   }
-//
 //   forward_to = [prometheus.remote_write.grafana.receiver]
 // }

@@ -91,7 +91,6 @@ const checkThrottle = (errorKey) => {
     }
   }
 
-  // Check if this error is currently blocked
   if (data.blocked[errorKey] && data.blocked[errorKey] > now) {
     saveThrottleData(data);
     return { throttled: true, shouldAlert: false };
@@ -175,7 +174,6 @@ const sendCrashEmail = (subject, body, errorKey) => {
   });
 };
 
-// Handle errors that occur during HTTP requests
 const handle = (err, req, res) => {
   // an API client cannot render a dust page: it always gets JSON back
   const isApi = problem.isApiRequest(req);
@@ -201,24 +199,17 @@ const handle = (err, req, res) => {
     return;
   }
 
-  // Check if response already sent
   if (res.headersSent) {
-    // Response already sent, can only log
     logger.error(`${req.method} ${getURL(req)} : ${err} (response already sent)`,
                  { stack: err.stack });
     sendCrashEmail(`Crash (response sent): ${err}`, formatMessage(req, err), String(err));
     return;
   }
 
-  // The stack rides along as a field rather than on a line of its own: two
-  // consecutive calls produce two log entries for one error, which a collector
-  // then has to stitch back together.
   logger.error(`${req.method} ${getURL(req)} : ${err}`, { stack: err.stack });
 
-  // Send email notification
   sendCrashEmail(`Crash: ${err}`, formatMessage(req, err), String(err));
 
-  // Send response
   if (isApi) {
     // the stack is a debugging aid outside production, never a client contract
     return problem.send(res, 500, config.env === 'production' ? {} : { detail: err.message });
@@ -254,7 +245,6 @@ const failCli = (err) => {
   process.exit(1);
 };
 
-// Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
   if (global.IGO_CLI) {
     return failCli(err);
@@ -271,7 +261,7 @@ process.on('unhandledRejection', (err) => {
   }
 });
 
-// Handle uncaught exceptions - log, send email, then exit
+// L'email part avant la sortie : l'inverse perdrait l'alerte.
 process.on('uncaughtException', (err) => {
   if (global.IGO_CLI) {
     return failCli(err);
@@ -311,7 +301,6 @@ module.exports.initContext = (app) => {
   };
 };
 
-// Get current request context
 module.exports.getContext = () => {
   return asyncLocalStorage.getStore();
 };

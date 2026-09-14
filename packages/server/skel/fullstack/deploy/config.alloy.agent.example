@@ -79,13 +79,9 @@ otelcol.exporter.prometheus "vers_grafana" {
 
 
 
-// `resource_to_telemetry_conversion` promeut tous les attributs de ressource en
-// etiquettes, dont l'identite du process : `process_pid` change a chaque
-// redemarrage, et conserve il cree une nouvelle serie a chaque deploiement.
-//
-// Les sondes de sante sont interrogees toutes les quelques secondes par le
-// repartiteur de charge : comptees, elles deviendraient l'essentiel du trafic
-// mesure et fausseraient le taux d'erreur comme la latence.
+// `process_pid` devient une étiquette et change à chaque redémarrage : un jeu de
+// séries neuf à chaque déploiement. Les sondes de santé, elles, seraient
+// l'essentiel du trafic mesuré.
 prometheus.relabel "metriques_applicatives" {
   rule {
     regex  = "process_(pid|command|command_args|executable_name|executable_path|owner|runtime_description)"
@@ -142,12 +138,11 @@ loki.write "grafana" {
 // et aux logs.
 // ── Échantillonnage des traces ───────────────────────────────────────────────
 //
-// Garder une trace par requête réussie n'apprend rien de plus que les métriques.
-// Seules les traces lentes ou en erreur sont conservées.
+// Seules les traces lentes ou en erreur sont gardées : une trace par requête
+// réussie n'apprend rien que les métriques ne disent.
 //
-// « tail » : la décision est prise une fois la trace complète, d'où un tampon de
-// `decision_wait` — de la mémoire, et un délai avant l'arrivée dans Tempo.
-// Les politiques sont évaluées ensemble, une seule suffit à garder la trace.
+// « tail » : décidé une fois la trace complète, d'où un tampon de
+// `decision_wait`. Une seule politique suffit à garder la trace.
 otelcol.processor.tail_sampling "traces" {
   // Au-delà de la latence maximale attendue d'une requête, sinon une trace
   // lente serait jugée avant d'être terminée.
@@ -211,23 +206,10 @@ otelcol.processor.tail_sampling "traces" {
 
 
 
-// ── Pas de métriques dérivées des spans ─────────────────────────────────────
-//
-// Un connecteur `spanmetrics` ferait doublon : `instrumentation-http` fournit
-// déjà `http.server.request.duration` avec les mêmes dimensions, et c'est une
-// convention OpenTelemetry qu'un tableau de bord générique reconnaît.
-//
-// Prix à payer : les seuils d'histogramme du standard commencent à 5 ms alors
-// que la médiane mesurée est à 3 ms — le P50 y est donc interpolé.
-
 // ── Filtrage des spans ───────────────────────────────────────────────────────
 //
-// Les spans de middleware et de routage sont jetés. Mesuré sur un GET de
-// 9,77 ms : deux spans de middleware pour 0,14 % de la requête.
-//
-// Reste ce qui porte le temps : le span racine, le `request handler`, et les
-// `SELECT`. Un middleware qui ralentirait se verrait dans l'écart entre les deux
-// premiers.
+// Les spans de middleware sont jetés : mesurés à 0,14 % d'un GET de 9,77 ms.
+// Reste ce qui porte le temps — span racine, `request handler`, `SELECT`.
 otelcol.processor.filter "spans" {
   error_mode = "ignore"
 
