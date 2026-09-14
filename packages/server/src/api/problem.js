@@ -1,7 +1,6 @@
 
 const { STATUS_CODES } = require('http');
 
-const config = require('../config');
 
 const CONTENT_TYPE = 'application/problem+json';
 
@@ -10,17 +9,6 @@ const CONTENT_TYPE = 'application/problem+json';
 // suggested to applications — a relative URI would resolve differently on every
 // project, and would compete with the slugs the application defines.
 const VALIDATION_FAILED = 'urn:igo:validation-failed';
-
-// A request is served as JSON when it targets the API prefix, or when the
-// client asked for JSON and cannot render a dust page anyway.
-const isApiRequest = (req) => {
-  const prefix = config.api?.prefix;
-  const path   = req.path || req.url || '';
-  if (prefix && (path === prefix || path.startsWith(prefix + '/'))) {
-    return true;
-  }
-  return !!req.headers?.accept?.includes('application/json');
-};
 
 // RFC 9457 Problem Details
 const problem = (status, { title, detail, errors, type } = {}) => {
@@ -44,4 +32,4 @@ const send = (res, status, options) => {
   return res.json(problem(status, options));
 };
 
-module.exports = { isApiRequest, problem, send, CONTENT_TYPE, VALIDATION_FAILED };
+module.exports = { problem, send, CONTENT_TYPE, VALIDATION_FAILED };

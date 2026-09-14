@@ -46,6 +46,7 @@ const redact = require('../redact');
 const logger  = require('../logger');
 const mailer  = require('../mailer');
 const problem = require('../api/problem');
+const { isApiRequest } = require('../api/request');
 
 const asyncLocalStorage = new AsyncLocalStorage();
 
@@ -176,7 +177,7 @@ const sendCrashEmail = (subject, body, errorKey) => {
 
 const handle = (err, req, res) => {
   // an API client cannot render a dust page: it always gets JSON back
-  const isApi = problem.isApiRequest(req);
+  const isApi = isApiRequest(req);
 
   // Client errors - don't send emails
   if (err instanceof URIError) {

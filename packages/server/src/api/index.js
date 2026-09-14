@@ -3,6 +3,7 @@ const config    = require('../config');
 const logger    = require('../logger');
 const problem   = require('./problem');
 const validate  = require('./validate');
+const { isApiRequest } = require('./request');
 
 const mounted = [];
 
@@ -37,6 +38,6 @@ module.exports.wire = () => {
 // only wasted work: the flash scope writes to the session on every GET, and
 // that alone made every JSON response set a session cookie nothing reads.
 module.exports.unlessApi = (middleware) => (req, res, next) =>
-  problem.isApiRequest(req) ? next() : middleware(req, res, next);
+  isApiRequest(req) ? next() : middleware(req, res, next);
 
 module.exports.problem = problem;

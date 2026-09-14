@@ -1,5 +1,5 @@
 const config  = require('../config');
-const problem = require('../api/problem');
+const { isApiRequest } = require('../api/request');
 
 // The headers a penetration test asks for, with the values one accepted on an
 // igo application in production. No page CSP by default: a working one is made
@@ -32,7 +32,7 @@ module.exports = (req, res, next) => {
     set('Strict-Transport-Security', security.hsts);
   }
 
-  if (problem.isApiRequest(req)) {
+  if (isApiRequest(req)) {
     set('Content-Security-Policy', security.apiCsp);
     set('Cache-Control', security.apiCacheControl);
   } else {

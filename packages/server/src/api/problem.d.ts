@@ -30,9 +30,6 @@ export declare const CONTENT_TYPE: 'application/problem+json';
 /** `type` of the problem igo returns when a schema rejects a request. */
 export declare const VALIDATION_FAILED: 'urn:igo:validation-failed';
 
-/** True when the request targets the API prefix, or asks for JSON. */
-export declare function isApiRequest(req: Pick<Request, 'path' | 'headers'>): boolean;
-
 export declare function problem(status: number, options?: ProblemOptions): ProblemDocument;
 
 export declare function send(res: Response, status: number, options?: ProblemOptions): Response;
