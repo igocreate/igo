@@ -90,7 +90,7 @@ le client teste, jamais le libellé.
 **La logique métier vit dans les services**, pas dans les contrôleurs, dès
 qu'elle dépasse un appel au modèle.
 
-**Une route protégée passe par `requireSession`** (`shared/authentication.ts`),
+**Une route protégée passe par `requireAuth`** (`shared/authentication.ts`),
 qui répond 401 quand personne n'est en session. Ce que le projet fait de
 `req.session.userId` — charger l'utilisateur, vérifier un rôle — lui appartient ;
 le 403, connu mais sans droit sur la ressource, se répond dans le contrôleur par

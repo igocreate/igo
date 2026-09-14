@@ -9,7 +9,7 @@ export const UNAUTHENTICATED = '/problems/unauthenticated';
 // Générique sur les paramètres de route : Express prend les handlers d'une route
 // dans un seul paramètre rest, et une garde typée RequestHandler imposerait ses
 // paramètres à un handler dont le schéma `params` les type autrement.
-export const requireSession = <P>(req: Request<P>, res: Response, next: NextFunction) => {
+export const requireAuth = <P>(req: Request<P>, res: Response, next: NextFunction) => {
   if (!req.session?.userId) {
     return void sendProblem(res, 401, { type: UNAUTHENTICATED, detail: 'Connexion requise' });
   }
