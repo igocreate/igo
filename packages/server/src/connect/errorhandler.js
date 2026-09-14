@@ -226,22 +226,10 @@ const handle = (err, req, res) => {
   res.status(500).send(stacktrace);
 };
 
-// A CLI command has no request to answer and no server to keep alive: one
-// line saying what failed, then exit. The database errors name the server
-// they failed against, since the usual cause is another MySQL on the port.
-const DB_ERROR = /^(ER_|ECONNREFUSED$|ETIMEDOUT$|ENOTFOUND$|EHOSTUNREACH$)/;
-
-const describeCliError = (err) => {
-  const message = err?.message || String(err);
-  if (!DB_ERROR.test(err?.code || '')) {
-    return message;
-  }
-  const { host, port, database } = config.mysql || {};
-  return `MySQL ${host}:${port}/${database}: ${message}`;
-};
-
+// A CLI command has no request to answer and no server to keep alive: one line
+// saying what failed, then exit.
 const failCli = (err) => {
-  console.error(`\x1b[31m✖\x1b[0m ${describeCliError(err)}`);
+  console.error(`\x1b[31m✖\x1b[0m ${err?.message || err}`);
   process.exit(1);
 };
 
@@ -336,7 +324,6 @@ module.exports.errorSQL = (err) => {
 
 // Exposed for testing
 module.exports._test = {
-  describeCliError,
   escapeHtml,
   redact,
   checkThrottle,
