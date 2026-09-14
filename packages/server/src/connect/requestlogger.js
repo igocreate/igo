@@ -139,7 +139,6 @@ module.exports = (req, res, next) => {
 
   req.traceId = traceId;
 
-  // No X-Request-Id: one identity, under the name the specification gives it.
   res.setHeader('traceresponse', traceresponse(traceId));
 
   captureResponseBody(res);

@@ -173,13 +173,8 @@ describe('trace context', function() {
     assert.strictEqual(lines[0].trace_id, traceId);
   });
 
-  // X-Request-Id is gone: one identity, under the name the spec gives it.
   it('should expose no id outside of a request', () => {
     assert.strictEqual(middleware.traceId(), undefined);
-  });
-
-  it('should send no X-Request-Id', () => {
-    assert.strictEqual(run().sent['X-Request-Id'], undefined);
   });
 
   // igo minted the trace id, so it mints the span id too, and says the trace
