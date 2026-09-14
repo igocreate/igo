@@ -3,7 +3,13 @@
 version: 2
 updates:
   - package-ecosystem: npm
-    directory: /
+    # Chaque espace de travail a son package.json : `directory: /` ne verrait
+    # que celui de la racine, où il n'y a que l'outillage.
+    directories:
+      - /
+      - /api
+      - /front
+      - /e2e
     schedule:
       interval: monthly
     groups:

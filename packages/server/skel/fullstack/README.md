@@ -83,6 +83,18 @@ peut être couvert plus bas doit l'être plus bas. `pnpm test` ne les lance pas.
 Ils portent aussi l'audit d'accessibilité : aucun écran ne doit présenter de
 violation WCAG 2.1 AA.
 
+## Dépendances
+
+Dependabot ouvre une PR par mois : mineures et correctifs groupés, majeures
+séparées puisqu'elles demandent un œil. Les quatre `package.json` du monorepo
+sont surveillés — celui de la racine ne porte que l'outillage.
+
+Les **mises à jour de sécurité** ne suivent pas ce rythme : elles arrivent dès
+qu'un avis est publié. Mais rien dans `dependabot.yml` ne les déclenche, c'est un
+réglage du dépôt — **Settings → Code security → Dependabot security updates** —
+à activer une fois, à la création. Un projet qui l'oublie a le fichier sans les
+alertes.
+
 ## Observabilité
 
 **Rien n'est envoyé par défaut** : `OTEL_EXPORTER_OTLP_ENDPOINT` côté API et
