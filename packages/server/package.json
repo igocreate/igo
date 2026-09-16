@@ -26,8 +26,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@igojs/db": "^6.2.4",
-    "@igojs/dust": "^6.2.4",
     "@standard-schema/spec": "^1.1.0",
     "assets-webpack-plugin": "^7.1.1",
     "compression": "1.8.1",
@@ -60,6 +58,8 @@
     "winston": "^3.19.0"
   },
   "peerDependencies": {
+    "@igojs/db": "^6.3.0",
+    "@igojs/dust": "^6.3.0",
     "autoprefixer": "^10.4.0",
     "express": "^5.0.0",
     "i18next": "^26.0.0",
