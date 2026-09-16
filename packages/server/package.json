@@ -1,6 +1,6 @@
 {
   "name": "@igojs/server",
-  "version": "6.3.0",
+  "version": "6.3.1",
   "description": "Igo server framework - Express-based web framework for Node.js",
   "main": "index.js",
   "scripts": {
@@ -58,8 +58,8 @@
     "winston": "^3.19.0"
   },
   "peerDependencies": {
-    "@igojs/db": "^6.3.0",
-    "@igojs/dust": "^6.3.0",
+    "@igojs/db": "^6.3.1",
+    "@igojs/dust": "^6.3.1",
     "autoprefixer": "^10.4.0",
     "express": "^5.0.0",
     "i18next": "^26.0.0",
