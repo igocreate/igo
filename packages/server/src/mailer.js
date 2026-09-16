@@ -1,6 +1,6 @@
 const i18next     = require('i18next');
 const nodemailer  = require('nodemailer');
-const mjml2html   = require('mjml-4-terser');
+const mjml2html   = require('mjml');
 const fs          = require('fs');
 const path        = require('path');
 
