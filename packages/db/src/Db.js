@@ -30,6 +30,9 @@ class Db {
     const { config } = dependencies;
     this.name       = name;
     this.config     = config[name];
+    if (!this.config) {
+      throw new Error(`No database configuration found for '${name}'. Add config.${name} = { driver, host, … } in your config.`);
+    }
     this.driver     = getDriver(this.config.driver);
     this.connection = null;
     this.config.migrations_dir = `sql/${this.name}`;

@@ -389,7 +389,11 @@ module.exports = class Query {
   }
 
   getDb() {
-    return dbs[this.schema.database];
+    const db = dbs[this.schema.database];
+    if (!db) {
+      throw new Error(`Database '${this.schema.database}' is not initialized. Check config.databases and make sure app.configure() or dbs.init() has completed.`);
+    }
+    return db;
   }
 
   // a dot-path is only understood as an association path when every level is joined:
