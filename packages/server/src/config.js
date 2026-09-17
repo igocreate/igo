@@ -3,11 +3,63 @@ if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config({ quiet: true });
 }
 
+const path = require('path');
+
 const config    = {};
 module.exports  = config;
 
 const DEFAULT_COOKIE_SECRET = 'abcdefghijklmnopqrstuvwxyz';
 const DEFAULT_SESSION_KEY   = 'aaaaaaaaaaa';
+
+// The nearest package.json at or above projectRoot: a build directory (dist/)
+// has none of its own, and a project without one at all still has to boot.
+const readProjectPackage = (projectRoot) => {
+  let dir = path.resolve(projectRoot);
+  for (;;) {
+    try {
+      return require(path.join(dir, 'package.json'));
+    } catch {
+      const parent = path.dirname(dir);
+      if (parent === dir) {
+        return {};
+      }
+      dir = parent;
+    }
+  }
+};
+
+// Computed on first access rather than at init(), then cached: projectRoot can
+// still be reassigned after init(), and a value set by the application wins.
+const defineLazy = (target, property, compute) => {
+  const settle = (value) => Object.defineProperty(target, property, {
+    value, writable: true, configurable: true, enumerable: true
+  });
+  Object.defineProperty(target, property, {
+    configurable: true,
+    enumerable:   true,
+    get() {
+      const value = compute();
+      settle(value);
+      return value;
+    },
+    set: settle,
+  });
+};
+
+const defineProjectValue = (target, property, override, packageKey) =>
+  defineLazy(target, property, () => override || readProjectPackage(target.projectRoot)[packageKey]);
+
+// LOG_REQUESTS=true|false|<status floor>; anything else keeps the default.
+const parseLogRequests = (value, fallback) => {
+  if (value === 'true' || value === 'false') {
+    return value === 'true';
+  }
+  const floor = Number(value);
+  return value && Number.isInteger(floor) && floor > 0 ? floor : fallback;
+};
+
+module.exports.parseLogRequests   = parseLogRequests;
+module.exports.readProjectPackage = readProjectPackage;
 
 //
 module.exports.init = function() {
@@ -21,6 +73,12 @@ module.exports.init = function() {
   config.httpport       = process.env.HTTP_PORT || 3000;
   config.projectRoot    = process.cwd();
 
+  // Identifies the app in crash emails and in every log line, which is what
+  // tells one project and one environment apart once logs are pooled.
+  // Resolved on read: projectRoot can still be reassigned after init().
+  defineProjectValue(config, 'appname', process.env.APP_NAME,    'name');
+  defineProjectValue(config, 'version', process.env.APP_VERSION, 'version');
+
   config.cookieSecret  = process.env.COOKIE_SECRET || DEFAULT_COOKIE_SECRET;
   config.cookieSession = {
     name: 'app',
@@ -31,6 +89,43 @@ module.exports.init = function() {
 
   config.urlencoded = { limit: '10mb', extended: true };
   config.json       = { limit: '10mb' };
+
+  // routes under this prefix answer in JSON, never in HTML
+  config.api        = { prefix: '/api' };
+
+  // Security headers on every response. `false` on a key drops that header,
+  // `config.security = false` drops them all. `csp` is for the pages and left to
+  // the project; `apiCsp` and `apiCacheControl` apply to API requests.
+  config.security = {
+    noSniff:           true,
+    frameOptions:      'SAMEORIGIN',
+    referrerPolicy:    'strict-origin-when-cross-origin',
+    permissionsPolicy: 'camera=(), microphone=(), geolocation=()',
+    hsts:              'max-age=63072000; includeSubDomains',
+    csp:               null,
+    apiCsp:            'default-src \'none\'; frame-ancestors \'none\'',
+    apiCacheControl:   'no-store',
+  };
+
+  // Liveness on `path`, readiness on `path`/ready — the latter probes the
+  // dependencies and answers 503 when one is down, which is what takes the
+  // instance out of a load balancer. `false` drops both routes.
+  // A probe set to 'optional' is reported but never brings readiness down: the
+  // cache is gone, igo serves without it, and the instance stays in rotation.
+  // Anything else truthy is critical.
+  config.health = {
+    path:    '/health',
+    db:      true,
+    cache:   'optional',
+    // free bytes below which the instance can no longer write its logs and its
+    // uploads, and has to leave the rotation
+    disk:    50 * 1024 * 1024,
+    timeout: 500,
+  };
+
+  // set to false to keep serving after an uncaught exception that a request
+  // already answered — only once alerting no longer relies on the crash email
+  config.exitOnUncaughtException = true;
 
   config.i18n = {
     whitelist:            [ 'en', 'fr' ],
@@ -108,6 +203,18 @@ module.exports.init = function() {
 
   // logger
   config.loglevel = process.env.LOG_LEVEL || 'info';
+  // 'json' for log collectors, 'human' for a terminal
+  config.logformat = process.env.LOG_FORMAT || (config.env === 'production' ? 'json' : 'human');
+  // true logs every request, false none. A number is a status floor: 400 keeps
+  // the errors and drops the successes, which is what keeps a log bill down
+  // once latency and error rate come from metrics. A deployment setting, like
+  // the format, hence LOG_REQUESTS.
+  config.logrequests = parseLogRequests(process.env.LOG_REQUESTS, config.env !== 'test');
+
+  // Keys whose value redact() replaces; null keeps the default of src/redact.js.
+  // A pattern set here replaces it, so extend redact.DEFAULT_SENSITIVE_KEYS:
+  //   config.sensitiveKeys = new RegExp(`${redact.DEFAULT_SENSITIVE_KEYS.source}|iban`, 'i');
+  config.sensitiveKeys = null;
 
   //
   if (config.env === 'dev') {

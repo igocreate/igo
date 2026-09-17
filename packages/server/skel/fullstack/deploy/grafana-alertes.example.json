@@ -1,0 +1,923 @@
+{
+  "apiVersion": 1,
+  "groups": [
+    {
+      "orgId": 1,
+      "name": "igo",
+      "folder": "igo",
+      "interval": "1m",
+      "rules": [
+        {
+          "uid": "igo-service-down",
+          "title": "IgoServiceDown",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${datasource}",
+              "model": {
+                "refId": "A",
+                "expr": "1 - probe_success",
+                "instant": true,
+                "range": false,
+                "editorMode": "code",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                }
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "2m",
+          "annotations": {
+            "summary": "Le service ne répond plus.",
+            "description": "La sonde extérieure n'obtient plus de réponse valide de {{ $labels.instance }} depuis 2 minutes : l'application est arrêtée, une dépendance critique lui manque, ou la route jusqu'à elle est coupée."
+          },
+          "labels": {
+            "severity": "critical"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "igo-taux-5xx",
+          "title": "IgoHighErrorRate",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${datasource}",
+              "model": {
+                "refId": "A",
+                "expr": "100 * sum by (job) (rate(http_server_request_duration_seconds_count{http_response_status_code=~\"5..\"}[5m]))\n  / clamp_min(sum by (job) (rate(http_server_request_duration_seconds_count[5m])), 1e-9) > 5",
+                "instant": true,
+                "range": false,
+                "editorMode": "code",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                }
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "2m",
+          "annotations": {
+            "summary": "Le service rend plus de 5 % d'erreurs serveur.",
+            "description": "Plus de 5 % des requêtes de {{ $labels.job }} échouent en 5xx depuis 5 minutes. Regarder la courbe des erreurs serveur par route sur le tableau de bord."
+          },
+          "labels": {
+            "severity": "critical"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "igo-latence-p95",
+          "title": "IgoLatencyDegraded",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${datasource}",
+              "model": {
+                "refId": "A",
+                "expr": "histogram_quantile(0.95, sum by (job, le) (rate(http_server_request_duration_seconds_bucket[5m]))) > 1",
+                "instant": true,
+                "range": false,
+                "editorMode": "code",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                }
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "10m",
+          "annotations": {
+            "summary": "Le service répond en plus d'une seconde au 95e centile.",
+            "description": "Le 95e centile de {{ $labels.job }} dépasse une seconde depuis 10 minutes. La rangée « Dépendances » du tableau de bord dit si la base ou le cache en sont la cause."
+          },
+          "labels": {
+            "severity": "warning"
+          },
+          "isPaused": true
+        },
+        {
+          "uid": "igo-cpu",
+          "title": "IgoHostCpuSaturated",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${datasource}",
+              "model": {
+                "refId": "A",
+                "expr": "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m]))) > 90",
+                "instant": true,
+                "range": false,
+                "editorMode": "code",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                }
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "15m",
+          "annotations": {
+            "summary": "Le processeur de la machine est saturé.",
+            "description": "Le processeur de {{ $labels.instance }} dépasse 90 % depuis 15 minutes. Un pic court est normal ; une saturation qui dure demande de regarder ce qui a changé."
+          },
+          "labels": {
+            "severity": "warning"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "igo-memoire",
+          "title": "IgoHostMemorySaturated",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${datasource}",
+              "model": {
+                "refId": "A",
+                "expr": "100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 90",
+                "instant": true,
+                "range": false,
+                "editorMode": "code",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                }
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "15m",
+          "annotations": {
+            "summary": "La mémoire de la machine est saturée.",
+            "description": "La mémoire disponible de {{ $labels.instance }} est sous 10 % depuis 15 minutes. Le noyau va bientôt tuer des processus."
+          },
+          "labels": {
+            "severity": "warning"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "igo-disque",
+          "title": "IgoDiskFillingUp",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${datasource}",
+              "model": {
+                "refId": "A",
+                "expr": "- predict_linear(node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay|squashfs\"}[6h], 4 * 24 * 3600) > 0",
+                "instant": true,
+                "range": false,
+                "editorMode": "code",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                }
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "1h",
+          "annotations": {
+            "summary": "Un système de fichiers sature dans moins de quatre jours.",
+            "description": "À ce rythme d'écriture, {{ $labels.mountpoint }} sur {{ $labels.instance }} sature dans moins de quatre jours. Il reste le temps d'agir."
+          },
+          "labels": {
+            "severity": "warning"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "igo-4xx-hausse",
+          "title": "IgoClientErrorSpike",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${datasource}",
+              "model": {
+                "refId": "A",
+                "expr": "(\n  100 * sum by (job) (rate(http_server_request_duration_seconds_count{http_response_status_code=~\"4..\", http_route!=\"/.*/\"}[5m]))\n    / clamp_min(sum by (job) (rate(http_server_request_duration_seconds_count[5m])), 1e-9) > 5\n)\n> 3 * (\n  100 * sum by (job) (rate(http_server_request_duration_seconds_count{http_response_status_code=~\"4..\", http_route!=\"/.*/\"}[1h]))\n    / clamp_min(sum by (job) (rate(http_server_request_duration_seconds_count[1h])), 1e-9)\n)",
+                "instant": true,
+                "range": false,
+                "editorMode": "code",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                }
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "5m",
+          "annotations": {
+            "summary": "La part des erreurs client a triplé.",
+            "description": "La part des requêtes de {{ $labels.job }} qui échouent en 4xx sur une route déclarée a triplé par rapport à la dernière heure, et dépasse 5 % du trafic. Souvent un déploiement qui a changé un contrat d'API, ou un client qui envoie des requêtes invalides."
+          },
+          "labels": {
+            "severity": "warning"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "igo-event-loop",
+          "title": "IgoEventLoopSaturated",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${datasource}",
+              "model": {
+                "refId": "A",
+                "expr": "nodejs_eventloop_utilization_ratio > 0.9",
+                "instant": true,
+                "range": false,
+                "editorMode": "code",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                }
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "10m",
+          "annotations": {
+            "summary": "La boucle d'évènements du service est saturée.",
+            "description": "La boucle d'évènements de {{ $labels.job }} travaille plus de 90 % du temps depuis 10 minutes : les requêtes attendent leur tour. Chercher une opération synchrone bloquante ou un calcul à déplacer."
+          },
+          "labels": {
+            "severity": "warning"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "igo-latence-spike",
+          "title": "IgoLatencySpike",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${datasource}",
+              "model": {
+                "refId": "A",
+                "expr": "(\n  histogram_quantile(0.95, sum by (job, le) (rate(http_server_request_duration_seconds_bucket{http_response_status_code=~\"2..\"}[5m]))) > 0.1\n)\n> 3 * histogram_quantile(0.95, sum by (job, le) (rate(http_server_request_duration_seconds_bucket{http_response_status_code=~\"2..\"}[1h])))",
+                "instant": true,
+                "range": false,
+                "editorMode": "code",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                }
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "10m",
+          "annotations": {
+            "summary": "La latence du service a triplé.",
+            "description": "Le 95e centile des réponses réussies de {{ $labels.job }} a triplé par rapport à la dernière heure. Le plancher de 100 ms évite de comparer des valeurs insignifiantes."
+          },
+          "labels": {
+            "severity": "warning"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "igo-charge-par-coeur",
+          "title": "IgoHostSystemSaturated",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${datasource}",
+              "model": {
+                "refId": "A",
+                "expr": "sum by (instance) (node_load1{job=~\"integrations/unix\"})\n  / count by (instance) (node_cpu_seconds_total{job=~\"integrations/unix\", mode=\"idle\"}) > 2",
+                "instant": true,
+                "range": false,
+                "editorMode": "code",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                }
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "15m",
+          "annotations": {
+            "summary": "La machine a plus de deux processus en attente par cœur.",
+            "description": "La charge de {{ $labels.instance }} dépasse deux fois son nombre de cœurs depuis 15 minutes : les processus attendent le processeur."
+          },
+          "labels": {
+            "severity": "warning"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "igo-disque-io",
+          "title": "IgoDiskIOSaturated",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${datasource}",
+              "model": {
+                "refId": "A",
+                "expr": "rate(node_disk_io_time_weighted_seconds_total{job=~\"integrations/unix\"}[5m]) > 10",
+                "instant": true,
+                "range": false,
+                "editorMode": "code",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                }
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "15m",
+          "annotations": {
+            "summary": "La file d'attente du disque est saturée.",
+            "description": "Le disque {{ $labels.device }} de {{ $labels.instance }} accumule les requêtes en attente depuis 15 minutes. Souvent la base de données, qui ralentit alors sans que le processeur ne bouge."
+          },
+          "labels": {
+            "severity": "warning"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "igo-descripteurs",
+          "title": "IgoFileDescriptorsExhausted",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${datasource}",
+              "model": {
+                "refId": "A",
+                "expr": "100 * node_filefd_allocated{job=~\"integrations/unix\"} / node_filefd_maximum{job=~\"integrations/unix\"} > 80",
+                "instant": true,
+                "range": false,
+                "editorMode": "code",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                }
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "10m",
+          "annotations": {
+            "summary": "Les descripteurs de fichiers de la machine sont presque épuisés.",
+            "description": "{{ $labels.instance }} a ouvert plus de 80 % des descripteurs de fichiers autorisés. À saturation, plus aucune connexion ni aucun fichier ne peut être ouvert."
+          },
+          "labels": {
+            "severity": "critical"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "igo-pool-mysql",
+          "title": "IgoDatabasePoolSaturated",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${datasource}",
+              "model": {
+                "refId": "A",
+                "expr": "100 * mysql_global_status_threads_connected / mysql_global_variables_max_connections > 80",
+                "instant": true,
+                "range": false,
+                "editorMode": "code",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                }
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "5m",
+          "annotations": {
+            "summary": "Le pool de connexions de la base est presque saturé.",
+            "description": "Plus de 80 % des connexions autorisées par MySQL sont ouvertes depuis 5 minutes. À saturation, les requêtes échouent faute de connexion disponible."
+          },
+          "labels": {
+            "severity": "critical"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "igo-trafic-effondre",
+          "title": "IgoTrafficCollapsed",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 600,
+                "to": 0
+              },
+              "datasourceUid": "${datasource}",
+              "model": {
+                "refId": "A",
+                "expr": "(\n  sum by (job) (rate(http_server_request_duration_seconds_count[1h])) > 0.5\n)\nand\nsum by (job) (rate(http_server_request_duration_seconds_count[5m]))\n  < 0.2 * sum by (job) (rate(http_server_request_duration_seconds_count[1h]))",
+                "instant": true,
+                "range": false,
+                "editorMode": "code",
+                "intervalMs": 1000,
+                "maxDataPoints": 43200
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [
+                        0
+                      ]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                }
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "10m",
+          "annotations": {
+            "summary": "Le trafic du service s'est effondré.",
+            "description": "Le trafic de {{ $labels.job }} est tombé sous 20 % de la dernière heure alors que le service répond. Regarder le répartiteur de charge, le DNS et le pare-feu avant l'application."
+          },
+          "labels": {
+            "severity": "critical"
+          },
+          "isPaused": true
+        }
+      ]
+    }
+  ]
+}

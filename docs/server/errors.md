@@ -22,13 +22,37 @@ If a promise rejects without a catch and the error happens within a request cont
 
 Fatal errors that escape all handlers are logged, an email is sent, and the process exits after 1 second. Use a process manager like PM2 to restart automatically.
 
+Node gives no guarantee about the state of a process that reached this point, so restarting is the default. Once your alerting no longer depends on the crash email to notice an error, you can keep serving:
+
+```js
+// app/config.js
+module.exports.init = (config) => {
+  config.exitOnUncaughtException = false;
+};
+```
+
+The server then stays up **only** when the exception happened during a request that was already answered. An exception raised outside any request still exits, since nothing can vouch for the process state.
+
 ## Special Cases
 
 | Error type | Response | Email sent? |
 |------------|----------|-------------|
 | `URIError` (malformed URL) | 404 | No |
-| `SyntaxError` (invalid JSON) | 500 | No |
+| `SyntaxError` (invalid JSON) | 500, or 400 on an API request | No |
 | Other errors | 500 | Yes |
+
+## API Requests
+
+A request under `config.api.prefix` (`/api` by default), or one whose `Accept`
+header asks for JSON, never receives a rendered page. Errors come back as
+[RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) problem documents — 404s and
+validation failures included. See [JSON APIs](./api).
+
+```json
+{ "type": "about:blank", "title": "Not Found", "status": 404 }
+```
+
+Crash emails are unaffected: only the response format changes.
 
 ## Crash Emails
 
@@ -36,9 +60,11 @@ Configure one or more recipients for error notification emails:
 
 ```js
 // app/config.js
-config.mailcrashto = 'admin@example.com';
-// or, for several recipients:
-config.mailcrashto = ['admin@example.com', 'ops@example.com'];
+module.exports.init = (config) => {
+  config.mailcrashto = 'admin@example.com';
+  // or, for several recipients:
+  config.mailcrashto = ['admin@example.com', 'ops@example.com'];
+};
 ```
 
 The email includes: error message, stack trace, request context (method, URL, user-agent, body, session).

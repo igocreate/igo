@@ -11,10 +11,14 @@ const cache             = require('./cache');
 const config            = require('./config');
 const db                = require('@igojs/db');
 const assets            = require('./connect/assets');
+const { unlessApi }     = require('./api');
 const errorHandler      = require('./connect/errorhandler');
 const flash             = require('./connect/flash');
+const health            = require('./connect/health');
 const locals            = require('./connect/locals');
 const multipart         = require('./connect/multipart');
+const requestLogger     = require('./connect/requestlogger');
+const securityHeaders   = require('./connect/security');
 const session           = require('./connect/session');
 const validator         = require('./connect/validator');
 const logger            = require('./logger');
@@ -73,6 +77,7 @@ module.exports.configure = async () => {
 
   app.enable('trust proxy');
   app.disable('x-powered-by');
+  app.use(securityHeaders);
 
   // Enable view caching in production
   if (config.env === 'production') {
@@ -110,7 +115,12 @@ module.exports.configure = async () => {
   }
 
 
-  app.use(flash);
+  // before the request logger: probed every few seconds, these routes would
+  // otherwise be most of the request log
+  health(app);
+
+  app.use(requestLogger);
+  app.use(unlessApi(flash));
   app.use(validator);
 
   // fix crash if lang is incorrect (in query or in cookies)
@@ -119,9 +129,9 @@ module.exports.configure = async () => {
   app.use(validateLang(whitelist, config.i18n.fallbackLng));
   app.use(i18nMiddleware.handle(i18next));
 
-  app.use(locals);
-  app.use(assets);
-  app.use(igodust.middleware);
+  app.use(unlessApi(locals));
+  app.use(unlessApi(assets));
+  app.use(unlessApi(igodust.middleware));
 
   // Auto-wire @igojs/component if installed in the project.
   // Registers component.middleware + GET /__component/templates and /__component/component.

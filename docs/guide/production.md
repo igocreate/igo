@@ -23,7 +23,7 @@ An environment-specific config file `app/config-production.js` is loaded on top 
 
 ```js
 // app/config-production.js
-module.exports = (config) => {
+module.exports.init = (config) => {
   config.cache.redis.db = 1;
 };
 ```
@@ -61,6 +61,79 @@ Configure the crash email recipient (string or array):
 config.mailcrashto = 'admin@example.com';
 // or: config.mailcrashto = ['admin@example.com', 'ops@example.com'];
 ```
+
+## Security Headers
+
+Every response carries the headers a penetration test asks for:
+`X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`,
+`Referrer-Policy: strict-origin-when-cross-origin`,
+`Permissions-Policy: camera=(), microphone=(), geolocation=()`, and in
+production over HTTPS `Strict-Transport-Security: max-age=63072000; includeSubDomains`.
+API responses add `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'`
+and `Cache-Control: no-store`: JSON never executes, and may carry personal data.
+
+No Content-Security-Policy is set on the pages: a working one is made of your
+own exceptions — fonts, CDNs, third-party APIs — so it is yours to declare.
+Each header is a key of `config.security`; `false` drops it, and
+`config.security = false` drops them all.
+
+```js
+// app/config.js
+module.exports.init = (config) => {
+  config.security.csp  = "default-src 'self'; img-src 'self' data:; font-src https://fonts.gstatic.com";
+  config.security.hsts = 'max-age=63072000; includeSubDomains; preload';
+  config.security.permissionsPolicy = 'camera=(), microphone=()';   // this app geolocates
+};
+```
+
+The `fullstack` skeleton's SPA is not served by igo: its policy is a `<meta>`
+tag written by `vite.config.ts`, and `frame-ancestors` is nginx's.
+
+## Health Checks
+
+Two routes answer what an orchestrator asks, and nothing more:
+
+| Route | Answers |
+|-------|---------|
+| `GET /health` | Liveness: the process runs. No dependency is touched. |
+| `GET /health/ready` | Readiness: the database, the cache and the disk answer. |
+
+Readiness sends `503` when one of them does not, which is what takes an
+instance out of a load balancer — the body is for whoever reads it, the status
+code is what nginx, HAProxy and Kubernetes act on.
+
+```json
+{
+  "status": "DOWN",
+  "components": {
+    "db":    { "status": "DOWN" },
+    "cache": { "status": "UP" },
+    "disk":  { "status": "UP" }
+  }
+}
+```
+
+The reason a probe failed stays in the logs: `/health/ready` is reachable by
+whoever can reach the service, and a connection error names hosts and ports.
+
+```js
+// app/config.js
+module.exports.init = (config) => {
+  config.health.disk    = 200 * 1024 * 1024;  // this app receives large uploads
+  config.health.cache   = false;              // no redis here
+  config.health.timeout = 300;
+};
+```
+
+`config.health = false` drops both routes. Neither appears in the request log,
+and the `fullstack` skeleton's Alloy configuration drops them from the metrics
+too: probed every few seconds, they would otherwise be most of the measured
+traffic.
+
+CPU and memory are deliberately not probed. A saturated CPU is often an
+instance doing its job, and taking it out of rotation would spread the load
+onto the others — they belong to alerting, where a trend is read, not to a
+probe that decides in isolation.
 
 ## Logging
 

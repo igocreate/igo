@@ -1,11 +1,14 @@
 
 
+const { execFile } = require('child_process');
 const fs      = require('fs/promises');
 const path    = require('path');
+const { promisify } = require('util');
 
 const _       = require('lodash');
 const fse     = require('fs-extra');
 
+const config  = require('../src/config');
 const utils   = require('../src/utils');
 
 // rename files starting with _. to . in the project directory
@@ -13,14 +16,18 @@ const renameUnderscoreFiles = async (dir) => {
   const entries = await fs.readdir(dir, { withFileTypes: true });
 
   for (const entry of entries) {
-    const srcPath = path.join(dir, entry.name);
+    let srcPath = path.join(dir, entry.name);
+
+    // npm refuses to publish a directory containing .gitignore, .husky and the
+    // like, so the skeletons ship them prefixed.
+    if (entry.name.startsWith('_.')) {
+      const destPath = path.join(dir, '.' + entry.name.slice(2));
+      await fse.move(srcPath, destPath, { overwrite: true });
+      srcPath = destPath;
+    }
 
     if (entry.isDirectory()) {
       await renameUnderscoreFiles(srcPath); // récursif
-    } else if (entry.name.startsWith('_.')) {
-      const newName = '.' + entry.name.slice(2);
-      const destPath = path.join(dir, newName);
-      await fse.move(srcPath, destPath, { overwrite: true });
     }
   }
 };
@@ -54,16 +61,74 @@ const replaceInDirectory = async (dir, replacements) => {
   }
 };
 
+// Session secrets belong in the .env nobody commits — not in the versioned
+// example, and not in app/config where a generated value would end up in git.
+const drawSecrets = async (envFile) => {
+  const content = await fs.readFile(envFile, 'utf8');
+  const filled  = content
+  .replace(/^COOKIE_SECRET=$/m,       `COOKIE_SECRET=${utils.randomString(40)}`)
+  .replace(/^COOKIE_SESSION_KEYS=$/m, `COOKIE_SESSION_KEYS=${utils.randomString(40)}`);
+  if (filled !== content) {
+    await fs.writeFile(envFile, filled, 'utf8');
+  }
+};
+
+// A skeleton ships .env.example files; the project needs a .env to boot. A
+// missing one costs a confusing first error, so copy them — never overwriting
+// an existing .env.
+const seedEnvFiles = async (dir) => {
+  const copied = [];
+
+  const walk = async (current) => {
+    const entries = await fs.readdir(current, { withFileTypes: true });
+    for (const entry of entries) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory() && entry.name !== 'node_modules') {
+        await walk(full);
+      } else if (entry.name === '.env.example') {
+        const target = path.join(current, '.env');
+        if (!await fse.pathExists(target)) {
+          await fse.copy(full, target);
+          await drawSecrets(target);
+          copied.push(path.relative(dir, target));
+        }
+      }
+    }
+  };
+
+  await walk(dir);
+  return copied;
+};
+
+// The husky prepare script runs on install and fails without a repository, and
+// a project with no history has no safety net for its first changes. Failure is
+// not fatal: git may be absent, or the directory already inside a repository.
+const initRepository = async (dir) => {
+  try {
+    await promisify(execFile)('git', ['init', '--quiet'], { cwd: dir });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 // igo create
+const SKELETONS = ['tailwind', 'fullstack'];
+
 module.exports = async function (argv) {
   const args = argv._;
   if (args.length !== 2) {
-    console.warn('Usage: igo create <project-directory>');
+    console.warn('Usage: igo create <project-directory> [--skel=' + SKELETONS.join('|') + ']');
+    process.exit(1);
+  }
+
+  const model = argv.skel || 'tailwind';
+  if (!SKELETONS.includes(model)) {
+    console.warn(`Unknown skeleton '${model}'. Available: ${SKELETONS.join(', ')}.`);
     process.exit(1);
   }
 
   const directory = './' + args[1];
-  const model     = 'tailwind';
 
   await fs.mkdir(directory);
 
@@ -81,5 +146,22 @@ module.exports = async function (argv) {
     '{RANDOM_3}':     utils.randomString(40)
   };
 
-  return await replaceInDirectory(directory, replacements);
+  await replaceInDirectory(directory, replacements);
+
+  const envFiles = await seedEnvFiles(directory);
+  const repository = await initRepository(directory);
+
+  // Tests call this function directly, and a reporter parsing stdout cannot
+  // afford a stray line.
+  if (config.env === 'test') {
+    return;
+  }
+
+  console.log(`Created ${args[1]} from the ${model} skeleton.`);
+  if (envFiles.length) {
+    console.log(`  .env written: ${envFiles.join(', ')}`);
+  }
+  if (!repository) {
+    console.log('  no git repository created — run `git init` yourself');
+  }
 };

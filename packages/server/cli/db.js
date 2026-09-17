@@ -128,7 +128,7 @@ const verbs   = {
     }
 
     const files = fs.readdirSync(seedsDir)
-    .filter(f => f.match(/^\d+.*\.js$/))
+    .filter(f => f.match(/^\d+.*\.(js|ts)$/))
     .sort();
 
     if (!files.length) {
@@ -139,7 +139,7 @@ const verbs   = {
     await cache.init();
     for (const file of files) {
       const seed = require(path.join(seedsDir, file));
-      await seed();
+      await (seed.default || seed)();
       console.log(`  ${green('✔')} ${file}`);
     }
   },

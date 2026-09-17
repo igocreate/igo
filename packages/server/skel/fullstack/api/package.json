@@ -1,0 +1,45 @@
+{
+  "name": "{project.name}-api",
+  "version": "0.0.1",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "main": "dist/app.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && cp -R sql dist/",
+    "start": "tsx watch app.ts",
+    "serve": "cd dist && node app.js",
+    "migrate": "igo db migrate",
+    "seed": "NODE_OPTIONS=\"--import tsx\" igo db seed",
+    "lint": "oxlint",
+    "test": "mocha",
+    "typecheck": "tsc --noEmit",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check"
+  },
+  "dependencies": {
+    "@igojs/db": "{igo.version}",
+    "@igojs/server": "{igo.version}",
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/auto-instrumentations-node": "^0.80.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "^0.222.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.222.0",
+    "@opentelemetry/resources": "^2.11.0",
+    "@opentelemetry/sdk-metrics": "^2.11.0",
+    "@opentelemetry/sdk-node": "^0.222.0",
+    "@opentelemetry/semantic-conventions": "^1.43.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.0.0",
+    "oxfmt": "^0.66.0",
+    "oxlint": "^1.81.0",
+    "tsx": "^4.20.0",
+    "typescript": "^7.0.0"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

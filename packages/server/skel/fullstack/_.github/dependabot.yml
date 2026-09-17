@@ -1,0 +1,22 @@
+# Les dépendances sont revues à date fixe ; les mineures et correctifs arrivent
+# groupés, une PR par mois, pour ne pas noyer les majeures qui demandent un œil.
+version: 2
+updates:
+  - package-ecosystem: npm
+    # Chaque espace de travail a son package.json : `directory: /` ne verrait
+    # que celui de la racine, où il n'y a que l'outillage.
+    directories:
+      - /
+      - /api
+      - /front
+      - /e2e
+    schedule:
+      interval: monthly
+    groups:
+      mineures:
+        update-types: [minor, patch]
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

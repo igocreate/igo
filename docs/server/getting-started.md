@@ -32,6 +32,22 @@ npm start
 
 `npm start` runs nodemon + webpack in parallel — the server reloads on `app/` changes, the bundle rebuilds on `js/` and `scss/` changes.
 
+### Skeletons
+
+`create` scaffolds a server-rendered project by default. The other skeleton
+targets the API-first stack:
+
+```sh
+npx @igojs/server create myapp --skel=fullstack   # TypeScript JSON API + React SPA
+```
+
+| | What it holds |
+|---|---|
+| `tailwind` | Server-rendered views, dust templates, webpack. The default. |
+| `fullstack` | `api/`, `front/` and `e2e/` as pnpm workspaces: a TypeScript JSON API with a working `books` domain, a Vite + React SPA, Playwright with an accessibility audit, OpenTelemetry and Faro wired but off until a destination is set. oxlint, oxfmt, git hooks enforcing Conventional Commits, a CI workflow. |
+
+See [JSON APIs](./api).
+
 ## Minimal app
 
 If you'd rather wire things up by hand:
@@ -48,11 +64,11 @@ Define routes in `app/routes.js`, controllers in `app/controllers/`, templates i
 
 ## Configuration
 
-Configuration is loaded from several files, in order — see [Development › Configuration](../guide/development#configuration) for the full list. The minimum is an `app/config.js` that exports a function taking the config object:
+Configuration is loaded from several files, in order — see [Development › Configuration](../guide/development#configuration) for the full list. The minimum is an `app/config.js` that exports an `init` function taking the config object:
 
 ```js
 // app/config.js
-module.exports = (config) => {
+module.exports.init = (config) => {
   config.httpport = process.env.PORT || 3000;
   config.mysql    = { database: process.env.MYSQL_DATABASE };
   config.redis    = { socket: { host: process.env.REDIS_HOST || '127.0.0.1' } };
@@ -62,6 +78,7 @@ module.exports = (config) => {
 ## Next steps
 
 * **[Routes & controllers](./routes)** — Routing and the controller layer
+* **[JSON APIs](./api)** — Validation, RFC 9457 errors, DTOs, TypeScript
 * **[Views](./views)** — View engine, helpers, custom helpers
 * **[Forms](./forms)** — Sanitize/validate/convert pipeline
 * **[Cache](./cache)** — Redis cache API

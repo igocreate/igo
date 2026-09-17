@@ -1,0 +1,54 @@
+# Les dépendances locales. L'application elle-même tourne nativement —
+# `pnpm start`.
+#
+#   docker compose up -d
+#
+# Les ports publiés valent les ports habituels par défaut, et se déplacent
+# depuis le .env de la racine — utile sur un poste qui fait déjà tourner un
+# MySQL ou un Valkey :
+#
+#   MYSQL_PORT=3308
+#   REDIS_PORT=6382
+#
+# Ce qui est choisi ici doit correspondre à api/.env, que l'application lit.
+#
+services:
+  mysql:
+    image: mysql:8
+    restart: unless-stopped
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+      MYSQL_DATABASE: '{project.name}'
+    ports:
+      - '${MYSQL_PORT:-3306}:3306'
+    # igo se connecte en utf8mb4 : un serveur laissé sur son jeu de caractères
+    # par défaut casse au premier caractère accentué.
+    command: >-
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --innodb-default-row-format=dynamic
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      interval: 10s
+      retries: 5
+
+  valkey:
+    image: valkey/valkey:8
+    restart: unless-stopped
+    # Sans plafond, Valkey grossit jusqu'à ce que le noyau tue le process. Avec,
+    # il évince les clés les moins utilisées et le cache reste dans ses limites.
+    command: >-
+      valkey-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 10s
+      retries: 5
+
+volumes:
+  mysql_data:

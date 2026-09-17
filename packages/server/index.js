@@ -3,6 +3,9 @@ const config        = require('./src/config');
 const cache         = require('./src/cache');
 const logger        = require('./src/logger');
 
+const problem = require('./src/api/problem');
+const redact  = require('./src/redact');
+
 const server = {
   app:        require('./src/app'),
   cache,
@@ -13,6 +16,9 @@ const server = {
   logger,
   mailer:     require('./src/mailer'),
   Form:       require('./src/forms/Form'),
+  problem:    problem.problem,
+  redact,
+  sendProblem: problem.send,
 };
 
 module.exports = server;

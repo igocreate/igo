@@ -4,6 +4,7 @@
 node_modules
 coverage
 *.log
+dump.rdb
 
 docs/.vitepress/cache
 docs/.vitepress/dist
