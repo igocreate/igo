@@ -35,7 +35,9 @@ const sdk = new NodeSDK({
   resource: resourceFromAttributes({
     [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME || '{project.name}-api',
     [ATTR_SERVICE_VERSION]: process.env.APP_VERSION || '0.0.1',
-    'deployment.environment.name': process.env.NODE_ENV || 'dev',
+    // NODE_ENV vaut production sur une qualif aussi. igo lit ENVIRONMENT pour
+    // ses logs : trace et log désignent le même déploiement.
+    'deployment.environment.name': process.env.ENVIRONMENT || process.env.NODE_ENV || 'dev',
   }),
   traceExporter: new OTLPTraceExporter(),
   metricReader: new PeriodicExportingMetricReader({
@@ -44,8 +46,6 @@ const sdk = new NodeSDK({
   }),
   // Pas d'exporteur de logs : igo écrit déjà du JSON structuré sur la sortie
   // standard, que le collecteur lit. Les pousser aussi en OTLP les dupliquerait.
-  // L'instrumentation winston ci-dessous sert uniquement à estampiller ces
-  // lignes avec le trace_id.
   instrumentations: [
     getNodeAutoInstrumentations({
       // Le système de fichiers produit un span par lecture : illisible, et le
@@ -63,12 +63,9 @@ const sdk = new NodeSDK({
       // Le routage interne d'Express n'apprend rien : 21 spans `router - …`.
       '@opentelemetry/instrumentation-router': { enabled: false },
       '@opentelemetry/instrumentation-mysql2': { enabled: true },
-      // igo écrit déjà ses logs en JSON avec service/version/environment : on
-      // veut l'estampille trace_id, pas une seconde copie des logs.
-      '@opentelemetry/instrumentation-winston': {
-        enabled: true,
-        disableLogSending: true,
-      },
+      // igo pose déjà le trace_id sur chaque ligne, dans une requête comme
+      // dans un cron, avec ou sans SDK.
+      '@opentelemetry/instrumentation-winston': { enabled: false },
     }),
   ],
 });

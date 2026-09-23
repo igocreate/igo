@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### @igojs/server
+
+- **Fixed**: a JSON log line names its deployment and its service the way the traces do. `environment` read `NODE_ENV`, which is `production` on every deployed environment — a staging logged as production, contradicting the label its collector gave it. It now reads `ENVIRONMENT`, falling back to `NODE_ENV`. `service` read `APP_NAME`, a display name meant for crash email subjects; it now reads `OTEL_SERVICE_NAME`, falling back to the project package name. Both are exposed as `config.environment` and `config.servicename`. A project that set `APP_NAME` without `OTEL_SERVICE_NAME` sees `service` change to its package name: queries filtering on the old value need updating.
+- **Fixed**: a log emitted outside a request — a cron, a script — carries the trace id of the active span. Only the request's id was stamped, so the lines of an instrumented job had none, and a project had to pass `trace_id` by hand to tie an error to its trace. Within a request, the request's id still wins.
+- **Changed**: the `fullstack` skeleton disables `@opentelemetry/instrumentation-winston`. It was only there to stamp `trace_id`, which igo now does in and out of requests; the lines lose `span_id` and `trace_flags`.
+- **Fixed**: the `fullstack` skeleton reports `deployment.environment.name` from `ENVIRONMENT` too, instead of `NODE_ENV`, for its traces and metrics; `api/.env.example` declares it.
+
 ## 6.3.2 - 2026-09-23
 
 ### @igojs/server

@@ -47,13 +47,25 @@ Errors keep their stack.
 In `json`, every line also carries where it comes from:
 
 ```json
-{"service":"myapi","version":"1.4.0","environment":"production", …}
+{"service":"myapi","version":"1.4.0","environment":"qualif", …}
 ```
 
-`service` and `version` default to the `name` and `version` of your project's
-`package.json`; `APP_NAME` and `APP_VERSION` override them, as does setting
-`config.appname` / `config.version` directly. Without them, a pooled log
-platform cannot tell one project — or one environment — from another.
+| Field | From | Default |
+|---|---|---|
+| `service` | `OTEL_SERVICE_NAME` | `name` of the project's `package.json` |
+| `version` | `APP_VERSION` | `version` of the project's `package.json` |
+| `environment` | `ENVIRONMENT` | `NODE_ENV` |
+
+`service` and `environment` read the variables the OpenTelemetry
+instrumentation reads, so a log line and the trace of the same request name the
+same service and the same deployment. `environment` is the deployment's name,
+not the run mode: a staging runs with `NODE_ENV=production`, and would
+otherwise log as production. `APP_NAME` titles the crash emails and plays no
+part here.
+
+They are also `config.servicename`, `config.version` and `config.environment`.
+Without them, a pooled log platform cannot tell one project — or one
+environment — from another.
 
 They are left out of the `human` format, where all three are constant.
 

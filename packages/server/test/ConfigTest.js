@@ -14,6 +14,11 @@ describe('igo.config', () => {
       assert.strictEqual(config.version, projectPackage.version);
     });
 
+    it('should identify the service and the deployment in logs by default', () => {
+      assert.strictEqual(config.servicename, require('./project/package.json').name);
+      assert.strictEqual(config.environment, config.env);
+    });
+
     // `serve` scripts run from dist/, which has no package.json of its own
     it('should climb to the nearest package.json when projectRoot is a build directory', () => {
       const found = config.readProjectPackage(path.join(__dirname, 'project', 'app'));

@@ -68,9 +68,9 @@ module.exports.init = () => {
   // is only useful if it says where it comes from. Only in the machine-readable
   // format: in a terminal these three are constant and just add noise.
   logger.defaultMeta = config.logformat === 'json' ? {
-    service:     config.appname,
+    service:     config.servicename,
     version:     config.version,
-    environment: config.env,
+    environment: config.environment,
   } : undefined;
 
   logger.format = winston.format.combine(

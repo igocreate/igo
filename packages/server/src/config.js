@@ -73,11 +73,14 @@ module.exports.init = function() {
   config.httpport       = process.env.HTTP_PORT || 3000;
   config.projectRoot    = process.cwd();
 
-  // Identifies the app in crash emails and in every log line, which is what
-  // tells one project and one environment apart once logs are pooled.
   // Resolved on read: projectRoot can still be reassigned after init().
-  defineProjectValue(config, 'appname', process.env.APP_NAME,    'name');
-  defineProjectValue(config, 'version', process.env.APP_VERSION, 'version');
+  // appname titles the crash emails; servicename and environment tag the logs,
+  // from the variables OpenTelemetry reads so a log line and its trace agree —
+  // NODE_ENV cannot name the deployment, a staging runs in production mode.
+  defineProjectValue(config, 'appname',     process.env.APP_NAME,          'name');
+  defineProjectValue(config, 'servicename', process.env.OTEL_SERVICE_NAME, 'name');
+  defineProjectValue(config, 'version',     process.env.APP_VERSION,       'version');
+  config.environment    = process.env.ENVIRONMENT || config.env;
 
   config.cookieSecret  = process.env.COOKIE_SECRET || DEFAULT_COOKIE_SECRET;
   config.cookieSession = {

@@ -85,8 +85,12 @@ export interface Config {
   /** Liveness and readiness routes; `false` drops both. */
   health:         HealthConfig | false;
   databases:      string[];
-  /** Names the app in crash emails and logs; defaults to the project package name. */
+  /** Names the app in crash emails; defaults to the project package name. */
   appname:        string;
+  /** `service` of every JSON log line: OTEL_SERVICE_NAME, else the project package name. */
+  servicename:    string;
+  /** Deployment name (`qualif`, `production`…) in logs: ENVIRONMENT, else NODE_ENV. */
+  environment:    string;
   /** Defaults to the project package version. */
   version:        string;
   cookieSecret:   string;

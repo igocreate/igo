@@ -173,6 +173,17 @@ describe('trace context', function() {
     assert.strictEqual(lines[0].trace_id, traceId);
   });
 
+  it('should stamp a log emitted outside a request with the active span', () => {
+    const lines = captureLogs(() => withActiveSpan(() => logger.info('inside a job')));
+    assert.strictEqual(lines.length, 1);
+    assert.strictEqual(lines[0].trace_id, SPAN.traceId);
+  });
+
+  it('should leave a log outside a request and outside a span without trace_id', () => {
+    const lines = captureLogs(() => logger.info('nothing active'));
+    assert.strictEqual(lines[0].trace_id, undefined);
+  });
+
   it('should expose no id outside of a request', () => {
     assert.strictEqual(middleware.traceId(), undefined);
   });

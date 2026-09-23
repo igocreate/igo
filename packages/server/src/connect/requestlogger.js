@@ -140,7 +140,9 @@ const shouldLog = (status, failed) => {
   return true;
 };
 
-logger.provideTraceId(() => storage.getStore()?.traceId);
+// Outside a request — a cron, a script — the active span gives the id: without
+// it, the lines of an instrumented job would carry no trace_id.
+logger.provideTraceId(() => storage.getStore()?.traceId ?? activeTraceId());
 
 // One line per request, carrying the id every log of that request is stamped
 // with. Mounted by igo before the routes.

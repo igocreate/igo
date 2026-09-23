@@ -83,9 +83,24 @@ describe('Logger', function() {
     it('should say which service, version and environment a line comes from', () => {
       const [line] = withFormat('json', () => logger.info('hello'));
       const entry  = JSON.parse(line);
-      assert.strictEqual(entry.environment, config.env);
-      assert.strictEqual(entry.service, config.appname);
+      assert.strictEqual(entry.environment, config.environment);
+      assert.strictEqual(entry.service, config.servicename);
       assert.strictEqual(entry.version, config.version);
+    });
+
+    // a staging runs with NODE_ENV=production, and APP_NAME is a display name
+    it('should name the deployment and the service, not the run mode and the display name', () => {
+      const initial = { environment: config.environment, appname: config.appname };
+      config.environment = 'qualif';
+      config.appname     = 'DROM\'CONNECT QUALIF';
+      try {
+        const [line] = withFormat('json', () => logger.info('hello'));
+        const entry  = JSON.parse(line);
+        assert.strictEqual(entry.environment, 'qualif');
+        assert.strictEqual(entry.service, require('./project/package.json').name);
+      } finally {
+        Object.assign(config, initial);
+      }
     });
 
     it('should not colour what a log collector reads', () => {
