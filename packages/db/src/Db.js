@@ -35,6 +35,7 @@ class Db {
     }
     this.driver     = getDriver(this.config.driver);
     this.connection = null;
+    this.closed     = false;
     this.config.migrations_dir = `sql/${this.name}`;
   }
 
@@ -42,12 +43,34 @@ class Db {
     const { config } = dependencies;
     this.pool       = await this.driver.createPool(this.config);
     this.connection = null;
+    this.closed     = false;
     this.TEST_ENV   = config.env === 'test';
+  }
+
+  async close() {
+    if (this.closed) {
+      return;
+    }
+    this.closed     = true;
+    const { pool, connection } = this;
+    this.pool       = null;
+    this.connection = null;
+    // a connection kept across queries is still checked out, and
+    // the pool would wait for it to come back before ending
+    if (connection) {
+      this.driver.release(connection);
+    }
+    if (pool) {
+      await this.driver.closePool(pool);
+    }
   }
 
   //
   async getConnection() {
     const { driver, pool, TEST_ENV } = this;
+    if (this.closed) {
+      throw new Error(`Db '${this.name}' is closed: the application is shutting down.`);
+    }
     // if connection is in local storage
     if (TEST_ENV && this.connection) {
       // console.log('keep same connection');
@@ -97,6 +120,10 @@ class Db {
         }
       }
     };
+
+    if (this.closed) {
+      throw new Error(`Db '${this.name}' is closed: the application is shutting down.`);
+    }
 
     if (this.pool) {
       return await runquery();

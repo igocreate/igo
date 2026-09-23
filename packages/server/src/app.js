@@ -117,7 +117,7 @@ module.exports.configure = async () => {
 
   // before the request logger: probed every few seconds, these routes would
   // otherwise be most of the request log
-  health(app);
+  health.init(app);
 
   app.use(requestLogger);
   app.use(unlessApi(flash));
@@ -153,12 +153,91 @@ module.exports.configure = async () => {
   }
 };
 
+const closeServer = () => new Promise((resolve) => {
+  if (!app.server?.listening) {
+    return resolve();
+  }
+  // resolves once the connections still being served are done
+  app.server.close(() => resolve());
+});
+
+const step = async (what, fn) => {
+  try {
+    await fn();
+  } catch (err) {
+    // one failed step must not keep the next from running
+    logger.warn(`Shutdown: ${what} failed: ${err.message}`, { stack: err.stack });
+  }
+};
+
+let shuttingDown = false;
+
+// Closes what the application holds, in the order that lets each step still use
+// what the next one closes. Exported so a script or a cron, which has no signal
+// to wait for, can call it when its work is done.
+module.exports.shutdown = async () => {
+  if (shuttingDown) {
+    return;
+  }
+  shuttingDown = true;
+  logger.info('Shutdown: starting');
+
+  // readiness answers 503 from here on, and config.shutdownDelay leaves the load
+  // balancer time to see it before the socket stops accepting connections
+  health.drain();
+  if (config.shutdownDelay) {
+    await new Promise(resolve => setTimeout(resolve, config.shutdownDelay));
+  }
+
+  await step('closing server', closeServer);
+  await step('onShutdown', async () => await config.onShutdown?.());
+  await step('closing databases', db.dbs.close);
+  await step('closing cache', cache.close);
+
+  logger.info('Shutdown: done');
+};
+
+// its own flag, not shutdown()'s: that one also guards a script calling
+// shutdown() on its own, which is not a signal anyone is waiting on
+let signalled = false;
+
+const onSignal = (signal) => async () => {
+  // a second Ctrl-C is someone asking to stop waiting
+  if (signalled) {
+    logger.warn(`${signal} received again: exiting now`);
+    return process.exit(1);
+  }
+  signalled = true;
+  logger.info(`${signal} received`);
+
+  // a shutdown that hangs is worse than an abrupt one: the process manager sends
+  // SIGKILL in the end anyway, and this at least leaves a log saying where it hung.
+  const timer = setTimeout(() => {
+    logger.error(`Shutdown: still running after ${config.shutdownTimeout}ms, exiting`);
+    process.exit(1);
+  }, config.shutdownTimeout);
+
+  try {
+    await module.exports.shutdown();
+  } finally {
+    clearTimeout(timer);
+  }
+  process.exit(0);
+};
+
 // configured: function invoked when app is configured
 // started: function invoked when server is started
 module.exports.run = async (configured, started) => {
 
   await module.exports.configure();
   configured && configured();
+
+  // only run() installs them: a CLI command or a script has nothing to keep
+  // alive, and mocha would never get its hand back
+  if (config.env !== 'test') {
+    process.on('SIGTERM', onSignal('SIGTERM'));
+    process.on('SIGINT',  onSignal('SIGINT'));
+  }
 
   app.server = app.listen(config.httpport, function() {
     logger.info('Listening to port %s', config.httpport);

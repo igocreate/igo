@@ -9,6 +9,14 @@ const logger = require('../logger');
 const UP   = 'UP';
 const DOWN = 'DOWN';
 
+// Set at the first step of the shutdown, before the socket is closed, so a load
+// balancer reading readiness takes the instance out while it can still serve.
+let draining = false;
+
+module.exports.drain = (value = true) => {
+  draining = value;
+};
+
 // A probe that hangs must not hold the answer: an orchestrator that waits is an
 // orchestrator that keeps routing traffic to an instance already in trouble.
 const withTimeout = (promise, ms) => Promise.race([
@@ -77,6 +85,10 @@ const liveness = (req, res) => {
 const isOptional = (setting) => setting === 'optional';
 
 const readiness = (settings) => async (req, res) => {
+  if (draining) {
+    return send(res, 503, { status: DOWN, components: {} });
+  }
+
   const names = Object.keys(PROBES).filter(name => settings[name]);
   const states = await Promise.all(
     names.map(name => runProbe(name, settings[name], settings.timeout)));
@@ -97,7 +109,7 @@ const readiness = (settings) => async (req, res) => {
 // Mounted by igo before the request logger, which is what keeps these routes
 // out of the request log: probed every few seconds, they would otherwise be
 // most of it.
-module.exports = (app) => {
+module.exports.init = (app) => {
   const settings = config.health;
   if (!settings) {
     return;

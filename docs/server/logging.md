@@ -67,8 +67,41 @@ Every request is logged once it completes:
 ```
 
 The level follows the status: `error` at 5xx, `warn` at 4xx, `info` otherwise.
-An error line also carries what the call failed with — `body`, `query`, `params`
-and the `response` sent — redacted and truncated. A successful line does not.
+`query` and `params` are there whenever they are not empty, whatever the status:
+what was asked is part of reading a line, and neither weighs much.
+
+An error line also carries `body` and the `response` sent, redacted and
+truncated — a diagnosis needs the shape of an import, not its content. A
+successful line carries neither, which would multiply the volume for little.
+
+These four are logged as **JSON strings**, not nested objects, so a collector
+that flattens nested fields cannot scatter one document over `response_status`,
+`response_title` and `response_type`.
+
+### An error is one line, not two
+
+When a request fails, the error lands on that same line: the message becomes
+the error, and `stack` comes with it.
+
+```json
+{"level":"error","message":"Error: connection refused to 10.0.0.5:3306",
+ "method":"POST","path":"/api/books","status":500,"duration_ms":7.2,
+ "body":"{\"title\":\"Dune\"}",
+ "response":"{\"type\":\"about:blank\",\"title\":\"Internal Server Error\",\"status\":500}",
+ "stack":"Error: connection refused…","trace_id":"4bf92f35…"}
+```
+
+One incident, one line, whether the route answers JSON or renders a page. The
+stack and the body used to sit on separate lines, so neither told the whole
+story.
+
+`message` carries the error rather than the response body, which a 500 in
+production deliberately empties: what the client is told is not what the log
+needs.
+
+Two cases still get a line of their own — an error raised after the response
+was sent, since the request line is already written, and an error outside any
+request (`uncaughtException`, a CLI command), which has no line to join.
 
 `config.logrequests` takes `true`, `false`, or a **status floor**: `400` keeps
 the errors and drops the successes. One line per request is the largest item in

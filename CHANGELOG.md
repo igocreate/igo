@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+### @igojs/server
+
+- **Added**: ordered shutdown on `SIGTERM` and `SIGINT`, installed by `app.run()`. Readiness answers 503 and igo waits `config.shutdownDelay` (`0` by default) so a load balancer can take the instance out, then the HTTP server closes while the requests in flight finish, then `config.onShutdown()` runs, then the databases and the cache are released. `config.shutdownTimeout` (10s) caps the whole thing, and a second signal exits immediately. Nothing is installed when `config.env === 'test'`.
+- **Added**: `config.onShutdown`, an async callback invoked between the server closing and the database being released — the single place for a project to drain its own pools and flush its telemetry exporters, instead of a second `process.on('SIGTERM')` racing igo's. A rejection is logged and the shutdown carries on.
+- **Added**: `app.shutdown()`, exported so a cron or a script, which has no signal to wait for, can release the pools when its work is done. Runs once, never rejects.
+- **Added**: `app.server` and the new settings are declared in `index.d.ts`; `app.server` previously had no type at all.
+- **Changed**: a failed request is one log line, not two. The error lands on the `request` line — `message` becomes the error and `stack` comes with it — instead of a separate line carrying the stack while the other carried the body and the response. Neither told the whole story. Applies to server-rendered routes as well as JSON ones. An error raised after the response was sent, or outside any request (`uncaughtException`, a CLI command), still gets its own line: there is no request line left to join.
+- **Fixed**: the reason a 500 failed is no longer lost in production. The response body is deliberately emptied there, and the log recorded that empty body; `message` now carries the error itself, whatever the client was told.
+- **Changed**: `body`, `query`, `params` and `response` are logged as JSON strings rather than nested objects. A collector that flattens nested fields turned one problem document into `response_status`, `response_title` and `response_type`, scattering it over as many columns as it had keys.
+- **Changed**: `query` and `params` are logged whatever the status, when not empty — what was asked is part of reading a successful line, and neither weighs on the volume the way a body does. `body` and `response` remain on error lines only.
+
+### @igojs/db
+
+- **Added**: `dbs.close()` and `Db.close()` release the connection pools, through a new `closePool` on the MySQL and PostgreSQL drivers.
+- **Changed**: `query()` on a closed database throws instead of recreating the pool. A query arriving after the shutdown — a forgotten timer, a late callback — would otherwise reopen what was just closed and keep the process alive.
+
 ## 6.2.5 - 2026-08-31
 
 ### @igojs/server

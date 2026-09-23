@@ -22,3 +22,19 @@ module.exports.init = async () => {
   // main is first database
   module.exports.main = module.exports[config.databases[0]];
 };
+
+// close databases connections
+module.exports.close = async () => {
+  const { config, logger } = dependencies;
+  for (const database of config.databases) {
+    const db = module.exports[database];
+    if (!db) {
+      continue;
+    }
+    try {
+      await db.close();
+    } catch (err) {
+      logger.error(`Could not close database '${database}': ${err.message}`);
+    }
+  }
+};

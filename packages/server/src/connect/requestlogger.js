@@ -56,18 +56,23 @@ const traceIdFromHeader = (value) => {
   return /^0+$/.test(match[1]) ? null : match[1];
 };
 
-// An error line carries what the call failed with — body, query, params, and
-// the response sent — redacted, and truncated: a diagnosis needs the shape of
-// an import or an attachment, not its content. A successful line carries none
-// of it, which would multiply the volume without teaching anything.
+// An error line carries what the call failed with — the body sent and the
+// response returned — redacted, and truncated: a diagnosis needs the shape of
+// an import or an attachment, not its content. A successful line carries
+// neither, which would multiply the volume without teaching anything.
 const MAX_LENGTH = 2000;
 
-const truncate = (value) => {
-  const text = JSON.stringify(value);
-  if (!text || text.length <= MAX_LENGTH) {
-    return value;
+// A string, not an object: a log pipeline that flattens nested fields would
+// turn { title, status } into response_title and response_status, scattering
+// one document over several columns.
+const asJson = (value) => {
+  const text = JSON.stringify(redact(value));
+  if (!text) {
+    return text;
   }
-  return `${text.slice(0, MAX_LENGTH)}… (${text.length} chars)`;
+  return text.length <= MAX_LENGTH
+    ? text
+    : `${text.slice(0, MAX_LENGTH)}… (${text.length} chars)`;
 };
 
 const isEmpty = (value) =>
@@ -76,19 +81,24 @@ const isEmpty = (value) =>
 const failureContext = (req, res) => {
   const context = {};
   if (!isEmpty(req.body)) {
-    context.body = truncate(redact(req.body));
-  }
-  if (!isEmpty(req.query)) {
-    context.query = truncate(redact(req.query));
-  }
-  if (!isEmpty(req.params)) {
-    context.params = redact(req.params);
+    context.body = asJson(req.body);
   }
   if (res._loggedBody !== undefined) {
-    context.response = truncate(redact(res._loggedBody));
+    context.response = asJson(res._loggedBody);
+  }
+  // What the client is told is not what the log needs: a 500 answers with an
+  // empty problem body in production, on purpose, and the reason would be lost.
+  if (res._loggedError?.stack) {
+    context.stack = res._loggedError.stack;
   }
   return context;
 };
+
+// The message of a line is what that line has worth reading. A served request
+// has nothing its fields do not already say; a failed one has the reason, which
+// is nowhere else in readable form.
+const messageFor = (res) =>
+  res._loggedError ? String(res._loggedError) : 'request';
 
 // A response body cannot be read back off `res`: res.json, which every JSON
 // answer goes through, keeps it for the error line.
@@ -114,7 +124,12 @@ const levelFor = (status) => {
 
 // config.logrequests: a boolean, or a status floor — 400 keeps the errors,
 // which are worth every byte, and drops the successes metrics already cover.
-const shouldLog = (status) => {
+// An error the handler caught is never dropped: the setting turns off the
+// access log, not the reporting of a crash, whose line is the only trace left.
+const shouldLog = (status, failed) => {
+  if (failed) {
+    return true;
+  }
   const setting = config.logrequests;
   if (setting === false) {
     return false;
@@ -147,16 +162,19 @@ module.exports = (req, res, next) => {
     // mock responses in tests are plain objects, with no events to listen to
     if (typeof res.on === 'function') {
       res.on('finish', () => {
-        if (!shouldLog(res.statusCode)) {
+        if (!shouldLog(res.statusCode, !!res._loggedError)) {
           return;
         }
         const duration = Number(process.hrtime.bigint() - start) / 1e6;
-        logger.log(levelFor(res.statusCode), 'request', {
+        logger.log(levelFor(res.statusCode), messageFor(res), {
           method: req.method,
           // req.path is rewritten to the router-relative path once mounted
           path:   (req.originalUrl || req.url || '').split('?')[0],
           status: res.statusCode,
           duration_ms: Math.round(duration * 10) / 10,
+          // on every line: what was addressed is part of reading a successful one
+          ...(isEmpty(req.query)  ? {} : { query:  asJson(req.query) }),
+          ...(isEmpty(req.params) ? {} : { params: asJson(req.params) }),
           ...(res.statusCode >= 400 ? failureContext(req, res) : {}),
         });
       });
@@ -166,3 +184,8 @@ module.exports = (req, res, next) => {
 };
 
 module.exports.traceId = () => storage.getStore()?.traceId;
+
+// Called by the error handler, which knows the error the response hides.
+module.exports.logError = (res, err) => {
+  res._loggedError = err;
+};

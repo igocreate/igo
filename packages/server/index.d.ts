@@ -94,6 +94,21 @@ export interface Config {
   mailcrashto?:   string | string[];
   /** false keeps the server alive after an uncaught exception a request already answered. */
   exitOnUncaughtException: boolean;
+  /**
+   * Milliseconds between readiness answering 503 and the HTTP server closing,
+   * so a load balancer takes the instance out before it stops accepting
+   * connections. 0 by default; behind a load balancer, set it above its check
+   * interval.
+   */
+  shutdownDelay:  number;
+  /** Ceiling on the whole shutdown, after which the process exits anyway. */
+  shutdownTimeout: number;
+  /**
+   * Invoked once the HTTP server is closed and before the database and the
+   * cache are released — drain your own pools and flush your exporters here.
+   * A rejection is logged and the shutdown carries on.
+   */
+  onShutdown?:    (() => void | Promise<void>) | null;
   loglevel:       string;
   /** 'json' for log collectors, 'human' for a terminal. */
   logformat:      'json' | 'human';
@@ -115,6 +130,14 @@ export interface Config {
 export declare const app: Express & {
   configure(): Promise<void>;
   run(configured?: () => void, started?: () => void): Promise<void>;
+  /**
+   * Closes the HTTP server, then config.onShutdown, then the databases and the
+   * cache. run() binds it to SIGTERM and SIGINT; call it directly from a script
+   * or a cron, which has no signal to wait for. Never rejects.
+   */
+  shutdown(): Promise<void>;
+  /** Set by run() once the server is listening. */
+  server?: import('http').Server;
 };
 
 export declare const config: Config;

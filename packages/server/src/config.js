@@ -127,6 +127,17 @@ module.exports.init = function() {
   // already answered — only once alerting no longer relies on the crash email
   config.exitOnUncaughtException = true;
 
+  // On SIGTERM/SIGINT: readiness answers 503, then igo waits shutdownDelay before
+  // closing the socket, so a load balancer stops routing here first. 0 by default
+  // because that wait is dead time without one; behind a load balancer, set it
+  // above its check interval. shutdownTimeout is the ceiling on the whole
+  // shutdown, and the process manager's own kill timeout has to exceed their sum.
+  config.shutdownDelay   = 0;
+  config.shutdownTimeout = 10000;
+  // async function invoked between the server closing and the database and cache
+  // being released: where a project drains its own pools and flushes its exporters
+  config.onShutdown      = null;
+
   config.i18n = {
     whitelist:            [ 'en', 'fr' ],
     preload:              [ 'en', 'fr' ],
