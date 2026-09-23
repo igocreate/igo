@@ -38,6 +38,7 @@ module.exports.init = async () => {
     return;
   }
   options = config.redis;
+  closing = false;
   client = redis.createClient(options);
 
   // reads go through a buffer-typed view of the same connection: values are binary
@@ -217,12 +218,15 @@ module.exports.flushall = async () => {
 // scan keys
 // - fn is invoked with (key) parameter for each key matching the pattern
 module.exports.scan = async (pattern, fn) => {
-  if (!available()) {
-    return;
-  }
   let cursor = '0';
 
   do {
+    // checked every round trip, not once: a shutdown can close the client
+    // mid-scan, and a miss is the contract here, not a TypeError on a
+    // dropped one
+    if (!available()) {
+      return;
+    }
     const result = await client.scan(cursor, {
       MATCH: pattern,
       COUNT: 100,
@@ -241,6 +245,9 @@ module.exports.scan = async (pattern, fn) => {
 module.exports.flush = async (pattern) => {
   await module.exports.scan(pattern, async (key) => {
     // console.log('DEL: ' + key);
+    if (!available()) {
+      return;
+    }
     await client.del(key);
   });
 };
@@ -261,8 +268,6 @@ module.exports.close = async () => {
     // redis already gone: nothing left to close, and the socket dies with the process
     logger.warn(`Cache: ${err.message}`);
     closed.destroy();
-  } finally {
-    closing = false;
   }
 };
 

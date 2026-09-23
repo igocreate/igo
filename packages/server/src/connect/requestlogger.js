@@ -124,7 +124,12 @@ const levelFor = (status) => {
 
 // config.logrequests: a boolean, or a status floor — 400 keeps the errors,
 // which are worth every byte, and drops the successes metrics already cover.
-const shouldLog = (status) => {
+// An error the handler caught is never dropped: the setting turns off the
+// access log, not the reporting of a crash, whose line is the only trace left.
+const shouldLog = (status, failed) => {
+  if (failed) {
+    return true;
+  }
   const setting = config.logrequests;
   if (setting === false) {
     return false;
@@ -157,7 +162,7 @@ module.exports = (req, res, next) => {
     // mock responses in tests are plain objects, with no events to listen to
     if (typeof res.on === 'function') {
       res.on('finish', () => {
-        if (!shouldLog(res.statusCode)) {
+        if (!shouldLog(res.statusCode, !!res._loggedError)) {
           return;
         }
         const duration = Number(process.hrtime.bigint() - start) / 1e6;

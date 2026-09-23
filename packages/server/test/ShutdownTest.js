@@ -35,6 +35,10 @@ const freshApp = () => {
 describe('Shutdown', function() {
   this.timeout(20000);
 
+  // every shutdown() drains readiness, so each test leaves it raised — for the
+  // next one, and for whatever file runs after this one
+  afterEach(() => health.drain(false));
+
   describe('app.shutdown()', function() {
 
     let dbsClose, cacheClose, onShutdown;
@@ -112,9 +116,6 @@ describe('Shutdown', function() {
   });
 
   describe('readiness while draining', function() {
-
-    // the shutdown tests above drained the shared module
-    beforeEach(() => health.drain(false));
 
     it('should answer 503 so the load balancer takes the instance out', async () => {
       const agent = require('@igojs/server').dev.agent;

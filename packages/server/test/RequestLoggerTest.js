@@ -126,6 +126,19 @@ describe('request logger', function() {
       assert.strictEqual(run(400).length, 1);
       assert.strictEqual(run(500).length, 1);
     });
+
+    // The setting turns off the access log, not the reporting of a crash:
+    // since the error rides on this line, dropping it would lose the only
+    // trace of what failed.
+    it('should log a caught error whatever the setting says', () => {
+      config.logrequests = false;
+      const lines = run(500, { err: new Error('boom') });
+      assert.strictEqual(lines.length, 1);
+      assert.strictEqual(lines[0].message, 'Error: boom');
+
+      config.logrequests = 599;
+      assert.strictEqual(run(500, { err: new Error('boom') }).length, 1);
+    });
   });
 
   describe('a failed request is one line', function() {

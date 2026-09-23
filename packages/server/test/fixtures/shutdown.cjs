@@ -29,7 +29,9 @@ const app = require('../../src/app');
 app.configure = async () => {};
 app.shutdown  = async () => {
   say('shutdown');
+  // closes the last handle before hanging, as the real shutdown does
   if (mode === 'hang') {
+    await new Promise(resolve => app.server.close(resolve));
     await new Promise(() => {});
   }
   // long enough that the second signal of the 'twice' scenario lands while

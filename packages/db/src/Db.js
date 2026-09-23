@@ -51,11 +51,15 @@ class Db {
     if (this.closed) {
       return;
     }
-    // before awaiting the drain: query() must not reopen the pool in between
     this.closed     = true;
-    const { pool }  = this;
+    const { pool, connection } = this;
     this.pool       = null;
     this.connection = null;
+    // a connection kept across queries is still checked out, and
+    // the pool would wait for it to come back before ending
+    if (connection) {
+      this.driver.release(connection);
+    }
     if (pool) {
       await this.driver.closePool(pool);
     }
@@ -64,6 +68,9 @@ class Db {
   //
   async getConnection() {
     const { driver, pool, TEST_ENV } = this;
+    if (this.closed) {
+      throw new Error(`Db '${this.name}' is closed: the application is shutting down.`);
+    }
     // if connection is in local storage
     if (TEST_ENV && this.connection) {
       // console.log('keep same connection');
@@ -114,12 +121,12 @@ class Db {
       }
     };
 
-    if (this.pool) {
-      return await runquery();
-    }
-
     if (this.closed) {
       throw new Error(`Db '${this.name}' is closed: the application is shutting down.`);
+    }
+
+    if (this.pool) {
+      return await runquery();
     }
 
     logger.info('Db.query: Trying to reinitialize db connection pool');

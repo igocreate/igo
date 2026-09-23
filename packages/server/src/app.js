@@ -211,15 +211,17 @@ const onSignal = (signal) => async () => {
   logger.info(`${signal} received`);
 
   // a shutdown that hangs is worse than an abrupt one: the process manager sends
-  // SIGKILL in the end anyway, and this at least leaves a log saying where it hung
+  // SIGKILL in the end anyway, and this at least leaves a log saying where it hung.
   const timer = setTimeout(() => {
     logger.error(`Shutdown: still running after ${config.shutdownTimeout}ms, exiting`);
     process.exit(1);
   }, config.shutdownTimeout);
-  timer.unref();
 
-  await module.exports.shutdown();
-  clearTimeout(timer);
+  try {
+    await module.exports.shutdown();
+  } finally {
+    clearTimeout(timer);
+  }
   process.exit(0);
 };
 
