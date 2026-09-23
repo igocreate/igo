@@ -15,13 +15,14 @@ let logged        = false;
 let degraded      = false;
 let flushing      = false;
 let disabled      = false;
+let closing       = false;
 
 
 const key = (namespace, id) => `${namespace}/${id}`;
 
 // false when redis is disabled, unreachable, reconnecting, or flushing after a reconnection:
 // every command below then returns a miss instead of throwing, so the app runs without it
-module.exports.isAvailable = () => !!client?.isReady && !flushing;
+module.exports.isAvailable = () => !!client?.isReady && !flushing && !closing;
 
 // indirection on purpose: tests stub the exported isAvailable()
 const available = () => module.exports.isAvailable();
@@ -44,6 +45,9 @@ module.exports.init = async () => {
 
   // node-redis reconnects on its own, indefinitely: log the first failure of a window, not each retry
   client.on('error', (err) => {
+    if (closing) {
+      return;
+    }
     degraded = true;
     if (!logged) {
       logged = true;
@@ -239,6 +243,27 @@ module.exports.flush = async (pattern) => {
     // console.log('DEL: ' + key);
     await client.del(key);
   });
+};
+
+// closes the connection, letting the commands already sent finish. The client is
+// dropped, so a later init() — a script closing and reopening — starts a new one.
+module.exports.close = async () => {
+  if (!client) {
+    return;
+  }
+  closing = true;
+  const closed = client;
+  client  = null;
+  buffers = null;
+  try {
+    await closed.quit();
+  } catch (err) {
+    // redis already gone: nothing left to close, and the socket dies with the process
+    logger.warn(`Cache: ${err.message}`);
+    closed.destroy();
+  } finally {
+    closing = false;
+  }
 };
 
 // v8 structured clone: Date, Buffer, Map, Set and falsy values keep their type,

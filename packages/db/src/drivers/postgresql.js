@@ -7,6 +7,11 @@ module.exports.createPool = (dbconfig) => {
   return new Pool(dbconfig);
 };
 
+// close pool
+module.exports.closePool = async (pool) => {
+  await pool.end();
+};
+
 // get connection
 module.exports.getConnection =  async (pool) => {
   return await pool.connect();

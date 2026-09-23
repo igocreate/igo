@@ -35,6 +35,7 @@ class Db {
     }
     this.driver     = getDriver(this.config.driver);
     this.connection = null;
+    this.closed     = false;
     this.config.migrations_dir = `sql/${this.name}`;
   }
 
@@ -42,7 +43,22 @@ class Db {
     const { config } = dependencies;
     this.pool       = await this.driver.createPool(this.config);
     this.connection = null;
+    this.closed     = false;
     this.TEST_ENV   = config.env === 'test';
+  }
+
+  async close() {
+    if (this.closed) {
+      return;
+    }
+    // before awaiting the drain: query() must not reopen the pool in between
+    this.closed     = true;
+    const { pool }  = this;
+    this.pool       = null;
+    this.connection = null;
+    if (pool) {
+      await this.driver.closePool(pool);
+    }
   }
 
   //
@@ -100,6 +116,10 @@ class Db {
 
     if (this.pool) {
       return await runquery();
+    }
+
+    if (this.closed) {
+      throw new Error(`Db '${this.name}' is closed: the application is shutting down.`);
     }
 
     logger.info('Db.query: Trying to reinitialize db connection pool');

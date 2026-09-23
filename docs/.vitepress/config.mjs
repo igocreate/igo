@@ -72,6 +72,7 @@ export default defineConfig({
             { text: 'i18n',                 link: '/server/i18n' },
             { text: 'Error handling',       link: '/server/errors' },
             { text: 'Logging',              link: '/server/logging' },
+            { text: 'Shutdown',             link: '/server/shutdown' },
           ],
         },
       ],
