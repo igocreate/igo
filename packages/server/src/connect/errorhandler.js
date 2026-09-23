@@ -47,6 +47,7 @@ const logger  = require('../logger');
 const mailer  = require('../mailer');
 const problem = require('../api/problem');
 const { isApiRequest } = require('../api/request');
+const requestLogger = require('./requestlogger');
 
 const asyncLocalStorage = new AsyncLocalStorage();
 
@@ -201,13 +202,21 @@ const handle = (err, req, res) => {
   }
 
   if (res.headersSent) {
-    logger.error(`${req.method} ${getURL(req)} : ${err} (response already sent)`,
-                 { stack: err.stack });
+    // the request line is already written: nothing left to attach this to
+    logger.error(`${err} (response already sent)`,
+                 {
+                   method: req.method,
+                   path:   (req.originalUrl || req.url || '').split('?')[0],
+                   stack:  err.stack,
+                 });
     sendCrashEmail(`Crash (response sent): ${err}`, formatMessage(req, err), String(err));
     return;
   }
 
-  logger.error(`${req.method} ${getURL(req)} : ${err}`, { stack: err.stack });
+  // no line of its own: the request logger writes one per request, and the
+  // error belongs on it — with the body, the response and the trace id that
+  // a second line would not have
+  requestLogger.logError(res, err);
 
   sendCrashEmail(`Crash: ${err}`, formatMessage(req, err), String(err));
 

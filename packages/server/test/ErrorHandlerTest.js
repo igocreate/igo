@@ -49,6 +49,9 @@ describe('ErrorHandler', function() {
   });
 
   describe('SyntaxError classification', function() {
+    // A server error is reported by being attached to the request line, which
+    // the request logger writes once the response is done; a client error is
+    // answered and left out of it.
     const runWithSpiedLogger = (err) => {
       const orig = logger.error;
       let logged = false;
@@ -59,7 +62,7 @@ describe('ErrorHandler', function() {
       } finally {
         logger.error = orig;
       }
-      return { res, logged };
+      return { res, logged: logged || !!res._loggedError };
     };
 
     it('treats malformed JSON body as a client error (not logged)', () => {
