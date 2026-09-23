@@ -1,6 +1,6 @@
 {
   "name": "@igojs/server",
-  "version": "6.3.1",
+  "version": "6.3.2",
   "description": "Igo server framework - Express-based web framework for Node.js",
   "main": "index.js",
   "scripts": {
