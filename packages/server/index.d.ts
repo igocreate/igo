@@ -96,8 +96,6 @@ export interface Config {
   cookieSecret:   string;
   cookieSession:  CookieSessionConfig;
   mailcrashto?:   string | string[];
-  /** false keeps the server alive after an uncaught exception a request already answered. */
-  exitOnUncaughtException: boolean;
   /**
    * Milliseconds between readiness answering 503 and the HTTP server closing,
    * so a load balancer takes the instance out before it stops accepting
@@ -113,6 +111,12 @@ export interface Config {
    * A rejection is logged and the shutdown carries on.
    */
   onShutdown?:    (() => void | Promise<void>) | null;
+  /**
+   * Invoked after an uncaught exception, once the failed request's response is
+   * flushed, within the one second left before the process exits — flush your
+   * exporters here, nothing that could outlast it. A rejection is logged.
+   */
+  onCrash?:       ((err: Error) => void | Promise<void>) | null;
   loglevel:       string;
   /** 'json' for log collectors, 'human' for a terminal. */
   logformat:      'json' | 'human';

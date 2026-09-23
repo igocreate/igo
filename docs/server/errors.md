@@ -22,16 +22,28 @@ If a promise rejects without a catch and the error happens within a request cont
 
 Fatal errors that escape all handlers are logged, an email is sent, and the process exits after 1 second. Use a process manager like PM2 to restart automatically.
 
-Node gives no guarantee about the state of a process that reached this point, so restarting is the default. Once your alerting no longer depends on the crash email to notice an error, you can keep serving:
+Node gives no guarantee about the state of a process that reached this point — even when the request was answered, a stream or a connection may be left half-closed — so it always restarts. An error in an async route never gets here: a rejected promise is handled like an Express error.
+
+### Flushing telemetry before the exit
+
+Tracing exporters send spans in batches, every few seconds: those of the request that crashed are still buffered when the process exits, and they are the ones worth keeping. `config.onCrash` runs within the second before the exit:
 
 ```js
 // app/config.js
 module.exports.init = (config) => {
-  config.exitOnUncaughtException = false;
+  config.onCrash = async () => {
+    await stopTelemetry();
+  };
 };
 ```
 
-The server then stays up **only** when the exception happened during a request that was already answered. An exception raised outside any request still exits, since nothing can vouch for the process state.
+It is not the [ordered shutdown](./shutdown.md): after an uncaught exception, waiting for the requests in flight or for a pool to drain may never return. Flush exporters here, nothing else. `config.onShutdown` stays for the signals.
+
+- It runs once the failed request's response is flushed — its span only ends then.
+- The second is a ceiling shared with the crash email, not extended: a callback still running is cut short.
+- A rejection is logged, and the process exits anyway.
+
+Outside a request — a cron started without `await` — the job's own span never ended, and an open span is never exported: only its finished children, such as the queries it ran, are saved.
 
 ## Special Cases
 

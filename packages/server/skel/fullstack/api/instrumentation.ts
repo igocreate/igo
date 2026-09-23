@@ -78,11 +78,12 @@ if (active) {
   sdk.start();
 }
 
-const stop = async () => {
+// Vide les tampons avant la sortie : les spans partent par lots, toutes les
+// cinq secondes, et ceux d'une requête en erreur sont ceux qu'on veut garder.
+// Appelé par igo (app.ts), pas sur un signal : un second gestionnaire de
+// SIGTERM n'attendrait pas la fin des requêtes en cours.
+export const stopTelemetry = async () => {
   if (active) {
     await sdk.shutdown();
   }
 };
-
-process.once('SIGTERM', stop);
-process.once('SIGINT', stop);

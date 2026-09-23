@@ -46,6 +46,9 @@ A rejection is logged and the shutdown carries on to the database and the cache:
 a pool that failed to drain is no reason to lose the connections that would have
 been released next.
 
+An uncaught exception does not go through this shutdown: see
+[`config.onCrash`](./errors.md#flushing-telemetry-before-the-exit).
+
 ## Settings
 
 | | Default | |

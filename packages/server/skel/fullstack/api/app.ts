@@ -1,5 +1,8 @@
-import './instrumentation';
+import { stopTelemetry } from './instrumentation';
 
-import { app } from '@igojs/server';
+import { app, config } from '@igojs/server';
 
-app.run();
+app.run(() => {
+  config.onShutdown = stopTelemetry;
+  config.onCrash = stopTelemetry;
+});

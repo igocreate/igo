@@ -15,10 +15,9 @@
  *
  * 3. Uncaught exceptions (process.on('uncaughtException'))
  *    - Logs error and sends email notification
- *    - Forces process.exit(1) after 1 second
+ *    - Forces process.exit(1) after 1 second, during which config.onCrash
+ *      flushes the telemetry
  *    - Process manager (PM2, systemd) will restart the server
- *    - config.exitOnUncaughtException = false keeps the server alive when the
- *      request was already answered (never outside a request context)
  *
  * Special cases:
  * - URIError (malformed URL): returns 404
@@ -275,19 +274,39 @@ process.on('uncaughtException', (err) => {
     sendCrashEmail(`Uncaught exception: ${err}`, `<pre>${escapeHtml(err.stack)}</pre>`, String(err));
   }
 
-  // Node makes no promise about the state of a process that reached this point,
-  // so restarting is the safe default. A request that was handled and answered
-  // is the case worth keeping alive, once alerting no longer relies on the
-  // crash email to notice the error.
-  if (config.exitOnUncaughtException === false && handled) {
-    return;
-  }
-
-  // Exit after a short delay to allow email to be sent
+  // Node makes no promise about the state of a process that reached this
+  // point, even once the request is answered: it always restarts.
+  //
+  // The email is sent without being awaited: this delay is what lets it leave,
+  // and onCrash shares it rather than extending it.
   setTimeout(() => {
     process.exit(1);
   }, 1000);
+  runOnCrash(err, handled ? context.res : null);
 });
+
+// The span of the failed request only ends once its response is flushed.
+const responseFinished = (res) => new Promise((resolve) => {
+  if (!res || res.writableFinished) {
+    return resolve();
+  }
+  res.once('finish', resolve);
+  res.once('close', resolve);
+});
+
+// Not the ordered shutdown: after an uncaught exception, waiting on requests
+// in flight or on a pool may never return.
+const runOnCrash = async (err, res) => {
+  if (!config.onCrash) {
+    return;
+  }
+  try {
+    await responseFinished(res);
+    await config.onCrash(err);
+  } catch (hookError) {
+    logger.warn(`onCrash failed: ${hookError.message}`, { stack: hookError.stack });
+  }
+};
 
 // Initialize AsyncLocalStorage context for each request
 module.exports.initContext = (app) => {
