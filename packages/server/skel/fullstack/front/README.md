@@ -128,11 +128,12 @@ Faro envoie erreurs, Web Vitals et appels réseau, avec l'URL de la page et le
 user-agent ; le collecteur voit l'adresse IP. C'est du traitement technique — à
 mentionner dans la politique de confidentialité au titre de l'intérêt légitime.
 
-L'identifiant de session vit en mémoire (`persistent: false`) : il meurt avec
-l'onglet et rien n'est écrit dans le navigateur, donc pas de traceur au sens de
-l'article 82 de la loi Informatique et Libertés. Le collecteur refuse les envois
-sans lui — la session n'est pas optionnelle, seule sa persistance l'est. La
-persister après consentement si le projet veut les parcours par visiteur.
+L'identifiant de session est écrit en `sessionStorage` (`persistent: false`) :
+propre à l'onglet, effacé à sa fermeture. C'est une écriture dans le terminal
+au sens de l'article 82 de la loi Informatique et Libertés ; l'exemption de
+consentement tient à la finalité, pas à la durée, et c'est au projet d'en
+décider. Le collecteur refuse les envois sans lui : la session n'est pas
+optionnelle, seule sa persistance l'est.
 
 ## Système de design
 

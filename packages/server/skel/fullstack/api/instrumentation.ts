@@ -8,6 +8,9 @@ import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 
+// la même version que celle des logs : APP_VERSION, sinon celle du paquet
+import { version } from './package.json';
+
 // Importé en première ligne de app.ts : OpenTelemetry pose ses crochets sur
 // `require`, donc ce fichier doit précéder @igojs/server, qui charge express et
 // mysql2. Rien de l'application ne doit être importé ici. Le premier import
@@ -34,7 +37,10 @@ const sdk = new NodeSDK({
   // resourceFromAttributes.
   resource: resourceFromAttributes({
     [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME || '{project.name}-api',
-    [ATTR_SERVICE_VERSION]: process.env.APP_VERSION || '0.0.1',
+    [ATTR_SERVICE_VERSION]: process.env.APP_VERSION || version,
+    // Le projet, filtre de tout panneau et de toute alerte sur une stack
+    // partagée. OTEL_RESOURCE_ATTRIBUTES l'emporte.
+    'service.namespace': '{project.name}',
     // NODE_ENV vaut production sur une qualif aussi. igo lit ENVIRONMENT pour
     // ses logs : trace et log désignent le même déploiement.
     'deployment.environment.name': process.env.ENVIRONMENT || process.env.NODE_ENV || 'dev',
@@ -42,7 +48,9 @@ const sdk = new NodeSDK({
   traceExporter: new OTLPTraceExporter(),
   metricReader: new PeriodicExportingMetricReader({
     exporter: new OTLPMetricExporter(),
-    exportIntervalMillis: 15_000,
+    // Grafana Cloud facture au point par minute et par série, un seul inclus :
+    // toutes les 15 s, chaque série coûterait quatre fois.
+    exportIntervalMillis: 60_000,
   }),
   // Pas d'exporteur de logs : igo écrit déjà du JSON structuré sur la sortie
   // standard, que le collecteur lit. Les pousser aussi en OTLP les dupliquerait.

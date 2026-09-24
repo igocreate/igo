@@ -25,7 +25,13 @@ const url = import.meta.env.VITE_FARO_URL;
 // Part du trafic en succès conservée. Une session sur dix suffit à mesurer des
 // tendances de performance, et un incident touche rarement une seule session.
 // Les erreurs, elles, échappent à ce tirage.
-const ROUTINE_SHARE = Number(import.meta.env.VITE_FARO_SAMPLE ?? 0.1);
+// Une valeur vide ou invalide couperait l'échantillonnage sans le dire
+// (`Number('')` vaut 0) : elle retombe sur le défaut.
+const sampleShare = (value: string | undefined) => {
+  const share = Number(value);
+  return value && share >= 0 && share <= 1 ? share : 0.1;
+};
+const ROUTINE_SHARE = sampleShare(import.meta.env.VITE_FARO_SAMPLE);
 
 // Tiré une fois par chargement : échantillonner événement par événement
 // laisserait un parcours à moitié enregistré et rendrait les durées illisibles.
@@ -99,7 +105,9 @@ if (url) {
       // Frontend Observability, et à l'`appName` passé au téléversement des
       // source maps (vite.config.ts) : c'est cette clé qui rattache une pile
       // d'appels à ses source maps.
-      name: import.meta.env.VITE_FARO_APP_NAME || 'audit',
+      name: import.meta.env.VITE_APP_NAME || '{project.name}-front',
+      // devient l'étiquette Loki `service_namespace`, comme pour l'API
+      namespace: '{project.name}',
       version: import.meta.env.VITE_APP_VERSION || '0.0.1',
       // Pas import.meta.env.MODE : il vaut 'production' dans tout build Vite, y
       // compris un `vite preview` sur un poste de développement. Les erreurs
@@ -109,14 +117,12 @@ if (url) {
     // Le collecteur refuse toute charge sans en-tête `X-Faro-Session-Id` : la
     // session n'est pas optionnelle, seule sa persistance l'est.
     //
-    // `persistent: false` garde l'identifiant en mémoire — il meurt avec
-    // l'onglet et n'est jamais écrit dans le navigateur, donc ce n'est pas un
-    // traceur au sens de l'article 82 de la loi Informatique et Libertés et
-    // aucun consentement n'est requis. Ce qu'on y perd : un rechargement ouvre
-    // une nouvelle session, ce qui fausse les durées et les parcours
-    // multi-pages. Erreurs, Web Vitals et corrélation front/back n'en
-    // dépendent pas. Un projet qui veut les parcours le persiste après son
-    // bandeau.
+    // `persistent: false` range l'identifiant en `sessionStorage` : propre à
+    // l'onglet, il survit à un rechargement et s'efface à la fermeture.
+    // `true` le range en `localStorage`. Dans les deux cas c'est une écriture
+    // dans le terminal au sens de l'article 82 de la loi Informatique et
+    // Libertés : l'exemption de consentement tient à la finalité, pas à la
+    // durée, et c'est au projet d'en décider.
     sessionTracking: { enabled: true, persistent: false },
     instrumentations: [
       ...getWebInstrumentations({

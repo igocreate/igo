@@ -1,31 +1,20 @@
 // EXEMPLE — à copier en `config.alloy` et à adapter.
 //
 // COLLECTEUR PARTAGÉ — un seul pour toute l'infrastructure. Il scrute ce qui ne
-// tourne pas sur la machine qui l'héberge : base managée, cache, API d'un
-// hébergeur. Rien ici ne lit de fichier local.
-//
+// tourne pas sur sa machine : base, cache, disponibilité vue de l'extérieur.
 // Le collecteur local, un par machine, vit dans `config.alloy.agent.example`.
 //
-// C'est ici que la variabilité des hébergeurs est absorbée : un projet chez OVH
-// ou Scaleway réécrit ce fichier, pas ses tableaux de bord.
+// C'est ici que s'absorbe la variabilité des hébergeurs : un projet chez OVH ou
+// Scaleway réécrit ce fichier, pas ses tableaux de bord.
 //
 // À revoir : la destination et les identifiants, les adresses des services, les
-// exporteurs selon ce que le projet utilise.
-//
-// Piège mesuré : les six collecteurs MySQL par défaut produisent 999 séries,
-// dont 471 pour `global_variables` — la configuration du serveur, réémise à
-// chaque scrutage. Seul `disable_collectors` agit ; `enable_collectors` est
-// accepté sans effet.
+// exporteurs selon ce que le projet utilise, `PROBE_URL` et `SERVICE_NAMESPACE`
+// (le `service.namespace` de l'application).
 
 logging {
   level  = "info"
   format = "logfmt"
 }
-
-
-// ── Destination ─────────────────────────────────────────────────────────────────
-
-
 
 prometheus.remote_write "grafana" {
   endpoint {
@@ -38,93 +27,58 @@ prometheus.remote_write "grafana" {
 }
 
 
-// ── Services scrutés à distance ─────────────────────────────────────────────────
-
-
-
-// ── Services managés ─────────────────────────────────────────────────────────
+// ── MySQL et Valkey auto-hébergés ────────────────────────────────────────────
 //
-// C'est l'argument n° 1 retenu par l'ADR contre Sentry : « les intégrations
-// services managés font la différence. MySQL et Redis OVH sont monitorés via
-// les endpoints standard, avec 80+ métriques et des dashboards pré-construits.
-// Sentry ne voit que le code applicatif — la DB et le cache sont des boîtes
-// noires. »
-//
-// En production, ces mêmes blocs visent les endpoints OVH au lieu des
-// conteneurs locaux : seule l'adresse change.
+// Une base managée n'accepte pas d'exporteur : voir en bas de fichier.
 
-prometheus.exporter.mysql "base" {
-  // Compte de supervision aux droits minimaux, cf. mysql-init/01-exporter.sql
+prometheus.exporter.mysql "mysql" {
+  // compte de supervision : GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.*
   data_source_name = "exporter:exporter@(mysql:3306)/"
 
-  // Les six collecteurs par défaut produisent 999 séries. Ceux-ci n'apportent
-  // rien au projet et pèsent la moitié du total :
-  //
-  //   global_variables            471 séries — la *configuration* du serveur,
-  //                               donc des constantes réenvoyées à chaque
-  //                               scrape : 1,36 million d'échantillons par jour
-  //                               pour des valeurs qui ne bougent pas.
-  //   info_schema.innodb_cmp       45 séries — compression InnoDB, non utilisée
-  //   info_schema.innodb_cmpmem    20 séries — idem
-  //
-  // Mesuré : 999 séries avant, 475 après — 1,5 million d échantillons par jour
-  //
-  // Ce qu'on y perd : `max_connections`, qui servait de plafond au panneau des
-  // connexions. Le seuil est donc écrit en clair dans le tableau de bord — à
-  // revoir si la configuration de MySQL change.
+  // compression InnoDB, non utilisée : 65 séries. Seul `disable_collectors`
+  // agit, `enable_collectors` est accepté sans effet.
   disable_collectors = [
     "info_schema.innodb_cmp",
     "info_schema.innodb_cmpmem",
   ]
 }
 
-
-
-
 prometheus.exporter.redis "cache" {
-  // Valkey parle le protocole Redis : l'exporteur Redis fonctionne tel quel.
+  // Valkey parle le protocole Redis
   redis_addr = "valkey:6379"
 }
 
-
-
-
-// `global_variables` renvoie la configuration du serveur — 471 séries de
-// constantes réémises à chaque scrape. Deux valent d'être gardées : sans
-// `max_connections`, la saturation du pool ne se calcule pas, elle se devine.
-// Le collecteur reste donc actif et c'est ce filtre qui jette le reste.
+// `global_variables` réémet à chaque scrutage la configuration du serveur :
+// 471 séries de constantes. Seules trois sont gardées, dont `max_connections`,
+// sans laquelle la saturation du pool se devine au lieu de se calculer.
 prometheus.relabel "mysql" {
-  // RE2 n'a pas d'assertion négative : la conservation passe par une étiquette
-  // temporaire, posée sur ce qu'on garde puis relue pour jeter le reste.
+  // RE2 n'a pas d'assertion négative : ce qu'on garde est marqué, puis le reste
+  // de la famille est jeté.
   rule {
     source_labels = ["__name__"]
     regex         = "mysql_global_variables_(max_connections|max_user_connections|innodb_buffer_pool_size)"
-    target_label  = "__garder__"
-    replacement   = "oui"
+    target_label  = "__keep__"
+    replacement   = "yes"
     action        = "replace"
   }
 
   rule {
-    source_labels = ["__garder__", "__name__"]
+    source_labels = ["__keep__", "__name__"]
     separator     = "@"
     regex         = "@mysql_global_variables_.*"
     action        = "drop"
   }
 
   rule {
-    regex  = "__garder__"
+    regex  = "__keep__"
     action = "labeldrop"
   }
 
   forward_to = [prometheus.relabel.redis.receiver]
 }
 
-
-
-
-// Redis envoie 399 séries, dont 268 pour deux familles : l'histogramme de
-// latence par commande et ses percentiles — GET, SET, PING, chacun avec ses
-// intervalles. Les compteurs agrégés disent la même chose en 1 série.
+// 268 des 399 séries Redis sont les latences par commande et leurs
+// percentiles ; les compteurs agrégés disent la même chose.
 prometheus.relabel "redis" {
   rule {
     source_labels = ["__name__"]
@@ -132,77 +86,92 @@ prometheus.relabel "redis" {
     action        = "drop"
   }
 
+  forward_to = [prometheus.relabel.namespace.receiver]
+}
+
+// le projet, filtre des tableaux de bord et des alertes sur une stack partagée
+prometheus.relabel "namespace" {
+  rule {
+    target_label = "service_namespace"
+    replacement  = sys.env("SERVICE_NAMESPACE")
+  }
+
   forward_to = [prometheus.remote_write.grafana.receiver]
 }
 
-
+// Grafana Cloud facture au point par minute et par série, un seul inclus :
+// 60 s, comme l'agent et l'export de l'application.
 prometheus.scrape "services" {
-  targets = concat(
-    prometheus.exporter.mysql.base.targets,
+  targets = array.concat(
+    prometheus.exporter.mysql.mysql.targets,
     prometheus.exporter.redis.cache.targets,
   )
   forward_to      = [prometheus.relabel.mysql.receiver]
-  scrape_interval = "30s"
+  scrape_interval = "60s"
 }
 
 
 // ── Disponibilité vue de l'extérieur ─────────────────────────────────────────
 //
-// Une application morte n'émet plus rien : la série disparaît au lieu de valoir
-// zéro, et rien ne se déclenche. Mesuré ici — cinq minutes d'API arrêtée, aucune
-// des treize règles n'a réagi.
-//
-// D'où une sonde extérieure au service : `probe_success` existe toujours et vaut
-// 0. Depuis la passerelle plutôt que la machine applicative, pour voir tomber
-// aussi nginx, le DNS ou le certificat.
-prometheus.exporter.blackbox "sondes" {
+// Une application morte n'émet plus rien : ses séries disparaissent au lieu de
+// valoir zéro, et aucune règle ne se déclenche. `probe_success`, lui, existe
+// toujours. Depuis la passerelle plutôt que la machine applicative, pour voir
+// tomber aussi nginx, le DNS ou le certificat.
+
+prometheus.exporter.blackbox "probes" {
   config = "{ modules: { http_2xx: { prober: http, timeout: 5s, http: { valid_status_codes: [200], preferred_ip_protocol: ip4 } } } }"
 
   target {
     name    = "api"
-    address = sys.env("SONDE_URL")
+    address = sys.env("PROBE_URL")
     module  = "http_2xx"
   }
 }
 
-// La readiness et non la liveness : `/health` répond 200 base morte comprise.
-// `/health/ready` rend 503 dès qu'une dépendance critique manque, et
-// `valid_status_codes: [200]` fait tomber `probe_success` avec lui.
-prometheus.scrape "sondes" {
-  targets         = prometheus.exporter.blackbox.sondes.targets
-  forward_to      = [prometheus.remote_write.grafana.receiver]
-  scrape_interval = "30s"
+// La readiness, pas la liveness : `/health` répond 200 base morte comprise,
+// `/health/ready` rend 503 dès qu'une dépendance critique manque.
+prometheus.scrape "probes" {
+  targets         = prometheus.exporter.blackbox.probes.targets
+  forward_to      = [prometheus.relabel.namespace.receiver]
+  scrape_interval = "60s"
 }
+
 
 // ── Bases managées ───────────────────────────────────────────────────────────
 //
-// Une base managée n'accepte pas d'exporteur : l'hébergeur expose ses métriques
-// sous ses propres noms, à relever sur une instance réelle avant d'écrire quoi
-// que ce soit.
+// L'hébergeur expose ses propres métriques, sous ses propres noms :
 //
-//   OVHcloud   endpoint Prometheus, port 9273, HTTPS et authentification
-//              basique. Joignable depuis le réseau privé de la base seulement.
-//              Identifiants : GET /cloud/project/{projet}/database/mysql/{id}/prometheus
-//   Scaleway   Cockpit, les endpoints par instance ayant été retirés en mars
-//              2026. Fédération Prometheus sur /federate.
+//   OVHcloud   endpoint Prometheus sur le nom d'hôte du service, port 9273
+//              pour MySQL comme pour Valkey, HTTPS et authentification basique,
+//              joignable depuis le réseau privé seulement. Noms au format
+//              Telegraf (`mysql_threads_connected`, `redis_used_memory`…), sans
+//              `max_connections`. Mot de passe : console, service → Intégration
+//              Prometheus, affiché une seule fois.
+//   Scaleway   Cockpit, fédération Prometheus sur /federate.
 //
-// prometheus.scrape "base_managee" {
-//   targets = [{ __address__ = "mysql-xxx.database.cloud.ovh.net:9273", __scheme__ = "https" }]
+// Un bloc par service, chacun avec son mot de passe :
+//
+// prometheus.scrape "managed_mysql" {
+//   targets         = [{ __address__ = "mysql-xxx.database.cloud.ovh.net:9273", service = "mysql" }]
+//   scheme          = "https"
+//   // certificat signé par le CA du service
+//   tls_config { insecure_skip_verify = true }
 //   basic_auth {
 //     username = "prometheus"
-//     password = sys.env("OVH_METRIQUES_MOTDEPASSE")
+//     password = sys.env("MANAGED_MYSQL_PASSWORD")
 //   }
-//   forward_to = [prometheus.relabel.traduction.receiver]
+//   forward_to = [prometheus.relabel.rename_metrics.receiver]
 // }
 //
-// // Ramène un nom propriétaire vers celui qu'attend le tableau de bord.
-// prometheus.relabel "traduction" {
+// // Vers les noms qu'attend le tableau de bord ; sans traduction, écrire les
+// // panneaux sur ceux de l'hébergeur.
+// prometheus.relabel "rename_metrics" {
 //   rule {
 //     source_labels = ["__name__"]
-//     regex         = "ovh_mysql_connections_active"
+//     regex         = "mysql_threads_connected"
 //     target_label  = "__name__"
 //     replacement   = "mysql_global_status_threads_connected"
 //     action        = "replace"
 //   }
-//   forward_to = [prometheus.remote_write.grafana.receiver]
+//   forward_to = [prometheus.relabel.namespace.receiver]
 // }

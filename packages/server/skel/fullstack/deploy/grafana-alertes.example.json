@@ -21,7 +21,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "1 - probe_success",
+                "expr": "1 - probe_success{service_namespace=\"{project.name}\"}",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -40,9 +40,7 @@
                   {
                     "evaluator": {
                       "type": "gt",
-                      "params": [
-                        0
-                      ]
+                      "params": [0]
                     },
                     "operator": {
                       "type": "and"
@@ -86,7 +84,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "100 * sum by (job) (rate(http_server_request_duration_seconds_count{http_response_status_code=~\"5..\"}[5m]))\n  / clamp_min(sum by (job) (rate(http_server_request_duration_seconds_count[5m])), 1e-9) > 5",
+                "expr": "100 * sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", http_response_status_code=~\"5..\"}[5m]))\n  / clamp_min(sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\"}[5m])), 1e-9) > 5",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -105,9 +103,7 @@
                   {
                     "evaluator": {
                       "type": "gt",
-                      "params": [
-                        0
-                      ]
+                      "params": [0]
                     },
                     "operator": {
                       "type": "and"
@@ -130,7 +126,7 @@
           "for": "2m",
           "annotations": {
             "summary": "Le service rend plus de 5 % d'erreurs serveur.",
-            "description": "Plus de 5 % des requêtes de {{ $labels.job }} échouent en 5xx depuis 5 minutes. Regarder la courbe des erreurs serveur par route sur le tableau de bord."
+            "description": "Plus de 5 % des requêtes de {{ $labels.service_name }} ({{ $labels.deployment_environment_name }}) échouent en 5xx depuis 5 minutes. Regarder la courbe des erreurs serveur par route sur le tableau de bord."
           },
           "labels": {
             "severity": "critical"
@@ -151,7 +147,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "histogram_quantile(0.95, sum by (job, le) (rate(http_server_request_duration_seconds_bucket[5m]))) > 1",
+                "expr": "histogram_quantile(0.95, sum by (service_name, deployment_environment_name, le) (rate(http_server_request_duration_seconds_bucket{service_namespace=\"{project.name}\"}[5m]))) > 1",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -170,9 +166,7 @@
                   {
                     "evaluator": {
                       "type": "gt",
-                      "params": [
-                        0
-                      ]
+                      "params": [0]
                     },
                     "operator": {
                       "type": "and"
@@ -195,7 +189,7 @@
           "for": "10m",
           "annotations": {
             "summary": "Le service répond en plus d'une seconde au 95e centile.",
-            "description": "Le 95e centile de {{ $labels.job }} dépasse une seconde depuis 10 minutes. La rangée « Dépendances » du tableau de bord dit si la base ou le cache en sont la cause."
+            "description": "Le 95e centile de {{ $labels.service_name }} ({{ $labels.deployment_environment_name }}) dépasse une seconde depuis 10 minutes. La rangée « Dépendances » du tableau de bord dit si la base ou le cache en sont la cause."
           },
           "labels": {
             "severity": "warning"
@@ -216,7 +210,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m]))) > 90",
+                "expr": "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{service_namespace=\"{project.name}\", mode=\"idle\"}[5m]))) > 90",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -235,9 +229,7 @@
                   {
                     "evaluator": {
                       "type": "gt",
-                      "params": [
-                        0
-                      ]
+                      "params": [0]
                     },
                     "operator": {
                       "type": "and"
@@ -281,7 +273,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 90",
+                "expr": "100 * (1 - node_memory_MemAvailable_bytes{service_namespace=\"{project.name}\"} / node_memory_MemTotal_bytes{service_namespace=\"{project.name}\"}) > 90",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -300,9 +292,7 @@
                   {
                     "evaluator": {
                       "type": "gt",
-                      "params": [
-                        0
-                      ]
+                      "params": [0]
                     },
                     "operator": {
                       "type": "and"
@@ -346,7 +336,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "- predict_linear(node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay|squashfs\"}[6h], 4 * 24 * 3600) > 0",
+                "expr": "- predict_linear(node_filesystem_avail_bytes{service_namespace=\"{project.name}\", fstype!~\"tmpfs|overlay|squashfs\"}[6h], 4 * 24 * 3600) > 0",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -365,9 +355,7 @@
                   {
                     "evaluator": {
                       "type": "gt",
-                      "params": [
-                        0
-                      ]
+                      "params": [0]
                     },
                     "operator": {
                       "type": "and"
@@ -411,7 +399,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "(\n  100 * sum by (job) (rate(http_server_request_duration_seconds_count{http_response_status_code=~\"4..\", http_route!=\"/.*/\"}[5m]))\n    / clamp_min(sum by (job) (rate(http_server_request_duration_seconds_count[5m])), 1e-9) > 5\n)\n> 3 * (\n  100 * sum by (job) (rate(http_server_request_duration_seconds_count{http_response_status_code=~\"4..\", http_route!=\"/.*/\"}[1h]))\n    / clamp_min(sum by (job) (rate(http_server_request_duration_seconds_count[1h])), 1e-9)\n)",
+                "expr": "(\n  100 * sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", http_response_status_code=~\"4..\", http_route!=\"/.*/\"}[5m]))\n    / clamp_min(sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\"}[5m])), 1e-9) > 5\n)\n> 3 * (\n  100 * sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", http_response_status_code=~\"4..\", http_route!=\"/.*/\"}[1h]))\n    / clamp_min(sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\"}[1h])), 1e-9)\n)",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -430,9 +418,7 @@
                   {
                     "evaluator": {
                       "type": "gt",
-                      "params": [
-                        0
-                      ]
+                      "params": [0]
                     },
                     "operator": {
                       "type": "and"
@@ -455,7 +441,7 @@
           "for": "5m",
           "annotations": {
             "summary": "La part des erreurs client a triplé.",
-            "description": "La part des requêtes de {{ $labels.job }} qui échouent en 4xx sur une route déclarée a triplé par rapport à la dernière heure, et dépasse 5 % du trafic. Souvent un déploiement qui a changé un contrat d'API, ou un client qui envoie des requêtes invalides."
+            "description": "La part des requêtes de {{ $labels.service_name }} ({{ $labels.deployment_environment_name }}) qui échouent en 4xx sur une route déclarée a triplé par rapport à la dernière heure, et dépasse 5 % du trafic. Souvent un déploiement qui a changé un contrat d'API, ou un client qui envoie des requêtes invalides."
           },
           "labels": {
             "severity": "warning"
@@ -476,7 +462,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "nodejs_eventloop_utilization_ratio > 0.9",
+                "expr": "nodejs_eventloop_utilization_ratio{service_namespace=\"{project.name}\"} > 0.9",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -495,9 +481,7 @@
                   {
                     "evaluator": {
                       "type": "gt",
-                      "params": [
-                        0
-                      ]
+                      "params": [0]
                     },
                     "operator": {
                       "type": "and"
@@ -520,7 +504,7 @@
           "for": "10m",
           "annotations": {
             "summary": "La boucle d'évènements du service est saturée.",
-            "description": "La boucle d'évènements de {{ $labels.job }} travaille plus de 90 % du temps depuis 10 minutes : les requêtes attendent leur tour. Chercher une opération synchrone bloquante ou un calcul à déplacer."
+            "description": "La boucle d'évènements de {{ $labels.service_name }} ({{ $labels.deployment_environment_name }}) travaille plus de 90 % du temps depuis 10 minutes : les requêtes attendent leur tour. Chercher une opération synchrone bloquante ou un calcul à déplacer."
           },
           "labels": {
             "severity": "warning"
@@ -541,7 +525,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "(\n  histogram_quantile(0.95, sum by (job, le) (rate(http_server_request_duration_seconds_bucket{http_response_status_code=~\"2..\"}[5m]))) > 0.1\n)\n> 3 * histogram_quantile(0.95, sum by (job, le) (rate(http_server_request_duration_seconds_bucket{http_response_status_code=~\"2..\"}[1h])))",
+                "expr": "(\n  histogram_quantile(0.95, sum by (service_name, deployment_environment_name, le) (rate(http_server_request_duration_seconds_bucket{service_namespace=\"{project.name}\", http_response_status_code=~\"2..\"}[5m]))) > 0.1\n)\n> 3 * histogram_quantile(0.95, sum by (service_name, deployment_environment_name, le) (rate(http_server_request_duration_seconds_bucket{service_namespace=\"{project.name}\", http_response_status_code=~\"2..\"}[1h])))",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -560,9 +544,7 @@
                   {
                     "evaluator": {
                       "type": "gt",
-                      "params": [
-                        0
-                      ]
+                      "params": [0]
                     },
                     "operator": {
                       "type": "and"
@@ -585,7 +567,7 @@
           "for": "10m",
           "annotations": {
             "summary": "La latence du service a triplé.",
-            "description": "Le 95e centile des réponses réussies de {{ $labels.job }} a triplé par rapport à la dernière heure. Le plancher de 100 ms évite de comparer des valeurs insignifiantes."
+            "description": "Le 95e centile des réponses réussies de {{ $labels.service_name }} ({{ $labels.deployment_environment_name }}) a triplé par rapport à la dernière heure. Le plancher de 100 ms évite de comparer des valeurs insignifiantes."
           },
           "labels": {
             "severity": "warning"
@@ -606,7 +588,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "sum by (instance) (node_load1{job=~\"integrations/unix\"})\n  / count by (instance) (node_cpu_seconds_total{job=~\"integrations/unix\", mode=\"idle\"}) > 2",
+                "expr": "sum by (instance) (node_load1{service_namespace=\"{project.name}\", job=~\"integrations/unix\"})\n  / count by (instance) (node_cpu_seconds_total{service_namespace=\"{project.name}\", job=~\"integrations/unix\", mode=\"idle\"}) > 2",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -625,9 +607,7 @@
                   {
                     "evaluator": {
                       "type": "gt",
-                      "params": [
-                        0
-                      ]
+                      "params": [0]
                     },
                     "operator": {
                       "type": "and"
@@ -671,7 +651,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "rate(node_disk_io_time_weighted_seconds_total{job=~\"integrations/unix\"}[5m]) > 10",
+                "expr": "rate(node_disk_io_time_weighted_seconds_total{service_namespace=\"{project.name}\", job=~\"integrations/unix\"}[5m]) > 10",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -690,9 +670,7 @@
                   {
                     "evaluator": {
                       "type": "gt",
-                      "params": [
-                        0
-                      ]
+                      "params": [0]
                     },
                     "operator": {
                       "type": "and"
@@ -736,7 +714,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "100 * node_filefd_allocated{job=~\"integrations/unix\"} / node_filefd_maximum{job=~\"integrations/unix\"} > 80",
+                "expr": "100 * node_filefd_allocated{service_namespace=\"{project.name}\", job=~\"integrations/unix\"} / node_filefd_maximum{service_namespace=\"{project.name}\", job=~\"integrations/unix\"} > 80",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -755,9 +733,7 @@
                   {
                     "evaluator": {
                       "type": "gt",
-                      "params": [
-                        0
-                      ]
+                      "params": [0]
                     },
                     "operator": {
                       "type": "and"
@@ -801,7 +777,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "100 * mysql_global_status_threads_connected / mysql_global_variables_max_connections > 80",
+                "expr": "100 * mysql_global_status_threads_connected{service_namespace=\"{project.name}\"} / mysql_global_variables_max_connections{service_namespace=\"{project.name}\"} > 80",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -820,9 +796,7 @@
                   {
                     "evaluator": {
                       "type": "gt",
-                      "params": [
-                        0
-                      ]
+                      "params": [0]
                     },
                     "operator": {
                       "type": "and"
@@ -866,7 +840,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "(\n  sum by (job) (rate(http_server_request_duration_seconds_count[1h])) > 0.5\n)\nand\nsum by (job) (rate(http_server_request_duration_seconds_count[5m]))\n  < 0.2 * sum by (job) (rate(http_server_request_duration_seconds_count[1h]))",
+                "expr": "(\n  sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\"}[1h])) > 0.5\n)\nand\nsum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\"}[5m]))\n  < 0.2 * sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\"}[1h]))",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -885,9 +859,7 @@
                   {
                     "evaluator": {
                       "type": "gt",
-                      "params": [
-                        0
-                      ]
+                      "params": [0]
                     },
                     "operator": {
                       "type": "and"
@@ -910,7 +882,7 @@
           "for": "10m",
           "annotations": {
             "summary": "Le trafic du service s'est effondré.",
-            "description": "Le trafic de {{ $labels.job }} est tombé sous 20 % de la dernière heure alors que le service répond. Regarder le répartiteur de charge, le DNS et le pare-feu avant l'application."
+            "description": "Le trafic de {{ $labels.service_name }} ({{ $labels.deployment_environment_name }}) est tombé sous 20 % de la dernière heure alors que le service répond. Regarder le répartiteur de charge, le DNS et le pare-feu avant l'application."
           },
           "labels": {
             "severity": "critical"

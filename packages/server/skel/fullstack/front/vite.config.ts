@@ -57,10 +57,15 @@ export default defineConfig(({ mode, command }) => {
   // sans observabilité configurée reste possible, et la CI d'une contribution
   // externe n'a pas besoin du secret. Les quatre valeurs viennent de la page de
   // réglages de l'application Grafana.
+  //
+  // Le plugin injecte un `bundleId` aléatoire : deux machines qui construisent
+  // chacune le front servent deux bundles différents, et une page de l'une peut
+  // réclamer un fichier que l'autre n'a pas. Le fixer dès que le front est
+  // construit à plusieurs endroits.
   const faro =
     env.FARO_API_KEY && env.FARO_APP_ID && env.FARO_STACK_ID && env.FARO_UPLOAD_ENDPOINT
       ? faroUploader({
-          appName: env.VITE_FARO_APP_NAME || 'audit',
+          appName: env.VITE_APP_NAME || '{project.name}-front',
           endpoint: env.FARO_UPLOAD_ENDPOINT,
           appId: env.FARO_APP_ID,
           stackId: env.FARO_STACK_ID,

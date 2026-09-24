@@ -97,70 +97,44 @@ alertes.
 
 ## Observabilité
 
-**Rien n'est envoyé par défaut** : `OTEL_EXPORTER_OTLP_ENDPOINT` côté API et
-`VITE_FARO_URL` côté front sont commentés, et leur absence suffit à tout
-désactiver. Un poste de développement ne consomme donc aucun quota, et les
-tests E2E n'envoient rien.
+**Rien n'est envoyé par défaut** : sans `OTEL_EXPORTER_OTLP_ENDPOINT` côté API
+ni `VITE_FARO_URL` côté front, rien ne part — ni d'un poste de développement,
+ni des E2E.
 
-**L'application n'écrit jamais directement dans une plateforme.** Elle parle
-OTLP à un collecteur local — [Grafana Alloy](https://grafana.com/docs/alloy/) —
-qui relaie, filtre et dérive les métriques. C'est ce détour qui permet de
-changer de destination sans toucher au code, et de collecter aussi les logs, la
-base et le cache, qui ne parlent pas OTLP.
+**L'API ne parle qu'à un collecteur local**,
+[Grafana Alloy](https://grafana.com/docs/alloy/), en OTLP. Il relaie, filtre et
+dérive les métriques, et collecte aussi ce qui ne parle pas OTLP : les logs, la
+base, le cache. Changer de destination ne touche pas au code. Sans collecteur
+en écoute, l'API n'envoie rien : c'est la première chose à vérifier quand
+aucune donnée n'arrive.
 
-**Alloy n'est pas actif ici**, sa configuration dépendant de la plateforme.
-`deploy/` en porte deux exemples, parce qu'un collecteur remplit deux rôles que
-rien n'oblige à tenir au même endroit :
+**Le front poste au collecteur Faro hébergé**, qu'un navigateur peut atteindre :
+erreurs JavaScript et Web Vitals se lisent dans Grafana → Frontend
+Observability. Ses erreurs arrivent aussi dans Loki, sous `kind="exception"`.
 
-- `config.alloy.agent.example` — **un par machine**. Il lit ce qui n'existe que
-  là : les fichiers de log, le `/proc` de l'hôte, et la télémétrie que l'API lui
-  envoie en OTLP sur la boucle locale.
-- `config.alloy.gateway.example` — **un pour toute l'infrastructure**. Il scrute
-  ce qui s'interroge à distance : base managée, cache, API d'un hébergeur.
+La configuration d'Alloy, le tableau de bord, les alertes et leur mise en place
+sont dans [`deploy/`](deploy/README.md).
 
-C'est la gateway qui absorbe la variabilité des plateformes. Le tableau de bord
-interroge `mysql_*`, `redis_*` et `node_*` quel que soit l'hébergeur ; un projet
-chez OVH ou Scaleway réécrit ce fichier, pas ses tableaux de bord.
+### Nommer les séries
 
-L'en-tête de chacun liste ce qui est à revoir et les pièges de cardinalité déjà
-mesurés. Sans collecteur en écoute, l'API n'envoie rien — c'est la première
-chose à vérifier quand aucune donnée n'arrive.
+Une stack Grafana est partagée entre projets et entre environnements : tout
+panneau et toute alerte filtre d'abord sur le projet, puis sur l'environnement.
 
-Le front est l'exception : il poste au collecteur Faro hébergé, un navigateur
-n'atteignant pas un Alloy local. Son URL vient de **Grafana Cloud → Frontend
-Observability**, où l'application doit être déclarée au préalable — c'est là que
-se lisent les erreurs JavaScript et les Web Vitals, et là que se règlent leurs
-alertes, séparément des règles ci-dessous.
+| Étiquette | Valeur | Posée par |
+|---|---|---|
+| `service_namespace` | le projet (`ladom`, `matchanimo`) | l'API (`{project.name}` par défaut, `OTEL_RESOURCE_ATTRIBUTES` sinon), Faro, et Alloy sur les logs et sur les métriques machines, services et sondes (`SERVICE_NAMESPACE`) |
+| `service_name` | l'unité déployée : `<projet>-api`, `<projet>-web`, `<projet>-front` pour le navigateur | l'API (`OTEL_SERVICE_NAME`), la config Faro |
+| `deployment_environment_name` | `qualif`, `preprod`, `production`… | l'API (`ENVIRONMENT`) ; `environment` sur les logs, par Alloy |
+| `instance` | la machine | l'API (`OTEL_RESOURCE_ATTRIBUTES=service.instance.id=…`) et Alloy (`INSTANCE_NAME`) |
 
-Les erreurs du navigateur arrivent aussi dans Loki, sous
-`service_name="<app>"` et `kind="exception"` : c'est ce que lit le panneau
-« Erreurs — navigateur » du tableau de bord.
-
-### Les alertes
-
-`deploy/grafana-alertes.example.json` porte quatorze règles à importer dans
-Grafana. Ce qu'elles disent, et par où commencer quand l'une d'elles part :
-
-| Alerte | Premier réflexe |
-|---|---|
-| `IgoServiceDown` | La sonde n'obtient plus de réponse valide. Regarder `/health/ready` : il nomme la dépendance qui manque. Sinon l'application est arrêtée, ou la route jusqu'à elle coupée. |
-| `IgoHighErrorRate` | Plus de 5 % de 5xx. Le journal des erreurs porte la pile d'appels ; la courbe des codes dit depuis quand. |
-| `IgoDatabasePoolSaturated` | Les connexions MySQL saturent. Souvent des connexions non rendues : chercher une requête longue ou une transaction restée ouverte. |
-| `IgoFileDescriptorsExhausted` | Descripteurs presque épuisés — des sockets ou des fichiers qui fuient. À saturation, plus aucune connexion n'est acceptée. |
-| `IgoClientErrorSpike` | La part de 4xx a triplé. Un contrat d'API changé, un client cassé, une ressource supprimée en masse. |
-| `IgoLatencySpike` | Le p95 des réponses réussies a triplé. Comparer avec la médiane : les deux ensemble disent lenteur générale ou queue de distribution. |
-| `IgoEventLoopSaturated` | Node ne suit plus. Chercher une opération synchrone bloquante ou un calcul à déplacer. |
-| `IgoHostCpuSaturated`, `IgoHostMemorySaturated`, `IgoHostSystemSaturated` | La machine sature. L'étiquette `instance` dit laquelle, `role` ce qu'elle porte. |
-| `IgoDiskIOSaturated` | Les entrées-sorties s'accumulent. Souvent la base, qui ralentit alors sans que le processeur ne bouge. |
-| `IgoDiskFillingUp` | Le disque sature dans moins de quatre jours. Il reste le temps d'agir — logs, sauvegardes, fichiers temporaires. |
-
-Deux règles sont livrées désactivées, faute de valoir pour tous les projets :
-
-- `IgoLatencyDegraded` — le seuil d'une seconde ne veut rien dire tant qu'on
-  n'a pas mesuré ce qui est normal ici. À régler après quelques semaines.
-- `IgoTrafficCollapsed` — attrape la panne qu'aucune autre ne voit : le service
-  répond, mais plus personne ne l'atteint. À activer sur un service dont le
-  trafic ne retombe jamais, sous peine de sonner chaque nuit.
+- **Le nom ne porte pas l'environnement** : `<projet>-api` partout, pour
+  comparer deux environnements sur un même panneau.
+- **Un service est une unité déployée** — l'API, le front, un worker —, pas une
+  page servie par le même processus. Le renommer perd son historique.
+- **Dès deux machines, `service.instance.id` est obligatoire** : sans lui, leurs
+  séries entrent en collision.
+- **Les métriques machines n'ont pas d'environnement** : une machine peut en
+  servir plusieurs.
 
 ## Production
 
@@ -177,10 +151,7 @@ derrière lui sur la même origine. Le contrat, quelle que soit la conf :
 - l'API parle OTLP à un collecteur local (Alloy, port 4318), jamais à une
   plateforme directement.
 
-`deploy/` porte un exemple de chaque : `nginx.conf.example`,
-`config.alloy.agent.example` et `config.alloy.gateway.example`, plus le tableau
-de bord et les règles d'alerte à importer dans Grafana. Ce sont des points de
-départ, pas des fichiers actifs.
+`deploy/` en porte un exemple de chaque : voir [`deploy/README.md`](deploy/README.md).
 
 ## Langue du code
 
