@@ -212,7 +212,11 @@ module.exports.init = function() {
       host:     process.env.REDIS_HOST      || '127.0.0.1',
       port:     process.env.REDIS_PORT      || 6379,
     },
-    database: process.env.REDIS_DATABASE  || 0
+    database: process.env.REDIS_DATABASE  || 0,
+    // A managed Valkey closes a connection idle for 10 min, and igo flushes the
+    // cache on every reconnection: an instance without traffic would wipe it for
+    // every other one sharing the database. 0 disables it.
+    pingInterval: 60 * 1000,
   };
 
   // logger

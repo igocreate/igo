@@ -12,8 +12,15 @@ config.redis = {
     port: process.env.REDIS_PORT || 6379,
   },
   database: process.env.REDIS_DATABASE || 0,
+  pingInterval: 60 * 1000,
 };
 ```
+
+`pingInterval` keeps the connection busy. A managed Valkey closes a connection
+left idle for 10 minutes, and igo flushes the cache whenever it reconnects: an
+instance without traffic would otherwise wipe the cache every 10 minutes, for
+every instance sharing the database, and log an error each time. `0` disables
+it.
 
 ## Usage
 

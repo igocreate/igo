@@ -30,6 +30,10 @@ describe('igo.config', () => {
     });
   });
 
+  it('should ping the cache often enough to outlast a managed server idle timeout', () => {
+    assert.strictEqual(config.redis.pingInterval, 60 * 1000);
+  });
+
   // init() runs once per process, so the parser is tested on its own
   describe('LOG_REQUESTS', () => {
     const parse = config.parseLogRequests;
