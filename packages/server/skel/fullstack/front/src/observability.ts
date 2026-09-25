@@ -68,11 +68,9 @@ const filter = (item: TransportItem): TransportItem | null => {
     case TransportItemType.MEASUREMENT:
       return item;
 
-    // Les spans du navigateur portent la racine de la trace. Les échantillonner
-    // ici ne laisserait que la partie serveur, et la corrélation front/back
-    // cesserait de fonctionner. La décision à l'échelle de la trace appartient
-    // au bit `sampled` de l'en-tête traceparent que le SDK propage, pas à ce
-    // filtre.
+    // Les spans du navigateur portent la racine de la trace. L'échantillonnage
+    // revient à Adaptive Traces, dans Grafana, qui décide sur la trace entière :
+    // en jeter ici laisserait des parties serveur sans leur partie navigateur.
     case TransportItemType.TRACE:
       return item;
 

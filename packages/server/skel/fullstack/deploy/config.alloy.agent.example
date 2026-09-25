@@ -43,7 +43,7 @@ otelcol.processor.batch "default" {
     metrics = [otelcol.exporter.prometheus.app_metrics.input]
     // les logs arrivent par fichier (loki.source.file), pas en OTLP
     logs    = []
-    traces  = [otelcol.processor.tail_sampling.traces.input]
+    traces  = [otelcol.processor.filter.spans.input]
   }
 }
 
@@ -88,43 +88,10 @@ prometheus.remote_write "grafana" {
 
 // ── Traces ───────────────────────────────────────────────────────────────────
 //
-// Toutes les traces en erreur, et un échantillon du nominal : débit et latence
-// viennent des métriques.
-
-// « tail » : décidé une fois la trace complète. Une politique suffit à la garder.
-otelcol.processor.tail_sampling "traces" {
-  // au-delà de la latence maximale d'une requête, sinon une trace lente serait
-  // jugée avant d'être terminée
-  decision_wait = "10s"
-
-  // L'instrumentation HTTP ne marque en ERROR que les 5xx. Les 4xx ne sont pas
-  // retenus : un refus est décidé en mémoire, et la ligne de log porte déjà le
-  // corps, les paramètres et la réponse.
-  policy {
-    name = "server_errors"
-    type = "status_code"
-
-    status_code {
-      status_codes = ["ERROR"]
-    }
-  }
-
-  // Pas de seuil de latence : il suppose de connaître la latence normale de
-  // chaque route. Le P95 vient des métriques, et cet échantillon donne des
-  // traces d'exemple.
-  policy {
-    name = "baseline_sample"
-    type = "probabilistic"
-
-    probabilistic {
-      sampling_percentage = 10
-    }
-  }
-
-  output {
-    traces = [otelcol.processor.filter.spans.input]
-  }
-}
+// Toutes les traces partent : l'échantillonnage revient à Adaptive Traces, dans
+// Grafana, qui décide sur la trace entière — partie navigateur arrivée par Faro
+// comprise. Échantillonner aussi ici ferait deux tirages successifs, et
+// garderait des parties serveur sans leur partie navigateur.
 
 // Les spans de middleware ne pèsent rien dans la durée d'une requête. Restent
 // le span racine, `request handler` et les requêtes SQL.

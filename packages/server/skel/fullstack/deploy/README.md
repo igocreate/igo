@@ -62,7 +62,15 @@ versionnent ; les jetons vont dans le gestionnaire de secrets du projet.
    adresse **publique**, nommé `<projet>-<env>-ready`. Ses sondes viennent
    d'Internet : un vhost filtré par IP leur répond 403.
 
-8. **Vérifier dans Grafana qu'une série arrive**, avec ses étiquettes : un envoi
+8. **Adaptive Telemetry**, un segment par projet sur
+   `service_namespace="<projet>"` :
+   - *Adaptive Metrics* : le segment, puis l'auto-apply sur ce segment. Déclarer
+     d'abord en exemption les métriques qu'on ne veut jamais voir agrégées ;
+   - *Adaptive Logs* : le segment ;
+   - *Adaptive Traces* : c'est lui qui échantillonne, Alloy envoie tout. Garder
+     les traces en erreur et les traces lentes, plus un échantillon du reste.
+
+9. **Vérifier dans Grafana qu'une série arrive**, avec ses étiquettes : un envoi
    refusé ne rend pas le composant Alloy malade.
 
 **Le gestionnaire de processus doit attendre l'arrêt ordonné** d'igo, qui peut
