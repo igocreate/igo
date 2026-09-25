@@ -8,6 +8,14 @@ const config      = require('./config');
 // how long init() waits for the first connection before letting the app start without it
 const CONNECT_TIMEOUT = 1000;
 
+// A managed Valkey closes a connection idle for 10 min, and igo flushes the
+// cache on every reconnection: an instance without traffic would wipe it for
+// every other one sharing the database. Applied here, not in config.redis,
+// which a project usually replaces whole to set its URL. 0 disables it.
+const PING_INTERVAL = 60 * 1000;
+
+const clientOptions = (redisConfig) => ({ pingInterval: PING_INTERVAL, ...redisConfig });
+
 let options       = null;
 let client        = null;
 let buffers       = null;
@@ -37,7 +45,7 @@ module.exports.init = async () => {
     logger.info('Cache: disabled (config.redis is not set)');
     return;
   }
-  options = config.redis;
+  options = clientOptions(config.redis);
   closing = false;
   client = redis.createClient(options);
 
@@ -331,4 +339,3 @@ const cloneable = (value, seen = new WeakSet()) => {
     return kept;
   }, {});
 };
-
