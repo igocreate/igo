@@ -43,6 +43,7 @@ class Db {
     const { config } = dependencies;
     this.pool       = await this.driver.createPool(this.config);
     this.connection = null;
+    this.testQueue  = Promise.resolve();
     this.closed     = false;
     this.TEST_ENV   = config.env === 'test';
   }
@@ -89,7 +90,7 @@ class Db {
   //
   async query(sql, params=[], options={}) {
     const { logger } = dependencies;
-    const { driver, config, TEST_ENV } = this;
+    const { driver, config } = this;
     const { dialect } = driver;
 
     const runquery = async() => {
@@ -114,7 +115,7 @@ class Db {
         if (!keep) {
           // console.log('query: release transaction');
           driver.release(connection);
-          if (TEST_ENV) {
+          if (this.TEST_ENV) {
             this.connection = null;
           }
         }
@@ -125,14 +126,20 @@ class Db {
       throw new Error(`Db '${this.name}' is closed: the application is shutting down.`);
     }
 
-    if (this.pool) {
-      return await runquery();
+    if (!this.pool) {
+      logger.info('Db.query: Trying to reinitialize db connection pool');
+      await this.init();
+      if (!this.pool) {
+        throw new Error('Db.query: could not create db connection pool');
+      }
     }
 
-    logger.info('Db.query: Trying to reinitialize db connection pool');
-    await this.init();
-    if (!this.pool) {
-      throw new Error('Db.query: could not create db connection pool');
+    // test mode shares a single connection: queries must not overlap on it
+    if (this.TEST_ENV) {
+      const previousQuery = this.testQueue;
+      const currentQuery  = previousQuery.catch(() => {}).then(runquery);
+      this.testQueue = currentQuery;
+      return await currentQuery;
     }
     return await runquery();
   }
