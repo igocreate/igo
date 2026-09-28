@@ -179,6 +179,8 @@ export interface TestRequestOptions {
   headers?:  Record<string, string>;
   cookies?:  Record<string, string>;
   session?:  Record<string, unknown>;
+  /** Uploaded files, as the multipart middleware sets them on req.files. */
+  files?:    Record<string, unknown>;
   hostname?: string;
 }
 

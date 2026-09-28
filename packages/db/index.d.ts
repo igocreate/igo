@@ -14,7 +14,8 @@ export interface Schema {
   table:         string;
   columns:       Array<string | ColumnDefinition>;
   primary?:      string[];
-  associations?: unknown[];
+  // A function defers resolution, so that two models can reference each other
+  associations?: unknown[] | (() => unknown[]);
   scopes?:       Record<string, unknown>;
   cache?:        unknown;
   [key: string]: unknown;
