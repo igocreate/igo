@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 6.4.0 - 2026-09-30
 
 ### @igojs/server
 
@@ -14,6 +14,10 @@
 - **Fixed**: the cache ping added in 6.3.3 is applied when the client is created, not as a `config.redis` default. A project that set its URL by replacing `config.redis` whole — the usual way — lost it, and kept seeing `Socket closed unexpectedly` and the cache flushed every 10 minutes.
 - **Changed**: the `fullstack` skeleton leaves trace sampling to Grafana's Adaptive Traces: the Alloy agent sends every trace instead of keeping errors and 10 % of the rest. Adaptive Traces decides on the whole trace, browser part included, where sampling in Alloy dropped the server part of 90 % of the traces whose browser part was kept — and, on a stack with Adaptive Traces on, sampled a second time. `deploy/README.md` gains an Adaptive Telemetry step: a segment per project on `service_namespace` for metrics (with auto-apply) and logs, and the Adaptive Traces policies.
 - **Changed**: the `fullstack` dashboard splits p95 latency per route by HTTP method: a `GET` and a `POST` on the same route are two different operations.
+
+### @igojs/db
+
+- **Changed**: a failed query logs nothing and sends nothing any more: it attaches `err.statement` (`{ sql, params }`, as sent to the driver) and rethrows, leaving the report to whoever lets the error through. `init()` no longer takes an `errorhandler`. `@igojs/server` 6.4.0 requires this version, and declares it.
 
 ## 6.3.3 - 2026-09-24
 
