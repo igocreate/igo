@@ -113,7 +113,23 @@ needs.
 
 Two cases still get a line of their own — an error raised after the response
 was sent, since the request line is already written, and an error outside any
-request (`uncaughtException`, a CLI command), which has no line to join.
+request (an uncaught exception or rejection, a CLI command), which has no line
+to join.
+
+An error with a `code` carries it: stable across occurrences where the message
+names a table or a value, it is what errors are counted by. A failed query adds
+the statement igo sent, as `sql` and `sql_params`, the same with MySQL and
+PostgreSQL — the values in the clear, each one truncated:
+
+```json
+{"level":"error","message":"Error: Table 'app.folderz' doesn't exist",
+ "method":"GET","path":"/folders/42","status":500,"duration_ms":12.4,
+ "code":"ER_NO_SUCH_TABLE","sql":"SELECT * FROM folderz WHERE id = ?",
+ "sql_params":"[42]","stack":"Error: Table … at async show (…)","trace_id":"4bf9…"}
+```
+
+The query itself logs nothing: an error the application catches is its to
+handle, and one it lets through is logged once, by what it reaches.
 
 `config.logrequests` takes `true`, `false`, or a **status floor**: `400`, the
 default, keeps the errors and drops the successes. One line per request is the

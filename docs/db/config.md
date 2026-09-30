@@ -135,6 +135,5 @@ db.init({
   cache:         myRedisCache,    // optional, required only for cache: true on models
   logger:        console,
   utils:         { toJSON: JSON.stringify, fromJSON: JSON.parse },
-  errorhandler:  { errorSQL: (err) => console.error(err) },
 });
 ```

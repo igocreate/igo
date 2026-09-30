@@ -4,7 +4,7 @@ const { randomBytes }       = require('crypto');
 
 const config = require('../config');
 const logger = require('../logger');
-const { asJson, elapsedMs, isEmpty, levelFor, shouldLog } = require('../logfields');
+const { asJson, elapsedMs, errorFields, isEmpty, levelFor, shouldLog } = require('../logfields');
 
 const storage = new AsyncLocalStorage();
 
@@ -69,6 +69,7 @@ const failureContext = (req, res) => {
   if (res._loggedError?.stack) {
     context.stack = res._loggedError.stack;
   }
+  Object.assign(context, errorFields(res._loggedError));
   return context;
 };
 

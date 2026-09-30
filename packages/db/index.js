@@ -2,12 +2,11 @@
 const dependencies = require('./src/dependencies');
 
 // Initialize @igojs/db with dependencies from @igojs/server
-function init({ config, cache, logger, utils, errorhandler }) {
+function init({ config, cache, logger, utils }) {
   dependencies.config = config;
   dependencies.cache = cache;
   dependencies.logger = logger;
   dependencies.utils = utils;
-  dependencies.errorhandler = errorhandler;
 }
 
 module.exports = {

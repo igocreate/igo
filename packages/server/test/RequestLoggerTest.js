@@ -102,6 +102,25 @@ describe('request logger', function() {
       assert.strictEqual(meta.response,
                          '{"type":"urn:igo:validation-failed","status":422}');
     });
+
+    it('should carry the code of an error and the statement of a failed query', () => {
+      const err = Object.assign(new Error('Table \'test.folderz\' doesn\'t exist'), {
+        code:      'ER_NO_SUCH_TABLE',
+        statement: { sql: 'SELECT * FROM folderz WHERE id = ?', params: [42, Buffer.alloc(3)] },
+      });
+      const { message, meta } = run(500, { err })[0];
+      assert.strictEqual(message, 'Error: Table \'test.folderz\' doesn\'t exist');
+      assert.strictEqual(meta.code, 'ER_NO_SUCH_TABLE');
+      assert.strictEqual(meta.sql, 'SELECT * FROM folderz WHERE id = ?');
+      assert.strictEqual(meta.sql_params, '[42,"[3 bytes]"]');
+    });
+
+    it('should carry neither for an error that has none', () => {
+      const { meta } = run(500, { err: new TypeError('boom') })[0];
+      assert.strictEqual(meta.code, undefined);
+      assert.strictEqual(meta.sql, undefined);
+      assert.strictEqual(meta.sql_params, undefined);
+    });
   });
 
   describe('config.logrequests', function() {

@@ -68,18 +68,28 @@ Crash emails are unaffected: only the response format changes.
 
 ## Crash Emails
 
-Configure one or more recipients for error notification emails:
+One email per incident, sent to `MAIL_CRASH_TO` — one address, or several
+separated by commas. A deployment setting: emptied on an environment whose
+Grafana alerts took over, it stops the emails without a release.
 
-```js
-// app/config.js
-module.exports.init = (config) => {
-  config.mailcrashto = 'admin@example.com';
-  // or, for several recipients:
-  config.mailcrashto = ['admin@example.com', 'ops@example.com'];
-};
+```sh
+MAIL_CRASH_TO=admin@example.com,ops@example.com
 ```
 
-The email includes: error message, stack trace, request context (method, URL, user-agent, body, session).
+`config.mailcrashto` still takes a string or an array, and wins over the
+variable when a project sets it in its config.
+
+The subject says what happened, the sender says where:
+
+| Subject | When | The process… |
+|---|---|---|
+| `Error 500: <error>` | a request failed | keeps serving |
+| `Error after response: <error>` | a request failed after it was answered | keeps serving |
+| `Crash: <error>` | an uncaught exception or rejection | restarts |
+
+The email includes: error message, stack trace, request context (method, URL,
+user-agent, body, session). A failed query sends no email of its own: it is the
+error of the request, or of the process, that let it through.
 
 ## Email Throttling
 
@@ -87,7 +97,7 @@ To prevent spam during crash loops, emails are throttled per error type:
 
 - **Max 3 emails** per unique error within 1 minute
 - After 3 emails, the error is **blocked for 5 minutes**
-- A final `[THROTTLED]` alert is sent before blocking
+- A final alert, its subject ending in `(repeated, paused 5 min)`, is sent before blocking
 - Different error types are tracked independently
 
 Throttle state is persisted in a temp file to survive restarts.

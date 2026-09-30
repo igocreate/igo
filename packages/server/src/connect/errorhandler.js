@@ -10,8 +10,7 @@
  *
  * 2. Unhandled promise rejections (process.on('unhandledRejection'))
  *    - If request context available: same as Express errors
- *    - If no context: logs and throws (will trigger uncaughtException)
- *    - Server continues running
+ *    - If no context: same as an uncaught exception
  *
  * 3. Uncaught exceptions (process.on('uncaughtException'))
  *    - Logs error and sends email notification
@@ -43,6 +42,7 @@ const os   = require('os');
 const config  = require('../config');
 const redact = require('../redact');
 const logger  = require('../logger');
+const { errorFields } = require('../logfields');
 const mailer  = require('../mailer');
 const problem = require('../api/problem');
 const { isApiRequest } = require('../api/request');
@@ -158,7 +158,7 @@ const sendCrashEmail = (subject, body, errorKey) => {
     // Send alert that this error is now being throttled
     mailer.send('crash', {
       to: config.mailcrashto,
-      subject: `[${config.appname}] ${subject} [THROTTLED]`,
+      subject: `[${config.appname}] ${subject} (repeated, paused ${BLOCK_DURATION / 60000} min)`,
       body: body + `
         <hr>
         <p><strong>⚠️ Cette erreur a été répétée ${THROTTLE_LIMIT} fois en moins d'une minute.</strong></p>
@@ -175,7 +175,7 @@ const sendCrashEmail = (subject, body, errorKey) => {
   });
 };
 
-const handle = (err, req, res) => {
+const handle = (err, req, res, { restarting = false } = {}) => {
   // an API client cannot render a dust page: it always gets JSON back
   const isApi = isApiRequest(req);
 
@@ -207,8 +207,9 @@ const handle = (err, req, res) => {
                    method: req.method,
                    path:   (req.originalUrl || req.url || '').split('?')[0],
                    stack:  err.stack,
+                   ...errorFields(err),
                  });
-    sendCrashEmail(`Crash (response sent): ${err}`, formatMessage(req, err), String(err));
+    sendCrashEmail(`${restarting ? 'Crash' : 'Error after response'}: ${err}`, formatMessage(req, err), String(err));
     return;
   }
 
@@ -217,7 +218,7 @@ const handle = (err, req, res) => {
   // a second line would not have
   requestLogger.logError(res, err);
 
-  sendCrashEmail(`Crash: ${err}`, formatMessage(req, err), String(err));
+  sendCrashEmail(`${restarting ? 'Crash' : 'Error 500'}: ${err}`, formatMessage(req, err), String(err));
 
   if (isApi) {
     // the stack is a debugging aid outside production, never a client contract
@@ -242,6 +243,26 @@ const failCli = (err) => {
   process.exit(1);
 };
 
+// Node makes no promise about the state of a process that reached this
+// point, even once the request is answered: it always restarts.
+//
+// The email is sent without being awaited: this delay is what lets it leave,
+// and onCrash shares it rather than extending it.
+const exitAfterCrash = (err, res) => {
+  setTimeout(() => {
+    process.exit(1);
+  }, 1000);
+  runOnCrash(err, res);
+};
+
+// Outside a request, no request line will carry the error: it gets its own.
+const crash = (label, err) => {
+  const stack = err?.stack ?? String(err);
+  logger.error(`${label} outside of request context: ${err}`, { stack, ...errorFields(err) });
+  sendCrashEmail(`Crash: ${err}`, `<pre>${escapeHtml(stack)}</pre>`, String(err));
+  exitAfterCrash(err, null);
+};
+
 process.on('unhandledRejection', (err) => {
   if (global.IGO_CLI) {
     return failCli(err);
@@ -249,12 +270,9 @@ process.on('unhandledRejection', (err) => {
   const context = asyncLocalStorage.getStore();
 
   if (context && context.req && context.res) {
-    // We have a request context, handle it gracefully
     handle(err, context.req, context.res);
   } else {
-    // No request context, just log and throw
-    logger.error('Unhandled promise rejection outside of request context:', err);
-    throw err;
+    crash('Unhandled rejection', err);
   }
 });
 
@@ -264,25 +282,14 @@ process.on('uncaughtException', (err) => {
     return failCli(err);
   }
   const context = asyncLocalStorage.getStore();
-  const handled = !!(context && context.req && context.res);
+  const duringRequest = !!(context && context.req && context.res);
 
-  if (handled) {
-    handle(err, context.req, context.res);
+  if (duringRequest) {
+    handle(err, context.req, context.res, { restarting: true });
+    exitAfterCrash(err, context.res);
   } else {
-    logger.error(`Uncaught exception outside of request context: ${err}`,
-                 { stack: err.stack });
-    sendCrashEmail(`Uncaught exception: ${err}`, `<pre>${escapeHtml(err.stack)}</pre>`, String(err));
+    crash('Uncaught exception', err);
   }
-
-  // Node makes no promise about the state of a process that reached this
-  // point, even once the request is answered: it always restarts.
-  //
-  // The email is sent without being awaited: this delay is what lets it leave,
-  // and onCrash shares it rather than extending it.
-  setTimeout(() => {
-    process.exit(1);
-  }, 1000);
-  runOnCrash(err, handled ? context.res : null);
 });
 
 // The span of the failed request only ends once its response is flushed.
@@ -325,30 +332,6 @@ module.exports.getContext = () => {
 // Express error handler middleware
 module.exports.error = (err, req, res, next) => {
   handle(err, req, res, next);
-};
-
-// SQL error handler (called from database layer)
-module.exports.errorSQL = (err) => {
-  logger.error(err);
-
-  if (config.mailcrashto) {
-    let body = '<table cellspacing="10">';
-    body += `<tr><td>code:</td><td>${err.code}</td></tr>`;
-
-    if (err.sqlMessage) {
-      body += `<tr><td>sqlMessage:</td><td>${err.sqlMessage}</td></tr>`;
-    } else {
-      body += `<tr><td colspan="2">${String(err)}</td></tr>`;
-    }
-
-    if (err.sql) {
-      body += `<tr><td>sql:</td><td>${err.sql}</td></tr>`;
-    }
-
-    body += '</table>';
-
-    sendCrashEmail(`SQL error: ${err.code}`, body, `SQL:${err.code}`);
-  }
 };
 
 // Exposed for testing

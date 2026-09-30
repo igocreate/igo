@@ -3,6 +3,7 @@ require('./init');
 const assert  = require('assert');
 
 const dbs     = require('@igojs/db').dbs;
+const logger  = require('@igojs/server').logger;
 
 describe('db.Db', () => {
 
@@ -42,6 +43,26 @@ describe('db.Db', () => {
       ]);
       assert.strictEqual(failed.status, 'rejected');
       assert.strictEqual(Number(succeeded.value[0].n), 1);
+    });
+  });
+
+  describe('a failed query', () => {
+
+    it('should carry the statement it failed on, and log nothing itself', async () => {
+      const lines = [];
+      const { error, info } = logger;
+      logger.error = logger.info = (...args) => lines.push(args);
+      let err;
+      try {
+        await dbs.main.query('SELECT * FROM unknown_table WHERE id = ?', [42]);
+      } catch (e) {
+        err = e;
+      } finally {
+        Object.assign(logger, { error, info });
+      }
+      assert.deepStrictEqual(err.statement, { sql: 'SELECT * FROM unknown_table WHERE id = ?', params: [42] });
+      assert.strictEqual(err.code, 'ER_NO_SUCH_TABLE');
+      assert.deepStrictEqual(lines, []);
     });
   });
 });

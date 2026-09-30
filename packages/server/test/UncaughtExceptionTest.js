@@ -32,6 +32,24 @@ describe('ErrorHandler uncaught exceptions', function() {
     assert.strictEqual(run('no-context'), 1);
   });
 
+  describe('what it reports', () => {
+
+    it('should report a rejection outside a request on one line and one email, then exit', () => {
+      const { status, steps } = runChild('report-rejection');
+      assert.strictEqual(status, 1);
+      assert.strictEqual(steps.length, 2, steps.join('\n'));
+      assert.match(steps[0], /^log: Unhandled rejection outside of request context: Error: boom \d+ /);
+      assert.match(steps[0], /"code":"ER_LOCK_WAIT_TIMEOUT","sql":"UPDATE folders SET status = \? WHERE id = \?"/);
+      assert.match(steps[1], /^mail: \[.+\] Crash: Error: boom \d+$/);
+    });
+
+    it('should name the email a crash, even during a request', () => {
+      const { status, steps } = runChild('report-in-request');
+      assert.strictEqual(status, 1);
+      assert.ok(steps.some(step => /^mail: \[.+\] Crash: Error: boom \d+$/.test(step)), steps.join('\n'));
+    });
+  });
+
   describe('config.onCrash', () => {
 
     it('should run once the failed response is flushed, before the process exits', () => {

@@ -10,15 +10,11 @@ const getDriver = (driverName) => {
 };
 
 //
-const logQuery = (sql, params, err) => {
-  const { logger, errorhandler } = dependencies;
-  const _log = err ? logger.error : logger.info;
-  _log('Db.query: ' + sql);
+const logQuery = (sql, params) => {
+  const { logger } = dependencies;
+  logger.info('Db.query: ' + sql);
   if (params?.length) {
-    _log('With params: ' + params);
-  }
-  if (err) {
-    errorhandler.errorSQL(err);
+    logger.info('With params: ' + params);
   }
 };
 
@@ -109,7 +105,8 @@ class Db {
         if (options.silent) {
           return null;
         }
-        logQuery(sql, params, err);
+        // logged once, by whoever lets it through: the statement goes with it
+        err.statement = { sql, params };
         throw err;
       } finally {
         if (!keep) {

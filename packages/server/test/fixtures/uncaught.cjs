@@ -19,8 +19,17 @@ if (mode === 'crash-hook-hangs') {
 
 const errorhandler = require('../../src/connect/errorhandler');
 const logger       = require('../../src/logger');
+const mailer       = require('../../src/mailer');
 
-logger.error = () => {};
+// the report-* modes trace what gets logged and mailed
+const reporting = mode.startsWith('report-');
+logger.error = reporting
+  ? (message, meta) => trace(`log: ${message} ${JSON.stringify({ code: meta?.code, sql: meta?.sql })}`)
+  : () => {};
+if (reporting) {
+  config.mailcrashto = ['ops@example.com'];
+  mailer.send = (template, { subject }) => trace(`mail: ${subject}`);
+}
 
 const fakeReq = () => ({
   method: 'GET', originalUrl: '/x', url: '/x', path: '/x', protocol: 'http',
@@ -39,10 +48,18 @@ const fakeRes = () => {
   return res;
 };
 
-const raise = () => process.emit('uncaughtException', new Error('boom'));
+// unique per run: the email throttle outlives the process, in a temp file
+const failure = () => Object.assign(new Error(`boom ${process.pid}`), {
+  code:      'ER_LOCK_WAIT_TIMEOUT',
+  statement: { sql: 'UPDATE folders SET status = ? WHERE id = ?', params: ['done', 42] },
+});
+
+const raise = () => process.emit('uncaughtException', reporting ? failure() : new Error('boom'));
 
 if (mode === 'no-context') {
   raise();
+} else if (mode === 'report-rejection') {
+  process.emit('unhandledRejection', failure());
 } else {
   const res = fakeRes();
   errorhandler.initContext({})(fakeReq(), res, raise);

@@ -5,6 +5,9 @@ const fs     = require('fs');
 const agent  = require('@igojs/server').dev.agent;
 const errorhandler = require('@igojs/server/src/connect/errorhandler');
 const logger = require('@igojs/server/src/logger');
+const mailer = require('@igojs/server/src/mailer');
+const config = require('@igojs/server').config;
+const dbs    = require('@igojs/db').dbs;
 const { _test: throttle } = errorhandler;
 
 const fakeReq = () => ({
@@ -109,6 +112,48 @@ describe('ErrorHandler', function() {
       const res = await agent.get('/promise-rejection');
       assert.strictEqual(res.statusCode, 200);
       // Promise rejection happens after response is sent
+    });
+  });
+
+  describe('Error email subject', function() {
+
+    let subjects;
+    let originalSend;
+    let originalRecipients;
+
+    beforeEach(function() {
+      subjects = [];
+      originalSend = mailer.send;
+      originalRecipients = config.mailcrashto;
+      mailer.send = (template, { subject }) => subjects.push(subject);
+      config.mailcrashto = ['ops@example.com'];
+    });
+
+    afterEach(function() {
+      mailer.send = originalSend;
+      config.mailcrashto = originalRecipients;
+    });
+
+    // unique per run: the throttle outlives the process, in a temp file
+    const uniqueError = () => new Error(`boom ${Date.now()} ${Math.random()}`);
+
+    it('should send one email for a failed query, named after the error', async () => {
+      const err = await dbs.main.query(`SELECT * FROM unknown_table_${Date.now()}`).catch(e => e);
+      errorhandler.error(err, fakeReq(), fakeRes(), () => {});
+      assert.deepStrictEqual(subjects, [`[${config.appname}] Error 500: ${err}`]);
+    });
+
+    it('should tell an error after the response apart', () => {
+      const err = uniqueError();
+      const res = Object.assign(fakeRes(), { headersSent: true });
+      const originalError = logger.error;
+      logger.error = () => {};
+      try {
+        errorhandler.error(err, fakeReq(), res, () => {});
+      } finally {
+        logger.error = originalError;
+      }
+      assert.deepStrictEqual(subjects, [`[${config.appname}] Error after response: ${err}`]);
     });
   });
 

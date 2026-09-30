@@ -7,7 +7,8 @@ const config      = require('../src/config');
 const cache       = require('../src/cache');
 const logger      = require('../src/logger');
 const utils       = require('../src/utils');
-const errorhandler = require('../src/connect/errorhandler');
+// its process handlers turn a failed command into one line and an exit code
+require('../src/connect/errorhandler');
 const db          = require('@igojs/db');
 
 // colors
@@ -159,7 +160,6 @@ module.exports = async (argv) => {
     cache,
     logger,
     utils,
-    errorhandler,
   });
 
   await db.dbs.init();

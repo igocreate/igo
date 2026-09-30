@@ -21,6 +21,30 @@ const isEmpty = (value) =>
 const elapsedMs = (start) =>
   Math.round(Number(process.hrtime.bigint() - start) / 1e5) / 10;
 
+// A long value — a document, an encoded file — would crowd out the others.
+const loggable = (value) => {
+  if (Buffer.isBuffer(value)) {
+    return `[${value.length} bytes]`;
+  }
+  return typeof value === 'string' ? truncate(value) : value;
+};
+
+// What an error carries beyond its message: a code, stable where the message
+// names a table or a value; and the statement of a failed query.
+const errorFields = (err) => {
+  const fields = {};
+  if (err?.code) {
+    fields.code = String(err.code);
+  }
+  if (err?.statement) {
+    fields.sql = truncate(err.statement.sql);
+    if (Array.isArray(err.statement.params) && err.statement.params.length) {
+      fields.sql_params = asJson(err.statement.params.map(loggable));
+    }
+  }
+  return fields;
+};
+
 const levelFor = (status) => {
   if (status >= 500) {
     return 'error';
@@ -44,4 +68,4 @@ const shouldLog = (setting, status, failed) => {
   return true;
 };
 
-module.exports = { asJson, elapsedMs, isEmpty, levelFor, shouldLog, truncate };
+module.exports = { asJson, elapsedMs, errorFields, isEmpty, levelFor, shouldLog, truncate };

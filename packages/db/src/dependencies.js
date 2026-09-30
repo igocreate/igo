@@ -5,7 +5,6 @@ const dependencies = {
   cache: null,
   logger: null,
   utils: null,
-  errorhandler: null,
 };
 
 module.exports = dependencies;

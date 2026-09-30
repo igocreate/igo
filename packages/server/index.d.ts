@@ -95,6 +95,7 @@ export interface Config {
   version:        string;
   cookieSecret:   string;
   cookieSession:  CookieSessionConfig;
+  /** Crash email recipients. Read from MAIL_CRASH_TO, comma separated. */
   mailcrashto?:   string | string[];
   /**
    * Milliseconds between readiness answering 503 and the HTTP server closing,

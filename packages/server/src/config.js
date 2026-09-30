@@ -182,6 +182,10 @@ module.exports.init = function() {
     subaccount:   process.env.SMTP_SUBACCOUNT
   };
 
+  // A deployment setting: emptied on an environment whose alerts took over.
+  const mailcrashto  = (process.env.MAIL_CRASH_TO || '').split(',').map(to => to.trim()).filter(Boolean);
+  config.mailcrashto = mailcrashto.length ? mailcrashto : undefined;
+
   // default db is mysql
   config.databases = [ 'mysql' ];
 

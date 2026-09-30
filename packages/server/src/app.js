@@ -57,7 +57,6 @@ module.exports.configure = async () => {
     cache,
     logger,
     utils,
-    errorhandler: errorHandler,
   });
 
   // Parallel initialization of services

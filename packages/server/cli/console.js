@@ -119,18 +119,12 @@ module.exports = async () => {
   config.init();
   initModuleAlias();
 
-  // Minimal errorhandler for CLI (no process.exit on errors)
-  const errorhandler = {
-    errorSQL: (err) => { logger.error(err); }
-  };
-
   // Initialize @igojs/db with injected dependencies
   db.init({
     config,
     cache,
     logger,
     utils,
-    errorhandler,
   });
 
   await db.dbs.init();
