@@ -4,7 +4,7 @@ const { randomBytes }       = require('crypto');
 
 const config = require('../config');
 const logger = require('../logger');
-const redact = require('../redact');
+const { asJson, elapsedMs, isEmpty, levelFor, shouldLog } = require('../logfields');
 
 const storage = new AsyncLocalStorage();
 
@@ -56,28 +56,6 @@ const traceIdFromHeader = (value) => {
   return /^0+$/.test(match[1]) ? null : match[1];
 };
 
-// An error line carries what the call failed with — the body sent and the
-// response returned — redacted, and truncated: a diagnosis needs the shape of
-// an import or an attachment, not its content. A successful line carries
-// neither, which would multiply the volume without teaching anything.
-const MAX_LENGTH = 2000;
-
-// A string, not an object: a log pipeline that flattens nested fields would
-// turn { title, status } into response_title and response_status, scattering
-// one document over several columns.
-const asJson = (value) => {
-  const text = JSON.stringify(redact(value));
-  if (!text) {
-    return text;
-  }
-  return text.length <= MAX_LENGTH
-    ? text
-    : `${text.slice(0, MAX_LENGTH)}… (${text.length} chars)`;
-};
-
-const isEmpty = (value) =>
-  !value || (typeof value === 'object' && Object.keys(value).length === 0);
-
 const failureContext = (req, res) => {
   const context = {};
   if (!isEmpty(req.body)) {
@@ -115,31 +93,6 @@ const captureResponseBody = (res) => {
   };
 };
 
-const levelFor = (status) => {
-  if (status >= 500) {
-    return 'error';
-  }
-  return status >= 400 ? 'warn' : 'info';
-};
-
-// config.logrequests: a boolean, or a status floor — 400 keeps the errors,
-// which are worth every byte, and drops the successes metrics already cover.
-// An error the handler caught is never dropped: the setting turns off the
-// access log, not the reporting of a crash, whose line is the only trace left.
-const shouldLog = (status, failed) => {
-  if (failed) {
-    return true;
-  }
-  const setting = config.logrequests;
-  if (setting === false) {
-    return false;
-  }
-  if (typeof setting === 'number') {
-    return status >= setting;
-  }
-  return true;
-};
-
 // Outside a request — a cron, a script — the active span gives the id: without
 // it, the lines of an instrumented job would carry no trace_id.
 logger.provideTraceId(() => storage.getStore()?.traceId ?? activeTraceId());
@@ -164,16 +117,15 @@ module.exports = (req, res, next) => {
     // mock responses in tests are plain objects, with no events to listen to
     if (typeof res.on === 'function') {
       res.on('finish', () => {
-        if (!shouldLog(res.statusCode, !!res._loggedError)) {
+        if (!shouldLog(config.logrequests, res.statusCode, !!res._loggedError)) {
           return;
         }
-        const duration = Number(process.hrtime.bigint() - start) / 1e6;
         logger.log(levelFor(res.statusCode), messageFor(res), {
           method: req.method,
           // req.path is rewritten to the router-relative path once mounted
           path:   (req.originalUrl || req.url || '').split('?')[0],
           status: res.statusCode,
-          duration_ms: Math.round(duration * 10) / 10,
+          duration_ms: elapsedMs(start),
           // on every line: what was addressed is part of reading a successful one
           ...(isEmpty(req.query)  ? {} : { query:  asJson(req.query) }),
           ...(isEmpty(req.params) ? {} : { params: asJson(req.params) }),

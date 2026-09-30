@@ -50,6 +50,28 @@ describe('igo.config', () => {
     });
   });
 
+  describe('LOG_HTTP_CALLS_BY_HOST', () => {
+    const parse = config.parseLogHttpCallsByHost;
+
+    it('should read a setting per host', () => {
+      assert.deepStrictEqual(parse('api.elap.io=true, particulier.api.gouv.fr=500,localhost:8080=false'), {
+        'api.elap.io':            true,
+        'particulier.api.gouv.fr': 500,
+        'localhost:8080':         false,
+      });
+    });
+
+    it('should drop the pairs it does not understand', () => {
+      assert.deepStrictEqual(parse('api.elap.io=loud,=400,api.brevo.com,a=1=2,API.Brevo.com=400'), {
+        'api.brevo.com': 400,
+      });
+    });
+
+    it('should read nothing when unset', () => {
+      assert.deepStrictEqual(parse(undefined), {});
+    });
+  });
+
   describe('config.checkSecrets', () => {
 
     const withConfig = (overrides, fn) => {

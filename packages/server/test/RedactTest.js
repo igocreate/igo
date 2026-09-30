@@ -28,6 +28,17 @@ describe('redact', function() {
     });
   });
 
+  // A partner's key often travels in the query string of an outgoing call.
+  it('should redact API keys, however they are spelled', () => {
+    const out = redact({ api_key: 'a', apiKey: 'b', 'x-api-key': 'c', access_key: 'd' });
+    assert.deepStrictEqual(out, {
+      api_key:     '[redacted]',
+      apiKey:      '[redacted]',
+      'x-api-key': '[redacted]',
+      access_key:  '[redacted]',
+    });
+  });
+
   // The language convention makes French field names the expected case, so a
   // pattern that only knows `password` would leak the most common one of all.
   it('should redact the French field names', () => {

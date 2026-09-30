@@ -3,8 +3,9 @@ const config        = require('./src/config');
 const cache         = require('./src/cache');
 const logger        = require('./src/logger');
 
-const problem = require('./src/api/problem');
-const redact  = require('./src/redact');
+const httpCalls = require('./src/httpcalls');
+const problem   = require('./src/api/problem');
+const redact    = require('./src/redact');
 
 const server = {
   app:        require('./src/app'),
@@ -14,7 +15,8 @@ const server = {
   express:    require('express'),
   i18next:    require('i18next'),
   logger,
-  mailer:     require('./src/mailer'),
+  logHttpCalls: httpCalls.logHttpCalls,
+  mailer:       require('./src/mailer'),
   Form:       require('./src/forms/Form'),
   problem:    problem.problem,
   redact,

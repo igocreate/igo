@@ -15,6 +15,7 @@ const { unlessApi }     = require('./api');
 const errorHandler      = require('./connect/errorhandler');
 const flash             = require('./connect/flash');
 const health            = require('./connect/health');
+const httpCalls         = require('./httpcalls');
 const locals            = require('./connect/locals');
 const multipart         = require('./connect/multipart');
 const requestLogger     = require('./connect/requestlogger');
@@ -67,6 +68,8 @@ module.exports.configure = async () => {
     db.dbs.init(app),
     mailer.init(app)
   ]);
+
+  httpCalls.init();
 
   // Await i18next initialization
   // shallow copy: init() writes defaultNS into the object it receives

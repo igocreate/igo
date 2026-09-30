@@ -46,22 +46,12 @@ porte la propriété, pas l'isolation.
 
 ## Configuration
 
-igo lit `app/config.ts` s'il existe. Le seul réglage qu'un projet a
-généralement à poser :
-
-```ts
-import type { Config } from '@igojs/server';
-
-export const init = (config: Config) => {
-  // Une ligne par requête est le premier poste d'un volume de logs, et les
-  // succès n'apprennent rien que les métriques ne portent déjà.
-  config.logrequests = 400;
-};
-```
-
-À poser quand l'observabilité est branchée — pas avant, sinon on perd les seules
-traces d'activité dont on dispose. Les secrets de session viennent du `.env`,
+igo lit `app/config.ts` s'il existe. Les secrets de session viennent du `.env`,
 jamais de ce fichier.
+
+Les logs de requêtes entrantes et d'appels sortants ne gardent que les erreurs
+par défaut (`400`). Tant que l'observabilité n'est pas branchée, poser
+`LOG_REQUESTS=true` dans le `.env` : ce sont alors les seules traces d'activité.
 
 ## Conventions
 

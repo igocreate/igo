@@ -58,8 +58,19 @@ const parseLogRequests = (value, fallback) => {
   return value && Number.isInteger(floor) && floor > 0 ? floor : fallback;
 };
 
-module.exports.parseLogRequests   = parseLogRequests;
-module.exports.readProjectPackage = readProjectPackage;
+// LOG_HTTP_CALLS_BY_HOST=host=setting,…, each setting read like LOG_REQUESTS;
+// a pair that is not understood is dropped, and its host follows the default.
+const parseLogHttpCallsByHost = (value) => Object.fromEntries(
+  (value || '').split(',')
+  .map(pair => pair.trim().split('='))
+  .filter(([host, setting, extra]) =>
+    host && extra === undefined && parseLogRequests(setting, null) !== null)
+  .map(([host, setting]) => [host.toLowerCase(), parseLogRequests(setting)])
+);
+
+module.exports.parseLogRequests        = parseLogRequests;
+module.exports.parseLogHttpCallsByHost = parseLogHttpCallsByHost;
+module.exports.readProjectPackage      = readProjectPackage;
 
 //
 module.exports.init = function() {
@@ -219,11 +230,14 @@ module.exports.init = function() {
   config.loglevel = process.env.LOG_LEVEL || 'info';
   // 'json' for log collectors, 'human' for a terminal
   config.logformat = process.env.LOG_FORMAT || (config.env === 'production' ? 'json' : 'human');
-  // true logs every request, false none. A number is a status floor: 400 keeps
-  // the errors and drops the successes, which is what keeps a log bill down
-  // once latency and error rate come from metrics. A deployment setting, like
-  // the format, hence LOG_REQUESTS.
-  config.logrequests = parseLogRequests(process.env.LOG_REQUESTS, config.env !== 'test');
+  // true logs every request, false none. A number is a status floor: 400, the
+  // default, keeps the errors and drops the successes metrics already cover.
+  // Deployment settings, like the format.
+  config.logrequests = parseLogRequests(process.env.LOG_REQUESTS, config.env !== 'test' && 400);
+  // The same, for the application's calls to partners through axios or fetch,
+  // with a setting per host: LOG_HTTP_CALLS_BY_HOST=host=setting,…
+  config.loghttpcalls       = parseLogRequests(process.env.LOG_HTTP_CALLS, config.env !== 'test' && 400);
+  config.loghttpcallsByHost = parseLogHttpCallsByHost(process.env.LOG_HTTP_CALLS_BY_HOST);
 
   // Keys whose value redact() replaces; null keeps the default of src/redact.js.
   // A pattern set here replaces it, so extend redact.DEFAULT_SENSITIVE_KEYS:

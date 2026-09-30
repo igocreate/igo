@@ -115,17 +115,66 @@ Two cases still get a line of their own — an error raised after the response
 was sent, since the request line is already written, and an error outside any
 request (`uncaughtException`, a CLI command), which has no line to join.
 
-`config.logrequests` takes `true`, `false`, or a **status floor**: `400` keeps
-the errors and drops the successes. One line per request is the largest item in
-a log bill, and once latency and error rate come from metrics the successes
-teach little. It is a deployment setting, so `LOG_REQUESTS` sets it from the
-environment like `LOG_FORMAT` does:
+`config.logrequests` takes `true`, `false`, or a **status floor**: `400`, the
+default, keeps the errors and drops the successes. One line per request is the
+largest item in a log bill, and once latency and error rate come from metrics
+the successes teach little. It is a deployment setting, so `LOG_REQUESTS` sets
+it from the environment like `LOG_FORMAT` does:
 
 ```sh
-LOG_REQUESTS=400 npm start    # production: errors only
+LOG_REQUESTS=true npm start    # every request, while no metrics are wired
 ```
 
 Off in tests.
+
+## Outgoing calls
+
+The calls an application makes to its partners get the same line, with nothing
+to write: igo finds the project's axios at startup and watches its default
+instance and every instance created from it, and it wraps the global `fetch`.
+
+```json
+{"level":"warn","message":"http call","method":"POST","host":"api.partner.io",
+ "path":"/api/tiers/import","status":422,"duration_ms":184.3,
+ "body":"{\"siret\":\"123\",\"password\":\"[redacted]\"}",
+ "response":"{\"errors\":[{\"code\":\"SIRET\",\"detail\":\"invalide\"}]}",
+ "trace_id":"4bf92f35…"}
+```
+
+- `query` is on every line, redacted — a partner's API key often travels there.
+- A refused call (4xx, 5xx) carries `body` and `response`, redacted and
+  truncated like an inbound error. A form is parsed before redaction, so the
+  `client_secret` of a token request is masked; a text that is not a document
+  is kept as is; a file or a stream is left out. Headers are never logged.
+- A call that got no answer — refused, reset, timed out — is an `error` line
+  whose message is the cause, with its `code` (`ECONNREFUSED`, `ECONNABORTED`)
+  and no `status`. A call the caller aborted is not logged.
+- `trace_id` is the one of the request or the job that made the call.
+
+`config.loghttpcalls` reads like `config.logrequests`, from `LOG_HTTP_CALLS`,
+with the same default. A partner can be set apart by host, as the URL gives it
+— with its port only when it is not the default one:
+
+```sh
+# every call to the accounting partner; the 404s of an identity API mean "unknown"
+LOG_HTTP_CALLS_BY_HOST=api.partner.io=true,particulier.api.gouv.fr=500
+```
+
+Whatever the setting, a call that got no answer is logged, in tests too: that
+line is the only trace of the failure.
+
+An axios instance set to use `fetch` as its adapter gets two lines per call, one
+from each.
+
+A project importing axios as an ES module loads another copy than the one igo
+finds, and hands its instance over itself:
+
+```js
+import axios from 'axios';
+import { logHttpCalls } from '@igojs/server';
+
+logHttpCalls(axios);
+```
 
 ## Trace id
 
@@ -162,8 +211,8 @@ arrives, nothing changes in the code, the logs or the clients.
 
 Anything igo logs from a request — the error context above, the crash emails —
 goes through `redact()`, which replaces the values of the usual credential
-fields: `password`, `token`, `secret`, `cookie`, `authorization`, and their
-French names. The default stops there, on purpose: igo cannot know which of
+fields: `password`, `token`, `secret`, `cookie`, `authorization`, API keys, and
+their French names. The default stops there, on purpose: igo cannot know which of
 your domain's fields are sensitive. Extend it:
 
 ```js

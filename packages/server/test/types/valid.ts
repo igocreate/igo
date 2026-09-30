@@ -1,7 +1,8 @@
+import axios from 'axios';
 import { z } from 'zod';
 import { Router, type NextFunction, type Request, type RequestHandler, type Response } from 'express';
 import { Model } from '@igojs/db';
-import type { ApiHandler } from '../../index';
+import { config, logHttpCalls, type ApiHandler } from '../../index';
 
 interface BookRow { id: number; title: string; pages: number }
 class Book extends Model<BookRow>({ table: 'books', columns: ['id', 'title', 'pages'] }) {}
@@ -60,3 +61,7 @@ router.delete('/books/:id', guardParams, destroy);
 router.get('/books/guarded', guard, index);
 router.get('/books/twice', guard, guard, index);
 router.post('/books', guard, create);
+
+const partner = logHttpCalls(axios.create({ baseURL: 'https://api.elap.io' }));
+export const partnerStatus = async (): Promise<number> => (await partner.get('/ping')).status;
+export const elapSetting: boolean | number | undefined = config.loghttpcallsByHost['api.elap.io'];

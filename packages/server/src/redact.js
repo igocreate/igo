@@ -12,7 +12,7 @@ const config = require('./config');
 // are caught; `tokenExpiry`, `cookieJar` and `tokenizer` are not, and neither
 // is `tokenApi` — a default that masks a field a diagnosis needed would be a
 // nuisance to every project, one that misses a field is one project's to fix.
-const ENGLISH = 'password|passwd|token|secret|cookie|authorization';
+const ENGLISH = 'password|passwd|token|secret|cookie|authorization|api.?key|access.?key';
 const FRENCH  = 'mot.?de.?passe|jeton|cle.?secrete';
 
 // A trailing `s`, `_confirmation` or `_hash` still names the same thing.

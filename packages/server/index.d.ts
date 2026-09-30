@@ -121,10 +121,21 @@ export interface Config {
   /** 'json' for log collectors, 'human' for a terminal. */
   logformat:      'json' | 'human';
   /**
-   * true logs every request, false none. A number is a status floor: 400 keeps
-   * the errors and drops the successes. Read from LOG_REQUESTS.
+   * true logs every request, false none. A number is a status floor: 400, the
+   * default outside tests, keeps the errors and drops the successes. Read from
+   * LOG_REQUESTS.
    */
   logrequests:    boolean | number;
+  /**
+   * The same, for the application's calls through axios and fetch. Read from
+   * LOG_HTTP_CALLS.
+   */
+  loghttpcalls:   boolean | number;
+  /**
+   * Per host, as the URL gives it — with its port only when not the default:
+   * overrides loghttpcalls for that partner. Read from LOG_HTTP_CALLS_BY_HOST=host=setting,…
+   */
+  loghttpcallsByHost: Record<string, boolean | number>;
   /**
    * Keys whose value redact() replaces. null keeps igo's default pattern,
    * which covers the usual English and French names. A pattern set here
@@ -213,6 +224,22 @@ export declare const logger: {
   debug(message: string, meta?: Record<string, unknown>): void;
   log(level: string, message: string, meta?: Record<string, unknown>): void;
 };
+
+/** What logHttpCalls needs of an axios instance, without depending on axios. */
+export interface AxiosLike {
+  interceptors: {
+    request:  { use(onFulfilled: (config: any) => any): unknown };
+    response: { use(onFulfilled: (response: any) => any, onRejected: (error: any) => any): unknown };
+  };
+  getUri(config?: any): string;
+}
+
+/**
+ * Logs the calls of an axios instance igo cannot find on its own — one the
+ * project imports as an ES module. The project's CommonJS copy of axios, the
+ * instances it creates and fetch are logged without calling this.
+ */
+export declare function logHttpCalls<T extends AxiosLike>(instance: T): T;
 
 export declare const mailer: {
   send(template: string, options: Record<string, unknown>): Promise<unknown>;
