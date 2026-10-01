@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### @igojs/server
+
+- **Fixed**: `config.shutdownTimeout` starts counting once `config.shutdownDelay` is spent. It counted the wait too, so a delay longer than the timeout — 15 s behind a load balancer against the 10 s default — killed every shutdown mid-wait: requests in flight cut, `onShutdown` skipped, pools never released. The wait now belongs to the signal handler: `app.shutdown()`, which a cron or a script calls when its work is done, no longer waits it.
+
 ## 6.4.0 - 2026-09-30
 
 ### @igojs/server

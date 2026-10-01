@@ -54,7 +54,7 @@ An uncaught exception does not go through this shutdown: see
 | | Default | |
 |---|---|---|
 | `config.shutdownDelay` | `0` | Between readiness answering 503 and the socket closing |
-| `config.shutdownTimeout` | `10000` | Ceiling on the whole shutdown, after which the process exits 1 |
+| `config.shutdownTimeout` | `10000` | Ceiling on the shutdown once `shutdownDelay` is spent, after which the process exits 1 |
 
 `shutdownDelay` is what gives a load balancer time to take the instance out
 before it stops accepting connections. Without one it is dead time, hence the
@@ -95,7 +95,9 @@ await doTheWork();
 await app.shutdown();
 ```
 
-`app.shutdown()` never rejects and runs once, whatever calls it.
+`app.shutdown()` never rejects and runs once, whatever calls it. It does not wait
+`config.shutdownDelay`: that wait is for a load balancer, which only a signal
+has behind it.
 
 ## After the shutdown
 

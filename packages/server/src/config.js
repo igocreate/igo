@@ -140,8 +140,8 @@ module.exports.init = function() {
   // On SIGTERM/SIGINT: readiness answers 503, then igo waits shutdownDelay before
   // closing the socket, so a load balancer stops routing here first. 0 by default
   // because that wait is dead time without one; behind a load balancer, set it
-  // above its check interval. shutdownTimeout is the ceiling on the whole
-  // shutdown, and the process manager's own kill timeout has to exceed their sum.
+  // above its check interval. shutdownTimeout is the ceiling on the shutdown that
+  // follows, and the process manager's own kill timeout has to exceed their sum.
   config.shutdownDelay   = 0;
   config.shutdownTimeout = 10000;
   // async function invoked between the server closing and the database and cache

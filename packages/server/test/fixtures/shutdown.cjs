@@ -9,7 +9,10 @@ process.env.HTTP_PORT = '0';
 
 const config = require('../../src/config');
 config.init();
-config.shutdownTimeout = mode === 'hang' ? 300 : 10000;
+// in 'delay', a ceiling counting the wait would expire before it ends
+const timeouts = { hang: 300, delay: 250 };
+config.shutdownTimeout = timeouts[mode] ?? 10000;
+config.shutdownDelay   = mode === 'delay' ? 300 : 0;
 
 const logger = require('../../src/logger');
 logger.info = logger.warn = logger.error = () => {};
@@ -22,7 +25,19 @@ process.exit = (code) => {
   exit(code);
 };
 
-const app = require('../../src/app');
+const app    = require('../../src/app');
+const health = require('../../src/connect/health');
+
+// the delay is the signal handler's, not shutdown()'s: trace when readiness
+// turns 503, and a point in the middle of the wait
+if (mode === 'delay') {
+  const drain = health.drain;
+  health.drain = (...args) => {
+    say('drain');
+    setTimeout(() => say('serving'), 150);
+    return drain(...args);
+  };
+}
 
 // configure() would need a database and a redis: this fixture is about the
 // signal wiring, so the steps it orchestrates are stubbed out.
@@ -33,6 +48,10 @@ app.shutdown  = async () => {
   if (mode === 'hang') {
     await new Promise(resolve => app.server.close(resolve));
     await new Promise(() => {});
+  }
+  // fits in shutdownTimeout once the delay is spent
+  if (mode === 'delay') {
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
   // long enough that the second signal of the 'twice' scenario lands while
   // this one is still running

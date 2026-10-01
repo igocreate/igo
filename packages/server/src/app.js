@@ -184,13 +184,7 @@ module.exports.shutdown = async () => {
   shuttingDown = true;
   logger.info('Shutdown: starting');
 
-  // readiness answers 503 from here on, and config.shutdownDelay leaves the load
-  // balancer time to see it before the socket stops accepting connections
   health.drain();
-  if (config.shutdownDelay) {
-    await new Promise(resolve => setTimeout(resolve, config.shutdownDelay));
-  }
-
   await step('closing server', closeServer);
   await step('onShutdown', async () => await config.onShutdown?.());
   await step('closing databases', db.dbs.close);
@@ -211,6 +205,13 @@ const onSignal = (signal) => async () => {
   }
   signalled = true;
   logger.info(`${signal} received`);
+
+  // readiness answers 503 while the instance still serves: config.shutdownDelay
+  // leaves the load balancer time to take it out before anything closes
+  health.drain();
+  if (config.shutdownDelay) {
+    await new Promise(resolve => setTimeout(resolve, config.shutdownDelay));
+  }
 
   // a shutdown that hangs is worse than an abrupt one: the process manager sends
   // SIGKILL in the end anyway, and this at least leaves a log saying where it hung.

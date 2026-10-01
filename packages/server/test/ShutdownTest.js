@@ -148,6 +148,10 @@ describe('Shutdown', function() {
       assert.deepStrictEqual(run('hang'), ['shutdown', 'exit:1']);
     });
 
+    it('should answer 503 for config.shutdownDelay before shutting down, and only then start counting config.shutdownTimeout', () => {
+      assert.deepStrictEqual(run('delay'), ['drain', 'serving', 'shutdown', 'exit:0']);
+    });
+
     it('should install no handler in test env, or mocha would never return', () => {
       assert.deepStrictEqual(run('test-env'), ['handlers:0']);
     });
