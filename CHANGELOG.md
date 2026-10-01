@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 6.4.1 - 2026-10-01
 
 ### @igojs/server
 
