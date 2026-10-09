@@ -87,11 +87,21 @@ Les règles, comme le tableau de bord, filtrent sur
 `service_namespace="{project.name}"` : à reprendre si le projet surcharge son
 namespace.
 
-Une sonde Synthetic Monitoring ne pose pas `service_namespace` : pour
-`IgoServiceDown`, filtrer sur le nom du check (`job=~"<projet>-.*"`). Une base
+Le check Synthetic Monitoring porte le label `service_namespace=<projet>` :
+Synthetic le recopie tel quel sur `probe_success`, que lit `IgoServiceDown`.
+`${datasource}` désigne la source Prometheus (`grafanacloud-prom` sur Grafana
+Cloud), `${logs_datasource}` la source Loki (`grafanacloud-logs`). Une base
 managée OVH n'expose pas `max_connections` : sans traduction dans la gateway,
 `IgoDatabasePoolSaturated` ne se déclenche jamais, sans erreur. Aucun canal de
 notification n'est défini.
+
+Une requête en échec (Grafana qui n'atteint pas sa base de métriques) garde
+l'état précédent (`KeepLast`) : avec `Error`, chaque incident de Grafana Cloud
+déclenchait une alerte `DatasourceError` à la sévérité de la règle.
+
+`IgoFrontNewError` remplace les alertes de Frontend Observability, à ne pas
+activer : *Error count* sonne sur un seuil fixe, *New errors* compare à cinq
+minutes de la veille et voit presque toute erreur comme nouvelle.
 
 | Alerte | Premier réflexe |
 |---|---|
@@ -105,6 +115,7 @@ notification n'est défini.
 | `IgoHostCpuSaturated`, `IgoHostMemorySaturated`, `IgoHostSystemSaturated` | `instance` dit quelle machine, `role` ce qu'elle porte. |
 | `IgoDiskIOSaturated` | Souvent la base, qui ralentit sans que le processeur ne bouge. |
 | `IgoDiskFillingUp` | Plein dans moins de quatre jours : logs, sauvegardes, fichiers temporaires. |
+| `IgoFrontNewError` | Une erreur navigateur absente des 24 heures précédentes, souvent un déploiement. Une erreur récurrente ne sonne qu'une fois : la liste de Frontend Observability fait le reste. Une erreur sans intérêt s'écarte à la source, dans `ignoreErrors` (`front/src/observability.ts`). |
 
 Deux règles sont livrées désactivées :
 

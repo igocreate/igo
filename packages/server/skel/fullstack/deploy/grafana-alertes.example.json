@@ -59,7 +59,7 @@
             }
           ],
           "noDataState": "OK",
-          "execErrState": "Error",
+          "execErrState": "KeepLast",
           "for": "2m",
           "annotations": {
             "summary": "Le service ne répond plus.",
@@ -122,7 +122,7 @@
             }
           ],
           "noDataState": "OK",
-          "execErrState": "Error",
+          "execErrState": "KeepLast",
           "for": "2m",
           "annotations": {
             "summary": "Le service rend plus de 5 % d'erreurs serveur.",
@@ -185,7 +185,7 @@
             }
           ],
           "noDataState": "OK",
-          "execErrState": "Error",
+          "execErrState": "KeepLast",
           "for": "10m",
           "annotations": {
             "summary": "Le service répond en plus d'une seconde au 95e centile.",
@@ -248,7 +248,7 @@
             }
           ],
           "noDataState": "OK",
-          "execErrState": "Error",
+          "execErrState": "KeepLast",
           "for": "15m",
           "annotations": {
             "summary": "Le processeur de la machine est saturé.",
@@ -311,7 +311,7 @@
             }
           ],
           "noDataState": "OK",
-          "execErrState": "Error",
+          "execErrState": "KeepLast",
           "for": "15m",
           "annotations": {
             "summary": "La mémoire de la machine est saturée.",
@@ -374,7 +374,7 @@
             }
           ],
           "noDataState": "OK",
-          "execErrState": "Error",
+          "execErrState": "KeepLast",
           "for": "1h",
           "annotations": {
             "summary": "Un système de fichiers sature dans moins de quatre jours.",
@@ -437,7 +437,7 @@
             }
           ],
           "noDataState": "OK",
-          "execErrState": "Error",
+          "execErrState": "KeepLast",
           "for": "5m",
           "annotations": {
             "summary": "La part des erreurs client a triplé.",
@@ -500,7 +500,7 @@
             }
           ],
           "noDataState": "OK",
-          "execErrState": "Error",
+          "execErrState": "KeepLast",
           "for": "10m",
           "annotations": {
             "summary": "La boucle d'évènements du service est saturée.",
@@ -563,7 +563,7 @@
             }
           ],
           "noDataState": "OK",
-          "execErrState": "Error",
+          "execErrState": "KeepLast",
           "for": "10m",
           "annotations": {
             "summary": "La latence du service a triplé.",
@@ -626,7 +626,7 @@
             }
           ],
           "noDataState": "OK",
-          "execErrState": "Error",
+          "execErrState": "KeepLast",
           "for": "15m",
           "annotations": {
             "summary": "La machine a plus de deux processus en attente par cœur.",
@@ -689,7 +689,7 @@
             }
           ],
           "noDataState": "OK",
-          "execErrState": "Error",
+          "execErrState": "KeepLast",
           "for": "15m",
           "annotations": {
             "summary": "La file d'attente du disque est saturée.",
@@ -752,7 +752,7 @@
             }
           ],
           "noDataState": "OK",
-          "execErrState": "Error",
+          "execErrState": "KeepLast",
           "for": "10m",
           "annotations": {
             "summary": "Les descripteurs de fichiers de la machine sont presque épuisés.",
@@ -815,7 +815,7 @@
             }
           ],
           "noDataState": "OK",
-          "execErrState": "Error",
+          "execErrState": "KeepLast",
           "for": "5m",
           "annotations": {
             "summary": "Le pool de connexions de la base est presque saturé.",
@@ -878,7 +878,7 @@
             }
           ],
           "noDataState": "OK",
-          "execErrState": "Error",
+          "execErrState": "KeepLast",
           "for": "10m",
           "annotations": {
             "summary": "Le trafic du service s'est effondré.",
@@ -888,6 +888,66 @@
             "severity": "critical"
           },
           "isPaused": true
+        },
+        {
+          "uid": "igo-front-nouvelle-erreur",
+          "title": "IgoFrontNewError",
+          "condition": "B",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 90000,
+                "to": 0
+              },
+              "datasourceUid": "${logs_datasource}",
+              "model": {
+                "refId": "A",
+                "expr": "# erreurs apparues dans les 5 dernières minutes, absentes des 24 heures précédentes\ncount by (deployment_environment_name, hash, value_template, type) (count_over_time({kind=\"exception\", service_name=\"{project.name}-front\"} | logfmt [5m]))\nunless\ncount by (deployment_environment_name, hash, value_template, type) (count_over_time({kind=\"exception\", service_name=\"{project.name}-front\"} | logfmt [24h] offset 5m))",
+                "queryType": "instant",
+                "editorMode": "code"
+              }
+            },
+            {
+              "refId": "B",
+              "datasourceUid": "__expr__",
+              "model": {
+                "refId": "B",
+                "type": "threshold",
+                "expression": "A",
+                "conditions": [
+                  {
+                    "evaluator": {
+                      "type": "gt",
+                      "params": [0]
+                    },
+                    "operator": {
+                      "type": "and"
+                    },
+                    "reducer": {
+                      "type": "last",
+                      "params": []
+                    }
+                  }
+                ],
+                "datasource": {
+                  "type": "__expr__",
+                  "uid": "__expr__"
+                }
+              }
+            }
+          ],
+          "noDataState": "OK",
+          "execErrState": "KeepLast",
+          "for": "0s",
+          "annotations": {
+            "summary": "Nouvelle erreur dans le navigateur ({{ $labels.deployment_environment_name }}) : {{ $labels.type }}",
+            "description": "{{ $labels.value_template }} — absente des 24 heures précédentes. Pile, sessions et navigateurs dans Frontend Observability."
+          },
+          "labels": {
+            "severity": "warning"
+          },
+          "isPaused": false
         }
       ]
     }
