@@ -2,6 +2,11 @@
 
 ## 6.4.1 - 2026-10-01
 
+### @igojs/db
+
+- **Added**: `beforeDelete()` lifecycle hook, run by `instance.delete()` before the `DELETE`. `Model.delete(id)`, `Model.deleteAll()` and query-level `delete()` skip it, as bulk updates skip `beforeUpdate`.
+- **Removed**: `Model.destroyAll()`, the last alias left from the `destroy` naming. Use `Model.deleteAll()`.
+
 ### @igojs/server
 
 - **Fixed**: `config.shutdownTimeout` starts counting once `config.shutdownDelay` is spent. It counted the wait too, so a delay longer than the timeout — 15 s behind a load balancer against the 10 s default — killed every shutdown mid-wait: requests in flight cut, `onShutdown` skipped, pools never released. The wait now belongs to the signal handler: `app.shutdown()`, which a cron or a script calls when its work is done, no longer waits it.

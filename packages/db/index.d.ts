@@ -97,7 +97,6 @@ export interface ModelClass<Row> {
   update(values: Partial<Row>): Query<Instance<Row>>;
   delete(id: number | string): Promise<unknown>;
   deleteAll(): Promise<unknown>;
-  destroyAll(): Promise<unknown>;
 }
 
 /**

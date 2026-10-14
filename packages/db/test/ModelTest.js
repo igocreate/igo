@@ -316,6 +316,19 @@ describe('db.Model', () => {
         const book = await Book.find(last.id);
         assert(!book);
       });
+
+      it('should delete a book with beforeDelete', async () => {
+        let deleted = null;
+        class BookWithBeforeDelete extends Model(schema) {
+          beforeDelete() {
+            deleted = this.id;
+          }
+        }
+        const book = await BookWithBeforeDelete.create();
+        await book.delete();
+        assert.strictEqual(deleted, book.id);
+        assert(!await Book.find(book.id));
+      });
     });
 
     describe('update', () => {

@@ -259,7 +259,7 @@ await user.reload('country');
 
 ## Hooks
 
-Override `beforeCreate` and `beforeUpdate` for custom logic:
+Override `beforeCreate`, `beforeUpdate` and `beforeDelete` for custom logic:
 
 ```js
 class User extends Model(schema) {
@@ -270,8 +270,14 @@ class User extends Model(schema) {
   async beforeUpdate(values) {
     values.updated_at = new Date();
   }
+
+  async beforeDelete() {
+    await Session.where({ user_id: this.id }).delete();
+  }
 }
 ```
+
+Hooks only run on instance methods: `User.delete(id)`, `User.deleteAll()` and query-level `update()`/`delete()` skip them.
 
 ## Single Table Inheritance
 

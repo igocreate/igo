@@ -55,12 +55,14 @@ module.exports = function(schema) {
     }
 
     // delete
-    delete() {
+    async delete() {
+      await this.beforeDelete();
       return newQuery(this.constructor, 'delete').unscope().where(this.primaryObject()).execute();
     }
 
     async beforeCreate() { }
     async beforeUpdate(_values) { }
+    async beforeDelete() { }
 
 
     // find by id
@@ -184,11 +186,6 @@ module.exports = function(schema) {
     // delete all
     static async deleteAll() {
       return newQuery(this, 'delete').unscope().execute();
-    }
-
-    // destroy all
-    static destroyAll() {
-      return this.deleteAll();
     }
 
     //

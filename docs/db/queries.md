@@ -381,6 +381,8 @@ await User.where({ status: 'banned' }).delete();
 await User.deleteAll();
 ```
 
+Only the instance form runs the `beforeDelete()` hook — see [Models › Hooks](./models#hooks).
+
 ## Reload
 
 Refresh an instance from the database — handy after a bulk update touched it, or to load associations after the fact:
