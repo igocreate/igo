@@ -2,9 +2,19 @@
 const https       = require('https');
 const fs          = require('fs/promises');
 const _           = require('lodash');
-const csvWriter   = require('csv-write-stream');
 
 const config      = require('../src/config');
+
+// quote cells containing a separator, a quote or a line break
+const csvCell = (value) => {
+  const str = value === undefined || value === null ? '' : String(value);
+  if (/[",\r\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+};
+
+const csvLine = (cells) => cells.map(csvCell).join(',') + '\n';
 
 const readJson = async(path) => {
   const data = await fs.readFile(path);
@@ -117,18 +127,14 @@ const verbs   = {
       traverse(translation, []);
     });
 
-    // build csv  
-    const writer = csvWriter({ headers: ['key'].concat(langs) });
+    // build csv
     const file = './translations.csv';
-    writer.pipe(fs.createWriteStream(file));
-
-    _.uniq(keys).forEach(key => {
+    const lines = _.uniq(keys).map(key => {
       const row = _.map(translations, translation => _.get(translation, key));
-      writer.write([key].concat(row));
+      return csvLine([key].concat(row));
     });
-
-    writer.end();
-    console.log(`${keys.length} lines written in ${file}`);
+    await fs.writeFile(file, csvLine(['key'].concat(langs)) + lines.join(''));
+    console.log(`${lines.length} lines written in ${file}`);
   }
 };
 

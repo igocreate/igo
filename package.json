@@ -31,5 +31,10 @@
   "overrides": {
     "serialize-javascript": "^7.0.5",
     "diff": "^8.0.3"
+  },
+  "allowScripts": {
+    "@parcel/watcher@2.6.0": true,
+    "esbuild@0.21.5": true,
+    "fsevents@2.3.3": true
   }
 }
