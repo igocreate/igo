@@ -243,7 +243,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "100 * sum(rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=~\"$env\", http_response_status_code=~\"5..\"}[$__rate_interval]))\n  / clamp_min(sum(rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=~\"$env\"}[$__rate_interval])), 1e-9)",
+          "expr": "100 * sum(rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=~\"$env\", http_route=~\"$route\", http_response_status_code=~\"5..\"}[$__rate_interval]))\n  / clamp_min(sum(rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=~\"$env\", http_route=~\"$route\"}[$__rate_interval])), 1e-9)",
           "legendFormat": "",
           "range": true,
           "refId": "A"
@@ -419,7 +419,14 @@
             }
           },
           "decimals": 0,
-          "unit": "short"
+          "unit": "short",
+          "links": [
+            {
+              "oneClick": true,
+              "title": "Filtrer sur ${__field.labels.http_response_status_code}",
+              "url": "${__url.path}${__url.params:exclude:var-status}&var-status=${__field.labels.http_response_status_code}"
+            }
+          ]
         },
         "overrides": [
           {
@@ -921,7 +928,14 @@
             }
           },
           "decimals": 0,
-          "unit": "short"
+          "unit": "short",
+          "links": [
+            {
+              "oneClick": true,
+              "title": "Filtrer sur ${__field.labels.http_response_status_code}",
+              "url": "${__url.path}${__url.params:exclude:var-call_status}&var-call_status=${__field.labels.http_response_status_code}"
+            }
+          ]
         },
         "overrides": [
           {
@@ -1037,7 +1051,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by (http_response_status_code) (label_replace(increase(http_client_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=~\"$env\", server_address!=\"127.0.0.1\"}[$__range]), \"http_response_status_code\", \"$1\", \"error_type\", \"(.+)\"))",
+          "expr": "sum by (http_response_status_code) (label_replace(increase(http_client_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=~\"$env\", server_address!=\"127.0.0.1\", server_address=~\"$partner\", error_type=~\"$call_status\"}[$__range]) or increase(http_client_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=~\"$env\", server_address!=\"127.0.0.1\", server_address=~\"$partner\", error_type=\"\", http_response_status_code=~\"$call_status\"}[$__range]), \"http_response_status_code\", \"$1\", \"error_type\", \"(.+)\"))",
           "legendFormat": "{{http_response_status_code}}",
           "range": true,
           "refId": "A"
@@ -1209,7 +1223,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sum by (http_response_status_code) (label_replace(rate(http_client_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=~\"$env\", server_address!=\"127.0.0.1\"}[$__rate_interval]), \"http_response_status_code\", \"$1\", \"error_type\", \"(.+)\"))",
+          "expr": "sum by (http_response_status_code) (label_replace(rate(http_client_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=~\"$env\", server_address!=\"127.0.0.1\", server_address=~\"$partner\", error_type=~\"$call_status\"}[$__rate_interval]) or rate(http_client_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=~\"$env\", server_address!=\"127.0.0.1\", server_address=~\"$partner\", error_type=\"\", http_response_status_code=~\"$call_status\"}[$__rate_interval]), \"http_response_status_code\", \"$1\", \"error_type\", \"(.+)\"))",
           "legendFormat": "{{http_response_status_code}}",
           "range": true,
           "refId": "A"
@@ -1306,7 +1320,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "1000 * histogram_quantile(0.95, sum by (server_address, le) (rate(http_client_request_duration_seconds_bucket{service_namespace=\"{project.name}\", deployment_environment_name=~\"$env\", server_address!=\"127.0.0.1\"}[$__rate_interval])))",
+          "expr": "1000 * histogram_quantile(0.95, sum by (server_address, le) (label_replace(rate(http_client_request_duration_seconds_bucket{service_namespace=\"{project.name}\", deployment_environment_name=~\"$env\", server_address!=\"127.0.0.1\", server_address=~\"$partner\", error_type=~\"$call_status\"}[$__rate_interval]) or rate(http_client_request_duration_seconds_bucket{service_namespace=\"{project.name}\", deployment_environment_name=~\"$env\", server_address!=\"127.0.0.1\", server_address=~\"$partner\", error_type=\"\", http_response_status_code=~\"$call_status\"}[$__rate_interval]), \"http_response_status_code\", \"$1\", \"error_type\", \"(.+)\")))",
           "legendFormat": "{{server_address}}",
           "range": true,
           "refId": "A"
@@ -1366,7 +1380,7 @@
           },
           "direction": "backward",
           "editorMode": "code",
-          "expr": "{service_name=\"{project.name}-api\", environment=~\"$env\"} | detected_level=\"error\" != `\"message\":\"request\"`",
+          "expr": "{service_name=\"{project.name}-api\", environment=~\"$env\"} | detected_level=\"error\" != `\"message\":\"request\"` |~ \"$partner\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -3952,6 +3966,65 @@
         "skipUrlSync": false,
         "sort": 1,
         "type": "query"
+      },
+      {
+        "allowCustomValue": true,
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "options": [],
+        "refresh": 2,
+        "regex": "",
+        "regexApplyTo": "value",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query",
+        "definition": "label_values(http_client_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=~\"$env\", server_address!=\"127.0.0.1\"}, server_address)",
+        "label": "Service",
+        "name": "partner",
+        "query": {
+          "qryType": 1,
+          "query": "label_values(http_client_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=~\"$env\", server_address!=\"127.0.0.1\"}, server_address)",
+          "refId": "partner"
+        },
+        "allValue": ".*"
+      },
+      {
+        "allowCustomValue": true,
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "options": [],
+        "refresh": 2,
+        "regex": "/http_response_status_code=\"([^\"]+)\"/",
+        "regexApplyTo": "value",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query",
+        "definition": "query_result(sum by (http_response_status_code) (label_replace(increase(http_client_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=~\"$env\", server_address!=\"127.0.0.1\"}[$__range]), \"http_response_status_code\", \"$1\", \"error_type\", \"(.+)\")))",
+        "label": "Code externe",
+        "name": "call_status",
+        "query": {
+          "qryType": 3,
+          "query": "query_result(sum by (http_response_status_code) (label_replace(increase(http_client_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=~\"$env\", server_address!=\"127.0.0.1\"}[$__range]), \"http_response_status_code\", \"$1\", \"error_type\", \"(.+)\")))",
+          "refId": "call_status"
+        }
       },
       {
         "allowCustomValue": true,
