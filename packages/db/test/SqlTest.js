@@ -409,6 +409,17 @@ describe('db.Sql', () => {
       assert.strictEqual('INSERT INTO `books`(`title`,`status`) VALUES(?,?) ', result.sql);
       assert.deepStrictEqual(['My Book', 'draft'], result.params);
     });
+
+    it('should generate a multi-row INSERT, with DEFAULT for missing columns', () => {
+      const query = freshQuery({
+        table: 'books',
+        verb: 'insert',
+        values: [{ title: 'My Book', status: 'draft' }, { status: 'published' }],
+      });
+      const result = new Sql(query, dialect).insertSQL();
+      assert.strictEqual('INSERT INTO `books`(`title`,`status`) VALUES(?,?),(DEFAULT,?) ', result.sql);
+      assert.deepStrictEqual(['My Book', 'draft', 'published'], result.params);
+    });
   });
 
   //

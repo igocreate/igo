@@ -118,7 +118,7 @@ const [rows] = await db.dbs.main.query('SELECT NOW() AS now');
 
 ## Transactions
 
-The test framework wraps each test in a transaction that gets rolled back, providing per-test isolation. This relies on test-mode connection caching internal to `@igojs/db` and is not exposed as a public API in v6 — if you need to run a sequence of statements atomically outside tests, use database-side transactions through raw SQL (`BEGIN` / `COMMIT` / `ROLLBACK`).
+Use `transaction(fn)` to run statements atomically, raw queries included: see [Transactions](./transactions.md). Don't send `BEGIN` / `COMMIT` through `query()`: each call may run on a different pool connection.
 
 ## Standalone usage
 

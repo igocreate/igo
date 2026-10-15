@@ -139,6 +139,7 @@ const users = await User.unscope('includes').includes('profile').list();
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `Model.create(values)` | `instance` | Insert a new record |
+| `Model.createMany(list, options?)` | `number` | Insert many records, all or nothing |
 | `Model.find(id)` | `instance \| null` | Find by primary key |
 | `Model.first()` | `instance \| null` | First record (respects default scope) |
 | `Model.last()` | `instance \| null` | Last record (respects default scope) |
@@ -185,6 +186,20 @@ If the primary key is `AUTO_INCREMENT`, it is set automatically on the returned 
 
 `create(values, options)` accepts a second argument forwarded to the underlying driver query (`silent`, etc. — see the [config](./config.md) page).
 
+### Create many
+
+```js
+const count = await InvoiceLine.createMany([
+  { invoice_id, label: 'Consulting', amount: 1200 },
+  { invoice_id, label: 'Travel',     amount: 340 },
+]);
+// => 2
+```
+
+Each record goes through `beforeCreate` and gets its timestamps, like with `create`. Rows are inserted with one multi-row `INSERT` per chunk of 1,000 (`{ chunkSize }` changes it, within PostgreSQL's limit of 65,535 parameters per statement); when there are several chunks, they run in a [transaction](./transactions.md), so a failure leaves nothing inserted.
+
+A column missing from a record takes its database default. `createMany` returns the number of rows inserted, not instances: reload them with a query if needed.
+
 ### Find
 
 ```js
@@ -226,6 +241,16 @@ await User.where({ country: 'France' }).update({ language: 'French' });
 
 // Update all
 await User.update({ status: 'inactive' });
+```
+
+Rows that each take their own values are updated one by one. For a consistent batch — all rows updated or none — wrap the loop in a [transaction](./transactions.md):
+
+```js
+await transaction(async () => {
+  for (const line of lines) {
+    await line.update({ position: line.position, amount: line.amount });
+  }
+});
 ```
 
 ### Delete

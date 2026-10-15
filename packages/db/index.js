@@ -22,4 +22,5 @@ module.exports = {
   get DataTypes() { return require('./src/DataTypes'); },
   get CacheStats() { return require('./src/CacheStats'); },
   get PaginatedOptimizedSql() { return require('./src/PaginatedOptimizedSql'); },
+  transaction: async fn => require('./src/dbs').get('main').transaction(fn),
 };

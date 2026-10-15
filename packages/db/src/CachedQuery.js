@@ -15,15 +15,15 @@ module.exports = class CachedQuery extends Query {
     const run       = () => db.query(sqlQuery.sql, sqlQuery.params, query.options);
 
     if (!READ_VERBS.includes(query.verb)) {
-      await QueryCache.bump(query.table);
+      const transaction = db.currentTransaction();
+      if (transaction) {
+        transaction.tables.add(query.table);
+      } else {
+        await QueryCache.bump(query.table);
+      }
       return await run();
     }
 
-    if (!QueryCache.cacheable(schema, query)) {
-      QueryCache.reportSkip(schema, query, sqlQuery.sql);
-      return await run();
-    }
-
-    return await QueryCache.read(schema, query, sqlQuery, run);
+    return await QueryCache.read(db, schema, query, sqlQuery, run);
   }
 };

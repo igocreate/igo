@@ -12,6 +12,22 @@ const newQuery = (constructor, verb) => {
   return new Query(constructor, verb);
 };
 
+const instantiate = (modelClass, values, now) => {
+  const instance = new modelClass(values);
+  const { subclasses, subclass_column } = modelClass.schema;
+  if (subclasses && !instance[subclass_column]) {
+    instance[subclass_column] = _.findKey(subclasses, { name: modelClass.name });
+  }
+  instance.created_at = instance.created_at || now;
+  instance.updated_at = instance.updated_at || now;
+  return instance;
+};
+
+const DEFAULT_CHUNK_SIZE = 1000;
+
+// PostgreSQL binds at most 65,535 parameters per statement
+const MAX_PARAMS         = 65535;
+
 // Simple mixin implementation to set the schema as a static attribute
 module.exports = function(schema) {
 
@@ -73,16 +89,7 @@ module.exports = function(schema) {
     // create
     static async create(values, options) {
       const _this = this;
-
-      const now = new Date();
-      const obj = new this(values);
-
-      if (this.schema.subclasses && !obj[this.schema.subclass_column]) {
-        obj[this.schema.subclass_column] = _.findKey(this.schema.subclasses, { name: this.name });
-      }
-
-      obj.created_at = obj.created_at || now;
-      obj.updated_at = obj.updated_at || now;
+      const obj   = instantiate(this, values, new Date());
 
       const create = async () => {
         await obj.beforeCreate();
@@ -105,6 +112,34 @@ module.exports = function(schema) {
       };
 
       return await create();
+    }
+
+    // one INSERT per chunk, all-or-nothing: returns the number of rows inserted
+    static async createMany(list, { chunkSize = DEFAULT_CHUNK_SIZE } = {}) {
+      if (!Number.isInteger(chunkSize) || chunkSize < 1) {
+        throw new Error(`createMany: chunkSize must be a positive integer, got ${chunkSize}`);
+      }
+      const now       = new Date();
+      const instances = list.map(values => instantiate(this, values, now));
+      for (const instance of instances) {
+        await instance.beforeCreate();
+      }
+
+      const rowsPerChunk = Math.min(chunkSize, Math.floor(MAX_PARAMS / this.schema.columns.length));
+      const chunks       = _.chunk(instances, rowsPerChunk);
+      const insertChunks = async () => {
+        let count = 0;
+        for (const chunk of chunks) {
+          const result = await newQuery(this, 'insert').values(chunk).execute();
+          count += result.count;
+        }
+        return count;
+      };
+
+      if (chunks.length > 1) {
+        return await newQuery(this).getDb().transaction(insertChunks);
+      }
+      return await insertChunks();
     }
 
 

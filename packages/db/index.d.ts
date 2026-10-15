@@ -76,6 +76,7 @@ export interface ModelClass<Row> {
   schema: Schema;
   find(id: number | string): Promise<Instance<Row> | null>;
   create(values: Partial<Row>, options?: unknown): Promise<Instance<Row>>;
+  createMany(list: Partial<Row>[], options?: { chunkSize?: number }): Promise<number>;
   first(): Promise<Instance<Row> | null>;
   last(): Promise<Instance<Row> | null>;
   list(): Promise<Instance<Row>[]>;
@@ -107,6 +108,9 @@ export interface ModelClass<Row> {
 export declare function Model<Row = Record<string, unknown>>(schema: Schema): ModelClass<Row>;
 
 export declare function init(dependencies: Record<string, unknown>): void;
+
+/** Runs fn in a transaction on the main database: committed when fn resolves, rolled back when it throws. */
+export declare function transaction<T>(fn: () => Promise<T>): Promise<T>;
 
 export declare const Query: unknown;
 export declare const CachedQuery: unknown;

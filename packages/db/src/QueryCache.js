@@ -67,7 +67,7 @@ const bump = async (table) => {
 
 // read-through cache: the entry is stamped with the versions of the tables it was built
 // from, and stops matching as soon as any of them moves
-const read = async (schema, query, sqlQuery, run) => {
+const readThrough = async (schema, query, sqlQuery, run) => {
   const { cache } = dependencies;
   const namespace = `_cached.${query.table}`;
   const key       = JSON.stringify(sqlQuery);
@@ -95,4 +95,16 @@ const read = async (schema, query, sqlQuery, run) => {
   return result;
 };
 
-module.exports = { VERSIONS_NS, DEFAULT_TTL, tables, rawFragments, uncacheable, cacheable, reportSkip, bump, read };
+// rows read in a transaction may not be committed yet: they must not reach a cache shared with other connections
+const read = async (db, schema, query, sqlQuery, run) => {
+  if (db.currentTransaction()) {
+    return await run();
+  }
+  if (!cacheable(schema, query)) {
+    reportSkip(schema, query, sqlQuery.sql);
+    return await run();
+  }
+  return await readThrough(schema, query, sqlQuery, run);
+};
+
+module.exports = { read, bump };

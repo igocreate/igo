@@ -3,6 +3,7 @@ require('./init');
 const assert = require('assert');
 const Model  = require('@igojs/db').Model;
 const Db     = require('@igojs/db').Db;
+const dbs    = require('@igojs/db').dbs;
 
 const { cache, config, logger } = require('@igojs/server');
 const cacheDown = require('@igojs/server/test/helpers/cacheDown');
@@ -328,6 +329,17 @@ describe('db.CachedQuery', function () {
         assert.strictEqual((await countSql(run)).length, 0, 'Expected all three phases cached');
       });
 
+      it('should go to the database inside a transaction, and cache nothing', async function () {
+        const library = await CachedLibrary.create({ title: 'pagedtx' });
+        await JoiningBook.create({ code: 'pagetx', library_id: library.id });
+
+        const run = () => JoiningBook.where({ code: 'pagetx' }).join('library').page(1, 10).list();
+
+        const inside = await countSql(() => dbs.main.transaction(run));
+        assert.strictEqual(inside.filter(sql => sql.startsWith('SELECT')).length, 3);
+        assert.strictEqual((await countSql(run)).length, 3, 'Expected a miss: nothing cached during the transaction');
+      });
+
       it('should be invalidated by a write on the joined table', async function () {
         const library = await CachedLibrary.create({ title: 'pagedjoin' });
         await JoiningBook.create({ code: 'pageinval', library_id: library.id });
@@ -530,6 +542,70 @@ describe('db.CachedQuery', function () {
       assert.strictEqual(books.length, 1);
     });
 
+  });
+
+  describe('in a transaction', function () {
+
+    const version = async () => await cache.get('_cached_versions', 'books') || 0;
+
+    it('should read from the database, and keep the rows out of the cache', async () => {
+      const book = await PlainBook.create();
+      const sqls = await countSql(() => dbs.main.transaction(async () => {
+        await Book.find(book.id);
+        await Book.find(book.id);
+      }));
+      assert.strictEqual(sqls.filter(sql => sql.startsWith('SELECT')).length, 2);
+
+      const sqlsAfter = await countSql(() => Book.find(book.id));
+      assert.strictEqual(sqlsAfter.length, 1, 'Expected a miss: nothing cached during the transaction');
+    });
+
+    it('should bump the versions of the written tables after the commit only', async () => {
+      const before = await version();
+      let during;
+      await dbs.main.transaction(async () => {
+        await Book.create();
+        during = await version();
+      });
+      assert.strictEqual(during, before);
+      assert.ok(await version() > before, 'Expected version to be bumped after commit');
+    });
+
+    it('should not bump anything after a rollback', async () => {
+      const before = await version();
+      await assert.rejects(dbs.main.transaction(async () => {
+        await Book.create();
+        throw new Error('rollback');
+      }));
+      assert.strictEqual(await version(), before);
+    });
+
+    it('should hand the tables of a nested transaction to its parent', async () => {
+      const before = await version();
+      let afterNested;
+      await dbs.main.transaction(async () => {
+        await dbs.main.transaction(() => Book.create());
+        afterNested = await version();
+      });
+      assert.strictEqual(afterNested, before);
+      assert.ok(await version() > before);
+    });
+
+    it('should log, not throw, when the cache cannot be invalidated after the commit', async () => {
+      const { incr } = cache;
+      const errors   = [];
+      const { error } = logger;
+      cache.incr   = async () => { throw new Error('cache down'); };
+      logger.error = (message) => errors.push(message);
+      try {
+        const book = await dbs.main.transaction(() => Book.create({ code: 'committed' }));
+        assert.ok(book.id);
+      } finally {
+        cache.incr   = incr;
+        logger.error = error;
+      }
+      assert.match(errors[0], /cache invalidation failed after commit: cache down/);
+    });
   });
 
 });
