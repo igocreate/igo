@@ -23,6 +23,15 @@ module.exports.init = async () => {
   module.exports.main = module.exports[config.databases[0]];
 };
 
+// get an initialized database
+module.exports.get = (name) => {
+  const db = module.exports[name];
+  if (!db) {
+    throw new Error(`Database '${name}' is not initialized. Check config.databases and make sure app.configure() or dbs.init() has completed.`);
+  }
+  return db;
+};
+
 // close databases connections
 module.exports.close = async () => {
   const { config, logger } = dependencies;

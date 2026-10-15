@@ -50,8 +50,7 @@ module.exports = class Standard {
     }
 
     if (query.verb === 'insert') {
-      const insertId = dialect.insertId(rows);
-      return { insertId };
+      return { insertId: dialect.insertId(rows), count: dialect.insertCount(rows) };
     } else if (query.verb !== 'select') {
       return rows;
     }

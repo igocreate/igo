@@ -85,11 +85,7 @@ module.exports = class PaginatedOptimized {
 
   // Ces phases court-circuitent Query : elles passent par QueryCache directement
   async _cached(sqlQuery, run) {
-    if (!QueryCache.cacheable(this.schema, this.query)) {
-      QueryCache.reportSkip(this.schema, this.query, sqlQuery.sql);
-      return await run();
-    }
-    return await QueryCache.read(this.schema, this.query, sqlQuery, run);
+    return await QueryCache.read(this.db, this.schema, this.query, sqlQuery, run);
   }
 
   // Phase 1 : COUNT optimisé avec EXISTS (sans LEFT JOIN)

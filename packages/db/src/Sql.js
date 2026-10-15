@@ -307,19 +307,23 @@ module.exports = class Sql {
     // insert into
     let sql = `INSERT INTO ${esc}${query.table}${esc}`;
 
-    // columns
-    const columns = [], values = [], params = [];
-    _.forOwn(query.values, function(value, key) {
-      columns.push(`${esc}${key}${esc}`);
-      values.push(dialect.param(this.i++));
-      params.push(value);
-    }.bind(this));
+    // columns: a key missing from a row takes the column default
+    const rows    = _.castArray(query.values);
+    const columns = _.uniq(_.flatMap(rows, _.keys));
+    const params  = [];
+    const tuples  = rows.map(row => columns.map(column => {
+      if (!_.has(row, column)) {
+        return 'DEFAULT';
+      }
+      params.push(row[column]);
+      return dialect.param(this.i++);
+    }));
 
     if (!columns.length && dialect.emptyInsert) {
       sql += dialect.emptyInsert;
     } else {
-      sql += '(' + columns.join(',') + ') ';
-      sql += 'VALUES(' + values.join(',') + ') ';
+      sql += '(' + columns.map(column => `${esc}${column}${esc}`).join(',') + ') ';
+      sql += 'VALUES' + tuples.map(tuple => `(${tuple.join(',')})`).join(',') + ' ';
     }
 
     sql += dialect.returning;

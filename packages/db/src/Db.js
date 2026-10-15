@@ -1,6 +1,9 @@
 
-const _            = require('lodash');
-const dependencies = require('./dependencies');
+const _                     = require('lodash');
+const { AsyncLocalStorage } = require('async_hooks');
+
+const dependencies          = require('./dependencies');
+const QueryCache            = require('./QueryCache');
 
 // Dynamic driver loading
 const loadedDrivers = {};
@@ -19,29 +22,35 @@ const logQuery = (sql, params) => {
 };
 
 
+// a savepoint outliving its parent would run on a connection already back in the pool
+const isOpen = (transaction) => !transaction.finished && (!transaction.parent || isOpen(transaction.parent));
+
 //
 class Db {
 
   constructor(name) {
     const { config } = dependencies;
-    this.name       = name;
-    this.config     = config[name];
+    this.name         = name;
+    this.config       = config[name];
     if (!this.config) {
       throw new Error(`No database configuration found for '${name}'. Add config.${name} = { driver, host, … } in your config.`);
     }
-    this.driver     = getDriver(this.config.driver);
-    this.connection = null;
-    this.closed     = false;
+    this.driver       = getDriver(this.config.driver);
+    this.connection   = null;
+    this.closed       = false;
+    this.transactions = new AsyncLocalStorage();
+    this.savepoints   = 0;
     this.config.migrations_dir = `sql/${this.name}`;
   }
 
   async init() {
     const { config } = dependencies;
-    this.pool       = await this.driver.createPool(this.config);
-    this.connection = null;
-    this.testQueue  = Promise.resolve();
-    this.closed     = false;
-    this.TEST_ENV   = config.env === 'test';
+    this.pool              = await this.driver.createPool(this.config);
+    this.connection        = null;
+    this.testQueue         = Promise.resolve();
+    this.closed            = false;
+    this.TEST_ENV          = config.env === 'test';
+    this.inTestTransaction = false;
   }
 
   async close() {
@@ -67,6 +76,10 @@ class Db {
     const { driver, pool, TEST_ENV } = this;
     if (this.closed) {
       throw new Error(`Db '${this.name}' is closed: the application is shutting down.`);
+    }
+    const transaction = this.currentTransaction();
+    if (transaction) {
+      return { connection: transaction.connection, keep: true };
     }
     // if connection is in local storage
     if (TEST_ENV && this.connection) {
@@ -141,32 +154,134 @@ class Db {
     return await runquery();
   }
 
-
-
-  // Internal — used by the test framework (@igojs/server dev/test) to wrap
-  // each test in a transaction that gets rolled back, isolating mutations.
-  // Relies on connection caching that only happens when NODE_ENV=test
-  // (see getConnection above). Not a general-purpose transaction API —
-  // outside of test mode, the connection acquired here is not reused by
-  // subsequent query() calls, so commit/rollback would target the wrong
-  // connection.
-  async _beginTransaction() {
-    const { driver } = this;
-    const { connection } = await this.getConnection();
-    await driver.beginTransaction(connection);
+  currentTransaction() {
+    const transaction = this.transactions.getStore();
+    return transaction && isOpen(transaction) ? transaction : null;
   }
 
-  async _commitTransaction() {
-    const { driver, TEST_ENV } = this;
-    const { connection } = await this.getConnection();
-    await driver.commit(connection);
-    driver.release(connection);
-    if (TEST_ENV) {
-      this.connection = null;
+  // every query started inside fn, however indirectly, runs in the transaction;
+  // one that starts once fn has settled goes back to the pool
+  async transaction(fn) {
+    const parent = this.currentTransaction();
+    if (!this._opensSavepoint(parent)) {
+      return await this._transact(fn);
+    }
+    // savepoints set side by side on one connection would release or roll back each other
+    const siblings = parent || this;
+    const turn     = (siblings.savepointQueue || Promise.resolve()).catch(() => {}).then(() => this._transact(fn));
+    siblings.savepointQueue = turn;
+    return await turn;
+  }
+
+  _opensSavepoint(parent) {
+    return !!parent || (this.TEST_ENV && this.inTestTransaction);
+  }
+
+  async _transact(fn) {
+    const transaction = await this._begin();
+    let result;
+    try {
+      result = await this.transactions.run(transaction, fn);
+      transaction.finished = true;
+      await this._commit(transaction);
+    } catch (err) {
+      transaction.finished = true;
+      await this._rollback(transaction);
+      throw err;
+    } finally {
+      this._release(transaction);
+    }
+    await this._afterCommit(transaction);
+    return result;
+  }
+
+  async _begin() {
+    const parent      = this.currentTransaction();
+    const transaction = { parent, tables: new Set(), finished: false };
+
+    // the test connection is already inside a transaction
+    if (this._opensSavepoint(parent)) {
+      transaction.savepoint  = `igo_sp_${++this.savepoints}`;
+      transaction.connection = parent ? parent.connection : this.connection;
+      await this._queryIn(parent, `SAVEPOINT ${transaction.savepoint}`);
+      return transaction;
+    }
+
+    if (this.closed) {
+      throw new Error(`Db '${this.name}' is closed: the application is shutting down.`);
+    }
+    transaction.connection = await this.driver.getConnection(this.pool);
+    try {
+      await this.driver.beginTransaction(transaction.connection);
+    } catch (err) {
+      this.driver.destroy(transaction.connection);
+      throw err;
+    }
+    return transaction;
+  }
+
+  async _commit({ parent, savepoint, connection }) {
+    if (savepoint) {
+      await this._queryIn(parent, `RELEASE SAVEPOINT ${savepoint}`);
+    } else {
+      await this.driver.commit(connection);
     }
   }
 
-  async _rollbackTransaction() {
+  async _rollback(transaction) {
+    const { parent, savepoint, connection } = transaction;
+    try {
+      if (savepoint) {
+        await this._queryIn(parent, `ROLLBACK TO SAVEPOINT ${savepoint}`);
+      } else {
+        await this.driver.rollback(connection);
+      }
+    } catch (err) {
+      transaction.broken = true;
+      dependencies.logger.error(`Db.transaction: rollback failed: ${err.message}`);
+    }
+  }
+
+  _release({ savepoint, connection, broken }) {
+    if (savepoint) {
+      return;
+    }
+    // back in the pool, a connection stuck in a transaction would hand it to the next caller
+    if (broken) {
+      this.driver.destroy(connection);
+    } else {
+      this.driver.release(connection);
+    }
+  }
+
+  async _afterCommit({ parent, tables }) {
+    if (parent) {
+      tables.forEach(table => parent.tables.add(table));
+      return;
+    }
+    // the data is committed: a cache that cannot be invalidated must not turn it into a failure
+    try {
+      await Promise.all([...tables].map(QueryCache.bump));
+    } catch (err) {
+      dependencies.logger.error(`Db.transaction: cache invalidation failed after commit: ${err.message}`);
+    }
+  }
+
+  _queryIn(transaction, sql) {
+    return this.transactions.run(transaction, () => this.query(sql));
+  }
+
+  // used by @igojs/server to isolate each test
+  async _beginTestTransaction() {
+    const { driver } = this;
+    const { connection } = await this.getConnection();
+    await driver.beginTransaction(connection);
+    this.inTestTransaction = true;
+    // a transaction left pending by a timed-out test must not hold back the next ones
+    this.savepointQueue    = null;
+  }
+
+  async _rollbackTestTransaction() {
     const { driver, TEST_ENV } = this;
 
     // No connection = no transaction to rollback
@@ -177,6 +292,7 @@ class Db {
     const { connection } = await this.getConnection();
     await driver.rollback(connection);
     driver.release(connection);
+    this.inTestTransaction = false;
     if (TEST_ENV) {
       this.connection = null;
     }

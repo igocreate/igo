@@ -118,10 +118,15 @@ module.exports = class Query {
     return this;
   }
 
-  // VALUES
+  // VALUES: one row, or a list of rows for a multi-row INSERT
   values(values) {
+    this.query.values = _.isArray(values) ? values.map(row => this.toColumns(row)) : this.toColumns(values);
+    return this;
+  }
+
+  toColumns(values) {
     const { logger } = dependencies;
-    this.query.values = _.transform(values, (result, value, key) => {
+    return _.transform(values, (result, value, key) => {
       const column = this.schema.colsByAttr[key];
       if (column) {
         if (DataTypes[column.type]) {
@@ -134,7 +139,6 @@ module.exports = class Query {
         // unknown column (ignore)
       }
     }, {});
-    return this;
   }
 
   // FIRST
@@ -389,11 +393,7 @@ module.exports = class Query {
   }
 
   getDb() {
-    const db = dbs[this.schema.database];
-    if (!db) {
-      throw new Error(`Database '${this.schema.database}' is not initialized. Check config.databases and make sure app.configure() or dbs.init() has completed.`);
-    }
-    return db;
+    return dbs.get(this.schema.database);
   }
 
   // a dot-path is only understood as an association path when every level is joined:

@@ -46,6 +46,8 @@ const users = await User.where({ status: 'active' }).list();
 
 Because the stamp is taken before the query runs, a result that lands in the cache late — after a concurrent write — is stamped with an already-outdated version, so it is rejected on the next read instead of being served until it expires.
 
+Inside a [transaction](./transactions.md), reads bypass the cache and versions are bumped after the commit.
+
 ## Joins
 
 A query with joins depends on every table it touches, and its entry is stamped with all of their versions. A write to any of them invalidates it.

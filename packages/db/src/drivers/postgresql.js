@@ -27,6 +27,11 @@ module.exports.release = (connection) => {
   connection.release();
 };
 
+// destroy
+module.exports.destroy = (connection) => {
+  connection.release(true);
+};
+
 // begin transaction
 module.exports.beginTransaction = async (connection) => {
   return await connection.query('BEGIN');
@@ -64,6 +69,7 @@ module.exports.dialect = {
   insertId: result => {
     return result && result[0] && result[0].id;
   },
+  insertCount: result => result ? result.length : 0,
   getRows: result => result && result.rows,
   emptyInsert: 'DEFAULT VALUES ',
   in: '= ANY',

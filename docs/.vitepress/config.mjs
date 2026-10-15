@@ -89,6 +89,7 @@ export default defineConfig({
             { text: 'Migrations',            link: '/db/migrations' },
             { text: 'Seeds',                 link: '/db/seeds' },
             { text: 'Query caching',         link: '/db/cache' },
+            { text: 'Transactions',          link: '/db/transactions' },
           ],
         },
       ],

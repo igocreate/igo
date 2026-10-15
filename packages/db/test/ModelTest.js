@@ -6,6 +6,7 @@ const assert    = require('assert');
 const _         = require('lodash');
 
 const Model     = require('@igojs/db').Model;
+const dbs       = require('@igojs/db').dbs;
 
 describe('db.Model', () => {
 
@@ -75,6 +76,61 @@ describe('db.Model', () => {
         assert.strictEqual(book.title, '123');
       });
 
+    });
+
+    //
+    describe('createMany', () => {
+
+      it('should insert every row, through beforeCreate, and return the count', async () => {
+        class BookWithTitle extends Model(schema) {
+          beforeCreate() {
+            this.title = this.title || `title-${this.code}`;
+          }
+        }
+        const count = await BookWithTitle.createMany([{ code: 'many-1' }, { code: 'many-2', title: 'own title' }]);
+        assert.strictEqual(count, 2);
+
+        const books = await Book.where({ code: ['many-1', 'many-2'] }).order('code').list();
+        assert.deepStrictEqual(books.map(book => book.title), ['title-many-1', 'own title']);
+        assert.ok(books.every(book => book.created_at instanceof Date));
+      });
+
+      it('should give a column missing from a row its default', async () => {
+        await Book.createMany([{ code: 'many-default', is_available: true }, { code: 'many-default' }]);
+        const books = await Book.where({ code: 'many-default' }).order('id').list();
+        assert.deepStrictEqual(books.map(book => book.is_available), [true, null]);
+      });
+
+      it('should cap the chunk size under the PostgreSQL parameter limit', async () => {
+        const db            = dbs.main;
+        const originalQuery = db.query;
+        const inserts       = [];
+        db.query = function (sql, ...args) {
+          inserts.push(sql);
+          return originalQuery.call(this, sql, ...args);
+        };
+        try {
+          // 8 columns in the schema: at most 8191 rows per statement
+          await Book.createMany(_.times(10000, i => ({ code: `many-limit-${i}` })), { chunkSize: 20000 });
+        } finally {
+          db.query = originalQuery;
+        }
+        assert.strictEqual(inserts.filter(sql => sql.startsWith('INSERT')).length, 2);
+      });
+
+      it('should reject a chunk size that is not a positive integer', async () => {
+        await assert.rejects(Book.createMany([{ code: 'many-zero' }], { chunkSize: 0 }), /chunkSize must be a positive integer, got 0/);
+      });
+
+      it('should insert nothing for an empty list', async () => {
+        assert.strictEqual(await Book.createMany([]), 0);
+      });
+
+      it('should roll back every chunk when one fails', async () => {
+        const rows = [{ code: 'many-chunk', unique_code: 'dup' }, { code: 'many-chunk' }, { code: 'many-chunk', unique_code: 'dup' }];
+        await assert.rejects(Book.createMany(rows, { chunkSize: 2 }), { code: 'ER_DUP_ENTRY' });
+        assert.strictEqual(await Book.where({ code: 'many-chunk' }).count(), 0);
+      });
     });
 
     //

@@ -192,4 +192,17 @@ describe('db.PostgreSql', function() {
       assert.deepStrictEqual([42], result.params);
     });
   });
+
+  describe('insertSQL', function() {
+
+    it('should generate a multi-row INSERT with numbered params, DEFAULT and RETURNING', function() {
+      var query = freshQuery({
+        verb: 'insert',
+        values: [{ title: 'A', code: 'a' }, { code: 'b' }],
+      });
+      var result = new Sql(query, dialect).insertSQL();
+      assert.strictEqual('INSERT INTO "books"("title","code") VALUES($1,$2),(DEFAULT,$3) RETURNING "id"', result.sql);
+      assert.deepStrictEqual(['A', 'a', 'b'], result.params);
+    });
+  });
 });

@@ -173,6 +173,8 @@ Analyse réalisée en septembre 2026 sur les sources officielles et les retours 
 
 #### Grille comparative
 
+Mise à jour d'octobre 2026 : `@igojs/db` a gagné les transactions publiques et l'insertion en masse, demandées par la refonte de l'espace partenaire de ladom.
+
 | Axe | `@igojs/db` | Prisma | Drizzle | MikroORM | TypeORM | Kysely |
 |---|---|---|---|---|---|---|
 | **Cache natif** | **OUI** — Redis, version-based, JOIN-aware, stats | Payant (Accelerate) | OUI — récent, provider-agnostic | PARTIEL — mémoire, TTL 1s, invalidation manuelle | OUI — Redis/DB, invalidation manuelle | NON |
@@ -186,8 +188,8 @@ Analyse réalisée en septembre 2026 sur les sources officielles et les retours 
 | **Seeds** | **OUI** — natif, CLI, bloqué en prod | PARTIEL — hook configurable | NON | **OUI** — SeedManager | NON (community) | NON |
 | **Hooks/lifecycle** | PARTIEL — before only | PARTIEL — via extensions | NON (community) | **OUI** — cycle complet | **OUI** — 11 hooks | PARTIEL — plugins query-level |
 | **Soft deletes** | NON | NON (community) | NON (community) | Community | **OUI** — natif | NON (community) |
-| **Bulk insert** | NON | OUI — createMany | OUI | OUI — insertMany | OUI (mais save() piège) | OUI |
-| **Transactions publiques** | NON (test only) | OUI | OUI | OUI | OUI | OUI |
+| **Bulk insert** | OUI — createMany, par lots, tout-ou-rien | OUI — createMany | OUI | OUI — insertMany | OUI (mais save() piège) | OUI |
+| **Transactions publiques** | OUI — contexte async, savepoints imbriqués, cache invalidé au commit | OUI | OUI | OUI | OUI | OUI |
 | **Express / NestJS** | Express seul | Les deux | Les deux | Les deux (officiel NestJS) | Les deux (officiel NestJS) | Les deux |
 | **Communauté** | Interne | ~47k★, 17M/sem | ~36k★, 12M/sem | ~9k★, 460k/sem | ~37k★, 5M/sem | ~14k★, 16M/sem |
 | **Assistance LLM** | Faible (skill nécessaire) | Excellente | Bonne | Modérée | Excellente | Bonne |
@@ -206,7 +208,7 @@ Analyse réalisée en septembre 2026 sur les sources officielles et les retours 
 
 #### Résumé pour la décision
 
-L'ORM igo n'est pas en retard sur tout — il est en avance sur le cache, le test isolation et le migration lock. Mais il est en retard sur TypeScript, les relations, les transactions publiques, les hooks et l'écosystème. Le marché ne propose pas de remplacement drop-in qui serait meilleur partout : chaque concurrent gagne sur certains axes et perd sur d'autres.
+L'ORM igo n'est pas en retard sur tout — il est en avance sur le cache, le test isolation et le migration lock. Mais il est en retard sur TypeScript, les relations, les hooks et l'écosystème. Le marché ne propose pas de remplacement drop-in qui serait meilleur partout : chaque concurrent gagne sur certains axes et perd sur d'autres.
 
 Le scénario **« on prend Drizzle ou Prisma et tout est résolu »** ne tient pas : on gagne TypeScript et l'écosystème, mais on perd le cache natif, le test isolation simple, et (pour Drizzle) le migration lock. Ce sont des régressions concrètes sur des fonctionnalités utilisées quotidiennement.
 
