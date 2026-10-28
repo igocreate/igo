@@ -27,7 +27,7 @@
     "access": "public"
   },
   "dependencies": {
-    "devalue": "^5.9.1",
+    "devalue": "^5.9.4",
     "lodash": "^4.18.1",
     "morphdom": "^2.7.8"
   },

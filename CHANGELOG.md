@@ -6,6 +6,7 @@
 
 - **Fixed**: `igo i18n csv` writes `translations.csv` again. It called `createWriteStream` on `fs/promises`, which has none, and crashed. The CSV is now written without `csv-write-stream`, unmaintained and pulling a vulnerable `sprintf-js`.
 - **Changed**: `concurrently` 10.0.6, for `shell-quote` 1.12.0 (command injection, GHSA-pqg4-j6r4-53mv).
+- **Changed**: `nodemailer` 10.2.1, for its address parser reading recipients out of comments and quoted strings (GHSA-8c8m-p3m8-cjg8, GHSA-m943-m63m-w62w, GHSA-85x2-q946-cp5h).
 
 ## 6.4.1 - 2026-10-01
 
