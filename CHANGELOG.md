@@ -1,21 +1,20 @@
 # Changelog
 
-## Unreleased
-
-### @igojs/server
-
-- **Fixed**: a request body that body-parser refuses — too large, an encoding or charset it does not handle, an aborted upload — is answered with its 4xx status and sends no email. It answered 500 and sent an `Error 500` email, so a scanner posting `Content-Encoding: zstd` filled the crash inbox. Any 4xx error built with `http-errors` and left `expose`d is handled the same way; an error carrying a `status` alone, such as an axios error, is still a 500.
-- **Fixed**: `igo i18n csv` writes `translations.csv` again. It called `createWriteStream` on `fs/promises`, which has none, and crashed. The CSV is now written without `csv-write-stream`, unmaintained and pulling a vulnerable `sprintf-js`.
-- **Changed**: `concurrently` 10.0.6, for `shell-quote` 1.12.0 (command injection, GHSA-pqg4-j6r4-53mv).
-- **Changed**: `nodemailer` 10.2.1, for its address parser reading recipients out of comments and quoted strings (GHSA-8c8m-p3m8-cjg8, GHSA-m943-m63m-w62w, GHSA-85x2-q946-cp5h).
-- **Changed**: dependencies at their latest minor version, the `fullstack` and `tailwind` skeletons' too. The skeleton's OpenTelemetry stays on its 2.x line (`sdk-node` 0.223): 0.300 requires the 3.x packages.
-
-## 6.4.1 - 2026-10-01
+## 6.5.0 - 2026-10-28
 
 ### @igojs/db
 
-- **Added**: `beforeDelete()` lifecycle hook, run by `instance.delete()` before the `DELETE`. `Model.delete(id)`, `Model.deleteAll()` and query-level `delete()` skip it, as bulk updates skip `beforeUpdate`.
-- **Removed**: `Model.destroyAll()`, the last alias left from the `destroy` naming. Use `Model.deleteAll()`.
+- **Added**: `transaction(fn)` — nested ones become savepoints — and `Model.createMany(list)`, all or nothing. See [Transactions](https://igocreate.github.io/igo/db/transactions).
+- **Added**: `beforeDelete()` hook, run by `instance.delete()`. **Removed**: `Model.destroyAll()`, use `Model.deleteAll()`.
+
+### @igojs/server
+
+- **Fixed**: a body refused by body-parser (too large, unsupported encoding, aborted) gets its 4xx status instead of a 500 and a crash email.
+- **Fixed**: `igo i18n csv` crashed; it no longer needs `csv-write-stream`.
+- **Changed**: dependencies updated, `nodemailer` 10.2.1 and `concurrently` 10.0.6 for security advisories. Requires `@igojs/db` 6.5.0.
+- **Added**: `fullstack` skeleton: dashboard filters on click, `IgoFrontNewError` alert on new browser errors.
+
+## 6.4.1 - 2026-10-01
 
 ### @igojs/server
 
