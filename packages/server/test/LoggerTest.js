@@ -13,17 +13,18 @@ const captureOutput = (fn, reconfigure) => {
   const lines  = [];
   const format = logger.format;
   const level  = logger.level;
+  // silenced, not removed: a transport only attaches to its logger once
   const transports = logger.transports.slice();
-
-  logger.clear();
-  logger.add(new winston.transports.Stream({
+  transports.forEach(t => t.silent = true);
+  const capture = new winston.transports.Stream({
     stream: new Writable({
       write(chunk, encoding, callback) {
         lines.push(chunk.toString().trim());
         callback();
       },
     }),
-  }));
+  });
+  logger.add(capture);
   if (reconfigure) {
     reconfigure();
     lines.length = 0;
@@ -33,8 +34,8 @@ const captureOutput = (fn, reconfigure) => {
   try {
     fn();
   } finally {
-    logger.clear();
-    transports.forEach(t => logger.add(t));
+    logger.remove(capture);
+    transports.forEach(t => t.silent = false);
     logger.format = format;
     logger.level  = level;
   }

@@ -59,12 +59,14 @@ const captureLogs = (fn) => {
   const transports = logger.transports.slice();
   const saved      = { format: logger.format, level: logger.level, logformat: config.logformat };
 
-  logger.clear();
-  logger.add(new winston.transports.Stream({
+  // silenced, not removed: a transport only attaches to its logger once
+  transports.forEach(t => t.silent = true);
+  const capture = new winston.transports.Stream({
     stream: new Writable({
       write(chunk, encoding, callback) { lines.push(JSON.parse(chunk.toString())); callback(); },
     }),
-  }));
+  });
+  logger.add(capture);
   config.logformat = 'json';
   logger.init();
   lines.length = 0;
@@ -72,8 +74,8 @@ const captureLogs = (fn) => {
   try {
     fn();
   } finally {
-    logger.clear();
-    transports.forEach(t => logger.add(t));
+    logger.remove(capture);
+    transports.forEach(t => t.silent = false);
     config.logformat = saved.logformat;
     logger.format    = saved.format;
     logger.level     = saved.level;

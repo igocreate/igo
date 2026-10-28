@@ -143,15 +143,24 @@ describe('db.Db', () => {
 
     it('should not let a nested transaction outlive its parent', async () => {
       let nested, transactionSeenLate;
-      await db.transaction(async () => {
-        nested = db.transaction(async () => {
-          await new Promise(resolve => setTimeout(resolve, 20));
-          transactionSeenLate = db.currentTransaction();
+      const errors    = [];
+      const { error } = logger;
+      logger.error = (message) => errors.push(message);
+      try {
+        await db.transaction(async () => {
+          nested = db.transaction(async () => {
+            await new Promise(resolve => setTimeout(resolve, 20));
+            transactionSeenLate = db.currentTransaction();
+          });
+          await db.query('SELECT 1');
         });
-        await db.query('SELECT 1');
-      });
-      await assert.rejects(nested);
+        await assert.rejects(nested);
+      } finally {
+        logger.error = error;
+      }
       assert.strictEqual(transactionSeenLate, null);
+      // the parent's RELEASE took the nested savepoint with it
+      assert.match(errors[0], /rollback failed: .*savepoint igo_sp_\d+ does not exist/i);
     });
 
     it('should send a query that starts after the end to the pool', async () => {
