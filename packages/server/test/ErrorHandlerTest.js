@@ -20,6 +20,9 @@ const fakeRes = () => {
   res.status = (code) => { res.statusCode = code; return res; };
   res.render = () => res;
   res.send   = () => res;
+  res.sendStatus = (code) => res.status(code);
+  res.setHeader  = () => res;
+  res.json   = (body) => { res.body = body; return res; };
   return res;
 };
 
@@ -154,6 +157,56 @@ describe('ErrorHandler', function() {
         logger.error = originalError;
       }
       assert.deepStrictEqual(subjects, [`[${config.appname}] Error after response: ${err}`]);
+    });
+  });
+
+  describe('Client errors', function() {
+
+    let subjects;
+    let originalSend;
+    let originalRecipients;
+
+    beforeEach(function() {
+      subjects = [];
+      originalSend = mailer.send;
+      originalRecipients = config.mailcrashto;
+      mailer.send = (template, { subject }) => subjects.push(subject);
+      config.mailcrashto = ['ops@example.com'];
+    });
+
+    afterEach(function() {
+      mailer.send = originalSend;
+      config.mailcrashto = originalRecipients;
+    });
+
+    // as body-parser builds it, with http-errors
+    const unsupportedEncoding = () => Object.assign(new Error(`unsupported content encoding "zstd" ${Math.random()}`), {
+      status: 415, statusCode: 415, expose: true, type: 'encoding.unsupported',
+    });
+
+    it('should answer a body-parser error with its status, without email', () => {
+      const res = fakeRes();
+      errorhandler.error(unsupportedEncoding(), fakeReq(), res, () => {});
+      assert.strictEqual(res.statusCode, 415);
+      assert.strictEqual(res._loggedError, undefined);
+      assert.deepStrictEqual(subjects, []);
+    });
+
+    it('should answer an API request with a problem document', () => {
+      const err = unsupportedEncoding();
+      const res = fakeRes();
+      errorhandler.error(err, { ...fakeReq(), headers: { host: 'localhost', accept: 'application/json' } }, res, () => {});
+      assert.strictEqual(res.statusCode, 415);
+      assert.strictEqual(res.body.status, 415);
+      assert.strictEqual(res.body.detail, err.message);
+    });
+
+    it('should keep an error with a status but not exposed as a 500', () => {
+      const err = Object.assign(new Error(`Request failed with status code 404 ${Math.random()}`), { status: 404 });
+      const res = fakeRes();
+      errorhandler.error(err, fakeReq(), res, () => {});
+      assert.strictEqual(res.statusCode, 500);
+      assert.deepStrictEqual(subjects, [`[${config.appname}] Error 500: ${err}`]);
     });
   });
 

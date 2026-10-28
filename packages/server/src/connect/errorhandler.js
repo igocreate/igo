@@ -21,7 +21,8 @@
  * Special cases:
  * - URIError (malformed URL): returns 404
  * - SyntaxError (invalid JSON): returns 500, or 400 on an API request
- * - Both are client errors and don't trigger email notifications
+ * - Exposed 4xx http-errors (body-parser…): returns their status
+ * - All are client errors and don't trigger email notifications
  *
  * An API request gets an RFC 9457 document, never a rendered dust page.
  *
@@ -195,6 +196,21 @@ const handle = (err, req, res, { restarting = false } = {}) => {
         problem.send(res, 400, { detail: 'Malformed JSON body' });
       } else {
         res.status(500).render('errors/500');
+      }
+    }
+    return;
+  }
+
+  // http-errors marks a 4xx as exposed (body-parser: too large, unsupported
+  // encoding, aborted…); a bare `status` is not enough, an axios error has one
+  if (err.expose === true && err.status >= 400 && err.status < 500) {
+    if (!res.headersSent) {
+      if (isApi) {
+        problem.send(res, err.status, { detail: err.message });
+      } else if (err.status === 404) {
+        res.status(404).render('errors/404');
+      } else {
+        res.sendStatus(err.status);
       }
     }
     return;

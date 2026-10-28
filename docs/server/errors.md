@@ -51,6 +51,7 @@ Outside a request — a cron started without `await` — the job's own span neve
 |------------|----------|-------------|
 | `URIError` (malformed URL) | 404 | No |
 | `SyntaxError` (invalid JSON) | 500, or 400 on an API request | No |
+| 4xx [http-errors](https://github.com/jshttp/http-errors) with `expose` (body-parser: body too large, unsupported encoding, aborted request…) | its status | No |
 | Other errors | 500 | Yes |
 
 ## API Requests

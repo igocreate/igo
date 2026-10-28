@@ -4,9 +4,11 @@
 
 ### @igojs/server
 
+- **Fixed**: a request body that body-parser refuses — too large, an encoding or charset it does not handle, an aborted upload — is answered with its 4xx status and sends no email. It answered 500 and sent an `Error 500` email, so a scanner posting `Content-Encoding: zstd` filled the crash inbox. Any 4xx error built with `http-errors` and left `expose`d is handled the same way; an error carrying a `status` alone, such as an axios error, is still a 500.
 - **Fixed**: `igo i18n csv` writes `translations.csv` again. It called `createWriteStream` on `fs/promises`, which has none, and crashed. The CSV is now written without `csv-write-stream`, unmaintained and pulling a vulnerable `sprintf-js`.
 - **Changed**: `concurrently` 10.0.6, for `shell-quote` 1.12.0 (command injection, GHSA-pqg4-j6r4-53mv).
 - **Changed**: `nodemailer` 10.2.1, for its address parser reading recipients out of comments and quoted strings (GHSA-8c8m-p3m8-cjg8, GHSA-m943-m63m-w62w, GHSA-85x2-q946-cp5h).
+- **Changed**: dependencies at their latest minor version, the `fullstack` and `tailwind` skeletons' too. The skeleton's OpenTelemetry stays on its 2.x line (`sdk-node` 0.223): 0.300 requires the 3.x packages.
 
 ## 6.4.1 - 2026-10-01
 
