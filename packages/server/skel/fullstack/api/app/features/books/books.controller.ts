@@ -1,5 +1,6 @@
 import { sendProblem } from '@igojs/server';
 import type { ApiHandler } from '@igojs/server';
+import type { Response } from 'express';
 
 import Book from './Book';
 import * as dto from './books.dto';
@@ -8,7 +9,10 @@ import * as dto from './books.dto';
 // deux situations métier. C'est une URI, et le slug appartient au projet.
 const BOOK_NOT_FOUND = '/problems/book-not-found';
 
-export const index: ApiHandler<{ query: typeof dto.ListBooks }> = async (req, res) => {
+export const index: ApiHandler<{ query: typeof dto.ListBooks }> = async (
+  req,
+  res: Response<dto.BookList>,
+) => {
   const { page, limit, published } = req.query;
 
   let query = Book.order('created_at desc');
@@ -24,7 +28,10 @@ export const index: ApiHandler<{ query: typeof dto.ListBooks }> = async (req, re
 };
 index.query = dto.ListBooks;
 
-export const show: ApiHandler<{ params: typeof dto.BookId }> = async (req, res) => {
+export const show: ApiHandler<{ params: typeof dto.BookId }> = async (
+  req,
+  res: Response<dto.Book>,
+) => {
   const book = await Book.find(req.params.id);
   if (!book) {
     return void sendProblem(res, 404, { type: BOOK_NOT_FOUND, detail: 'Book not found' });
@@ -33,7 +40,10 @@ export const show: ApiHandler<{ params: typeof dto.BookId }> = async (req, res) 
 };
 show.params = dto.BookId;
 
-export const create: ApiHandler<{ body: typeof dto.CreateBook }> = async (req, res) => {
+export const create: ApiHandler<{ body: typeof dto.CreateBook }> = async (
+  req,
+  res: Response<dto.Book>,
+) => {
   const book = await Book.create(req.body);
   res.status(201).json(dto.serialize(book));
 };
@@ -42,7 +52,7 @@ create.body = dto.CreateBook;
 export const update: ApiHandler<{
   params: typeof dto.BookId;
   body: typeof dto.UpdateBook;
-}> = async (req, res) => {
+}> = async (req, res: Response<dto.Book>) => {
   const book = await Book.find(req.params.id);
   if (!book) {
     return void sendProblem(res, 404, { type: BOOK_NOT_FOUND, detail: 'Book not found' });

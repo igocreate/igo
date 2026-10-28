@@ -12,4 +12,5 @@ de test est recréée à chaque exécution.
   schéma.
 - Chaque contrôleur a son test dans `test/features/<domaine>/` : nominal, 400,
   404, et 401 ou 403 si la route est protégée.
-- Un contrôleur renvoie `dto.serialize(...)`, jamais le modèle.
+- Un contrôleur renvoie `dto.serialize(...)`, jamais le modèle, et chaque
+  handler qui renvoie du JSON annote `res: Response<dto.X>`.

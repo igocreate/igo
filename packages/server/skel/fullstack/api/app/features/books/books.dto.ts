@@ -30,7 +30,16 @@ export const ListBooks = z.object({
 
 // Sortant : la barrière entre le modèle de l'ORM et l'API. Ajouter une colonne
 // au modèle n'expose rien tant qu'elle n'est pas nommée ici.
-export const serialize = (book: BookRow) => ({
+export interface Book {
+  id: number;
+  title: string;
+  author: string;
+  pages: number;
+  published: boolean;
+  createdAt: Date;
+}
+
+export const serialize = (book: BookRow): Book => ({
   id: book.id,
   title: book.title,
   author: book.author,
@@ -41,14 +50,26 @@ export const serialize = (book: BookRow) => ({
 
 // La pagination de l'ORM porte aussi `links`, prévu pour afficher des numéros
 // de page dans un gabarit : un client d'API construit sa propre navigation.
+export interface Page {
+  page: number;
+  perPage: number;
+  pages: number;
+  total: number;
+}
+
 export const serializePage = (pagination: {
   page: number;
   nb: number;
   nb_pages: number;
   count: number;
-}) => ({
+}): Page => ({
   page: pagination.page,
   perPage: pagination.nb,
   pages: pagination.nb_pages,
   total: pagination.count,
 });
+
+export interface BookList {
+  books: Book[];
+  page: Page;
+}

@@ -62,7 +62,10 @@ par défaut (`400`). Tant que l'observabilité n'est pas branchée, poser
 appel dans le contrôleur :
 
 ```ts
-export const create: ApiHandler<{ body: typeof dto.CreateBook }> = async (req, res) => { … };
+export const create: ApiHandler<{ body: typeof dto.CreateBook }> = async (
+  req,
+  res: Response<dto.Book>,
+) => { … };
 create.body = dto.CreateBook;
 ```
 
@@ -71,7 +74,9 @@ garde manuelle sur un champ requis.
 
 **Le DTO est la barrière.** Un contrôleur ne renvoie jamais un modèle ORM :
 `res.json(dto.serialize(book))`. Ajouter une colonne au modèle n'expose rien
-tant qu'elle n'est pas nommée dans `serialize()`.
+tant qu'elle n'est pas nommée dans `serialize()`. Chaque réponse a son
+interface dans le DTO, en type de retour du sérialiseur et en `res: Response<T>`
+dans le handler : `res.json` vérifie le contrat.
 
 **Les erreurs sont des documents RFC 9457**, via `sendProblem(res, status, …)`.
 Un cas métier mérite son propre `type` (`/problems/out-of-stock`) — c'est ce que
