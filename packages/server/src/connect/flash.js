@@ -13,16 +13,17 @@ const SIZE_WARNING    = 10240; // 10KB - log warning
 //
 module.exports = async (req, res, next) => {
 
-  req.session.flash             = req.session.flash || {};
-  res.locals.flash              = req.session.flash;
+  const cacheflash  = req.session._igo_cacheflash || [];
+  res.locals.flash  = req.session.flash || {};
 
-  req.session._igo_cacheflash   = req.session._igo_cacheflash || [];
-  const cacheflash              = req.session._igo_cacheflash;
-
-  if (req.method === 'GET') {
-    // clear flash scope
-    req.session.flash             = {};
-    req.session._igo_cacheflash   = [];
+  // a GET consumes the flash scope; other requests add to the one they display
+  const isGet   = req.method === 'GET';
+  const scope   = isGet ? {} : res.locals.flash;
+  const pending = isGet ? [] : cacheflash;
+  if (isGet) {
+    // empty scopes are not stored: a mere visit must not start a session
+    delete req.session.flash;
+    delete req.session._igo_cacheflash;
   }
 
   // save flash data in session
@@ -39,7 +40,8 @@ module.exports = async (req, res, next) => {
       return req.cacheflash(key, value);
     }
 
-    req.session.flash[key] = value;
+    scope[key]        = value;
+    req.session.flash = scope;
   };
 
   // save flash data in redis
@@ -50,7 +52,8 @@ module.exports = async (req, res, next) => {
       return;
     }
     const uuid = randomUUID();
-    req.session._igo_cacheflash.push(uuid);
+    pending.push(uuid);
+    req.session._igo_cacheflash = pending;
     return cache.put(NS, uuid, { [key]: value }, 60); // 60s
   };
 

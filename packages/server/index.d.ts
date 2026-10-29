@@ -70,7 +70,12 @@ export interface HealthConfig {
 export interface CookieSessionConfig {
   name:      string;
   keys:      string[];
-  maxAge:    number;
+  /** Milliseconds from the session start, whatever the activity: SESSION_MAX_DURATION, 31 days by default. */
+  maxDuration: number | null;
+  /** Milliseconds without a request, renewed on activity: SESSION_IDLE_TIMEOUT, none by default. */
+  idleTimeout?: number | null;
+  /** @deprecated maxDuration's name before igo 6.6; wins over it when set. */
+  maxAge?:   number;
   sameSite?: 'Lax' | 'Strict' | 'None' | boolean;
   [key: string]: unknown;
 }

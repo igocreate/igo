@@ -1,6 +1,7 @@
 require('../init');
 
 const assert  = require('assert');
+const crypto  = require('crypto');
 const http    = require('http');
 const Keygrip = require('keygrip');
 
@@ -42,7 +43,7 @@ const legacyCookie = function(name, obj, keys) {
 
 describe('Session middleware', () => {
 
-  const middleware = session({ name: 'app', keys: KEYS, maxAge: 60000 });
+  const middleware = session({ name: 'app', keys: KEYS, maxDuration: 60000 });
 
   it('should require keys', () => {
     assert.throws(() => session({ name: 'app' }), /keys required/);
@@ -144,7 +145,7 @@ describe('Session middleware', () => {
   });
 
   it('should reject an expired session', () => {
-    const expired = session({ name: 'app', keys: KEYS, maxAge: -1000 });
+    const expired = session({ name: 'app', keys: KEYS, maxDuration: -1000 });
     const first   = run(expired);
     first.req.session.user_id = 42;
 
@@ -152,7 +153,7 @@ describe('Session middleware', () => {
     assert.deepStrictEqual(req.session, {});
   });
 
-  it('should not embed an expiry without maxAge', () => {
+  it('should not expire without maxDuration', () => {
     const forever = session({ name: 'app', keys: KEYS });
     const first   = run(forever);
     first.req.session.user_id = 42;
@@ -175,6 +176,195 @@ describe('Session middleware', () => {
     const header = `app=legacybase64garbage; app=${encrypted}`;
     const { req } = run(middleware, header);
     assert.deepStrictEqual(req.session, { user_id: 42 });
+  });
+
+  describe('idle timeout and max duration', () => {
+
+    const MINUTE  = 60 * 1000;
+    const HOUR    = 60 * MINUTE;
+    const timed   = session({ name: 'app', keys: KEYS, idleTimeout: HOUR, maxDuration: 24 * HOUR });
+    const realNow = Date.now;
+    let now;
+
+    beforeEach(() => {
+      now       = realNow();
+      Date.now  = () => now;
+    });
+
+    afterEach(() => {
+      Date.now = realNow;
+    });
+
+    const login = function() {
+      const { req, res } = run(timed);
+      req.session.user_id = 42;
+      return setCookies(res).join('; ');
+    };
+
+    // one request: the session it saw, and the cookie the browser sends next
+    const visit = function(cookie, fn) {
+      const { req, res } = run(timed, cookie);
+      const session = req.session;
+      if (fn) {
+        fn(req);
+      }
+      const set = setCookies(res);
+      return { session, set, cookie: set.length ? set.join('; ') : cookie };
+    };
+
+    // a cookie written by igo <= 6.5: { d, e }, no start
+    const oldCookie = function(obj, e) {
+      const key     = Buffer.from(crypto.hkdfSync('sha256', KEYS[0], 'igo-session', 'igo-session-encryption', 32));
+      const iv      = crypto.randomBytes(12);
+      const cipher  = crypto.createCipheriv('aes-256-gcm', key, iv);
+      const data    = Buffer.concat([ cipher.update(JSON.stringify({ d: obj, e }), 'utf8'), cipher.final() ]);
+      return 'app=1.' + Buffer.concat([ iv, cipher.getAuthTag(), data ]).toString('base64url');
+    };
+
+    it('should expire after idleTimeout without activity', () => {
+      const cookie = login();
+      now += HOUR;
+      assert.deepStrictEqual(visit(cookie).session, {});
+    });
+
+    it('should not renew an unchanged session more than once a minute', () => {
+      const cookie = login();
+      now += 30 * 1000;
+      assert.deepStrictEqual(visit(cookie).set, []);
+    });
+
+    it('should push back the idle expiry on activity', () => {
+      const first = login();
+      now += 50 * MINUTE;
+      const { cookie } = visit(first);
+      assert.notStrictEqual(cookie, first);
+
+      now += 50 * MINUTE;
+      assert.deepStrictEqual(visit(cookie).session, { user_id: 42 });
+      assert.deepStrictEqual(visit(first).session, {});
+    });
+
+    it('should expire after maxDuration despite activity', () => {
+      let cookie = login();
+      for (let i = 1; i < 48; i++) {
+        now += 30 * MINUTE;
+        const result = visit(cookie);
+        assert.deepStrictEqual(result.session, { user_id: 42 });
+        cookie = result.cookie;
+      }
+      now += 30 * MINUTE;
+      assert.deepStrictEqual(visit(cookie).session, {});
+    });
+
+    it('should cap the cookie lifetime at maxDuration', () => {
+      let cookie = login();
+      for (let i = 1; i <= 47; i++) {
+        now += 30 * MINUTE;
+        cookie = visit(cookie).cookie;
+      }
+      const expires = /expires=([^;]+)/.exec(cookie)[1];
+      assert(Math.abs(new Date(expires).getTime() - (now + 30 * MINUTE)) < 1000);
+    });
+
+    it('should restart the session when replaced', () => {
+      let cookie = login();
+      for (let i = 1; i <= 47; i++) {
+        now += 30 * MINUTE;
+        cookie = visit(cookie).cookie;
+      }
+      cookie = visit(cookie, req => {
+        req.session = { ...req.session };
+      }).cookie;
+      now += 30 * MINUTE;
+      assert.deepStrictEqual(visit(cookie).session, { user_id: 42 });
+    });
+
+    it('should restart the timeouts on restart(), keeping the data', () => {
+      let cookie = login();
+      for (let i = 1; i <= 47; i++) {
+        now += 30 * MINUTE;
+        cookie = visit(cookie).cookie;
+      }
+      cookie = visit(cookie, req => req.session.restart()).cookie;
+      now += 30 * MINUTE;
+      assert.deepStrictEqual(visit(cookie).session, { user_id: 42 });
+    });
+
+    it('should keep restart() out of the session data', () => {
+      const { req } = run(timed);
+      req.session.user_id = 42;
+      assert.deepStrictEqual(Object.keys(req.session), [ 'user_id' ]);
+      assert.deepStrictEqual({ ...req.session }, { user_id: 42 });
+      assert.strictEqual(JSON.stringify(req.session), '{"user_id":42}');
+    });
+
+    it('should not write an empty session on restart()', () => {
+      const { req, res } = run(timed);
+      req.session.restart();
+      assert.deepStrictEqual(setCookies(res), []);
+    });
+
+    it('should apply a lowered idleTimeout to cookies already out', () => {
+      const month = session({ name: 'app', keys: KEYS, idleTimeout: 31 * 24 * HOUR });
+      const first = run(month);
+      first.req.session.user_id = 42;
+      const cookie = setCookies(first.res).join('; ');
+      now += 2 * HOUR;
+      assert.deepStrictEqual(visit(cookie).session, {});
+    });
+
+    describe('maxDuration alone', () => {
+
+      const hourly = session({ name: 'app', keys: KEYS, maxDuration: HOUR });
+
+      const write = function(middleware, cookie, fn) {
+        const { req, res } = run(middleware, cookie);
+        fn(req.session);
+        const set = setCookies(res);
+        return set.length ? set.join('; ') : cookie;
+      };
+
+      it('should not rewrite an unchanged session', () => {
+        const cookie = write(hourly, null, s => s.user_id = 42);
+        now += 50 * MINUTE;
+        assert.strictEqual(write(hourly, cookie, () => {}), cookie);
+      });
+
+      it('should not be pushed back when the session changes', () => {
+        let cookie = write(hourly, null, s => s.user_id = 42);
+        now += 50 * MINUTE;
+        cookie = write(hourly, cookie, s => s.page = 2);
+        now += 10 * MINUTE;
+        assert.deepStrictEqual(run(hourly, cookie).req.session, {});
+      });
+
+      it('should read maxAge as maxDuration, over it', () => {
+        const legacy = session({ name: 'app', keys: KEYS, maxAge: HOUR, maxDuration: 24 * HOUR });
+        const cookie = write(legacy, null, s => s.user_id = 42);
+        now += HOUR;
+        assert.deepStrictEqual(run(legacy, cookie).req.session, {});
+      });
+
+    });
+
+    it('should count a session from igo <= 6.5 from now and rewrite it', () => {
+      let { session, set, cookie } = visit(oldCookie({ user_id: 42 }, now + 31 * 24 * HOUR));
+      assert.deepStrictEqual(session, { user_id: 42 });
+      assert.strictEqual(set.length, 1);
+
+      for (let i = 1; i < 48; i++) {
+        now += 30 * MINUTE;
+        cookie = visit(cookie).cookie;
+      }
+      assert.deepStrictEqual(visit(cookie).session, { user_id: 42 });
+      now += 30 * MINUTE;
+      assert.deepStrictEqual(visit(cookie).session, {});
+    });
+
+    it('should still reject a session from igo <= 6.5 past its expiry', () => {
+      assert.deepStrictEqual(visit(oldCookie({ user_id: 42 }, now - 1000)).session, {});
+    });
+
   });
 
 });

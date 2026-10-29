@@ -58,8 +58,8 @@ module.exports.init = function(app) {
     req.flash('data', largeData);
     res.json({
       ok: true,
-      usedCacheflash: req.session._igo_cacheflash.length > 0,
-      sessionFlash: req.session.flash
+      usedCacheflash: (req.session._igo_cacheflash || []).length > 0,
+      sessionFlash: req.session.flash || {}
     });
   });
 
@@ -68,8 +68,8 @@ module.exports.init = function(app) {
     req.cacheflash('bigdata', largeData);
     res.json({
       ok: true,
-      cacheflashCount: req.session._igo_cacheflash.length,
-      sessionFlash: req.session.flash
+      cacheflashCount: (req.session._igo_cacheflash || []).length,
+      sessionFlash: req.session.flash || {}
     });
   });
 
@@ -79,8 +79,8 @@ module.exports.init = function(app) {
     await req.flash('data', cyclic);
     res.json({
       ok: true,
-      cacheflashCount: req.session._igo_cacheflash.length,
-      sessionFlash: req.session.flash
+      cacheflashCount: (req.session._igo_cacheflash || []).length,
+      sessionFlash: req.session.flash || {}
     });
   });
 

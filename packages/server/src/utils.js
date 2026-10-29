@@ -35,3 +35,15 @@ module.exports.wait = (ms) => {
     }, ms);
   });
 };
+// 90 (seconds), 15m, 1h, 1d; throws on anything else
+const DURATION_UNITS = { s: 1000, m: 60 * 1000, h: 60 * 60 * 1000, d: 24 * 60 * 60 * 1000 };
+module.exports.parseDuration = (value, fallback) => {
+  if (!value) {
+    return fallback;
+  }
+  const match = /^(\d+)(s|m|h|d)?$/.exec(value.trim());
+  if (!match) {
+    throw new Error(`Invalid duration "${value}": expected a number of seconds, or 15m, 1h, 1d…`);
+  }
+  return Number(match[1]) * DURATION_UNITS[match[2] || 's'];
+};

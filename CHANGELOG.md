@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### @igojs/server
+
+- **Changed**: `config.cookieSession.maxDuration` replaces `maxAge`: 31 days from the session's start, whatever the activity. `maxAge` counted from the session's last change, so any write — a flash message, a saved filter — pushed it back and an active user could stay signed in indefinitely; now they are signed out once it is spent. A `maxAge` set by the project is read as `maxDuration`, with a warning at startup: rename it. Sessions from before the deploy are counted from their first request after it. See [Session expiry](https://igocreate.github.io/igo/server/routes#session-expiry).
+- **Added**: `config.cookieSession.idleTimeout`, off by default: the session expires after that long without a request, each one pushing it back (the cookie is rewritten at most once a minute). `SESSION_MAX_DURATION` / `SESSION_IDLE_TIMEOUT` (`15m`, `1h`, `1d`…) set both from the environment. Both are checked server-side against the current settings, so lowering them applies to the sessions already out.
+- **Added**: `req.session.restart()`, to call on sign-in: both deadlines start over, the data stays. The `fullstack` skeleton types it.
+
 ## 6.5.0 - 2026-10-28
 
 ### @igojs/db

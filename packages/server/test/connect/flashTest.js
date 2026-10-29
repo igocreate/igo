@@ -65,6 +65,21 @@ describe('Flash middleware', () => {
     });
   });
 
+  describe('empty flash scope', () => {
+    it('should leave the session empty on a mere visit', async () => {
+      const session = {};
+      await agent.get('/flash/read', { session });
+      assert.deepStrictEqual(session, {});
+    });
+
+    it('should drop the scope from the session once read', async () => {
+      const session = {};
+      await agent.post('/flash/small', { session });
+      await agent.get('/flash/read', { session });
+      assert.deepStrictEqual(session, {});
+    });
+  });
+
   describe('Flash data retrieval', () => {
     it('should load cacheflash data on GET request', async () => {
       // First POST to set flash

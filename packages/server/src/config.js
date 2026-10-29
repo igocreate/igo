@@ -5,6 +5,8 @@ if (process.env.NODE_ENV !== 'production') {
 
 const path = require('path');
 
+const { parseDuration } = require('./utils');
+
 const config    = {};
 module.exports  = config;
 
@@ -97,7 +99,10 @@ module.exports.init = function() {
   config.cookieSession = {
     name: 'app',
     keys: process.env.COOKIE_SESSION_KEYS ? process.env.COOKIE_SESSION_KEYS.split(',') : [ DEFAULT_SESSION_KEY ],
-    maxAge: 31 * 24 * 60 * 60 * 1000, // 31 days
+    // since the session started, whatever the activity
+    maxDuration: parseDuration(process.env.SESSION_MAX_DURATION, 31 * 24 * 60 * 60 * 1000),
+    // since the last request, renewed on activity: off unless set
+    idleTimeout: parseDuration(process.env.SESSION_IDLE_TIMEOUT, null),
     sameSite: 'Lax'
   };
 

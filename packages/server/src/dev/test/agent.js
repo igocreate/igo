@@ -28,7 +28,8 @@ const mockRequest = (options) => {
   req.query       = query;
   req.params      = options.params  || {};
   req.cookies     = options.cookies || {};
-  req.session     = options.session || {};
+  // restart() is a no-op here: there is no cookie to time
+  req.session     = Object.defineProperty(options.session || {}, 'restart', { configurable: true, value: () => {} });
   req.body        = options.body    || {};
   req.headers     = options.headers || {};
   req.files       = options.files   || {};
