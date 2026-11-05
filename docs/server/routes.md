@@ -152,7 +152,16 @@ req.session.user_id = user.id;
 req.session.restart();
 ```
 
-`restart()` keeps the session's data — unlike express-session's `regenerate()`, which empties it — and starts both deadlines over. It is not part of the data: it stays out of the cookie, of `Object.keys(req.session)` and of a spread. The test agent provides it as a no-op.
+`restart()` keeps the session's data — unlike `regenerate()`, which empties it — and starts both deadlines over. It is not part of the data: it stays out of the cookie, of `Object.keys(req.session)` and of a spread. The test agent provides it as a no-op.
+
+### Passport
+
+Passport ≥ 0.6 calls `req.session.regenerate(cb)` and `req.session.save(cb)` on `req.login()` and `req.logout()`: the session provides both, out of its data like `restart()`.
+
+- `regenerate(cb)` empties the session and starts both deadlines over, like `req.session = {}`. With `keepSessionInfo: true`, passport copies the previous data back.
+- `save(cb)` only calls `cb`: the cookie is written with the response headers.
+
+A session emptied this way — on logout — clears the browser's cookie.
 
 ### Keys
 

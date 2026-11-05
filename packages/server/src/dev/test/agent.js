@@ -1,6 +1,20 @@
 const app     = require('../../app');
 
 //
+// the session's methods, without a cookie: restart() and save() are no-ops
+const withMethods = (req, session) => {
+  return Object.defineProperties(session, {
+    restart:    { configurable: true, value: () => {} },
+    regenerate: { configurable: true, value: (cb) => {
+      req.session = withMethods(req, {});
+      cb?.();
+    } },
+    save:       { configurable: true, value: (cb) => {
+      cb?.();
+    } },
+  });
+};
+
 const mockRequest = (options) => {
   const req = {};
 
@@ -28,8 +42,7 @@ const mockRequest = (options) => {
   req.query       = query;
   req.params      = options.params  || {};
   req.cookies     = options.cookies || {};
-  // restart() is a no-op here: there is no cookie to time
-  req.session     = Object.defineProperty(options.session || {}, 'restart', { configurable: true, value: () => {} });
+  req.session     = withMethods(req, options.session || {});
   req.body        = options.body    || {};
   req.headers     = options.headers || {};
   req.files       = options.files   || {};

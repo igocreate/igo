@@ -144,6 +144,84 @@ describe('Session middleware', () => {
     assert.deepStrictEqual(req.session, { user_id: 43 });
   });
 
+  it('should clear the cookie when replaced by an empty session', () => {
+    const first = run(middleware);
+    first.req.session.user_id = 42;
+
+    const second = run(middleware, setCookies(first.res).join('; '));
+    second.req.session = {};
+
+    const cookie = setCookies(second.res).find(c => c.startsWith('app='));
+    assert(cookie.includes('expires=Thu, 01 Jan 1970'));
+  });
+
+  describe('passport', () => {
+
+    const passportUser = function(cookie) {
+      return run(middleware, cookie).req.session.passport?.user;
+    };
+
+    // what passport >= 0.6 does in req.login()
+    const login = function(cookie, user, keepSessionInfo) {
+      const { req, res } = run(middleware, cookie);
+      const prev = req.session;
+      let called = false;
+      req.session.regenerate(() => {
+        if (keepSessionInfo) {
+          Object.assign(req.session, prev);
+        }
+        req.session.passport = { user };
+        req.session.save(() => {
+          called = true;
+        });
+      });
+      assert.strictEqual(called, true);
+      return setCookies(res).join('; ');
+    };
+
+    // what passport >= 0.6 does in req.logout()
+    const logout = function(cookie) {
+      const { req, res } = run(middleware, cookie);
+      delete req.session.passport.user;
+      req.session.save(() => req.session.regenerate(() => {}));
+      return setCookies(res);
+    };
+
+    it('should empty the session on regenerate()', () => {
+      const first = run(middleware);
+      first.req.session.return_to = '/account';
+
+      const cookie = login(setCookies(first.res).join('; '), 42);
+      assert.deepStrictEqual(run(middleware, cookie).req.session, { passport: { user: 42 } });
+    });
+
+    it('should keep the session data with keepSessionInfo', () => {
+      const first = run(middleware);
+      first.req.session.return_to = '/account';
+
+      const cookie = login(setCookies(first.res).join('; '), 42, true);
+      assert.deepStrictEqual(run(middleware, cookie).req.session, { return_to: '/account', passport: { user: 42 } });
+    });
+
+    it('should keep its methods on the regenerated session', () => {
+      const { req } = run(middleware);
+      req.session.regenerate();
+      assert.strictEqual(typeof req.session.restart, 'function');
+      assert.strictEqual(typeof req.session.regenerate, 'function');
+      assert.strictEqual(typeof req.session.save, 'function');
+      assert.deepStrictEqual(Object.keys(req.session), []);
+    });
+
+    it('should clear the cookie on logout', () => {
+      const cookie = login(null, 42);
+      assert.strictEqual(passportUser(cookie), 42);
+
+      const cleared = logout(cookie).find(c => c.startsWith('app='));
+      assert(cleared.includes('expires=Thu, 01 Jan 1970'));
+    });
+
+  });
+
   it('should reject an expired session', () => {
     const expired = session({ name: 'app', keys: KEYS, maxDuration: -1000 });
     const first   = run(expired);
@@ -290,7 +368,7 @@ describe('Session middleware', () => {
       assert.deepStrictEqual(visit(cookie).session, { user_id: 42 });
     });
 
-    it('should keep restart() out of the session data', () => {
+    it('should keep the methods out of the session data', () => {
       const { req } = run(timed);
       req.session.user_id = 42;
       assert.deepStrictEqual(Object.keys(req.session), [ 'user_id' ]);

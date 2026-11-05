@@ -106,15 +106,18 @@ module.exports = function session(options) {
     let start   = undefined;  // when the session started
     let written = undefined;  // when the cookie was last written
 
-    const load = function() {
+    // the values of the cookies named opts.name, as the browser sent them
+    const values = function() {
       const header = req.headers.cookie;
       if (!header) {
-        return null;
+        return [];
       }
       const re = new RegExp('(?:^|;)\\s*' + opts.name + '=([^;]*)', 'g');
-      let match;
-      while ((match = re.exec(header))) {
-        const value = match[1];
+      return Array.from(header.matchAll(re), match => match[1]);
+    };
+
+    const load = function() {
+      for (const value of values()) {
         if (value && value.startsWith(VERSION + '.')) {
           const payload = decrypt(value, cryptoKeys);
           if (payload && !expired(payload, Date.now())) {
@@ -131,9 +134,21 @@ module.exports = function session(options) {
       written = undefined;
       initial = undefined;
     };
-    // non-enumerable, so it stays out of the cookie and of the session's keys
-    const withRestart = function(obj) {
-      return Object.defineProperty(obj, 'restart', { configurable: true, value: restart });
+    // called by passport >= 0.6: regenerate() empties the session like express-session's, save() leaves it to the headers
+    const regenerate = function(cb) {
+      req.session = {};
+      cb?.();
+    };
+    const save = function(cb) {
+      cb?.();
+    };
+    // non-enumerable, so they stay out of the cookie and of the session's keys
+    const withMethods = function(obj) {
+      return Object.defineProperties(obj, {
+        restart:    { configurable: true, value: restart },
+        regenerate: { configurable: true, value: regenerate },
+        save:       { configurable: true, value: save },
+      });
     };
 
     Object.defineProperty(req, 'session', {
@@ -149,7 +164,7 @@ module.exports = function session(options) {
         // cookies written by igo <= 6.5 have no start: counted from now
         start   = payload?.start || Date.now();
         written = payload?.written;
-        session = withRestart(payload ? payload.session : {});
+        session = withMethods(payload ? payload.session : {});
         return session;
       },
       set: function(value) {
@@ -164,7 +179,7 @@ module.exports = function session(options) {
         initial = undefined;
         start   = Date.now();
         written = undefined;
-        session = withRestart(value);
+        session = withMethods(value);
       }
     });
 
@@ -178,6 +193,10 @@ module.exports = function session(options) {
       }
       const json = JSON.stringify(session);
       if (isNew && json === '{}') {
+        // emptied by regenerate() or req.session = {}: the previous cookie must not outlive it
+        if (values().length) {
+          cookies.set(opts.name, '', opts);
+        }
         return;
       }
       const now     = Date.now();
