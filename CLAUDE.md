@@ -4,7 +4,6 @@
 
 Igo is a Node.js full-stack web framework built on Express, providing ORM, templating, and reactive frontend components. This is an **npm monorepo** with 5 packages.
 
-**Version:** 6.0.0
 **License:** ISC
 **Repository:** github.com/igocreate/igo
 **Node.js:** >=22.x (see `.nvmrc`)
@@ -40,9 +39,7 @@ Igo is a Node.js full-stack web framework built on Express, providing ORM, templ
 - Async/await rendering
 - Express.js view engine integration
 - Single-file component support (split `<script>` + template)
-- Browser bundle available
 - **Entry:** `packages/dust/src/index.js`
-- **Browser build:** `packages/dust/dist/igo-dust-6.0.0-min.js`
 
 ### @igojs/server (Core Framework)
 - Express 5 integration
@@ -74,7 +71,7 @@ Igo is a Node.js full-stack web framework built on Express, providing ORM, templ
 ## Key Technologies
 
 - **Backend:** Express 5, Node.js
-- **Build:** Webpack (dust browser bundle, server CSS/assets)
+- **Build:** Webpack (server CSS/assets)
 - **Docs:** VitePress (deployed to GitHub Pages)
 - **Database:** MySQL2, PostgreSQL (pg)
 - **Caching:** Redis
@@ -99,8 +96,8 @@ npm run test:dust
 npm run test:server
 npm run test:component
 
-# Build dust browser bundle
-npm run build --workspace=@igojs/dust
+# Lint (packages/*/index.js and src/, not the tests)
+npm run eslint
 
 # Build docs (deployed to GitHub Pages via .github/workflows/docs.yml)
 npm run docs:build
@@ -108,7 +105,7 @@ npm run docs:build
 
 ## Code Style
 
-- ESLint configured (`.eslintrc.json`)
+- ESLint configured (`eslint.config.js`)
 - 2-space indentation
 - Single quotes
 - Semicolons required
@@ -138,8 +135,7 @@ res.render('template', { data });
 
 ## Current Branch
 
-- **Development:** `v6` (current)
-- **Main:** `master`
+- **Development and releases:** `master`
 
 ## Versioning
 
@@ -152,6 +148,8 @@ Le package principal `@igojs/igo` (`packages/igo/`) est un meta-package qui depe
 ├── @igojs/server
 └── @igojs/component
 ```
+
+Les 5 packages sont publies ensemble, a la meme version (cf. le commit `release: 6.5.0`).
 
 **Lors d'une mise a jour de version d'un package :**
 
@@ -166,7 +164,6 @@ Le package principal `@igojs/igo` (`packages/igo/`) est un meta-package qui depe
 | `packages/*/package.json` | Package configurations |
 | `.mocharc.js` | Mocha test config |
 | `eslint.config.js` | ESLint rules |
-| `packages/dust/webpack.config.js` | Dust browser build config |
 | `packages/server/cli/igo.js` | CLI entry point |
 | `packages/server/index.d.ts` | TypeScript declarations for `@igojs/server` |
 | `packages/server/skel/` | Templates used by `igo create` |

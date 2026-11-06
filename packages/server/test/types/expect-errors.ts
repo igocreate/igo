@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { RequestHandler } from 'express';
 import type { ApiHandler } from '../../index';
 
 const CreateBook = z.object({ title: z.string(), pages: z.number() });
@@ -14,3 +15,15 @@ export const create: ApiHandler<{ body: typeof CreateBook }> = (req, res) => {
   res.json({ wrongType, missing });
 };
 create.body = CreateBook;
+
+export const session: RequestHandler = (req, res) => {
+  if (req.session) {
+    // @ts-expect-error userId is a number, declared by valid.ts
+    req.session.userId = 'abc';
+  }
+  // @ts-expect-error a session is an object or null
+  req.session = 42;
+  // @ts-expect-error restart() takes no callback
+  req.session?.restart(() => {});
+  res.end();
+};

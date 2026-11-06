@@ -21,8 +21,33 @@ declare global {
     interface Request {
       /** Trace id of the request: the active span's when instrumented, an inbound traceparent's, or one igo generated. */
       traceId: string;
+      /** The session stored in the encrypted cookie; null once destroyed. */
+      get session(): (Session & SessionMethods) | null;
+      /** null destroys the session; an object replaces it and starts both deadlines over. */
+      set session(value: Session | null);
     }
   }
+}
+
+/**
+ * The session's data. A project declares its own fields:
+ *
+ *   declare module '@igojs/server' {
+ *     interface Session { userId?: number }
+ *   }
+ */
+export interface Session {
+  [key: string]: unknown;
+}
+
+/** Out of the session's data: neither in the cookie, nor in its keys. */
+export interface SessionMethods {
+  /** Starts both deadlines over and keeps the data: to call on sign-in. */
+  restart(): void;
+  /** Empties the session and starts both deadlines over: passport >= 0.6 calls it on login and logout. */
+  regenerate(cb?: (err?: unknown) => void): void;
+  /** Only calls back: the cookie is written with the response headers. */
+  save(cb?: (err?: unknown) => void): void;
 }
 
 export interface ApiConfig {
@@ -195,7 +220,7 @@ export interface TestRequestOptions {
   params?:   Record<string, string>;
   headers?:  Record<string, string>;
   cookies?:  Record<string, string>;
-  session?:  Record<string, unknown>;
+  session?:  Session;
   /** Uploaded files, as the multipart middleware sets them on req.files. */
   files?:    Record<string, unknown>;
   hostname?: string;

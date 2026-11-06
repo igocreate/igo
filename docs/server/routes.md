@@ -163,6 +163,23 @@ Passport ≥ 0.6 calls `req.session.regenerate(cb)` and `req.session.save(cb)` o
 
 A session emptied this way — on logout — clears the browser's cookie.
 
+### TypeScript
+
+`req.session` is typed as `Session`, with `restart()`, `regenerate()` and `save()`. Any key reads as `unknown` until the project declares its fields:
+
+```ts
+// app/shared/session.d.ts
+declare module '@igojs/server' {
+  interface Session {
+    userId?: number;
+  }
+}
+
+export {};
+```
+
+`req.session?.userId` is then a `number | undefined`. The `export {}` matters: without it, the file declares the module instead of adding to it. The `fullstack` skeleton ships this file.
+
 ### Keys
 
 `keys` accepts several entries: the first encrypts (HKDF-SHA256 derives the AES key from it), the others decrypt only. Handy to change the key without signing everyone out — but a leaked key must be dropped, not kept around, since anyone holding it can forge a session.

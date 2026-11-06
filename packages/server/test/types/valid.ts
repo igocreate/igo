@@ -2,7 +2,7 @@ import axios from 'axios';
 import { z } from 'zod';
 import { Router, type NextFunction, type Request, type RequestHandler, type Response } from 'express';
 import { Model } from '@igojs/db';
-import { config, logHttpCalls, type ApiHandler } from '../../index';
+import { config, dev, logHttpCalls, type ApiHandler } from '../../index';
 
 interface BookRow { id: number; title: string; pages: number }
 class Book extends Model<BookRow>({ table: 'books', columns: ['id', 'title', 'pages'] }) {}
@@ -65,3 +65,26 @@ router.post('/books', guard, create);
 const partner = logHttpCalls(axios.create({ baseURL: 'https://api.elap.io' }));
 export const partnerStatus = async (): Promise<number> => (await partner.get('/ping')).status;
 export const elapSetting: boolean | number | undefined = config.loghttpcallsByHost['api.elap.io'];
+
+declare module '../../index' {
+  interface Session { userId?: number }
+}
+
+export const signIn: RequestHandler = (req, res) => {
+  const userId: number | undefined = req.session?.userId;
+  const other: unknown = req.session?.anything;
+  req.session = { userId: 42 };
+  if (req.session) {
+    req.session.userId = 43;
+  }
+  req.session?.restart();
+  req.session?.regenerate(() => req.session?.save());
+  res.json({ userId, other });
+};
+
+export const signOut: RequestHandler = (req, res) => {
+  req.session = null;
+  res.end();
+};
+
+export const withSession = (): Promise<unknown> => dev.agent.get('/', { session: { userId: 42 } });

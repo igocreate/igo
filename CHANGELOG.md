@@ -6,8 +6,9 @@
 
 - **Changed**: `config.cookieSession.maxDuration` replaces `maxAge`: 31 days from the session's start, whatever the activity. `maxAge` counted from the session's last change, so any write — a flash message, a saved filter — pushed it back and an active user could stay signed in indefinitely; now they are signed out once it is spent. A `maxAge` set by the project is read as `maxDuration`, with a warning at startup: rename it. Sessions from before the deploy are counted from their first request after it. See [Session expiry](https://igocreate.github.io/igo/server/routes#session-expiry).
 - **Added**: `config.cookieSession.idleTimeout`, off by default: the session expires after that long without a request, each one pushing it back (the cookie is rewritten at most once a minute). `SESSION_MAX_DURATION` / `SESSION_IDLE_TIMEOUT` (`15m`, `1h`, `1d`…) set both from the environment. Both are checked server-side against the current settings, so lowering them applies to the sessions already out.
-- **Added**: `req.session.restart()`, to call on sign-in: both deadlines start over, the data stays. The `fullstack` skeleton types it.
+- **Added**: `req.session.restart()`, to call on sign-in: both deadlines start over, the data stays.
 - **Added**: `req.session.regenerate(cb)` and `req.session.save(cb)`, which passport ≥ 0.6 calls on login and logout: `regenerate()` empties the session like express-session's, `save()` just calls back. The test agent provides both. See [Passport](https://igocreate.github.io/igo/server/routes#passport).
+- **Added**: `req.session` typed in `index.d.ts`, methods included; a project declares its fields by augmenting the `Session` interface. The `fullstack` skeleton does it in `app/shared/session.d.ts`, which replaces its `express.d.ts`. See [TypeScript](https://igocreate.github.io/igo/server/routes#typescript).
 - **Fixed**: a session replaced by an empty one (`req.session = {}`, `regenerate()`) clears the browser's cookie; the previous one, still signed in, used to stay.
 
 ## 6.5.0 - 2026-10-28
