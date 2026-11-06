@@ -70,7 +70,32 @@ const parseLogHttpCallsByHost = (value) => Object.fromEntries(
   .map(([host, setting]) => [host.toLowerCase(), parseLogRequests(setting)])
 );
 
+// REDIS_USERNAME / REDIS_PASSWORD for a managed instance; REDIS_TLS=true|false, anything else stops the boot
+const redisConfig = (env) => {
+  const redis = {
+    socket: {
+      host:     env.REDIS_HOST      || '127.0.0.1',
+      port:     env.REDIS_PORT      || 6379,
+    },
+    database: env.REDIS_DATABASE  || 0
+  };
+  if (env.REDIS_TLS && env.REDIS_TLS !== 'true' && env.REDIS_TLS !== 'false') {
+    throw new Error(`Invalid REDIS_TLS "${env.REDIS_TLS}": expected true or false`);
+  }
+  if (env.REDIS_TLS === 'true') {
+    redis.socket.tls = true;
+  }
+  if (env.REDIS_USERNAME) {
+    redis.username = env.REDIS_USERNAME;
+  }
+  if (env.REDIS_PASSWORD) {
+    redis.password = env.REDIS_PASSWORD;
+  }
+  return redis;
+};
+
 module.exports.parseLogRequests        = parseLogRequests;
+module.exports.redisConfig             = redisConfig;
 module.exports.parseLogHttpCallsByHost = parseLogHttpCallsByHost;
 module.exports.readProjectPackage      = readProjectPackage;
 
@@ -227,13 +252,7 @@ module.exports.init = function() {
   };
 
   // cache
-  config.redis = {
-    socket: {
-      host:     process.env.REDIS_HOST      || '127.0.0.1',
-      port:     process.env.REDIS_PORT      || 6379,
-    },
-    database: process.env.REDIS_DATABASE  || 0
-  };
+  config.redis = redisConfig(process.env);
 
   // logger
   config.loglevel = process.env.LOG_LEVEL || 'info';

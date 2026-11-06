@@ -9,6 +9,7 @@
 - **Added**: `req.session.restart()`, to call on sign-in: both deadlines start over, the data stays.
 - **Added**: `req.session.regenerate(cb)` and `req.session.save(cb)`, which passport ≥ 0.6 calls on login and logout: `regenerate()` empties the session like express-session's, `save()` just calls back. The test agent provides both. See [Passport](https://igocreate.github.io/igo/server/routes#passport).
 - **Added**: `req.session` typed in `index.d.ts`, methods included; a project declares its fields by augmenting the `Session` interface. The `fullstack` skeleton does it in `app/shared/session.d.ts`, which replaces its `express.d.ts`. See [TypeScript](https://igocreate.github.io/igo/server/routes#typescript).
+- **Added**: `REDIS_USERNAME`, `REDIS_PASSWORD` and `REDIS_TLS`, for a managed Redis or Valkey; unset, nothing changes. See [Cache](https://igocreate.github.io/igo/server/cache#configuration).
 - **Fixed**: a session replaced by an empty one (`req.session = {}`, `regenerate()`) clears the browser's cookie; the previous one, still signed in, used to stay.
 
 ## 6.5.0 - 2026-10-28

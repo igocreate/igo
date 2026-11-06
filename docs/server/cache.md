@@ -5,15 +5,18 @@ Igo.js uses Redis as a distributed cache.
 
 ## Configuration
 
-```js
-config.redis = {
-  socket: {
-    host: process.env.REDIS_HOST || '127.0.0.1',
-    port: process.env.REDIS_PORT || 6379,
-  },
-  database: process.env.REDIS_DATABASE || 0,
-};
-```
+igo builds `config.redis` from the environment:
+
+| Variable | Option | Default |
+|----------|--------|---------|
+| `REDIS_HOST` | `socket.host` | `127.0.0.1` |
+| `REDIS_PORT` | `socket.port` | `6379` |
+| `REDIS_DATABASE` | `database` | `0` |
+| `REDIS_USERNAME` | `username` | — the `default` user |
+| `REDIS_PASSWORD` | `password` | — no authentication |
+| `REDIS_TLS` | `socket.tls` | `false` |
+
+A managed Redis or Valkey usually needs `REDIS_PASSWORD` and `REDIS_TLS=true`, plus `REDIS_USERNAME` for a named ACL user. `REDIS_TLS` takes `true` or `false`; anything else stops the server at startup. Any other [node-redis option](https://github.com/redis/node-redis/blob/master/docs/client-configuration.md) goes in `config.redis`, in `app/config.js`.
 
 igo pings the connection every minute, whatever `config.redis` holds — a
 project replacing it whole to set its URL keeps the ping. A managed Valkey

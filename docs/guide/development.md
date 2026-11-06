@@ -76,17 +76,27 @@ const config = require('@igojs/server').config;
 |----------|---------|-------------|
 | `NODE_ENV` | `dev` | Environment: `dev`, `test`, `production` |
 | `HTTP_PORT` | `3000` | Server port |
-| `MYSQL_HOST` | `localhost` | MySQL host |
+| `MYSQL_HOST` | `127.0.0.1` | MySQL host |
+| `MYSQL_PORT` | `3306` | MySQL port |
 | `MYSQL_DATABASE` | `igo` | MySQL database name |
-| `MYSQL_USER` | `root` | MySQL user |
+| `MYSQL_USERNAME` | `root` | MySQL user |
 | `MYSQL_PASSWORD` | — | MySQL password |
-| `PG_HOST` | `localhost` | PostgreSQL host |
-| `PG_DATABASE` | `igo` | PostgreSQL database name |
-| `REDIS_HOST` | `localhost` | Redis host |
+| `POSTGRESQL_HOST` | `127.0.0.1` | PostgreSQL host |
+| `POSTGRESQL_PORT` | `5432` | PostgreSQL port |
+| `POSTGRESQL_DATABASE` | `igo` | PostgreSQL database name |
+| `POSTGRESQL_USERNAME` | — | PostgreSQL user |
+| `POSTGRESQL_PASSWORD` | — | PostgreSQL password |
+| `REDIS_HOST` | `127.0.0.1` | Redis host |
 | `REDIS_PORT` | `6379` | Redis port |
+| `REDIS_DATABASE` | `0` | Redis database index |
+| `REDIS_USERNAME` | — | Redis user, for an ACL user other than `default` |
+| `REDIS_PASSWORD` | — | Redis password |
+| `REDIS_TLS` | `false` | `true` to connect over TLS |
 | `LOG_LEVEL` | `info` | Winston log level |
 | `COOKIE_SECRET` | — | Cookie signing secret |
 | `COOKIE_SESSION_KEYS` | — | Session encryption keys (comma-separated, first one is used to encrypt) |
+| `SESSION_MAX_DURATION` | `31d` | Session lifetime from its start ([Session expiry](/server/routes#session-expiry)) |
+| `SESSION_IDLE_TIMEOUT` | — | Session lifetime without a request |
 | `SMTP_HOST` | — | SMTP server for emails |
 | `SMTP_PORT` | `465` | SMTP port |
 | `SMTP_USER` | — | SMTP user |

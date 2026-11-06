@@ -72,6 +72,38 @@ describe('igo.config', () => {
     });
   });
 
+  describe('REDIS_*', () => {
+    const redis = config.redisConfig;
+
+    it('should default to a local instance, without auth nor TLS', () => {
+      assert.deepStrictEqual(redis({}), {
+        socket:   { host: '127.0.0.1', port: 6379 },
+        database: 0,
+      });
+    });
+
+    it('should read the credentials and TLS of a managed instance', () => {
+      const env = { REDIS_HOST: 'valkey.internal', REDIS_PORT: '6380', REDIS_USERNAME: 'app', REDIS_PASSWORD: 's3cret', REDIS_TLS: 'true' };
+      assert.deepStrictEqual(redis(env), {
+        socket:   { host: 'valkey.internal', port: '6380', tls: true },
+        database: 0,
+        username: 'app',
+        password: 's3cret',
+      });
+    });
+
+    it('should read a password alone, for the default user', () => {
+      const result = redis({ REDIS_PASSWORD: 's3cret', REDIS_TLS: 'false' });
+      assert.strictEqual(result.password, 's3cret');
+      assert(!('username' in result));
+      assert(!('tls' in result.socket));
+    });
+
+    it('should stop the boot on a REDIS_TLS it does not understand', () => {
+      assert.throws(() => redis({ REDIS_TLS: 'yes' }), /Invalid REDIS_TLS "yes"/);
+    });
+  });
+
   describe('config.checkSecrets', () => {
 
     const withConfig = (overrides, fn) => {
