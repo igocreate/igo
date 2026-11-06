@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@11.28.9",
+  "packageManager": "pnpm@11.28.11",
   "scripts": {
     "dev": "concurrently -n api,front -c blue,magenta \"pnpm --filter ./api start\" \"pnpm --filter ./front dev\"",
     "build": "pnpm --filter ./api build && pnpm --filter ./front build",
@@ -23,8 +23,8 @@
     "concurrently": "^10.0.6",
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
-    "oxfmt": "^0.75.0",
-    "oxlint": "^1.90.0"
+    "oxfmt": "^0.76.0",
+    "oxlint": "^1.91.0"
   },
   "engines": {
     "node": ">=24"

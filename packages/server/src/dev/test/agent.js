@@ -1,6 +1,5 @@
 const app     = require('../../app');
 
-//
 // the session's methods, without a cookie: restart() and save() are no-ops
 const withMethods = (req, session) => {
   return Object.defineProperties(session, {
@@ -15,6 +14,7 @@ const withMethods = (req, session) => {
   });
 };
 
+//
 const mockRequest = (options) => {
   const req = {};
 
