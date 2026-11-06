@@ -1,20 +1,21 @@
 # Changelog
 
-## Unreleased
+## 6.6.0 - 2026-11-06
 
 ### @igojs/component
 
-- **Deprecated**: maintenance only — bug fixes and compatibility, no new features — until its removal in a future major version. New interactive interfaces start from the `fullstack` skeleton, a React SPA on an igo JSON API.
+- **Deprecated**: maintenance only — bug fixes and compatibility, no new features — until its removal in a future major version. New interactive interfaces start from the `fullstack` skeleton.
+- **Changed**: `devalue` 6.
 
 ### @igojs/server
 
-- **Changed**: `config.cookieSession.maxDuration` replaces `maxAge`: 31 days from the session's start, whatever the activity. `maxAge` counted from the session's last change, so any write — a flash message, a saved filter — pushed it back and an active user could stay signed in indefinitely; now they are signed out once it is spent. A `maxAge` set by the project is read as `maxDuration`, with a warning at startup: rename it. Sessions from before the deploy are counted from their first request after it. See [Session expiry](https://igocreate.github.io/igo/server/routes#session-expiry).
-- **Added**: `config.cookieSession.idleTimeout`, off by default: the session expires after that long without a request, each one pushing it back (the cookie is rewritten at most once a minute). `SESSION_MAX_DURATION` / `SESSION_IDLE_TIMEOUT` (`15m`, `1h`, `1d`…) set both from the environment. Both are checked server-side against the current settings, so lowering them applies to the sessions already out.
-- **Added**: `req.session.restart()`, to call on sign-in: both deadlines start over, the data stays.
-- **Added**: `req.session.regenerate(cb)` and `req.session.save(cb)`, which passport ≥ 0.6 calls on login and logout: `regenerate()` empties the session like express-session's, `save()` just calls back. The test agent provides both. See [Passport](https://igocreate.github.io/igo/server/routes#passport).
-- **Added**: `req.session` typed in `index.d.ts`, methods included; a project declares its fields by augmenting the `Session` interface. The `fullstack` skeleton does it in `app/shared/session.d.ts`, which replaces its `express.d.ts`. See [TypeScript](https://igocreate.github.io/igo/server/routes#typescript).
-- **Added**: `REDIS_USERNAME`, `REDIS_PASSWORD` and `REDIS_TLS`, for a managed Redis or Valkey; unset, nothing changes. See [Cache](https://igocreate.github.io/igo/server/cache#configuration).
-- **Fixed**: a session replaced by an empty one (`req.session = {}`, `regenerate()`) clears the browser's cookie; the previous one, still signed in, used to stay.
+- **Changed**: `config.cookieSession.maxDuration` replaces `maxAge`, counted from the session's start: an active user no longer stays signed in indefinitely. `maxAge` still works, read as `maxDuration`, with a warning: rename it. See [Session expiry](https://igocreate.github.io/igo/server/routes#session-expiry).
+- **Added**: `config.cookieSession.idleTimeout`, off by default; `SESSION_MAX_DURATION` and `SESSION_IDLE_TIMEOUT` (`15m`, `1h`, `1d`…) set both.
+- **Added**: `req.session.restart()`, to call on sign-in, and `regenerate()` / `save()` for passport ≥ 0.6. See [Passport](https://igocreate.github.io/igo/server/routes#passport).
+- **Added**: `req.session` typed; a project declares its fields on the `Session` interface. See [TypeScript](https://igocreate.github.io/igo/server/routes#typescript).
+- **Added**: `REDIS_USERNAME`, `REDIS_PASSWORD` and `REDIS_TLS`, for a managed Redis or Valkey. See [Cache](https://igocreate.github.io/igo/server/cache#configuration).
+- **Fixed**: a session replaced by an empty one (`req.session = {}`, `regenerate()`) clears the browser's cookie, which stayed signed in.
+- **Changed**: dependencies at their latest minor version, the skeletons' too, `nodemailer` 10.3.1 and `dotenv` 18.
 
 ## 6.5.0 - 2026-10-28
 
