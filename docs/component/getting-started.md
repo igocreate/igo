@@ -1,6 +1,10 @@
 
 # Igo Component
 
+::: warning Deprecated
+`@igojs/component` is in maintenance: the applications that use it keep their bug fixes and stay compatible with the other igo packages, but it gets no new features and will be removed in a future major version. For a new interactive interface, start from the [`fullstack` skeleton](/server/getting-started#skeletons): a React SPA on an igo JSON API.
+:::
+
 ## Introduction
 
 `@igojs/component` adds reactive components to your server-rendered Igo pages. A component lives in a single `.dust` file — definition + template — and runs both on the server (full SSR) and in the browser (hydration with auto-reactivity).

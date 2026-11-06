@@ -1,5 +1,7 @@
 # @igojs/component
 
+> **Deprecated.** Maintained for the applications that use it — bug fixes, compatibility with the other igo packages — but no new features, and removed in a future major version. For a new interactive interface, start from the `fullstack` skeleton (`npx @igojs/server create myapp --skel=fullstack`): a React SPA on an igo JSON API.
+
 Reactive single-file components with SSR for [Igo.js](https://igocreate.github.io/igo). One `.dust` file with `<script>` + template, deep reactivity via Proxy, automatic hydration, DiffDOM reconciliation.
 
 ## Install

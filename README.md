@@ -6,7 +6,7 @@ Igo is a full-stack web framework for Node.js, built on Express 5. It provides e
 
 - **ORM** for MySQL and PostgreSQL with Active Record-style API, associations, Redis caching, and migrations
 - **Template engine** (Dust-inspired) with async/await rendering and Express integration
-- **Reactive frontend** with deep reactivity via Proxy, SSR with hydration, and DiffDOM reconciliation
+- **Reactive frontend** with deep reactivity via Proxy, SSR with hydration, and DiffDOM reconciliation — deprecated, maintenance only: new interfaces start from the `fullstack` skeleton (React SPA + JSON API)
 - **Express 5 framework** with file-based routing, form validation, i18n, email (Nodemailer + MJML), and CLI scaffolding
 
 All remarks, suggestions, PRs are welcome!

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### @igojs/component
+
+- **Deprecated**: maintenance only — bug fixes and compatibility, no new features — until its removal in a future major version. New interactive interfaces start from the `fullstack` skeleton, a React SPA on an igo JSON API.
+
 ### @igojs/server
 
 - **Changed**: `config.cookieSession.maxDuration` replaces `maxAge`: 31 days from the session's start, whatever the activity. `maxAge` counted from the session's last change, so any write — a flash message, a saved filter — pushed it back and an active user could stay signed in indefinitely; now they are signed out once it is spent. A `maxAge` set by the project is read as `maxDuration`, with a warning at startup: rename it. Sessions from before the deploy are counted from their first request after it. See [Session expiry](https://igocreate.github.io/igo/server/routes#session-expiry).

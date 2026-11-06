@@ -13,7 +13,7 @@ This pulls in:
 - [`@igojs/server`](https://www.npmjs.com/package/@igojs/server) — Express 5 framework, CLI, mailer, i18n
 - [`@igojs/db`](https://www.npmjs.com/package/@igojs/db) — Active Record-style ORM (MySQL, PostgreSQL)
 - [`@igojs/dust`](https://www.npmjs.com/package/@igojs/dust) — Async template engine
-- [`@igojs/component`](https://www.npmjs.com/package/@igojs/component) — Reactive single-file components with SSR
+- [`@igojs/component`](https://www.npmjs.com/package/@igojs/component) — Reactive single-file components with SSR (deprecated, maintenance only)
 
 This package has no runtime entry point — `require('@igojs/igo')` returns nothing. Import the individual packages instead:
 

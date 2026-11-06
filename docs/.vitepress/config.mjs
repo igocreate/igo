@@ -112,7 +112,7 @@ export default defineConfig({
 
       '/component/': [
         {
-          text: '@igojs/component',
+          text: '@igojs/component (deprecated)',
           items: [
             { text: 'Getting started', link: '/component/getting-started' },
             { text: 'Components',      link: '/component/components' },
