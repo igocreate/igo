@@ -46,7 +46,7 @@ const logger  = require('../logger');
 const { errorFields } = require('../logfields');
 const mailer  = require('../mailer');
 const problem = require('../api/problem');
-const { isApiRequest } = require('../api/request');
+const { wantsJson } = require('../api/request');
 const requestLogger = require('./requestlogger');
 
 const asyncLocalStorage = new AsyncLocalStorage();
@@ -177,13 +177,13 @@ const sendCrashEmail = (subject, body, errorKey) => {
 };
 
 const handle = (err, req, res, { restarting = false } = {}) => {
-  // an API client cannot render a dust page: it always gets JSON back
-  const isApi = isApiRequest(req);
+  // a client that wants JSON (API route, or Accept preferring it) gets a problem document
+  const asJson = wantsJson(req);
 
   // Client errors - don't send emails
   if (err instanceof URIError) {
     if (!res.headersSent) {
-      isApi ? problem.send(res, 404) : res.status(404).render('errors/404');
+      asJson ? problem.send(res, 404) : res.status(404).render('errors/404');
     }
     return;
   }
@@ -192,7 +192,7 @@ const handle = (err, req, res, { restarting = false } = {}) => {
   if (err instanceof SyntaxError && err.type === 'entity.parse.failed') {
     if (!res.headersSent) {
       // malformed JSON is the client's mistake, and only an API client sends it
-      if (isApi) {
+      if (asJson) {
         problem.send(res, 400, { detail: 'Malformed JSON body' });
       } else {
         res.status(500).render('errors/500');
@@ -205,7 +205,7 @@ const handle = (err, req, res, { restarting = false } = {}) => {
   // encoding, aborted…); a bare `status` is not enough, an axios error has one
   if (err.expose === true && err.status >= 400 && err.status < 500) {
     if (!res.headersSent) {
-      if (isApi) {
+      if (asJson) {
         problem.send(res, err.status, { detail: err.message });
       } else if (err.status === 404) {
         res.status(404).render('errors/404');
@@ -236,7 +236,7 @@ const handle = (err, req, res, { restarting = false } = {}) => {
 
   sendCrashEmail(`${restarting ? 'Crash' : 'Error 500'}: ${err}`, formatMessage(req, err), String(err));
 
-  if (isApi) {
+  if (asJson) {
     // the stack is a debugging aid outside production, never a client contract
     return problem.send(res, 500, config.env === 'production' ? {} : { detail: err.message });
   }

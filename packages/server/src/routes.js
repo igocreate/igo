@@ -1,7 +1,7 @@
 const config  = require('./config');
 const api     = require('./api');
 const problem = require('./api/problem');
-const { isApiRequest } = require('./api/request');
+const { wantsJson } = require('./api/request');
 
 const routes = require(config.projectRoot + '/app/routes');
 
@@ -17,7 +17,7 @@ module.exports.init = function(app) {
 
   // 404
   app.all(/.*/, (req, res) => {
-    if (isApiRequest(req)) {
+    if (wantsJson(req)) {
       return problem.send(res, 404);
     }
     res.status(404).render('errors/404');

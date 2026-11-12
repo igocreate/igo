@@ -23,4 +23,12 @@ describe('unlessApi', function() {
     wrapped({ path: '/books', headers: {} }, {}, () => {});
     assert.deepStrictEqual(calls, ['/books']);
   });
+
+  // a client must not strip a page of the middlewares its controller needs:
+  // a crawler citing application/json;q=0.7 crashed a page on res.locals.flash
+  it('should run it on a page request whatever the Accept header', () => {
+    wrapped({ path: '/signup', headers: { accept: 'application/json' } }, {}, () => {});
+    wrapped({ path: '/signup', headers: { accept: 'text/html,application/json;q=0.7,*/*;q=0.5' } }, {}, () => {});
+    assert.deepStrictEqual(calls, ['/signup', '/signup']);
+  });
 });

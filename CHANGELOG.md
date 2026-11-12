@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### @igojs/server
+
+- **Fixed**: a page request whose `Accept` header cites `application/json` (a crawler sending `text/html,…,application/json;q=0.7`, a `fetch`) no longer skips the page middlewares — flash, locals, assets, igodust — which crashed controllers on `res.locals.flash`. They are now skipped only under `config.api.prefix`.
+- **Fixed**: errors and 404 answer in JSON on an API route or when the `Accept` header prefers JSON over HTML, `q=` weights included; `*/*` gets HTML.
+
 ## 6.6.0 - 2026-11-06
 
 ### @igojs/component
