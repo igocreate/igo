@@ -31,7 +31,7 @@ src/
     sections/               blocs autonomes — PEUVENT fetch
     components/             affichage — PURS, props only
     api.ts                  queries et mutations TanStack Query
-    types.ts                types de la feature
+    types.ts                types et schémas zod de la feature
   lib/
     api-client.ts           wrapper fetch typé, erreurs RFC 9457
     report-error.ts         signaler une erreur rattrapée
@@ -67,9 +67,11 @@ invisibles.
 **Les états loading et error sont explicites** dans les pages et sections. Pas
 de composant qui suppose que les données sont là.
 
-**Le serveur est l'autorité sur la validation.** La validation côté client est
-un confort ; les erreurs du serveur s'affichent telles quelles, par champ, via
-`ApiError.fieldError(champ)`.
+**La surface se valide côté client, le métier côté serveur.** Le schéma zod du
+formulaire, dans `types.ts`, refuse avant l'envoi toute saisie mal formée :
+obligatoire, format, longueur, cohérence entre champs. L'API revalide tout. Ce
+qu'elle seule peut refuser (unicité, état, droits) s'affiche tel quel sous le
+champ, via `ApiError.fieldError(champ)`.
 
 **Les types de la feature reflètent le DTO du back.** Ils sont écrits à la main :
 si les deux dérivent, ce sont les tests de feature qui le montrent.

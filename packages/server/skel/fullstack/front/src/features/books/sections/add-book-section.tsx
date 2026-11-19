@@ -1,16 +1,21 @@
 import { useState } from 'react';
+import { z } from 'zod';
 
 import { ApiError } from '@/lib/api-client';
 
 import { useCreateBook } from '../api';
+import { NewBook } from '../types';
 
 const EMPTY = { title: '', author: '', pages: '' };
 const LABELS = { title: 'Titre', author: 'Auteur', pages: 'Pages' };
 
-// Une section possède sa mutation. Le serveur est l'autorité sur la validité :
-// ses erreurs par champ s'affichent telles quelles, sans être redérivées ici.
+type FormErrors = Partial<Record<keyof typeof EMPTY, string[]>>;
+
+// Une section possède sa mutation. Le schéma écarte une saisie mal formée avant
+// l'envoi ; ce que seul le serveur peut refuser s'affiche sous le champ qu'il nomme.
 export function AddBookSection() {
   const [form, setForm] = useState(EMPTY);
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
   const createBook = useCreateBook();
 
   const error = createBook.error instanceof ApiError ? createBook.error : null;
@@ -19,16 +24,20 @@ export function AddBookSection() {
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
-    createBook.mutate(
-      { title: form.title, author: form.author, pages: Number(form.pages) },
-      { onSuccess: () => setForm(EMPTY) },
-    );
+    const parsed = NewBook.safeParse(form);
+    if (!parsed.success) {
+      createBook.reset();
+      setFormErrors(z.flattenError(parsed.error).fieldErrors);
+      return;
+    }
+    setFormErrors({});
+    createBook.mutate(parsed.data, { onSuccess: () => setForm(EMPTY) });
   };
 
   return (
     <form onSubmit={submit} className="mb-8 space-y-3">
       {(['title', 'author', 'pages'] as const).map((field) => {
-        const message = fieldErrors?.fieldError(field);
+        const message = formErrors[field]?.[0] ?? fieldErrors?.fieldError(field);
         return (
           <div key={field}>
             <label className="block text-sm font-medium" htmlFor={field}>
