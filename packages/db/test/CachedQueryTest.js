@@ -106,6 +106,67 @@ describe('db.CachedQuery', function () {
 
   });
 
+  // the readers stamp entries with the versions read *before* their SELECT:
+  // the writer must bump *after* its write, or a read in between caches the old rows as current
+  describe('concurrent read during a write', function () {
+
+    it('should not leave the old row in cache when a SELECT runs right before the UPDATE', async function () {
+      const book = await Book.create({ title: 'old' });
+      await Book.find(book.id); // populates the cache
+
+      // a concurrent reader runs its SELECT just before the UPDATE reaches the database
+      let raced;
+      Db.prototype.query = async function (sql, params, options) {
+        if (!raced && sql.startsWith('UPDATE')) {
+          Db.prototype.query = dbQuery;
+          raced = await Book.find(book.id);
+        }
+        return dbQuery.call(this, sql, params, options);
+      };
+      try {
+        await book.update({ title: 'new' });
+      } finally {
+        Db.prototype.query = dbQuery;
+      }
+
+      assert.strictEqual(raced.title, 'old', 'Expected the concurrent read to see the row before the write');
+      const after = await Book.find(book.id);
+      assert.strictEqual(after.title, 'new', 'Expected the old row not to be served from cache');
+    });
+
+    it('should bump the version after a failed write too', async function () {
+      const book    = await Book.create();
+      const version = await cache.get('_cached_versions', 'books');
+
+      Db.prototype.query = async () => { throw new Error('write failed'); };
+      try {
+        await assert.rejects(book.update({ title: 'never' }), /write failed/);
+      } finally {
+        Db.prototype.query = dbQuery;
+      }
+
+      assert.ok(await cache.get('_cached_versions', 'books') > version);
+    });
+
+    it('should log, not throw, when the cache cannot be invalidated after the write', async function () {
+      const book      = await Book.create();
+      const { incr }  = cache;
+      const { error } = logger;
+      const errors    = [];
+      cache.incr   = async () => { throw new Error('cache down'); };
+      logger.error = (message) => errors.push(message);
+      try {
+        await book.update({ title: 'written' });
+      } finally {
+        cache.incr   = incr;
+        logger.error = error;
+      }
+      assert.match(errors[0], /cache invalidation failed after write on 'books': cache down/);
+      assert.strictEqual((await PlainBook.find(book.id)).title, 'written');
+    });
+
+  });
+
   describe('count', function () {
 
     it('should cache count queries', async function () {
