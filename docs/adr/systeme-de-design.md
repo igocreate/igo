@@ -81,7 +81,9 @@ Trois approches, toutes cohérentes. Tailwind est déjà en place sur les projet
 
 ## Decision Outcome
 
-**Approche B retenue : shadcn/ui sur Tailwind**, avec **TanStack Table** pour les tableaux de données.
+**Approche B retenue : shadcn/ui sur Tailwind.**
+
+**C'est une recommandation forte, pas une obligation** : on s'y conforme par défaut, et une exception se justifie. Ce qui est décidé, c'est la grammaire — Tailwind et un seul système de jetons — pas le registre d'où viennent les composants. Un projet qui écrit les siens à la main, ou qui part d'ailleurs, les range au même endroit (`components/ui/`) et expose ses jetons de la même façon.
 
 **Ce qui a décidé, dans cet ordre :**
 
@@ -89,9 +91,9 @@ Trois approches, toutes cohérentes. Tailwind est déjà en place sur les projet
 - **Tailwind est déjà en place sur les projets existants.** C'est la seule approche à coût d'adaptation nul : le pont entre les jetons du système de design et ceux de Tailwind **fait partie du code livré**, il n'est ni à écrire ni à maintenir. C'est le seul poste de l'approche A que personne ne facture mais que quelqu'un paie, à chaque majeure et sur chaque projet.
 - **Le travail est multi-clients.** shadcn n'a aucune identité d'entreprise à effacer, là où MUI impose la grammaire visuelle de Material — que la thématisation ne change pas.
 - **L'équipe n'a pas de designer dédié**, et c'est ce qui écarte l'approche C tout en rendant B viable : un socle sans habillage laisserait devant une page blanche, alors que shadcn livre des habillages de départ corrects.
-- **Le besoin de tableaux est couvert gratuitement.** Le registre shadcn porte un tableau de données bâti sur TanStack Table, en MIT. Trier, filtrer et paginer ne justifie aucun achat, pas plus que la virtualisation.
+- **Le besoin de tableaux est couvert gratuitement.** Le registre shadcn porte un tableau, et le `<table>` qu'il livre suffit à la plupart des écrans : quand le tri et la pagination sont faits par l'API — le cas dès qu'une liste dépasse ce qu'on charge d'un coup — il ne reste côté client qu'à afficher des lignes et à poser des liens d'en-tête. **TanStack Table ne s'ajoute que pour ce que ce tableau ne sait pas faire** : tri, filtrage ou pagination côté client sur un jeu déjà chargé, colonnes définies à l'exécution, virtualisation. En MIT, donc sans achat le jour où le besoin se présente.
 
-**Ce qui retournerait la décision, énoncé pour qu'on le reconnaisse le jour venu :** un volume significatif d'écrans à **grille vraiment riche** — export tableur, épinglage de colonnes, regroupement, tableaux croisés. TanStack Table ne le fait pas, et le construire coûterait plus qu'une licence. **Mais l'asymétrie joue en faveur de B** : ajouter une grille riche plus tard reste un achat ciblé, alors qu'adopter MUI aujourd'hui engagerait toute la couche visuelle.
+**Ce qui retournerait la décision, énoncé pour qu'on le reconnaisse le jour venu :** un volume significatif d'écrans à **grille vraiment riche** — export tableur, épinglage de colonnes, regroupement, tableaux croisés. Ni le tableau de shadcn ni TanStack Table ne le font, et le construire coûterait plus qu'une licence. **Mais l'asymétrie joue en faveur de B** : ajouter une grille riche plus tard reste un achat ciblé, alors qu'adopter MUI aujourd'hui engagerait toute la couche visuelle.
 
 ### Consequences
 

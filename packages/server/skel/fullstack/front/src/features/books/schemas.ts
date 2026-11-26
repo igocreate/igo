@@ -1,0 +1,25 @@
+import { z } from 'zod';
+
+const PAGES_ERROR = 'Le nombre de pages est un entier positif';
+
+// Mêmes règles de surface que le DTO de création de l'API, qui les revérifie :
+// le formulaire refuse une saisie mal formée sans aller-retour réseau. Ce que
+// seul le serveur sait — une référence déjà prise, une règle métier — n'est pas
+// ici : il le refuse, et son message s'affiche sous le champ qu'il nomme.
+//
+// Les schémas vivent à part des types : `types.ts` décrit ce que l'API rend,
+// `schemas.ts` ce que les formulaires acceptent. Les deux divergent dès qu'un
+// champ est saisi en texte avant d'être converti.
+export const NewBook = z.object({
+  title: z.string().min(1, 'Le titre est obligatoire').max(255, 'Le titre dépasse 255 caractères'),
+  author: z.string().min(1, "L'auteur est obligatoire").max(255, "L'auteur dépasse 255 caractères"),
+  // Un champ de saisie rend du texte : le schéma le dit, puis convertit. Avec
+  // `z.coerce.number()`, l'entrée serait typée `unknown` — la coercition
+  // accepte tout — et le formulaire perdrait le typage sur le champ même qui
+  // motive la conversion.
+  pages: z
+    .string()
+    .regex(/^\d+$/, PAGES_ERROR)
+    .transform(Number)
+    .refine((pages) => pages > 0, PAGES_ERROR),
+});

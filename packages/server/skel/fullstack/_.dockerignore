@@ -1,0 +1,14 @@
+# N'exclure ici que ce qu'aucune image ne doit recevoir : ce fichier est
+# partagé par tous les Dockerfile du dépôt.
+.git
+.github
+node_modules
+**/node_modules
+**/dist
+.env
+**/.env
+*.log
+coverage
+e2e
+deploy
+docs

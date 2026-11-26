@@ -1,82 +1,93 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
-import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import type { z } from 'zod';
 
+import { TextField } from '@/components/form/text-field';
+import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api-client';
+import { applyFieldErrors } from '@/lib/form';
 
 import { useCreateBook } from '../api';
-import { NewBook } from '../types';
+import { NewBook } from '../schemas';
 
-const EMPTY = { title: '', author: '', pages: '' };
-const LABELS = { title: 'Titre', author: 'Auteur', pages: 'Pages' };
+type NewBookValues = z.input<typeof NewBook>;
 
-type FormErrors = Partial<Record<keyof typeof EMPTY, string[]>>;
+const FIELDS = ['title', 'author', 'pages'] as const;
 
 // Une section possède sa mutation. Le schéma écarte une saisie mal formée avant
 // l'envoi ; ce que seul le serveur peut refuser s'affiche sous le champ qu'il nomme.
 export function AddBookSection() {
-  const [form, setForm] = useState(EMPTY);
-  const [formErrors, setFormErrors] = useState<FormErrors>({});
   const createBook = useCreateBook();
 
-  const error = createBook.error instanceof ApiError ? createBook.error : null;
-  const fieldErrors = error?.problem.errors?.length ? error : null;
-  const globalError = createBook.isError && !fieldErrors ? createBook.error : null;
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    formState: { errors, isSubmitting },
+    // Trois types : ce que les champs portent (du texte), le contexte, et ce que
+    // le schéma rend une fois converti — c'est ce dernier que reçoit
+    // `handleSubmit`, donc ce qui part à l'API.
+  } = useForm<NewBookValues, unknown, z.output<typeof NewBook>>({
+    resolver: zodResolver(NewBook),
+    // L'erreur apparaît quand on quitte le champ, et non à la première frappe
+    // d'un champ qu'on est en train de remplir ; ensuite elle suit la saisie.
+    mode: 'onTouched',
+    defaultValues: { title: '', author: '', pages: '' },
+  });
 
-  const submit = (event: React.FormEvent) => {
-    event.preventDefault();
-    const parsed = NewBook.safeParse(form);
-    if (!parsed.success) {
-      createBook.reset();
-      setFormErrors(z.flattenError(parsed.error).fieldErrors);
-      return;
+  // Ce que l'échec n'a pas pu placer sous un champ s'affiche ici. Sans cet
+  // état, un refus qui nomme un champ absent du formulaire n'apparaîtrait
+  // nulle part : ni sous un champ, ni en global.
+  const [globalError, setGlobalError] = useState<Error | null>(null);
+
+  // `mutateAsync` rejette sur erreur : on la rattrape pour placer ce qui vise
+  // un champ. Sans ce `catch`, le rejet remonterait sans personne pour le
+  // traiter.
+  const submit = handleSubmit(async (values) => {
+    setGlobalError(null);
+    try {
+      await createBook.mutateAsync(values);
+      reset();
+    } catch (error) {
+      if (!applyFieldErrors(error, setError, FIELDS)) {
+        setGlobalError(error as Error);
+      }
     }
-    setFormErrors({});
-    createBook.mutate(parsed.data, { onSuccess: () => setForm(EMPTY) });
-  };
+  });
 
   return (
-    <form onSubmit={submit} className="mb-8 space-y-3">
-      {(['title', 'author', 'pages'] as const).map((field) => {
-        const message = formErrors[field]?.[0] ?? fieldErrors?.fieldError(field);
-        return (
-          <div key={field}>
-            <label className="block text-sm font-medium" htmlFor={field}>
-              {LABELS[field]}
-            </label>
-            <input
-              id={field}
-              value={form[field]}
-              inputMode={field === 'pages' ? 'numeric' : undefined}
-              aria-invalid={message ? true : undefined}
-              aria-describedby={message ? `${field}-error` : undefined}
-              onChange={(e) => setForm({ ...form, [field]: e.target.value })}
-              className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
-            />
-            {message && (
-              <p id={`${field}-error`} role="alert" className="mt-1 text-sm text-red-600">
-                {message}
-              </p>
-            )}
-          </div>
-        );
-      })}
+    <form onSubmit={submit} noValidate className="mb-8 space-y-3">
+      <TextField
+        id="title"
+        label="Titre"
+        field={register('title')}
+        error={errors.title}
+        autoComplete="off"
+      />
+      <TextField id="author" label="Auteur" field={register('author')} error={errors.author} />
+      <TextField
+        id="pages"
+        label="Pages"
+        hint="En chiffres, par exemple 271"
+        field={register('pages')}
+        error={errors.pages}
+        inputMode="numeric"
+      />
 
       {globalError && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-sm text-destructive">
           L'ajout a échoué : {globalError.message}
-          {error?.traceId && (
-            <span className="block text-slate-500">Référence : {error.traceId}</span>
+          {globalError instanceof ApiError && globalError.traceId && (
+            <span className="block text-muted-foreground">Référence : {globalError.traceId}</span>
           )}
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={createBook.isPending}
-        className="rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50"
-      >
-        {createBook.isPending ? 'Ajout…' : 'Ajouter'}
-      </button>
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? 'Ajout…' : 'Ajouter'}
+      </Button>
     </form>
   );
 }

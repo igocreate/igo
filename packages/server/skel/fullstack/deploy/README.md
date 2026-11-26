@@ -6,6 +6,7 @@ son en-tête dit ce qui est à revoir.
 | Fichier | Rôle |
 |---|---|
 | `nginx.conf.example` | le front statique et `/api` sur la même origine |
+| — | *En conteneurs, le front est servi par le nginx de son image (`front/nginx.conf`) : ce qui reste ici est le proxy d'entrée, qui relaie `/api` à l'API et le reste au conteneur du front.* |
 | `config.alloy.agent.example` | collecteur Alloy, **un par machine** : logs, `/proc` de l'hôte, OTLP de l'API |
 | `config.alloy.gateway.example` | collecteur Alloy, **un pour l'infrastructure** : base, cache, sonde de disponibilité |
 | `grafana-dashboard.example.json` | le tableau de bord |

@@ -1,0 +1,108 @@
+# Construit et publie les images, une par artefact, au même commit.
+#
+# EXEMPLE — le registre et ses identifiants sont à adapter. Le reste vaut tel
+# quel : image taguée par le SHA, et promue sans reconstruction d'un
+# environnement à l'autre (ADR « Empaquetage de l'application »).
+#
+# Secrets attendus : REGISTRY_PASSWORD, et FARO_API_KEY si les source maps sont
+# téléversées au build du front.
+name: Image
+
+on:
+  push:
+    tags:
+      - '[0-9]*.[0-9]*.[0-9]*'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: registry.example.com
+  REGISTRY_USER: ci
+
+jobs:
+  image:
+    name: Build & push (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: '{project.name}-api'
+            dockerfile: api/Dockerfile
+          - name: '{project.name}-front'
+            dockerfile: front/Dockerfile
+    env:
+      IMAGE: registry.example.com/{project.name}/${{ matrix.name }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      # Le SHA est le seul tag déployé : c'est lui qui désigne l'artefact
+      # promu. Le tag de version suit la référence qui a déclenché le workflow.
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=sha,prefix=
+            type=ref,event=tag
+
+      # Un commit déjà construit n'est pas reconstruit : son image est celle qui
+      # a été testée, et c'est elle qu'on promeut. Reconstruire donnerait un
+      # artefact différent sous le même nom.
+      - id: existing
+        run: |
+          if docker buildx imagetools inspect "$IMAGE:${GITHUB_SHA::7}" > /dev/null 2>&1; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.existing.outputs.found == 'false'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          platforms: linux/amd64
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: GIT_SHA=${{ github.sha }}
+          # Le téléversement des source maps demande quatre valeurs ensemble
+          # (cf. front/_.env.example) : seule la clé est un secret, les trois
+          # autres sont à passer en build-args, et le Dockerfile du front à
+          # compléter en conséquence. Tant qu'elles manquent, le plugin reste
+          # inactif et les piles d'appels de Grafana montrent du code minifié.
+          secrets: |
+            faro_api_key=${{ secrets.FARO_API_KEY }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+      # L'image existe déjà : on lui ajoute les tags de cette référence, sans
+      # la reconstruire.
+      #
+      # Le tag du SHA est la source, et il est exclu : `imagetools create` le
+      # réemballerait dans un index, sous un digest différent. Ce qu'on a
+      # publié et testé cesserait alors d'être ce que désigne ce tag, et ce qui
+      # l'épingle par digest ne résoudrait plus.
+      - if: steps.existing.outputs.found == 'true'
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          source="$IMAGE:${GITHUB_SHA::7}"
+          for tag in $TAGS; do
+            [ "$tag" = "$source" ] && continue
+            docker buildx imagetools create --tag "$tag" "$source"
+          done

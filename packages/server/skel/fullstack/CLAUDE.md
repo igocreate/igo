@@ -13,7 +13,11 @@ pnpm test:e2e                                 # dès qu'un écran change
 ## À ne pas défaire
 
 - Pas d'autre interrupteur d'observabilité que `OTEL_EXPORTER_OTLP_ENDPOINT` et
-  `VITE_FARO_URL` : leur absence désactive tout.
+  l'URL du collecteur Faro — `FARO_URL` dans un conteneur, `VITE_FARO_URL` en
+  développement : leur absence désactive tout.
+- Les réglages d'observabilité du front se lisent dans la `<meta>` d'`index.html`,
+  jamais dans une `VITE_*` au-delà du développement : une image sert tous les
+  environnements, et réécrire un bundle invaliderait son hachage.
 - `import './instrumentation'` reste la première ligne de `api/app.ts`, et
   `instrumentation.ts` commence par `import '@igojs/server/env'`. Rien de
   l'application n'y est importé.

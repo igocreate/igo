@@ -24,16 +24,19 @@ src/
   observability.ts          initialisation, importée en premier
   routes.tsx                arbre de routes, lazy par feature
   components/
-    ui/                     composants d'interface bas niveau — purs, à créer
+    ui/                     shadcn/ui — copiés, donc modifiables
+    form/                   champs partagés : libellé, aide et erreur reliés
     layout/                 coquille de page, frontières d'erreur
   features/<domaine>/
     pages/                  composants de route — PEUVENT fetch
     sections/               blocs autonomes — PEUVENT fetch
     components/             affichage — PURS, props only
     api.ts                  queries et mutations TanStack Query
-    types.ts                types et schémas zod de la feature
+    types.ts                types du DTO de la feature
+    schemas.ts              schémas zod des formulaires
   lib/
     api-client.ts           wrapper fetch typé, erreurs RFC 9457
+    form.ts                 erreurs de champ de l'API, aria-describedby
     report-error.ts         signaler une erreur rattrapée
   test/                     handlers MSW, helper de rendu
 ```
@@ -68,10 +71,19 @@ invisibles.
 de composant qui suppose que les données sont là.
 
 **La surface se valide côté client, le métier côté serveur.** Le schéma zod du
-formulaire, dans `types.ts`, refuse avant l'envoi toute saisie mal formée :
+formulaire, dans `schemas.ts`, refuse avant l'envoi toute saisie mal formée :
 obligatoire, format, longueur, cohérence entre champs. L'API revalide tout. Ce
-qu'elle seule peut refuser (unicité, état, droits) s'affiche tel quel sous le
-champ, via `ApiError.fieldError(champ)`.
+qu'elle seule peut refuser (unicité, état, droits) s'affiche sous le champ
+qu'elle nomme, posé par `applyFieldErrors` (`lib/form.ts`), focus sur le
+premier.
+
+**Un formulaire s'écrit avec React Hook Form**, son schéma branché par
+`zodResolver` et `mode: 'onTouched'` : l'erreur apparaît quand on quitte le
+champ, puis suit la saisie. Les champs viennent de `components/form/`, qui
+relient libellé, aide et erreur pour les lecteurs d'écran — c'est ce câblage,
+et non la gestion de l'état, qui justifie la bibliothèque. `useActionState`
+suffit là où il n'y a ni validation ni erreurs par champ (une recherche, un
+filtre) ; dès qu'un champ se valide, le formulaire prend React Hook Form.
 
 **Les types de la feature reflètent le DTO du back.** Ils sont écrits à la main :
 si les deux dérivent, ce sont les tests de feature qui le montrent.
@@ -139,12 +151,25 @@ optionnelle, seule sa persistance l'est.
 
 ## Système de design
 
-Tailwind est installé, sans bibliothèque de composants. `src/components/ui/`
-accueille les composants d'interface bas niveau — bouton, champ, sélecteur :
-purs, sans accès aux données, réutilisables partout.
+[shadcn/ui](https://ui.shadcn.com) sur Tailwind. Ses composants ne sont pas une
+dépendance : ils se copient dans `src/components/ui/` et deviennent du code du
+projet, qu'on relit, qu'on modifie et qu'on formate comme le reste. De quoi
+faire un formulaire est déjà là — `button`, `input`, `label`, `field` ; les
+autres s'ajoutent à la demande :
 
-[shadcn/ui](https://ui.shadcn.com) est la recommandation pour les obtenir : ses
-composants se copient dans ce dossier et deviennent du code du projet, qu'on
-peut relire et modifier. **C'est une recommandation, pas une obligation** — un
-projet qui écrit les siens à la main, ou qui part d'une autre bibliothèque,
-range ses composants au même endroit.
+```bash
+pnpm dlx shadcn@latest add select dialog table
+```
+
+Une reprise à faire après chaque ajout : la CLI importe `cn` d'un paquet npm
+`cn` qu'elle installe — remplacer par `@/lib/utils` et retirer le paquet.
+
+**Un seul système de jetons.** Les couleurs, rayons et espacements viennent de
+`src/index.css` : `:root` porte les valeurs, `@theme inline` les expose à
+Tailwind. Un projet qui a sa charte y remplace les valeurs, pas les noms. Une
+classe de couleur brute (`text-slate-600`) dans un composant est un second
+système qui commence — c'est `text-muted-foreground` qu'il faut.
+
+C'est une recommandation forte, pas une obligation : un projet qui écrit ses
+composants à la main ou part d'ailleurs les range au même endroit et expose ses
+jetons de la même façon.

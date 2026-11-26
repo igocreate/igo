@@ -138,11 +138,46 @@ panneau et toute alerte filtre d'abord sur le projet, puis sur l'environnement.
 
 ## Production
 
-Le front est un dossier de fichiers statiques servi par nginx, l'API tourne
-derrière lui sur la même origine. Le contrat, quelle que soit la conf :
+**Deux images, construites au même commit** : `api/Dockerfile` (l'API compilée,
+servie par Node) et `front/Dockerfile` (le build, servi par un nginx sans
+privilèges). `_.github/workflows/image.yml` les construit et les publie, taguées
+par le SHA ; un commit déjà construit est re-tagué, pas reconstruit — l'artefact
+promu est celui qui a été testé.
 
-- `index.html` n'est **jamais** mis en cache : il référence les assets du build
-  courant. Les fichiers de `assets/`, hashés, se cachent sans limite ;
+Les deux images copient `pnpm-lock.yaml` et installent avec `--frozen-lockfile` :
+un projet qui n'a pas encore lancé `pnpm install` n'a pas de lock, et le build
+échoue sur la copie.
+
+```bash
+docker build -f api/Dockerfile   -t {project.name}-api   .
+docker build -f front/Dockerfile -t {project.name}-front .
+```
+
+**Une image par build, pas par environnement.** Ce qui varie arrive par les
+variables du conteneur. Pour l'API, elles sont lues au démarrage comme
+n'importe quelle configuration. Pour le front, le build pose des marqueurs dans
+une `<meta>` d'`index.html`, que `front/docker-entrypoint.sh` remplace au
+démarrage (`FARO_URL`, `FARO_SAMPLE`, `ENVIRONMENT`) :
+
+```bash
+docker run --rm -p 8080:8080 -e FARO_URL=… -e ENVIRONMENT=qualif {project.name}-front
+curl -s localhost:8080/ | grep 'name="observability"'
+```
+
+Ces réglages ne passent pas par des `VITE_*` : Vite les inline dans les
+bundles, qu'il faudrait alors réécrire au démarrage — et réécrire un fichier de
+`assets/` invalide son hachage, donc le cache d'un an qui en dépend. Seul
+`index.html`, déjà revalidé à chaque chargement, est touché.
+
+Le nginx de l'image ne sert que des fichiers : `/api` est routé vers l'API en
+amont, par le nginx de l'hôte ou le répartiteur. Le contrat, quelle que soit la
+conf :
+
+- `index.html` est **revalidé à chaque chargement** (`no-cache`) : il référence
+  les assets du build courant et porte les réglages posés au démarrage. Les
+  fichiers de `assets/`, hachés, se cachent sans limite ;
+- un fichier absent sous `/assets/` répond 404, et non `index.html` : sinon un
+  chunk disparu après un déploiement arriverait sous forme de HTML ;
 - tout chemin inconnu du front retombe sur `index.html` (`try_files`) ;
 - `/api` est proxifié vers igo, avec `X-Forwarded-Proto` pour que HSTS soit posé ;
 - `frame-ancestors` (ou `X-Frame-Options`) et HSTS sont posés par nginx : la

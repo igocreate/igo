@@ -1,6 +1,6 @@
 # Observabilité
 
-**Statut** : proposé  
+**Statut** : **accepté** — phases 1 à 3 faites, la 4 reste ouverte  
 **Date** : 2026-09-04  
 **Portée** : tous les projets — existants et greenfield, front et back.
 
@@ -180,12 +180,19 @@ C'est un compromis acceptable parce que :
 
 ### Trajectoire
 
-| Phase | Ce qui se passe |
+| Phase | État |
 |---|---|
-| **1. Grafana Cloud + Faro** | Compte Grafana Cloud, SDK Faro front, OpenTelemetry back. Alerting Teams sur les erreurs. |
-| **2. Logger structuré** | ~~Module JSON dans `@igojs/server`~~ livré en 6.3 ; reste à centraliser dans Loki. |
-| **3. Infra + services managés** | Alloy sur le bare metal, intégrations MySQL/Redis OVH. Dashboards par projet. |
-| **4. Cible** | Crash → mail retiré. Error handler `@igojs/server` capture sans `process.exit(1)`. |
+| **1. Grafana Cloud + Faro** | **Faite** — compte Grafana Cloud, SDK Faro front, OpenTelemetry back (ladom, 25/09/2026). |
+| **2. Logger structuré** | **Faite** — module JSON livré en 6.3, logs centralisés dans Loki. Sous Docker, ils se lisent dans le journal du conteneur et non dans un fichier. |
+| **3. Infra + services managés** | **Faite** — Alloy sur les machines, intégrations MySQL/Redis OVH, tableaux de bord et alertes versionnés côté projet. |
+| **4. Cible** | **Non atteinte** — le crash → mail reste en place. `config.onCrash` (6.4) permet de vider la télémétrie avant la sortie, mais le processus sort toujours. |
+
+Le squelette `fullstack` porte la référence des trois premières phases : instrumentation des deux côtés, deux configurations Alloy, tableau de bord et règles d'alerte.
+
+Deux manques que la trajectoire ne nommait pas :
+
+- **Aucun canal de notification n'est déclaré.** Des règles d'alerte qui ne notifient personne ne sont pas de l'alerting. C'est le premier reste à faire, avant la phase 4.
+- **La corrélation front → back n'existe pas.** Chaque côté trace, mais rien ne relie une erreur du navigateur à la trace serveur qui l'a produite. Elle suppose l'instrumentation de traçage côté navigateur et la propagation de l'identifiant de trace dans la réponse.
 
 ## Consequences
 
@@ -201,11 +208,13 @@ C'est un compromis acceptable parce que :
 
 ## Confirmation
 
-Dans six mois :
-- **Temps moyen entre apparition d'un bug et sa détection** — cible : < 24h (aujourd'hui : infini côté front).
-- **Les logs sont-ils centralisés et cherchables ?**
-- **Le bare metal est-il monitoré ?**
-- **Le crash → mail est-il encore le seul filet back ?** Si oui, la phase 4 n'a pas été atteinte.
+Relevé sur ladom :
+
+- **Les logs sont centralisés et cherchables.**
+- **Les machines sont supervisées**, services managés compris.
+- **Le crash → mail reste le seul filet back** : la phase 4 n'est pas atteinte.
+- **Aucun canal de notification n'est déclaré**, et **la corrélation front → back n'existe pas**.
+- **Le temps moyen entre l'apparition d'un bug et sa détection** n'est pas mesuré : la mesure demande un relevé que personne ne tient. À reprendre autrement ou à abandonner comme critère.
 
 ## More Information
 

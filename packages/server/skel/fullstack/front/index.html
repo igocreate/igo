@@ -3,6 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Réglages lus au démarrage du conteneur (deploy/docker-entrypoint.sh),
+         pour qu'une même image serve tous les environnements. Hors conteneur,
+         les marqueurs restent tels quels et le .env prend le relais. -->
+    <meta
+      name="observability"
+      data-faro-url="__FARO_URL__"
+      data-faro-sample="__FARO_SAMPLE__"
+      data-environment="__ENVIRONMENT__"
+    />
     <title>{project.name}</title>
   </head>
   <body>
