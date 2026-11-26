@@ -1,8 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 
 import { TextField } from '@/components/form/text-field';
+import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api-client';
 import { applyFieldErrors } from '@/lib/form';
 
@@ -10,6 +12,8 @@ import { useCreateBook } from '../api';
 import { NewBook } from '../schemas';
 
 type NewBookValues = z.input<typeof NewBook>;
+
+const FIELDS = ['title', 'author', 'pages'] as const;
 
 // Une section possède sa mutation. Le schéma écarte une saisie mal formée avant
 // l'envoi ; ce que seul le serveur peut refuser s'affiche sous le champ qu'il nomme.
@@ -22,7 +26,10 @@ export function AddBookSection() {
     reset,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<NewBookValues>({
+    // Trois types : ce que les champs portent (du texte), le contexte, et ce que
+    // le schéma rend une fois converti — c'est ce dernier que reçoit
+    // `handleSubmit`, donc ce qui part à l'API.
+  } = useForm<NewBookValues, unknown, z.output<typeof NewBook>>({
     resolver: zodResolver(NewBook),
     // L'erreur apparaît quand on quitte le champ, et non à la première frappe
     // d'un champ qu'on est en train de remplir ; ensuite elle suit la saisie.
@@ -30,20 +37,23 @@ export function AddBookSection() {
     defaultValues: { title: '', author: '', pages: '' },
   });
 
-  // Une erreur qui ne nomme aucun champ n'a pas d'endroit où s'afficher : elle
-  // revient ici.
-  const globalError = createBook.error instanceof ApiError ? createBook.error : null;
+  // Ce que l'échec n'a pas pu placer sous un champ s'affiche ici. Sans cet
+  // état, un refus qui nomme un champ absent du formulaire n'apparaîtrait
+  // nulle part : ni sous un champ, ni en global.
+  const [globalError, setGlobalError] = useState<Error | null>(null);
 
-  // `mutateAsync` rejette sur erreur, mais la mutation la garde dans son état :
-  // on la rattrape ici pour placer ce qui vise un champ, et le reste s'affiche
-  // depuis `createBook.error`. Sans ce `catch`, le rejet remonterait sans
-  // personne pour le traiter.
+  // `mutateAsync` rejette sur erreur : on la rattrape pour placer ce qui vise
+  // un champ. Sans ce `catch`, le rejet remonterait sans personne pour le
+  // traiter.
   const submit = handleSubmit(async (values) => {
+    setGlobalError(null);
     try {
-      await createBook.mutateAsync(NewBook.parse(values));
+      await createBook.mutateAsync(values);
       reset();
     } catch (error) {
-      applyFieldErrors(error, setError);
+      if (!applyFieldErrors(error, setError, FIELDS)) {
+        setGlobalError(error as Error);
+      }
     }
   });
 
@@ -60,27 +70,24 @@ export function AddBookSection() {
       <TextField
         id="pages"
         label="Pages"
+        hint="En chiffres, par exemple 271"
         field={register('pages')}
         error={errors.pages}
         inputMode="numeric"
       />
 
-      {globalError && !globalError.problem.errors?.length && (
-        <p role="alert" className="text-sm text-red-600">
+      {globalError && (
+        <p role="alert" className="text-sm text-destructive">
           L'ajout a échoué : {globalError.message}
-          {globalError.traceId && (
-            <span className="block text-slate-500">Référence : {globalError.traceId}</span>
+          {globalError instanceof ApiError && globalError.traceId && (
+            <span className="block text-muted-foreground">Référence : {globalError.traceId}</span>
           )}
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50"
-      >
+      <Button type="submit" disabled={isSubmitting}>
         {isSubmitting ? 'Ajout…' : 'Ajouter'}
-      </button>
+      </Button>
     </form>
   );
 }

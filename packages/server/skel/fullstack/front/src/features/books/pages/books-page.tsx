@@ -13,16 +13,16 @@ export function BooksPage() {
 
       <AddBookSection />
 
-      {isPending && <p className="text-slate-500">Chargement…</p>}
+      {isPending && <p className="text-muted-foreground">Chargement…</p>}
       {isError && (
-        <p role="alert" className="text-red-600">
+        <p role="alert" className="text-destructive">
           {error.message}
         </p>
       )}
       {data && (
         <>
           <BooksList books={data.books} />
-          <p className="mt-4 text-sm text-slate-500">{data.page.total} au total</p>
+          <p className="mt-4 text-sm text-muted-foreground">{data.page.total} au total</p>
         </>
       )}
     </>

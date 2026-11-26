@@ -49,7 +49,7 @@ projet/
   front/
     package.json
     vite.config.ts
-    tailwind.config.ts       ← thème shadcn + jetons projet
+    components.json          ← configuration shadcn (chemins, alias)
     tsconfig.json
     index.html
     public/

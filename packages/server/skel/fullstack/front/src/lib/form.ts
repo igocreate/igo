@@ -11,22 +11,34 @@ import { ApiError } from './api-client';
  * erreurs s'affichent donc au même endroit que celles du schéma, sans quoi
  * l'utilisateur lit un message global sans savoir quel champ reprendre.
  *
- * Renvoie `false` si l'erreur ne nomme aucun champ : à l'appelant de
- * l'afficher comme une erreur globale.
+ * `fields` énumère les champs du formulaire. Une erreur qui en nomme un autre
+ * — champ ajouté côté API, règle qui vise une entité liée — ne peut pas
+ * s'afficher : `setError` sur un champ non enregistré est accepté sans rien
+ * produire. La fonction renvoie alors `false`, et **l'appelant doit afficher
+ * le message global**, sans quoi le refus n'apparaît nulle part.
  */
 export const applyFieldErrors = <T extends FieldValues>(
   error: unknown,
   setError: UseFormSetError<T>,
+  fields: readonly Path<T>[],
 ): boolean => {
   if (!(error instanceof ApiError) || !error.problem.errors?.length) {
     return false;
   }
 
-  error.problem.errors.forEach(({ path, message }, index) => {
-    setError(path as Path<T>, { message }, { shouldFocus: index === 0 });
+  const placed = new Set<string>();
+
+  error.problem.errors.forEach(({ path, message }) => {
+    // Un champ ne porte qu'un message : on garde le premier, le plus proche de
+    // ce que l'utilisateur vient de faire.
+    if (!fields.includes(path as Path<T>) || placed.has(path)) {
+      return;
+    }
+    setError(path as Path<T>, { message }, { shouldFocus: placed.size === 0 });
+    placed.add(path);
   });
 
-  return true;
+  return placed.size === error.problem.errors.length;
 };
 
 /**

@@ -24,7 +24,7 @@ src/
   observability.ts          initialisation, importée en premier
   routes.tsx                arbre de routes, lazy par feature
   components/
-    ui/                     composants d'interface bas niveau — purs, à créer
+    ui/                     shadcn/ui — copiés, donc modifiables
     form/                   champs partagés : libellé, aide et erreur reliés
     layout/                 coquille de page, frontières d'erreur
   features/<domaine>/
@@ -151,12 +151,24 @@ optionnelle, seule sa persistance l'est.
 
 ## Système de design
 
-Tailwind est installé, sans bibliothèque de composants. `src/components/ui/`
-accueille les composants d'interface bas niveau — bouton, champ, sélecteur :
-purs, sans accès aux données, réutilisables partout.
+[shadcn/ui](https://ui.shadcn.com) sur Tailwind. Ses composants ne sont pas une
+dépendance : ils se copient dans `src/components/ui/` et deviennent du code du
+projet, qu'on relit, qu'on modifie et qu'on formate comme le reste. Trois sont
+déjà là — `button`, `input`, `label` ; les autres s'ajoutent à la demande :
 
-[shadcn/ui](https://ui.shadcn.com) est la recommandation pour les obtenir : ses
-composants se copient dans ce dossier et deviennent du code du projet, qu'on
-peut relire et modifier. **C'est une recommandation, pas une obligation** — un
-projet qui écrit les siens à la main, ou qui part d'une autre bibliothèque,
-range ses composants au même endroit.
+```bash
+pnpm dlx shadcn@latest add select dialog table
+```
+
+Une reprise à faire après chaque ajout : la CLI importe `cn` d'un paquet npm
+`cn` qu'elle installe — remplacer par `@/lib/utils` et retirer le paquet.
+
+**Un seul système de jetons.** Les couleurs, rayons et espacements viennent de
+`src/index.css` : `:root` porte les valeurs, `@theme inline` les expose à
+Tailwind. Un projet qui a sa charte y remplace les valeurs, pas les noms. Une
+classe de couleur brute (`text-slate-600`) dans un composant est un second
+système qui commence — c'est `text-muted-foreground` qu'il faut.
+
+C'est une recommandation forte, pas une obligation : un projet qui écrit ses
+composants à la main ou part d'ailleurs les range au même endroit et expose ses
+jetons de la même façon.

@@ -13,5 +13,13 @@ const PAGES_ERROR = 'Le nombre de pages est un entier positif';
 export const NewBook = z.object({
   title: z.string().min(1, 'Le titre est obligatoire').max(255, 'Le titre dépasse 255 caractères'),
   author: z.string().min(1, "L'auteur est obligatoire").max(255, "L'auteur dépasse 255 caractères"),
-  pages: z.coerce.number({ error: PAGES_ERROR }).int(PAGES_ERROR).positive(PAGES_ERROR),
+  // Un champ de saisie rend du texte : le schéma le dit, puis convertit. Avec
+  // `z.coerce.number()`, l'entrée serait typée `unknown` — la coercition
+  // accepte tout — et le formulaire perdrait le typage sur le champ même qui
+  // motive la conversion.
+  pages: z
+    .string()
+    .regex(/^\d+$/, PAGES_ERROR)
+    .transform(Number)
+    .refine((pages) => pages > 0, PAGES_ERROR),
 });

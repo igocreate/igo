@@ -70,6 +70,31 @@ describe('AddBookSection', () => {
     expect(await screen.findByText('Ce titre existe déjà')).toBeInTheDocument();
   });
 
+  it('signale un refus qui nomme un champ absent du formulaire', async () => {
+    server.use(
+      http.post('/api/books', () =>
+        HttpResponse.json(
+          {
+            type: 'urn:igo:validation-failed',
+            title: 'Validation failed',
+            status: 400,
+            detail: 'ISBN invalide',
+            errors: [{ path: 'isbn', message: 'ISBN invalide' }],
+          },
+          { status: 400 },
+        ),
+      ),
+    );
+    renderWithProviders(<AddBookSection />);
+
+    await fillBook();
+    await submit();
+
+    // Sans message global, ce refus n'apparaîtrait nulle part : `setError` sur
+    // un champ que le formulaire ne porte pas est accepté sans rien afficher.
+    expect(await screen.findByText(/l'ajout a échoué/i)).toBeInTheDocument();
+  });
+
   it('signale un échec qui ne vise aucun champ', async () => {
     server.use(
       http.post('/api/books', () =>
