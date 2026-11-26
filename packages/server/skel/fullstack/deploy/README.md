@@ -100,9 +100,21 @@ Une requête en échec (Grafana qui n'atteint pas sa base de métriques) garde
 l'état précédent (`KeepLast`) : avec `Error`, chaque incident de Grafana Cloud
 déclenchait une alerte `DatasourceError` à la sévérité de la règle.
 
-`IgoFrontNewError` remplace les alertes de Frontend Observability, à ne pas
+Les règles sur l'API et le navigateur ne regardent que
+`deployment_environment_name="production"` : une qualif sur le même stack ne
+sonne pas. Les métriques machines, base et sondes ne portent pas d'environnement :
+un projet dont la qualif partage le stack leur en ajoute un (un `cluster` dans
+les `external_labels` d'Alloy, par exemple) et le filtre.
+
+Toutes les règles ont `keepFiringFor: 10m` : une panne intermittente (un load
+balancer qui tombe et revient) ne produit qu'une alerte, résolue après 10 min
+sans rechute, au lieu d'une alerte et d'une résolution à chaque coupure.
+
+`IgoFrontErrorSpike` remplace les alertes de Frontend Observability, à ne pas
 activer : *Error count* sonne sur un seuil fixe, *New errors* compare à cinq
-minutes de la veille et voit presque toute erreur comme nouvelle.
+minutes de la veille et voit presque toute erreur comme nouvelle. Elle compte
+les sessions touchées par message, pas par `hash` : Faro en calcule un par
+navigateur et par release, et un même bug en porte des dizaines.
 
 | Alerte | Premier réflexe |
 |---|---|
@@ -116,7 +128,7 @@ minutes de la veille et voit presque toute erreur comme nouvelle.
 | `IgoHostCpuSaturated`, `IgoHostMemorySaturated`, `IgoHostSystemSaturated` | `instance` dit quelle machine, `role` ce qu'elle porte. |
 | `IgoDiskIOSaturated` | Souvent la base, qui ralentit sans que le processeur ne bouge. |
 | `IgoDiskFillingUp` | Plein dans moins de quatre jours : logs, sauvegardes, fichiers temporaires. |
-| `IgoFrontNewError` | Une erreur navigateur absente des 24 heures précédentes, souvent un déploiement. Une erreur récurrente ne sonne qu'une fois : la liste de Frontend Observability fait le reste. Une erreur sans intérêt s'écarte à la source, dans `ignoreErrors` (`front/src/observability.ts`). |
+| `IgoFrontErrorSpike` | Au moins 5 sessions touchées en 1 h par le même message : souvent un déploiement. Les erreurs isolées se trient dans Frontend Observability, sans alerte. Une erreur sans intérêt s'écarte à la source, dans `ignoreErrors` (`front/src/observability.ts`). |
 
 Deux règles sont livrées désactivées :
 

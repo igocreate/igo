@@ -61,6 +61,7 @@
           "noDataState": "OK",
           "execErrState": "KeepLast",
           "for": "2m",
+          "keepFiringFor": "10m",
           "annotations": {
             "summary": "Le service ne répond plus.",
             "description": "La sonde extérieure n'obtient plus de réponse valide de {{ $labels.instance }} depuis 2 minutes : l'application est arrêtée, une dépendance critique lui manque, ou la route jusqu'à elle est coupée."
@@ -84,7 +85,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "100 * sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", http_response_status_code=~\"5..\"}[5m]))\n  / clamp_min(sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\"}[5m])), 1e-9) > 5",
+                "expr": "100 * sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=\"production\", http_response_status_code=~\"5..\"}[5m]))\n  / clamp_min(sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=\"production\"}[5m])), 1e-9) > 5",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -124,6 +125,7 @@
           "noDataState": "OK",
           "execErrState": "KeepLast",
           "for": "2m",
+          "keepFiringFor": "10m",
           "annotations": {
             "summary": "Le service rend plus de 5 % d'erreurs serveur.",
             "description": "Plus de 5 % des requêtes de {{ $labels.service_name }} ({{ $labels.deployment_environment_name }}) échouent en 5xx depuis 5 minutes. Regarder la courbe des erreurs serveur par route sur le tableau de bord."
@@ -147,7 +149,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "histogram_quantile(0.95, sum by (service_name, deployment_environment_name, le) (rate(http_server_request_duration_seconds_bucket{service_namespace=\"{project.name}\"}[5m]))) > 1",
+                "expr": "histogram_quantile(0.95, sum by (service_name, deployment_environment_name, le) (rate(http_server_request_duration_seconds_bucket{service_namespace=\"{project.name}\", deployment_environment_name=\"production\"}[5m]))) > 1",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -187,6 +189,7 @@
           "noDataState": "OK",
           "execErrState": "KeepLast",
           "for": "10m",
+          "keepFiringFor": "10m",
           "annotations": {
             "summary": "Le service répond en plus d'une seconde au 95e centile.",
             "description": "Le 95e centile de {{ $labels.service_name }} ({{ $labels.deployment_environment_name }}) dépasse une seconde depuis 10 minutes. La rangée « Dépendances » du tableau de bord dit si la base ou le cache en sont la cause."
@@ -250,6 +253,7 @@
           "noDataState": "OK",
           "execErrState": "KeepLast",
           "for": "15m",
+          "keepFiringFor": "10m",
           "annotations": {
             "summary": "Le processeur de la machine est saturé.",
             "description": "Le processeur de {{ $labels.instance }} dépasse 90 % depuis 15 minutes. Un pic court est normal ; une saturation qui dure demande de regarder ce qui a changé."
@@ -313,6 +317,7 @@
           "noDataState": "OK",
           "execErrState": "KeepLast",
           "for": "15m",
+          "keepFiringFor": "10m",
           "annotations": {
             "summary": "La mémoire de la machine est saturée.",
             "description": "La mémoire disponible de {{ $labels.instance }} est sous 10 % depuis 15 minutes. Le noyau va bientôt tuer des processus."
@@ -376,6 +381,7 @@
           "noDataState": "OK",
           "execErrState": "KeepLast",
           "for": "1h",
+          "keepFiringFor": "10m",
           "annotations": {
             "summary": "Un système de fichiers sature dans moins de quatre jours.",
             "description": "À ce rythme d'écriture, {{ $labels.mountpoint }} sur {{ $labels.instance }} sature dans moins de quatre jours. Il reste le temps d'agir."
@@ -399,7 +405,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "(\n  100 * sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", http_response_status_code=~\"4..\", http_route!=\"/.*/\"}[5m]))\n    / clamp_min(sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\"}[5m])), 1e-9) > 5\n)\n> 3 * (\n  100 * sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", http_response_status_code=~\"4..\", http_route!=\"/.*/\"}[1h]))\n    / clamp_min(sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\"}[1h])), 1e-9)\n)",
+                "expr": "(\n  100 * sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=\"production\", http_response_status_code=~\"4..\", http_route!=\"/.*/\"}[5m]))\n    / clamp_min(sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=\"production\"}[5m])), 1e-9) > 5\n)\n> 3 * (\n  100 * sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=\"production\", http_response_status_code=~\"4..\", http_route!=\"/.*/\"}[1h]))\n    / clamp_min(sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=\"production\"}[1h])), 1e-9)\n)",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -439,6 +445,7 @@
           "noDataState": "OK",
           "execErrState": "KeepLast",
           "for": "5m",
+          "keepFiringFor": "10m",
           "annotations": {
             "summary": "La part des erreurs client a triplé.",
             "description": "La part des requêtes de {{ $labels.service_name }} ({{ $labels.deployment_environment_name }}) qui échouent en 4xx sur une route déclarée a triplé par rapport à la dernière heure, et dépasse 5 % du trafic. Souvent un déploiement qui a changé un contrat d'API, ou un client qui envoie des requêtes invalides."
@@ -462,7 +469,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "nodejs_eventloop_utilization_ratio{service_namespace=\"{project.name}\"} > 0.9",
+                "expr": "nodejs_eventloop_utilization_ratio{service_namespace=\"{project.name}\", deployment_environment_name=\"production\"} > 0.9",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -502,6 +509,7 @@
           "noDataState": "OK",
           "execErrState": "KeepLast",
           "for": "10m",
+          "keepFiringFor": "10m",
           "annotations": {
             "summary": "La boucle d'évènements du service est saturée.",
             "description": "La boucle d'évènements de {{ $labels.service_name }} ({{ $labels.deployment_environment_name }}) travaille plus de 90 % du temps depuis 10 minutes : les requêtes attendent leur tour. Chercher une opération synchrone bloquante ou un calcul à déplacer."
@@ -525,7 +533,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "(\n  histogram_quantile(0.95, sum by (service_name, deployment_environment_name, le) (rate(http_server_request_duration_seconds_bucket{service_namespace=\"{project.name}\", http_response_status_code=~\"2..\"}[5m]))) > 0.1\n)\n> 3 * histogram_quantile(0.95, sum by (service_name, deployment_environment_name, le) (rate(http_server_request_duration_seconds_bucket{service_namespace=\"{project.name}\", http_response_status_code=~\"2..\"}[1h])))",
+                "expr": "(\n  histogram_quantile(0.95, sum by (service_name, deployment_environment_name, le) (rate(http_server_request_duration_seconds_bucket{service_namespace=\"{project.name}\", deployment_environment_name=\"production\", http_response_status_code=~\"2..\"}[5m]))) > 0.1\n)\n> 3 * histogram_quantile(0.95, sum by (service_name, deployment_environment_name, le) (rate(http_server_request_duration_seconds_bucket{service_namespace=\"{project.name}\", deployment_environment_name=\"production\", http_response_status_code=~\"2..\"}[1h])))",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -565,6 +573,7 @@
           "noDataState": "OK",
           "execErrState": "KeepLast",
           "for": "10m",
+          "keepFiringFor": "10m",
           "annotations": {
             "summary": "La latence du service a triplé.",
             "description": "Le 95e centile des réponses réussies de {{ $labels.service_name }} ({{ $labels.deployment_environment_name }}) a triplé par rapport à la dernière heure. Le plancher de 100 ms évite de comparer des valeurs insignifiantes."
@@ -628,6 +637,7 @@
           "noDataState": "OK",
           "execErrState": "KeepLast",
           "for": "15m",
+          "keepFiringFor": "10m",
           "annotations": {
             "summary": "La machine a plus de deux processus en attente par cœur.",
             "description": "La charge de {{ $labels.instance }} dépasse deux fois son nombre de cœurs depuis 15 minutes : les processus attendent le processeur."
@@ -691,6 +701,7 @@
           "noDataState": "OK",
           "execErrState": "KeepLast",
           "for": "15m",
+          "keepFiringFor": "10m",
           "annotations": {
             "summary": "La file d'attente du disque est saturée.",
             "description": "Le disque {{ $labels.device }} de {{ $labels.instance }} accumule les requêtes en attente depuis 15 minutes. Souvent la base de données, qui ralentit alors sans que le processeur ne bouge."
@@ -754,6 +765,7 @@
           "noDataState": "OK",
           "execErrState": "KeepLast",
           "for": "10m",
+          "keepFiringFor": "10m",
           "annotations": {
             "summary": "Les descripteurs de fichiers de la machine sont presque épuisés.",
             "description": "{{ $labels.instance }} a ouvert plus de 80 % des descripteurs de fichiers autorisés. À saturation, plus aucune connexion ni aucun fichier ne peut être ouvert."
@@ -817,6 +829,7 @@
           "noDataState": "OK",
           "execErrState": "KeepLast",
           "for": "5m",
+          "keepFiringFor": "10m",
           "annotations": {
             "summary": "Le pool de connexions de la base est presque saturé.",
             "description": "Plus de 80 % des connexions autorisées par MySQL sont ouvertes depuis 5 minutes. À saturation, les requêtes échouent faute de connexion disponible."
@@ -840,7 +853,7 @@
               "datasourceUid": "${datasource}",
               "model": {
                 "refId": "A",
-                "expr": "(\n  sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\"}[1h])) > 0.5\n)\nand\nsum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\"}[5m]))\n  < 0.2 * sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\"}[1h]))",
+                "expr": "(\n  sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=\"production\"}[1h])) > 0.5\n)\nand\nsum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=\"production\"}[5m]))\n  < 0.2 * sum by (service_name, deployment_environment_name) (rate(http_server_request_duration_seconds_count{service_namespace=\"{project.name}\", deployment_environment_name=\"production\"}[1h]))",
                 "instant": true,
                 "range": false,
                 "editorMode": "code",
@@ -880,6 +893,7 @@
           "noDataState": "OK",
           "execErrState": "KeepLast",
           "for": "10m",
+          "keepFiringFor": "10m",
           "annotations": {
             "summary": "Le trafic du service s'est effondré.",
             "description": "Le trafic de {{ $labels.service_name }} ({{ $labels.deployment_environment_name }}) est tombé sous 20 % de la dernière heure alors que le service répond. Regarder le répartiteur de charge, le DNS et le pare-feu avant l'application."
@@ -890,20 +904,20 @@
           "isPaused": true
         },
         {
-          "uid": "igo-front-nouvelle-erreur",
-          "title": "IgoFrontNewError",
+          "uid": "igo-front-pic-erreurs",
+          "title": "IgoFrontErrorSpike",
           "condition": "B",
           "data": [
             {
               "refId": "A",
               "relativeTimeRange": {
-                "from": 90000,
+                "from": 3600,
                 "to": 0
               },
               "datasourceUid": "${logs_datasource}",
               "model": {
                 "refId": "A",
-                "expr": "# erreurs apparues dans les 5 dernières minutes, absentes des 24 heures précédentes\ncount by (deployment_environment_name, hash, value_template, type) (count_over_time({kind=\"exception\", service_name=\"{project.name}-front\"} | logfmt [5m]))\nunless\ncount by (deployment_environment_name, hash, value_template, type) (count_over_time({kind=\"exception\", service_name=\"{project.name}-front\"} | logfmt [24h] offset 5m))",
+                "expr": "# sessions distinctes touchées par un même message d'erreur en 1 h ; exclus : réseau du client,\n# extensions, navigateurs intégrés et vieux navigateurs\ncount by (type, value_template) (\n  count by (type, value_template, session_id) (\n    count_over_time({kind=\"exception\", service_name=\"{project.name}-front\", deployment_environment_name=\"production\"}\n      !~ \"Failed to fetch|Load failed|NetworkError|MetaMask|Non-Error|Script error|findLast|_AutofillCallbackHandler|IABInnerFrame|Can't find variable: gmo\"\n      | logfmt session_id, type [1h])\n  )\n)",
                 "queryType": "instant",
                 "editorMode": "code"
               }
@@ -919,7 +933,7 @@
                   {
                     "evaluator": {
                       "type": "gt",
-                      "params": [0]
+                      "params": [4]
                     },
                     "operator": {
                       "type": "and"
@@ -940,9 +954,10 @@
           "noDataState": "OK",
           "execErrState": "KeepLast",
           "for": "0s",
+          "keepFiringFor": "10m",
           "annotations": {
-            "summary": "Nouvelle erreur dans le navigateur ({{ $labels.deployment_environment_name }}) : {{ $labels.type }}",
-            "description": "{{ $labels.value_template }} — absente des 24 heures précédentes. Pile, sessions et navigateurs dans Frontend Observability."
+            "summary": "{{ $labels.type }} : {{ $labels.value_template }} ({{ $values.A.Value }} sessions en 1 h)",
+            "description": "Au moins 5 sessions touchées en 1 h par le même message. Pile, sessions et navigateurs dans Frontend Observability."
           },
           "labels": {
             "severity": "warning"
