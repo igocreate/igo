@@ -25,15 +25,18 @@ src/
   routes.tsx                arbre de routes, lazy par feature
   components/
     ui/                     composants d'interface bas niveau — purs, à créer
+    form/                   champs partagés : libellé, aide et erreur reliés
     layout/                 coquille de page, frontières d'erreur
   features/<domaine>/
     pages/                  composants de route — PEUVENT fetch
     sections/               blocs autonomes — PEUVENT fetch
     components/             affichage — PURS, props only
     api.ts                  queries et mutations TanStack Query
-    types.ts                types et schémas zod de la feature
+    types.ts                types du DTO de la feature
+    schemas.ts              schémas zod des formulaires
   lib/
     api-client.ts           wrapper fetch typé, erreurs RFC 9457
+    form.ts                 erreurs de champ de l'API, aria-describedby
     report-error.ts         signaler une erreur rattrapée
   test/                     handlers MSW, helper de rendu
 ```
@@ -68,10 +71,19 @@ invisibles.
 de composant qui suppose que les données sont là.
 
 **La surface se valide côté client, le métier côté serveur.** Le schéma zod du
-formulaire, dans `types.ts`, refuse avant l'envoi toute saisie mal formée :
+formulaire, dans `schemas.ts`, refuse avant l'envoi toute saisie mal formée :
 obligatoire, format, longueur, cohérence entre champs. L'API revalide tout. Ce
-qu'elle seule peut refuser (unicité, état, droits) s'affiche tel quel sous le
-champ, via `ApiError.fieldError(champ)`.
+qu'elle seule peut refuser (unicité, état, droits) s'affiche sous le champ
+qu'elle nomme, posé par `applyFieldErrors` (`lib/form.ts`), focus sur le
+premier.
+
+**Un formulaire s'écrit avec React Hook Form**, son schéma branché par
+`zodResolver` et `mode: 'onTouched'` : l'erreur apparaît quand on quitte le
+champ, puis suit la saisie. Les champs viennent de `components/form/`, qui
+relient libellé, aide et erreur pour les lecteurs d'écran — c'est ce câblage,
+et non la gestion de l'état, qui justifie la bibliothèque. `useActionState`
+suffit là où il n'y a ni validation ni erreurs par champ (une recherche, un
+filtre) ; dès qu'un champ se valide, le formulaire prend React Hook Form.
 
 **Les types de la feature reflètent le DTO du back.** Ils sont écrits à la main :
 si les deux dérivent, ce sont les tests de feature qui le montrent.

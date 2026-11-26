@@ -58,6 +58,7 @@ projet/
       routes.tsx             ← arbre de routes React Router
       components/
         ui/                  ← shadcn/ui — les atomes, copiés tels quels
+        form/                ← champs partagés : libellé, aide et erreur reliés
         layout/              ← coquille de page, sidebar, header
         [compositions].tsx   ← molécules et organismes partagés entre features
       features/
@@ -68,11 +69,13 @@ projet/
           hooks/             ← hooks métier propres à la feature
           api.ts             ← queries et mutations TanStack Query
           types.ts           ← types propres à la feature
+          schemas.ts         ← schémas zod des formulaires de la feature
         dispositifs/
           ...
       lib/
         api-client.ts        ← wrapper fetch typé, base URL, gestion d'erreurs
         query-client.ts      ← configuration TanStack Query
+        form.ts              ← erreurs de champ de l'API, aria-describedby
         utils.ts             ← helpers partagés
       hooks/                 ← hooks partagés (useDebounce, useMediaQuery…)
       types/                 ← types globaux (User, Session…)
@@ -161,6 +164,16 @@ export function useCreerStagiaire() {
 
 Le client HTTP (`lib/api-client.ts`) est un wrapper `fetch` minimal et typé — base URL relative (`/api`), gestion des erreurs HTTP, parsing JSON. Pas d'Axios : `fetch` est natif et suffisant.
 
+### Formulaires
+
+**React Hook Form**, avec un schéma zod par formulaire branché par `zodResolver` (`features/<domaine>/schemas.ts`). Le schéma contrôle la **forme** avant l'envoi — obligatoire, format, longueur, cohérence entre champs ; les règles métier restent au serveur, qui revalide tout (cf. [Stratégie de validation](strategie-de-validation.md)).
+
+`mode: 'onTouched'` : l'erreur apparaît à la sortie du champ, puis se met à jour à chaque frappe. Les erreurs de champ rendues par l'API se posent sous le bon champ, avec le focus sur le premier.
+
+Les champs partagés (`components/form/`) relient libellé, aide et message d'erreur par `aria-describedby` : c'est ce câblage, refait à la main à chaque formulaire, qui justifie la bibliothèque plus que la gestion de l'état.
+
+`useActionState` et `useFormStatus` de React 19 suffisent là où il n'y a ni validation ni erreurs par champ — une recherche, un filtre, une action à confirmer. Dès qu'un formulaire a des champs à valider, il prend React Hook Form : deux façons de faire coexistent mal, et l'arbitrage se referait à chaque écran.
+
 ### Routage
 
 **React Router** (cf. Considered Options). Configuration centralisée dans `routes.tsx`, avec lazy-loading par feature :
@@ -189,7 +202,7 @@ export const routes = createBrowserRouter([
 - Les types d'une feature vivent dans son `types.ts`.
 - Les types transversaux (User, Session, réponses d'API communes) vivent dans `src/types/`.
 
-**Validation** : Zod côté front pour les entrées utilisateur, conformément à l'[ADR validation](strategie-de-validation.md). Les schémas Zod vivent à côté des types qu'ils décrivent. Zod est utilisable en JavaScript pur — si igo adopte la validation Zod plus tard, les schémas pourront converger sans que le back passe à TypeScript.
+**Validation** : Zod côté front pour les entrées utilisateur, conformément à l'[ADR validation](strategie-de-validation.md). Les schémas vivent dans le `schemas.ts` de leur feature, à côté des types qu'ils accompagnent : `types.ts` décrit ce que l'API rend, `schemas.ts` ce que les formulaires acceptent — les deux divergent dès qu'un champ est saisi en texte avant d'être converti. Zod est utilisable en JavaScript pur — si igo adopte la validation Zod plus tard, les schémas pourront converger sans que le back passe à TypeScript.
 
 ### Storybook
 

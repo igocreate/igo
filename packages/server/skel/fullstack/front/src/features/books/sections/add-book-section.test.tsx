@@ -37,6 +37,17 @@ describe('AddBookSection', () => {
     expect(requested).toBe(false);
   });
 
+  it("signale un champ quitté sans attendre l'envoi", async () => {
+    renderWithProviders(<AddBookSection />);
+
+    await userEvent.click(screen.getByLabelText(/titre/i));
+    await userEvent.tab();
+
+    expect(await screen.findByText('Le titre est obligatoire')).toBeInTheDocument();
+    // Les champs qu'on n'a pas encore touchés se taisent.
+    expect(screen.queryByText("L'auteur est obligatoire")).not.toBeInTheDocument();
+  });
+
   it('affiche sous le champ le refus que le serveur lui attribue', async () => {
     server.use(
       http.post('/api/books', () =>

@@ -1,81 +1,85 @@
-import { useState } from 'react';
-import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import type { z } from 'zod';
 
+import { TextField } from '@/components/form/text-field';
 import { ApiError } from '@/lib/api-client';
+import { applyFieldErrors } from '@/lib/form';
 
 import { useCreateBook } from '../api';
-import { NewBook } from '../types';
+import { NewBook } from '../schemas';
 
-const EMPTY = { title: '', author: '', pages: '' };
-const LABELS = { title: 'Titre', author: 'Auteur', pages: 'Pages' };
-
-type FormErrors = Partial<Record<keyof typeof EMPTY, string[]>>;
+type NewBookValues = z.input<typeof NewBook>;
 
 // Une section possède sa mutation. Le schéma écarte une saisie mal formée avant
 // l'envoi ; ce que seul le serveur peut refuser s'affiche sous le champ qu'il nomme.
 export function AddBookSection() {
-  const [form, setForm] = useState(EMPTY);
-  const [formErrors, setFormErrors] = useState<FormErrors>({});
   const createBook = useCreateBook();
 
-  const error = createBook.error instanceof ApiError ? createBook.error : null;
-  const fieldErrors = error?.problem.errors?.length ? error : null;
-  const globalError = createBook.isError && !fieldErrors ? createBook.error : null;
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<NewBookValues>({
+    resolver: zodResolver(NewBook),
+    // L'erreur apparaît quand on quitte le champ, et non à la première frappe
+    // d'un champ qu'on est en train de remplir ; ensuite elle suit la saisie.
+    mode: 'onTouched',
+    defaultValues: { title: '', author: '', pages: '' },
+  });
 
-  const submit = (event: React.FormEvent) => {
-    event.preventDefault();
-    const parsed = NewBook.safeParse(form);
-    if (!parsed.success) {
-      createBook.reset();
-      setFormErrors(z.flattenError(parsed.error).fieldErrors);
-      return;
+  // Une erreur qui ne nomme aucun champ n'a pas d'endroit où s'afficher : elle
+  // revient ici.
+  const globalError = createBook.error instanceof ApiError ? createBook.error : null;
+
+  // `mutateAsync` rejette sur erreur, mais la mutation la garde dans son état :
+  // on la rattrape ici pour placer ce qui vise un champ, et le reste s'affiche
+  // depuis `createBook.error`. Sans ce `catch`, le rejet remonterait sans
+  // personne pour le traiter.
+  const submit = handleSubmit(async (values) => {
+    try {
+      await createBook.mutateAsync(NewBook.parse(values));
+      reset();
+    } catch (error) {
+      applyFieldErrors(error, setError);
     }
-    setFormErrors({});
-    createBook.mutate(parsed.data, { onSuccess: () => setForm(EMPTY) });
-  };
+  });
 
   return (
-    <form onSubmit={submit} className="mb-8 space-y-3">
-      {(['title', 'author', 'pages'] as const).map((field) => {
-        const message = formErrors[field]?.[0] ?? fieldErrors?.fieldError(field);
-        return (
-          <div key={field}>
-            <label className="block text-sm font-medium" htmlFor={field}>
-              {LABELS[field]}
-            </label>
-            <input
-              id={field}
-              value={form[field]}
-              inputMode={field === 'pages' ? 'numeric' : undefined}
-              aria-invalid={message ? true : undefined}
-              aria-describedby={message ? `${field}-error` : undefined}
-              onChange={(e) => setForm({ ...form, [field]: e.target.value })}
-              className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
-            />
-            {message && (
-              <p id={`${field}-error`} role="alert" className="mt-1 text-sm text-red-600">
-                {message}
-              </p>
-            )}
-          </div>
-        );
-      })}
+    <form onSubmit={submit} noValidate className="mb-8 space-y-3">
+      <TextField
+        id="title"
+        label="Titre"
+        field={register('title')}
+        error={errors.title}
+        autoComplete="off"
+      />
+      <TextField id="author" label="Auteur" field={register('author')} error={errors.author} />
+      <TextField
+        id="pages"
+        label="Pages"
+        field={register('pages')}
+        error={errors.pages}
+        inputMode="numeric"
+      />
 
-      {globalError && (
+      {globalError && !globalError.problem.errors?.length && (
         <p role="alert" className="text-sm text-red-600">
           L'ajout a échoué : {globalError.message}
-          {error?.traceId && (
-            <span className="block text-slate-500">Référence : {error.traceId}</span>
+          {globalError.traceId && (
+            <span className="block text-slate-500">Référence : {globalError.traceId}</span>
           )}
         </p>
       )}
 
       <button
         type="submit"
-        disabled={createBook.isPending}
+        disabled={isSubmitting}
         className="rounded bg-slate-900 px-4 py-2 text-white disabled:opacity-50"
       >
-        {createBook.isPending ? 'Ajout…' : 'Ajouter'}
+        {isSubmitting ? 'Ajout…' : 'Ajouter'}
       </button>
     </form>
   );
