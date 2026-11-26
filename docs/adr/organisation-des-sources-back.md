@@ -1,7 +1,7 @@
 # Organisation des sources back
 
 **Statut** : **accepté** — éprouvé sur la refonte de l'espace partenaire de ladom (9 domaines, 12 lots, novembre 2026)  
-**Date** : 2026-08-24, révisé le 2026-11-26
+**Date** : 2026-08-24
 
 ## Context and Problem Statement
 
@@ -101,22 +101,6 @@ app/
 
 La structure existante reste. Un alias `@api/` s'ajoute pour les contrôleurs JSON. Les modèles, services, et contrôleurs dust restent en place.
 
-> **Amendement du 26/11/2026 — un niveau par espace.** Sur un projet à plusieurs publics (agent, bénéficiaire, partenaire), le découpage est *par vue* autant que par domaine : une même donnée s'expose différemment selon l'espace. La structure éprouvée insère donc l'espace entre `api/` et le domaine, et admet **deux étages de `shared/`** — ce qui est commun à tous les espaces, et ce qui est commun aux domaines d'un seul :
->
-> ```
-> app/api/
->   shared/                        ← transverse aux espaces : garde d'hôte, garde CSRF,
->                                    catalogue de problèmes, locale de validation
->   partenaire/
->     partenaire.routes.ts         ← gardes, puis sous-routeurs, puis 404
->     shared/                      ← transverse à l'espace : contexte et gardes de rôle,
->                                    problèmes de l'espace, pagination, dates
->     invoices/invoices.{routes,controller,dto}.ts
->     users/ documents/ …
-> ```
->
-> Un préfixe d'URL par espace (`/api/partenaire/*`), et une garde qui rend 404 si l'API est appelée depuis un autre sous-domaine. Un projet mono-espace garde la structure plate décrite ci-dessus.
-
 ```
 app/
   api/                             ← NOUVEAU — alias @api/
@@ -152,6 +136,24 @@ Les projets qui utilisent déjà `module-alias` ajoutent `@api` à côté de leu
   "@validators":  "app/validators"
 }
 ```
+
+#### Un projet à plusieurs espaces
+
+Sur un projet qui sert plusieurs publics (agent, bénéficiaire, partenaire), le découpage est *par vue* autant que par domaine : une même donnée s'expose différemment selon l'espace. L'espace s'intercale alors entre `api/` et le domaine, et `shared/` prend deux étages — ce qui est commun à tous les espaces, et ce qui est commun aux domaines d'un seul :
+
+```
+app/api/
+  shared/                        ← transverse aux espaces : garde d'hôte, garde CSRF,
+                                   catalogue de problèmes, locale de validation
+  partenaire/
+    partenaire.routes.js         ← gardes, puis sous-routeurs, puis 404
+    shared/                      ← transverse à l'espace : contexte et gardes de rôle,
+                                   problèmes de l'espace, pagination, dates
+    invoices/invoices.{routes,controller,dto}.js
+    users/ documents/ …
+```
+
+Chaque espace porte son préfixe d'URL (`/api/partenaire/*`) et une garde qui rend 404 si l'API est appelée depuis un autre sous-domaine. Un projet mono-espace garde la structure plate ci-dessus.
 
 ### Trajectoire greenfield (igo-next)
 
@@ -261,18 +263,18 @@ Le DTO est la barrière entre le modèle ORM et l'API, **dans les deux sens** �
 
 En TypeScript, ces schémas sont aussi la source des types : `z.infer<typeof CreerDossier>` évite de déclarer la forme deux fois.
 
-> **Amendement du 26/11/2026 — une seule enveloppe de liste.** Une réponse paginée a la même forme partout, quel que soit le domaine :
->
-> ```ts
-> interface PageOf<Item> {
->   items: Item[];
->   pagination: { page: number; pageCount: number; total: number };
-> }
-> ```
->
-> La clé générique `items`, plutôt que le nom du domaine (`dossiers`, `factures`), permet **un seul type et un seul helper côté front** pour toutes les listes. La pagination de l'ORM porte aussi des liens de navigation : ils ne sortent pas de l'API, un client construit la sienne.
->
-> **Une date sans heure se sérialise en `YYYY-MM-DD`**, pas en `Date`. Un `Date` rendu tel quel part en ISO avec heure et `Z` : un minuit local y devient la veille, et le décalage se voit au premier utilisateur hors métropole.
+**Une réponse paginée a la même forme partout**, quel que soit le domaine :
+
+```ts
+interface PageOf<Item> {
+  items: Item[];
+  pagination: { page: number; pageCount: number; total: number };
+}
+```
+
+La clé générique `items`, plutôt que le nom du domaine (`dossiers`, `factures`), permet un seul type et un seul helper côté front pour toutes les listes. La pagination de l'ORM porte aussi des liens de navigation : ils ne sortent pas de l'API, un client construit la sienne.
+
+**Une date sans heure se sérialise en `YYYY-MM-DD`**, pas en `Date`. Un `Date` rendu tel quel part en ISO avec heure et `Z` : un minuit local y devient la veille, et le décalage se voit au premier utilisateur hors métropole.
 
 ### Montage des routes API
 

@@ -1,7 +1,7 @@
 # Empaquetage de l'application
 
 **Statut** : **accepté** — éprouvé en production sur ladom le 9 novembre 2026
-**Date** : 2026-09-18, révisé le 2026-11-26
+**Date** : 2026-09-18
 **Portée** : tous les projets. Les projets existants migrent un par un, à leur rythme.
 
 ## Context and Problem Statement
@@ -43,7 +43,7 @@ L'environnement est donc **déjà** porté par une image — mais une image que 
 
 C'est la seule option qui rende l'environnement d'exécution **reproductible et vérifiable**, et non seulement déclaré : l'option 2 règle la divergence sur le papier mais laisse l'état réel des machines invérifiable, et l'option 4 y parvient au grain de la machine, pour un outillage équivalent et un écosystème plus étroit.
 
-**Applicable immédiatement aux nouveaux projets, et le parc existant y migre progressivement.** Révision du 26/11/2026 : la migration du parc est décidée, projet par projet et sans date imposée. Elle est ce qui ouvre l'accès aux conteneurs managés retenus par [Modèle d'exécution](modele-d-execution.md) — une plateforme de ce type n'accepte qu'une image applicative. Un projet dont l'infrastructure n'est pas documentée relève d'abord d'un relevé de l'existant.
+**Applicable immédiatement aux nouveaux projets, et le parc existant y migre progressivement** — projet par projet, sans date imposée. C'est cette migration qui ouvre l'accès aux conteneurs managés retenus par [Modèle d'exécution](modele-d-execution.md) : une plateforme de ce type n'accepte qu'une image applicative. Un projet dont l'infrastructure n'est pas documentée relève d'abord d'un relevé de l'existant.
 
 Ce que la décision recouvre :
 
@@ -103,17 +103,17 @@ Ce que la décision recouvre :
 
 ## Confirmation
 
-Les quatre points sont levés — ladom a servi de premier cas, de la première image (07/10/2026) à la mise en production conteneurisée (09/11/2026).
+Les quatre conditions posées à la décision sont levées : ladom a servi de premier cas, de la première image (07/10/2026) à la mise en production conteneurisée (09/11/2026).
 
-1. ~~**Chiffrer la mise en place**~~ — fait sur ladom, les cinq postes ont été traités. Le chiffre reste propre à ce projet, et la décision ne l'attend plus.
-2. ~~**Mesurer le build en CI**~~ — le build a quitté la production. Le coût dominant n'est pas le temps de build mais la **taille de l'image** : ~3 Go pour ladom, qui porte Chrome. D'où deux règles nées de l'exploitation : l'installation de Chrome dans une couche placée avant les `node_modules`, pour qu'un changement de lock ne la reconstruise pas, et un `docker image prune` après chaque déploiement, sans quoi les images tirées s'accumulent jusqu'à l'alerte de disque.
-3. ~~**Vérifier les daemons joints par socket locale**~~ — traité sur ladom par `network_mode: host` et le montage de la socket de l'hôte (`/run/clamav`). Le cas « application en conteneur, daemons et nginx sur l'hôte » est donc éprouvé.
-4. ~~**Traiter `SIGTERM` dans le serveur HTTP**~~ — **livré dans `@igojs/server` 6.4.0** : `app.run()` installe un arrêt ordonné (503 sur la sonde de disponibilité, attente de `config.shutdownDelay` pour que le répartiteur retire l'instance, fermeture du serveur pendant que les requêtes en cours finissent, puis `config.onShutdown`), plafonné par `config.shutdownTimeout`. La condition bloquante est levée pour tout projet igo.
+1. **La mise en place est chiffrée** — les cinq postes ont été traités sur ladom. Le chiffre reste propre à ce projet : la décision ne l'attend plus, chaque migration l'estime pour elle-même.
+2. **Le build a quitté la production.** Le coût dominant n'est pas le temps de build mais la **taille de l'image** — ~3 Go pour ladom, qui porte Chrome. Deux règles en découlent : installer un navigateur dans une couche placée avant les `node_modules`, pour qu'un changement de lock ne la reconstruise pas, et jouer `docker image prune` après chaque déploiement, sans quoi les images tirées s'accumulent jusqu'à l'alerte de disque.
+3. **Les daemons joints par socket locale le restent** : la socket de l'hôte est montée dans le conteneur (`/run/clamav`), et l'application partage le réseau de l'hôte. Le cas « application en conteneur, daemons et nginx sur l'hôte » est éprouvé.
+4. **`SIGTERM` est traité par `@igojs/server` depuis la 6.4.0.** `app.run()` installe un arrêt ordonné : la sonde de disponibilité répond 503, igo attend `config.shutdownDelay` pour que le répartiteur retire l'instance, le serveur ferme pendant que les requêtes en cours finissent, puis `config.onShutdown` s'exécute — le tout plafonné par `config.shutdownTimeout`. La condition vaut pour tout projet igo, sans travail de sa part.
 
-Ce que l'exploitation a ajouté, et qui n'était pas anticipé :
+Deux pièges que l'exploitation a révélés :
 
-- **Les fichiers de diagnostic.** Un OOM laissait un core de ~4 Go par incident, illisible sans outillage et rempli de données personnelles. Remplacé par `ulimits: { core: 0 }` et un instantané de tas (`--heapsnapshot-near-heap-limit`) dans un volume à rétention courte.
-- **`husky` n'a rien à installer hors d'un dépôt git** : `npm pkg delete scripts.prepare` avant l'installation des dépendances, sinon le build de l'image échoue.
+- **Les fichiers de diagnostic.** Un dépassement de mémoire laisse un fichier de core de plusieurs gigaoctets par incident, illisible sans outillage dédié et rempli de données personnelles. Il se désactive (`ulimits: { core: 0 }`) au profit d'un instantané de tas (`--heapsnapshot-near-heap-limit`) dans un volume à rétention courte.
+- **`husky` n'a rien à installer hors d'un dépôt git** : retirer le script `prepare` avant d'installer les dépendances, sinon le build de l'image échoue.
 
 ## More Information
 

@@ -1,7 +1,7 @@
 # Observabilité
 
 **Statut** : **accepté** — phases 1 à 3 faites, la 4 reste ouverte  
-**Date** : 2026-09-04, révisé le 2026-11-26  
+**Date** : 2026-09-04  
 **Portée** : tous les projets — existants et greenfield, front et back.
 
 ## Context and Problem Statement
@@ -180,14 +180,16 @@ C'est un compromis acceptable parce que :
 
 ### Trajectoire
 
-| Phase | Ce qui se passe |
+| Phase | État |
 |---|---|
-| **1. Grafana Cloud + Faro** | ~~Compte Grafana Cloud, SDK Faro front, OpenTelemetry back.~~ **Fait** (ladom, 25/09/2026). L'alerting reste sans canal déclaré : les règles existent, leur destination non. |
-| **2. Logger structuré** | ~~Module JSON dans `@igojs/server`~~ livré en 6.3 ; ~~reste à centraliser dans Loki~~ **fait**. Sous Docker, les logs se lisent dans le journal du conteneur et non dans un fichier. |
-| **3. Infra + services managés** | ~~Alloy sur le bare metal, intégrations MySQL/Redis OVH. Dashboards par projet.~~ **Fait**, dashboards et alertes versionnés côté projet. |
-| **4. Cible** | **Non atteinte.** Crash → mail toujours en place. `config.onCrash` (6.4) permet de vider la télémétrie avant la sortie, mais le processus sort toujours. |
+| **1. Grafana Cloud + Faro** | **Faite** — compte Grafana Cloud, SDK Faro front, OpenTelemetry back (ladom, 25/09/2026). |
+| **2. Logger structuré** | **Faite** — module JSON livré en 6.3, logs centralisés dans Loki. Sous Docker, ils se lisent dans le journal du conteneur et non dans un fichier. |
+| **3. Infra + services managés** | **Faite** — Alloy sur les machines, intégrations MySQL/Redis OVH, tableaux de bord et alertes versionnés côté projet. |
+| **4. Cible** | **Non atteinte** — le crash → mail reste en place. `config.onCrash` (6.4) permet de vider la télémétrie avant la sortie, mais le processus sort toujours. |
 
-**Révision du 26/11/2026** : les phases 1 à 3 sont faites, le squelette `fullstack` en porte la référence (instrumentation des deux côtés, deux configurations Alloy, tableau de bord et règles d'alerte). Deux manques que l'exploitation a révélés et que la trajectoire ne nommait pas :
+Le squelette `fullstack` porte la référence des trois premières phases : instrumentation des deux côtés, deux configurations Alloy, tableau de bord et règles d'alerte.
+
+Deux manques que la trajectoire ne nommait pas :
 
 - **Aucun canal de notification n'est déclaré.** Des règles d'alerte qui ne notifient personne ne sont pas de l'alerting. C'est le premier reste à faire, avant la phase 4.
 - **La corrélation front → back n'existe pas.** Chaque côté trace, mais rien ne relie une erreur du navigateur à la trace serveur qui l'a produite. Elle suppose l'instrumentation de traçage côté navigateur et la propagation de l'identifiant de trace dans la réponse.
@@ -206,14 +208,13 @@ C'est un compromis acceptable parce que :
 
 ## Confirmation
 
-Relevé du 26/11/2026, sur ladom :
+Relevé sur ladom :
 
-- **Temps moyen entre apparition d'un bug et sa détection** — non mesuré ; la mesure demande un relevé que personne ne tient. À reprendre ou à abandonner.
-- ~~**Les logs sont-ils centralisés et cherchables ?**~~ — oui.
-- ~~**Le bare metal est-il monitoré ?**~~ — oui, services managés compris.
-- **Le crash → mail est-il encore le seul filet back ?** — oui : la phase 4 n'est pas atteinte.
-
-Deux points ajoutés par le relevé : **aucun canal de notification n'est déclaré**, et **la corrélation front → back n'existe pas**.
+- **Les logs sont centralisés et cherchables.**
+- **Les machines sont supervisées**, services managés compris.
+- **Le crash → mail reste le seul filet back** : la phase 4 n'est pas atteinte.
+- **Aucun canal de notification n'est déclaré**, et **la corrélation front → back n'existe pas**.
+- **Le temps moyen entre l'apparition d'un bug et sa détection** n'est pas mesuré : la mesure demande un relevé que personne ne tient. À reprendre autrement ou à abandonner comme critère.
 
 ## More Information
 

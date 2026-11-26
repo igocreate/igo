@@ -1,7 +1,7 @@
 # Modèle d'exécution
 
 **Statut** : **accepté** — cible ; aucun projet n'y tourne encore
-**Date** : 2026-09-18, révisé le 2026-11-26
+**Date** : 2026-09-18
 **Portée** : nouveaux projets sans besoin de puissance dédiée. Le parc existant s'en approche par l'empaquetage, qui en est le préalable.
 
 ## Context and Problem Statement
@@ -81,9 +81,9 @@ Les projets dont le besoin de puissance justifie des cœurs dédiés, ou dont le
 
 ### Ce qui doit être vérifié avant la première mise en production
 
-Le verrou de concurrence des tâches planifiées existe déjà et fonctionne. Les sessions ne sont pas portées par le serveur. ~~**Mais l'arrêt propre du serveur HTTP n'est pas traité**~~ — **livré dans `@igojs/server` 6.4.0** et éprouvé sur ladom en conteneur : la condition bloquante est levée pour tout projet igo (voir [Empaquetage](empaquetage-de-l-application.md), *Confirmation*).
+Le verrou de concurrence des tâches planifiées existe déjà et fonctionne, les sessions ne sont pas portées par le serveur, et l'arrêt propre du serveur HTTP est assuré par `@igojs/server` depuis la 6.4.0 — éprouvé en conteneur sur ladom (voir [Empaquetage](empaquetage-de-l-application.md), *Confirmation*).
 
-Reste alors propre au modèle managé, et non vérifié : les limites de la plateforme (durée maximale d'une requête, plafond d'instances) et le coût réel sur un mois complet.
+Reste propre au modèle managé, et non vérifié : les limites de la plateforme — durée maximale d'une requête, plafond d'instances — et le coût réel sur un mois complet.
 
 ## Pros and Cons of the Options
 
@@ -132,8 +132,8 @@ Reste alors propre au modèle managé, et non vérifié : les limites de la plat
 
 ## Confirmation
 
-1. ~~**Traiter l'arrêt propre du serveur HTTP**~~ — levé : `@igojs/server` 6.4.0, éprouvé en conteneur sur ladom.
-2. **Vérifier que la charge tient dans les limites du modèle** : durée maximale d'une requête, plafond d'instances simultanées, et le cas de la tâche dense qui s'exécute à la minute. **Point d'attention relevé depuis** : un projet qui génère des PDF embarque un navigateur, d'où une image de l'ordre de 3 Go — à confronter aux limites de taille d'image et au temps de démarrage à froid de la plateforme, qui conditionnent l'éligibilité d'un tel projet.
+1. **L'arrêt propre du serveur HTTP est assuré** par `@igojs/server` 6.4.0, éprouvé en conteneur sur ladom. La condition préalable est levée.
+2. **Vérifier que la charge tient dans les limites du modèle** : durée maximale d'une requête, plafond d'instances simultanées, et le cas de la tâche dense qui s'exécute à la minute. Un projet qui génère des PDF embarque un navigateur, d'où une image de l'ordre de 3 Go : sa taille et le temps de démarrage à froid qu'elle implique conditionnent l'éligibilité d'un tel projet.
 3. **Mesurer le coût réel sur un premier projet** pendant un mois complet, et le comparer à l'estimation ci-dessus. Les tarifs catalogue ne portent ni remise ni engagement. **Commencer par un environnement hors production** : le gain y est le plus net et le risque nul.
 4. **Établir si une instance maintenue active est facturée pendant son inactivité** — la documentation publique ne le dit pas, et cela détermine le coût du plancher de disponibilité.
 

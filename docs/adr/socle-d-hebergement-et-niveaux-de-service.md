@@ -1,7 +1,7 @@
 # Socle d'hébergement et niveaux de service
 
 **Statut** : **accepté** sur le principe — les prix, le RTO/RPO et l'astreinte restent à arrêter, et relèvent du commerce
-**Date** : 2026-09-18, révisé le 2026-11-26
+**Date** : 2026-09-18
 **Portée** : fixe le socle par défaut d'un nouveau projet. Ne convertit aucun projet existant.
 
 ## Context and Problem Statement
