@@ -49,15 +49,14 @@ jobs:
           username: ${{ env.REGISTRY_USER }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      # Le SHA est le seul tag déployé : c'est lui qui désigne l'artefact promu.
-      # `branch-*` sert à essayer une branche sur un environnement.
+      # Le SHA est le seul tag déployé : c'est lui qui désigne l'artefact
+      # promu. Le tag de version suit la référence qui a déclenché le workflow.
       - id: meta
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE }}
           tags: |
             type=sha,prefix=
-            type=ref,event=branch,prefix=branch-
             type=ref,event=tag
 
       # Un commit déjà construit n'est pas reconstruit : son image est celle qui
@@ -78,7 +77,14 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+          platforms: linux/amd64
+          labels: ${{ steps.meta.outputs.labels }}
           build-args: GIT_SHA=${{ github.sha }}
+          # Le téléversement des source maps demande quatre valeurs ensemble
+          # (cf. front/_.env.example) : seule la clé est un secret, les trois
+          # autres sont à passer en build-args, et le Dockerfile du front à
+          # compléter en conséquence. Tant qu'elles manquent, le plugin reste
+          # inactif et les piles d'appels de Grafana montrent du code minifié.
           secrets: |
             faro_api_key=${{ secrets.FARO_API_KEY }}
           cache-from: type=gha,scope=${{ matrix.name }}
@@ -86,7 +92,17 @@ jobs:
 
       # L'image existe déjà : on lui ajoute les tags de cette référence, sans
       # la reconstruire.
+      #
+      # Le tag du SHA est la source, et il est exclu : `imagetools create` le
+      # réemballerait dans un index, sous un digest différent. Ce qu'on a
+      # publié et testé cesserait alors d'être ce que désigne ce tag, et ce qui
+      # l'épingle par digest ne résoudrait plus.
       - if: steps.existing.outputs.found == 'true'
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
         run: |
-          docker buildx imagetools create "$IMAGE:${GITHUB_SHA::7}" \
-            $(echo "${{ steps.meta.outputs.tags }}" | sed 's/^/--tag /')
+          source="$IMAGE:${GITHUB_SHA::7}"
+          for tag in $TAGS; do
+            [ "$tag" = "$source" ] && continue
+            docker buildx imagetools create --tag "$tag" "$source"
+          done

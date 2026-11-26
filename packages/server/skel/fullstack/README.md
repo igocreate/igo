@@ -144,6 +144,10 @@ privilèges). `_.github/workflows/image.yml` les construit et les publie, tagué
 par le SHA ; un commit déjà construit est re-tagué, pas reconstruit — l'artefact
 promu est celui qui a été testé.
 
+Les deux images copient `pnpm-lock.yaml` et installent avec `--frozen-lockfile` :
+un projet qui n'a pas encore lancé `pnpm install` n'a pas de lock, et le build
+échoue sur la copie.
+
 ```bash
 docker build -f api/Dockerfile   -t {project.name}-api   .
 docker build -f front/Dockerfile -t {project.name}-front .
