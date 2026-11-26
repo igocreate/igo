@@ -10,8 +10,14 @@ import faroUploader from '@grafana/faro-rollup-plugin';
 // une police, un CDN ou une API tierce ajoutés au front s'ajoutent à cette
 // liste, et la console le dit dès `pnpm dev`. Ce qu'une balise <meta> ne peut
 // pas porter — frame-ancestors, HSTS — revient à nginx.
+// L'origine du collecteur n'est pas connue au build : elle arrive au démarrage
+// du conteneur, comme le reste des réglages d'observabilité. Le build pose donc
+// un marqueur que le point d'entrée remplace par l'origine, ou par du vide si
+// Faro est éteint. En développement, l'URL du .env est connue tout de suite.
+const FARO_ORIGIN_MARKER = '__FARO_ORIGIN__';
+
 const contentSecurityPolicy = (dev: boolean, faroUrl?: string) => {
-  const faro = faroUrl ? ` ${new URL(faroUrl).origin}` : '';
+  const faro = dev ? (faroUrl ? ` ${new URL(faroUrl).origin}` : '') : ` ${FARO_ORIGIN_MARKER}`;
   // en développement, Vite injecte le préambule React et les styles en ligne,
   // et HMR parle en WebSocket
   const inline = dev ? " 'unsafe-inline'" : '';

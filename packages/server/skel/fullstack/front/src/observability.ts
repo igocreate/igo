@@ -13,14 +13,27 @@ import { matchRoutes } from 'react-router';
 // capter une erreur survenue au chargement.
 //
 // L'URL du collecteur part dans le navigateur — ce n'est pas un secret. Elle
-// reste en variable d'environnement pour qu'un autre déploiement puisse viser
-// ailleurs sans toucher au code.
+// est lue dans une <meta> d'index.html, que le point d'entrée du conteneur
+// remplit au démarrage (docker-entrypoint.sh) : c'est ce qui permet à une même
+// image de servir tous les environnements. Une variable `VITE_*` est inlinée
+// dans les bundles, qu'il faudrait alors réécrire au démarrage — et réécrire
+// un fichier de assets/ invalide son hachage, donc le cache immuable qui en
+// dépend.
 //
-// Son absence désactive Faro : c'est le défaut d'un poste de développement, qui
-// ne doit ni consommer de quota ni mélanger ses erreurs à celles de la
-// production. Pour l'activer le temps d'un build :
-// VITE_FARO_URL=… pnpm build
-const url = import.meta.env.VITE_FARO_URL;
+// En développement, où il n'y a pas de conteneur pour remplir la <meta>, les
+// variables du .env prennent le relais.
+//
+// Une URL absente désactive Faro : c'est le défaut d'un poste de développement,
+// qui ne doit ni consommer de quota ni mélanger ses erreurs à celles de la
+// production. Pour l'activer le temps d'un build : VITE_FARO_URL=… pnpm dev
+const settings = document.querySelector<HTMLMetaElement>('meta[name="observability"]')?.dataset;
+
+// Un marqueur non remplacé — image construite mais servie hors conteneur —
+// ne doit pas être pris pour une valeur.
+const runtime = (value: string | undefined) =>
+  value && !value.startsWith('__') ? value : undefined;
+
+const url = runtime(settings?.faroUrl) ?? import.meta.env.VITE_FARO_URL;
 
 // Part du trafic en succès conservée. Une session sur dix suffit à mesurer des
 // tendances de performance, et un incident touche rarement une seule session.
@@ -31,7 +44,9 @@ const sampleShare = (value: string | undefined) => {
   const share = Number(value);
   return value && share >= 0 && share <= 1 ? share : 0.1;
 };
-const ROUTINE_SHARE = sampleShare(import.meta.env.VITE_FARO_SAMPLE);
+const ROUTINE_SHARE = sampleShare(
+  runtime(settings?.faroSample) ?? import.meta.env.VITE_FARO_SAMPLE,
+);
 
 // Tiré une fois par chargement : échantillonner événement par événement
 // laisserait un parcours à moitié enregistré et rendrait les durées illisibles.
@@ -110,7 +125,7 @@ if (url) {
       // Pas import.meta.env.MODE : il vaut 'production' dans tout build Vite, y
       // compris un `vite preview` sur un poste de développement. Les erreurs
       // locales se mélangeraient alors à celles de la production.
-      environment: import.meta.env.VITE_ENVIRONMENT || 'dev',
+      environment: runtime(settings?.environment) ?? import.meta.env.VITE_ENVIRONMENT ?? 'dev',
     },
     // Le collecteur refuse toute charge sans en-tête `X-Faro-Session-Id` : la
     // session n'est pas optionnelle, seule sa persistance l'est.
