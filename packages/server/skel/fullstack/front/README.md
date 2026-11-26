@@ -153,8 +153,9 @@ optionnelle, seule sa persistance l'est.
 
 [shadcn/ui](https://ui.shadcn.com) sur Tailwind. Ses composants ne sont pas une
 dépendance : ils se copient dans `src/components/ui/` et deviennent du code du
-projet, qu'on relit, qu'on modifie et qu'on formate comme le reste. Trois sont
-déjà là — `button`, `input`, `label` ; les autres s'ajoutent à la demande :
+projet, qu'on relit, qu'on modifie et qu'on formate comme le reste. De quoi
+faire un formulaire est déjà là — `button`, `input`, `label`, `field` ; les
+autres s'ajoutent à la demande :
 
 ```bash
 pnpm dlx shadcn@latest add select dialog table

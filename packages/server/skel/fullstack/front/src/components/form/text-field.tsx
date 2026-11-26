@@ -1,8 +1,13 @@
 import type { ComponentPropsWithoutRef } from 'react';
 import type { FieldError, FieldErrorsImpl, Merge, UseFormRegisterReturn } from 'react-hook-form';
 
+import {
+  Field,
+  FieldDescription,
+  FieldError as FieldErrorMessage,
+  FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { describedBy } from '@/lib/form';
 
 // Ce que `errors.<champ>` porte : une erreur simple, ou la forme élargie que
@@ -26,13 +31,13 @@ interface TextFieldProps extends Omit<
 }
 
 /**
- * Un champ de saisie, son libellé, son aide et son erreur, reliés pour les
- * lecteurs d'écran. C'est ce câblage — `htmlFor`, `aria-describedby`,
- * `aria-invalid` — qui justifie un composant partagé : refait à la main sur
- * chaque formulaire, il finit par être oublié quelque part.
+ * Un champ de saisie, son libellé, son aide et son erreur.
  *
- * L'habillage vient de `components/ui/`, qui porte les jetons du projet : ce
- * composant ne décide d'aucune couleur ni d'aucun espacement.
+ * `Field` et consorts donnent la mise en page et les styles ; ils ne relient
+ * pas le champ à ce qui le décrit. C'est ce que fait ce composant —
+ * `aria-describedby`, `aria-invalid` — et c'est ce qui justifie de ne pas
+ * utiliser `Field` directement dans chaque formulaire : refait à la main, ce
+ * câblage finit par être oublié quelque part.
  */
 export function TextField({ id, label, field, hint, error, ...props }: TextFieldProps) {
   const hintId = `${id}-hint`;
@@ -42,14 +47,10 @@ export function TextField({ id, label, field, hint, error, ...props }: TextField
   const message = typeof error?.message === 'string' ? error.message : undefined;
 
   return (
-    <div className="grid gap-2">
-      <Label htmlFor={id}>{label}</Label>
+    <Field data-invalid={message ? true : undefined}>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
 
-      {hint && (
-        <p id={hintId} className="text-sm text-muted-foreground">
-          {hint}
-        </p>
-      )}
+      {hint && <FieldDescription id={hintId}>{hint}</FieldDescription>}
 
       <Input
         {...field}
@@ -61,15 +62,11 @@ export function TextField({ id, label, field, hint, error, ...props }: TextField
 
       {/*
         Le message est déjà annoncé à la prise de focus par `aria-describedby`.
-        `role="alert"` s'ajoute pour qu'il le soit aussi quand il apparaît sans
-        que le champ ait le focus — à la soumission, ou quand le serveur
-        répond.
+        Le `role="alert"` que porte ce composant le fait annoncer aussi quand
+        il apparaît sans que le champ ait le focus — à la soumission, ou quand
+        le serveur répond.
       */}
-      {message && (
-        <p id={errorId} role="alert" className="text-sm text-destructive">
-          {message}
-        </p>
-      )}
-    </div>
+      <FieldErrorMessage id={errorId} errors={[{ message }]} />
+    </Field>
   );
 }
